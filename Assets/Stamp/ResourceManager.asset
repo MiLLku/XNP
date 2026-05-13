@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8ae121c1d8bcd646b1d8ef24a3b826e, type: 3}
+  m_Name: ResourceManager
+  m_EditorClassIdentifier: 
+  tileEntries:
+  - id: 1
+    tileAsset: {fileID: 11400000, guid: 46f09ce22f6ceed4b808380a93d685bb, type: 2}
+  - id: 2
+    tileAsset: {fileID: 11400000, guid: 61a7b1192820c244083f6d31d093faea, type: 2}
+  - id: 3
+    tileAsset: {fileID: 11400000, guid: 89b2ccd82923cd749afe9180155341ff, type: 2}
+  - id: 4
+    tileAsset: {fileID: 11400000, guid: 9c1e12e2ee1cc6e4faf7c9eff7f6b9d2, type: 2}
+  - id: 5
+    tileAsset: {fileID: 11400000, guid: 8bddc61e43f92014cb316794e645fcfc, type: 2}
+  - id: 6
+    tileAsset: {fileID: 11400000, guid: 5a89eccf0c9fc6d49808bc2e49182d61, type: 2}
+  - id: 7
+    tileAsset: {fileID: 11400000, guid: a8cbe485403eb084d933251a84a1826d, type: 2}
+  - id: 99
+    tileAsset: {fileID: 0}
+  entityEntries:
+  - id: 2001
+    prefab: {fileID: 1710648230924364092, guid: ae4d5b90c3812aa49b6e7271303dcf22, type: 3}
+  - id: 2002
+    prefab: {fileID: 5555555555555555551, guid: 7744ec76d26e55d429455ce10bfc8ee9, type: 3}
+  - id: 2003
+    prefab: {fileID: 5254875874074808394, guid: 01013e3909ccf4748b87fb969a5726aa, type: 3}
+  - id: 20
+    prefab: {fileID: 2513507033668713303, guid: 21edc317125955641aff5fc87f57b829, type: 3}
+  - id: 21
+    prefab: {fileID: 8981467727152508161, guid: e12d23da7d07cfd439186f3671f2192d, type: 3}
+  - id: 2004
+    prefab: {fileID: 1000, guid: a1b2c3d4e5f60000a1b2c3d4e5f60004, type: 3}
+  - id: 2005
+    prefab: {fileID: 7158746851217845667, guid: 93e10cc539125c34aa9bc78f38b33ccb, type: 3}
+  - id: 2006
+    prefab: {fileID: 7777777777777777771, guid: 9e778d2e63c26da4d9f1914451df3ba6, type: 3}
+  dropEntries:
+  - tileId: 1
+    dropPrefab: {fileID: 3067016773091759138, guid: 9b84a16ecf73d7a449f78d0b9d7a5396, type: 3}
+  - tileId: 2
+    dropPrefab: {fileID: 6183017390741095587, guid: ba7798f2402edb541b30034d8c51b650, type: 3}
+  - tileId: 3
+    dropPrefab: {fileID: 5880118806919359641, guid: a2dc3bd5d8492394682a37e21136c449, type: 3}

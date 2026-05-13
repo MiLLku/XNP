@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__UnityMCP__read_console",
+      "mcp__UnityMCP__refresh_unity",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); proj=d.get\\(''''projects'''',{}\\).get\\(''''G:/Project/Unity/XenopsProject'''',{}\\); print\\(json.dumps\\(proj.get\\(''''mcpServers'''',{}\\), indent=2\\)\\)\")"
+    ]
+  }
+}

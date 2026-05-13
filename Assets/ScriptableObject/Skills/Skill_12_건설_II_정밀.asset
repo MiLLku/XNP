@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 362860b58799be746b4d9f872dc2502f, type: 3}
+  m_Name: "Skill_12_\uAC74\uC124_II_\uC815\uBC00"
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillId: 12
+  skillName: "\uAC74\uC124 II: \uC815\uBC00"
+  description: "\uC815\uBC00 \uAD6C\uC870\uBB3C \uC124\uACC4 \uBC0F \uC2DC\uACF5\uC774
+    \uAC00\uB2A5\uD574\uC9C4\uB2E4."
+  icon: {fileID: 0}
+  category: 7
+  treePosition: {x: 2, y: 5}
+  prerequisiteSkillIds: 0b000000
+  defaultUnlocked: 0

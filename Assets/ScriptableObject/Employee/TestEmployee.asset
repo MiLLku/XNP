@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4169bb6a7a83efc4a9beef60d2aed0a3, type: 3}
+  m_Name: TestEmployee
+  m_EditorClassIdentifier: 
+  employeeID: 1
+  employeeName: "\uB514\uBC84\uAE45\uC6A9 \uB9CC\uB2A5\uC9C1\uC6D0"
+  portrait: {fileID: 0}
+  maxHealth: 100
+  maxMental: 100
+  attackPower: 10
+  abilities:
+    canMine: 1
+    canChop: 1
+    canResearch: 1
+    canCraft: 1
+    canGarden: 1
+    canBuild: 1
+    canHaul: 1
+    canDemolish: 1
+    miningSpeed: 1
+    choppingSpeed: 1
+    researchSpeed: 1
+    craftingSpeed: 1
+    gardeningSpeed: 1
+    buildingSpeed: 1
+    haulingSpeed: 1
+    demolishSpeed: 1
+  traits: []
+  hungerDecayRate: 1
+  fatigueIncreaseRate: 0.5

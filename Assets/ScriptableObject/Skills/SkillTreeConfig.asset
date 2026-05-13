@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9d12b5c4555747438f9648a8a264e03, type: 3}
+  m_Name: SkillTreeConfig
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeConfig
+  skills:
+  - {fileID: 11400000, guid: 9d612efb6e5e699409428553e1ccdc6c, type: 2}
+  - {fileID: 11400000, guid: 7f00f35763a0d8544bba4817e546920f, type: 2}
+  - {fileID: 11400000, guid: 1a549c1f81e3e8e44b0b9c01b2907796, type: 2}
+  - {fileID: 11400000, guid: 7ce71b87ce1fa934daf0aa74c6c7daa9, type: 2}
+  - {fileID: 11400000, guid: c496a1a92ed79bb4eb6879ede13149ea, type: 2}
+  - {fileID: 11400000, guid: c37c2cbf3effb8d4c9771f4a7253de9c, type: 2}
+  - {fileID: 11400000, guid: 62953851b41e0004e8b0d2b5c6fd0f03, type: 2}
+  - {fileID: 11400000, guid: 4512ef680d57fa34599b57a68e530cce, type: 2}
+  - {fileID: 11400000, guid: 34c2e510068c8b241a857f2f9774d49d, type: 2}
+  - {fileID: 11400000, guid: 3db52f7b3dcb9c94aa42de2d3444f29b, type: 2}
+  - {fileID: 11400000, guid: 7f219970859f30e44a63b1206eccd770, type: 2}
+  - {fileID: 11400000, guid: 339ff4041ab2b5c4eb77bf6e5c2f1571, type: 2}
+  - {fileID: 11400000, guid: 2414e87ef48025f4b9e5280ad537df3a, type: 2}
+  - {fileID: 11400000, guid: 849d29a07f54eff47a1e61625385fa2c, type: 2}
+  - {fileID: 11400000, guid: 2ee567f21b4f42e4cb694376fbdbcfb2, type: 2}
+  - {fileID: 11400000, guid: 315ff6ae372c75f44ac4963fd6053b3c, type: 2}
+  - {fileID: 11400000, guid: 6e32ba3e552daa84083fad762f18e878, type: 2}
+  - {fileID: 11400000, guid: d1006b54564fef841b8efc8d5822cda4, type: 2}
+  - {fileID: 11400000, guid: c8e154a6462e0de488154138483ca03c, type: 2}
+  - {fileID: 11400000, guid: 2c11f988ef8e1e143aec6b654fee2d3a, type: 2}
+  - {fileID: 11400000, guid: 6a1e14cda03ef864597e3afc4d4ac69c, type: 2}
+  - {fileID: 11400000, guid: debf0955aaa9b4b4dbd28b9e8f436420, type: 2}

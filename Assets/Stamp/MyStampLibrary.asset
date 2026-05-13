@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 213a177e1ff421e4bb814c9188c77920, type: 3}
+  m_Name: MyStampLibrary
+  m_EditorClassIdentifier: 
+  stampList:
+  - key: FLOOR_PATCH
+    size: {x: 1, y: 1}
+    pivot: {x: 0, y: 0}
+    elements:
+    - position: {x: 0, y: 0}
+      type: 0
+      id: 1
+    - position: {x: 0, y: 0}
+      type: 0
+      id: 2
+    wallElements: []
+  - key: TREE_2x3
+    size: {x: 1, y: 1}
+    pivot: {x: 0, y: 0}
+    elements:
+    - position: {x: 0, y: 0}
+      type: 4
+      id: 2001
+    wallElements: []
+  - key: SPAWN_CHEST_3X2
+    size: {x: 1, y: 1}
+    pivot: {x: 0, y: 0}
+    elements:
+    - position: {x: 0, y: 0}
+      type: 2
+      id: 2002
+    wallElements: []
+  - key: BERRY_BUSH
+    size: {x: 1, y: 1}
+    pivot: {x: 0, y: 0}
+    elements:
+    - position: {x: 0, y: 0}
+      type: 4
+      id: 2003
+    wallElements: []

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: StoneFloor
+  m_EditorClassIdentifier:
+  buildingID: 3003
+  buildingName: "\uB3CC \uBC14\uB2E5"
+  icon: {fileID: 0}
+  category: 3
+  description: "\uB3CC\uB85C \uB9CC\uB4E0 \uD29C\uD29C\uD55C \uBC14\uB2E5. \uB0B4\uAD6C\uC131\uC774 \uC88B\uC2B5\uB2C8\uB2E4."
+  buildingPrefab: {fileID: 1000, guid: a1b2c3d4e5f60000a1b2c3d4e5f60002, type: 3}
+  size: {x: 1, y: 1}
+  pivot: {x: 0, y: 0}
+  constructionTime: 5
+  requiredResources: []
+  maxHealth: 150
+  blocksMovement: 0
+  requiresFloorSupport: 0

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "MCPForUnity Server",
+      "runtimeExecutable": "uvx",
+      "runtimeArgs": ["mcpforunityserver"],
+      "port": 6400
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e13f7c21b4c811644800ed6f7e9e8dd5, type: 3}
+  m_Name: Trait_Geonjangham
+  m_EditorClassIdentifier: Assembly-CSharp::EmployeeTrait
+  traitName: "\uAC74\uC7A5\uD568"
+  description: "\uBC1B\uB294 \uBB3C\uB9AC \uD53C\uD574\uAC00 25% \uAC10\uC18C\uD569\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  type: 0
+  effects:
+    healthModifier: 0
+    mentalModifier: 0
+    attackModifier: 0
+    globalWorkSpeedModifier: 0
+    specificWorkModifiers: []
+    hungerRateModifier: 0
+    fatigueRateModifier: 0
+    canWorkAtNight: 0
+    cannotWorkInRain: 0
+    lonewolfBonus: 0
+    teamworkBonus: 0
+    physicalDamageReduction: 25
+    erosionIgnoreBonus: 0
+    moveSpeedModifier: 0
+    skillGainRateModifier: 0

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "UnityMCP": {
+      "type": "stdio",
+      "command": "C:\\Users\\ptrol\\.local\\bin\\uvx.exe",
+      "args": [
+        "--from",
+        "mcpforunityserver==9.3.1",
+        "mcp-for-unity"
+      ],
+      "env": {}
+    }
+  }
+}

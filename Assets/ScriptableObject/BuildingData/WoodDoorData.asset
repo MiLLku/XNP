@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ec3fc83f5e86db4bacc03d758c349f8, type: 3}
+  m_Name: WoodDoorData
+  m_EditorClassIdentifier: Assembly-CSharp::DoorData
+  buildingID: 2006
+  buildingName: "\uB098\uBB34 \uBB38"
+  icon: {fileID: 0}
+  category: 0
+  description: 
+  buildingPrefab: {fileID: 0}
+  size: {x: 1, y: 2}
+  pivot: {x: 0, y: 0}
+  constructionTime: 3
+  requiredResources: []
+  maxHealth: 80
+  blocksMovement: 0
+  requiresFloorSupport: 1
+  openTime: 0.5
+  closeTime: 0.5
+  closeDelay: 2
+  openSprite: {fileID: 0}
+  closedSprite: {fileID: 0}
