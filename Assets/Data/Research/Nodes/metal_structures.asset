@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: metal_structures
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: metal_structures
+  nodeName: "\uAE08\uC18D \uAD6C\uC870\uBB3C"
+  description: "\uAE08\uC18D \uC7AC\uB8CC\uB97C \uC774\uC6A9\uD55C \uAC74\uCD95 \uAE30\uBC95\uC744
+    \uC5F0\uAD6C\uD569\uB2C8\uB2E4. \uAC74\uC124 \uC18D\uB3C4 \uD5A5\uC0C1 \uBC0F
+    \uAE08\uC18D \uAC74\uBB3C\uC774 \uD574\uAE08\uB429\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - construction_basics
+  resourceCosts: []
+  researchPointCost: 150
+  unlockEffects:
+  - {fileID: 11400000, guid: b4c9c17bf48d24e4681ce26aac981ce6, type: 2}
+  treePosition: {x: -1, y: -2}

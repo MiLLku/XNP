@@ -1,0 +1,228 @@
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+/// <summary>
+/// 연구 트리 전체 상태를 관리하는 싱글톤.
+///
+/// 흐름:
+///   1. StartResearch(nodeId) → 선행 연구 + 자원 검사 → 자원 즉시 소비 → InProgress
+///   2. ResearchWorkbench.OnResearchTick() → AddProgress(points) → 포인트 누적
+///   3. 목표 포인트 달성 → CompleteResearch() → 효과 적용 → 자식 노드 Available 전환
+/// </summary>
+public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveModule
+{
+    [Header("설정")]
+    [SerializeField] private ResearchTreeConfig treeConfig;
+
+    // ─── 런타임 상태 ───────────────────────────────────────────────────────────
+
+    private Dictionary<string, ResearchNodeState> _nodeStates = new();
+    private string _activeNodeId;
+    private float _currentProgress;
+
+    private HashSet<int> _unlockedBuildingIds = new();
+    private HashSet<int> _unlockedRecipeIds = new();
+    private Dictionary<ResearchStatType, float> _statBonuses = new();
+
+    // ─── 이벤트 ────────────────────────────────────────────────────────────────
+
+    public event System.Action<ResearchNodeData> OnResearchStarted;
+    public event System.Action<ResearchNodeData> OnResearchCompleted;
+    public event System.Action<ResearchNodeData> OnResearchCancelled;
+    /// <summary>(현재 포인트, 목표 포인트)</summary>
+    public event System.Action<float, float> OnProgressChanged;
+    public event System.Action<string, ResearchNodeState> OnNodeStateChanged;
+    public event System.Action<BuildingData> OnBuildingUnlocked;
+    public event System.Action<CraftingRecipe> OnRecipeUnlocked;
+
+    // ─── 프로퍼티 ──────────────────────────────────────────────────────────────
+
+    public ResearchTreeConfig TreeConfig => treeConfig;
+    public string ActiveNodeId => _activeNodeId;
+    public float CurrentProgress => _currentProgress;
+    public ResearchNodeData ActiveNode => treeConfig?.GetNode(_activeNodeId);
+    public bool IsResearchActive => !string.IsNullOrEmpty(_activeNodeId);
+
+    // ─── 초기화 ────────────────────────────────────────────────────────────────
+
+    protected override void Awake()
+    {
+        base.Awake();
+        InitializeNodeStates();
+    }
+
+    private void InitializeNodeStates()
+    {
+        if (treeConfig == null) return;
+        foreach (var node in treeConfig.nodes)
+        {
+            if (node == null || _nodeStates.ContainsKey(node.nodeId)) continue;
+            _nodeStates[node.nodeId] = node.prerequisiteNodeIds.Count == 0
+                ? ResearchNodeState.Available
+                : ResearchNodeState.Locked;
+        }
+    }
+
+    // ─── 상태 조회 ─────────────────────────────────────────────────────────────
+
+    public ResearchNodeState GetNodeState(string nodeId)
+        => _nodeStates.TryGetValue(nodeId, out var state) ? state : ResearchNodeState.Locked;
+
+    public bool CanStartResearch(string nodeId)
+    {
+        if (treeConfig == null || IsResearchActive) return false;
+
+        var node = treeConfig.GetNode(nodeId);
+        if (node == null) return false;
+        if (GetNodeState(nodeId) != ResearchNodeState.Available) return false;
+
+        if (node.prerequisiteNodeIds.Any(id => GetNodeState(id) != ResearchNodeState.Completed))
+            return false;
+
+        if (node.resourceCosts.Count > 0 &&
+            (InventoryManager.instance == null || !InventoryManager.instance.HasItems(node.resourceCosts)))
+            return false;
+
+        return true;
+    }
+
+    // ─── 연구 제어 ─────────────────────────────────────────────────────────────
+
+    /// <summary>연구를 시작합니다. 자원을 즉시 소비하고 InProgress 상태로 전환합니다.</summary>
+    public bool StartResearch(string nodeId)
+    {
+        if (!CanStartResearch(nodeId))
+        {
+            Debug.LogWarning($"[ResearchTreeManager] 연구 시작 불가: {nodeId}");
+            return false;
+        }
+
+        var node = treeConfig.GetNode(nodeId);
+
+        if (node.resourceCosts.Count > 0 && !InventoryManager.instance.RemoveItems(node.resourceCosts))
+        {
+            Debug.LogWarning($"[ResearchTreeManager] 자원 소비 실패: {node.nodeName}");
+            return false;
+        }
+
+        _activeNodeId = nodeId;
+        _currentProgress = 0f;
+        SetNodeState(nodeId, ResearchNodeState.InProgress);
+
+        OnResearchStarted?.Invoke(node);
+        Debug.Log($"[ResearchTreeManager] 연구 시작: {node.nodeName} (목표: {node.researchPointCost}pt)");
+        return true;
+    }
+
+    /// <summary>ResearchWorkbench 틱에서 호출됩니다. 활성 연구에 포인트를 누적합니다.</summary>
+    public void AddProgress(float points)
+    {
+        if (!IsResearchActive || treeConfig == null) return;
+
+        var node = treeConfig.GetNode(_activeNodeId);
+        if (node == null) return;
+
+        _currentProgress += points;
+        OnProgressChanged?.Invoke(_currentProgress, node.researchPointCost);
+
+        if (_currentProgress >= node.researchPointCost)
+            CompleteResearch(node);
+    }
+
+    /// <summary>진행 중인 연구를 취소합니다. 소비된 자원은 반환되지 않습니다.</summary>
+    public void CancelResearch()
+    {
+        if (!IsResearchActive) return;
+
+        var node = treeConfig.GetNode(_activeNodeId);
+        if (node == null) return;
+
+        SetNodeState(_activeNodeId, ResearchNodeState.Available);
+        _activeNodeId = null;
+        _currentProgress = 0f;
+
+        OnResearchCancelled?.Invoke(node);
+        Debug.Log($"[ResearchTreeManager] 연구 취소: {node?.nodeName}");
+    }
+
+    private void CompleteResearch(ResearchNodeData node)
+    {
+        SetNodeState(node.nodeId, ResearchNodeState.Completed);
+        _activeNodeId = null;
+        _currentProgress = 0f;
+
+        foreach (var effect in node.unlockEffects)
+            effect?.Apply();
+
+        foreach (var child in treeConfig.GetChildren(node))
+        {
+            if (GetNodeState(child.nodeId) == ResearchNodeState.Locked && ArePrerequisitesMet(child))
+                SetNodeState(child.nodeId, ResearchNodeState.Available);
+        }
+
+        OnResearchCompleted?.Invoke(node);
+        Debug.Log($"[ResearchTreeManager] 연구 완료: {node.nodeName}");
+    }
+
+    private bool ArePrerequisitesMet(ResearchNodeData node)
+        => node.prerequisiteNodeIds.All(id => GetNodeState(id) == ResearchNodeState.Completed);
+
+    private void SetNodeState(string nodeId, ResearchNodeState state)
+    {
+        _nodeStates[nodeId] = state;
+        OnNodeStateChanged?.Invoke(nodeId, state);
+    }
+
+    // ─── Effect 콜백 ───────────────────────────────────────────────────────────
+
+    public void RegisterBuildingUnlock(BuildingData building)
+    {
+        if (building == null) return;
+        _unlockedBuildingIds.Add(building.buildingID);
+        OnBuildingUnlocked?.Invoke(building);
+        Debug.Log($"[ResearchTreeManager] 건물 해금: {building.buildingName}");
+    }
+
+    public void RegisterRecipeUnlock(CraftingRecipe recipe)
+    {
+        if (recipe == null) return;
+        _unlockedRecipeIds.Add(recipe.recipeID);
+        OnRecipeUnlocked?.Invoke(recipe);
+        Debug.Log($"[ResearchTreeManager] 레시피 해금: {recipe.outputItem?.itemName}");
+    }
+
+    public void ApplyStatBonus(ResearchStatType statType, float value)
+    {
+        _statBonuses.TryGetValue(statType, out float current);
+        _statBonuses[statType] = current + value;
+        Debug.Log($"[ResearchTreeManager] 스탯 보너스: {statType} +{value} (누적: {_statBonuses[statType]})");
+    }
+
+    // ─── 외부 조회 ─────────────────────────────────────────────────────────────
+
+    public bool IsBuildingUnlocked(BuildingData building)
+        => building != null && _unlockedBuildingIds.Contains(building.buildingID);
+
+    public bool IsRecipeUnlocked(CraftingRecipe recipe)
+        => recipe != null && _unlockedRecipeIds.Contains(recipe.recipeID);
+
+    public float GetStatBonus(ResearchStatType statType)
+        => _statBonuses.TryGetValue(statType, out float val) ? val : 0f;
+
+    // ─── ISaveModule ────────────────────────────────────────────────────────────
+
+    public int SaveOrder => 85;
+
+    public void Capture(SaveData data)
+    {
+        // TODO: SaveData에 연구 트리 저장 필드 추가 후 구현
+    }
+
+    public void Restore(SaveData data)
+    {
+        // TODO: SaveData에서 연구 트리 복원 후 구현
+    }
+
+    public void PostRestore(SaveData data) { }
+}

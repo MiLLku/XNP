@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 5000}
   - component: {fileID: 6000}
   m_Layer: 0
-  m_Name: Wood Floor
+  m_Name: Stone Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -37,6 +37,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &3000
 SpriteRenderer:
+  serializedVersion: 2
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -55,6 +56,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -76,11 +79,13 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 1144638543, guid: 6756500623418944bbe5d30216206187, type: 3}
-  m_Color: {r: 0.82, g: 0.55, b: 0.27, a: 1}
+  m_MaskInteraction: 0
+  m_Sprite: {fileID: -1429446436, guid: 2dbdc99de57d7f1479aa8ea75174b05c, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -88,7 +93,6 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!61 &4000
 BoxCollider2D:
@@ -127,8 +131,8 @@ BoxCollider2D:
   m_Offset: {x: 0.5, y: 0.5}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0, y: 0}
-    oldSize: {x: 1, y: 1}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 5.15625, y: 5.15625}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -146,9 +150,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8a4a515eb760f0348aca3e03293b65b1, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  buildingData: {fileID: 11400000, guid: b1c2d3e4f5a60000b1c2d3e4f5a60001, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buildingData: {fileID: 11400000, guid: b1c2d3e4f5a60000b1c2d3e4f5a60002, type: 3}
   manualFunctionalScripts: []
   showDebugInfo: 0
 --- !u!114 &6000
@@ -161,9 +165,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9d2077b416bf487d990479cee3fdfd96, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  tileType: 0
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tileType: 1
   movementSpeedMultiplier: 1
   isPassable: 0
   allowsVerticalMovement: 0

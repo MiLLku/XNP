@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: erosion_resistance
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: erosion_resistance
+  nodeName: "\uCE68\uC2DD \uC800\uD56D \uC5F0\uAD6C"
+  description: "\uC81C\uB178\uD504\uC2A4\uAC00 \uC720\uBC1C\uD558\uB294 \uCE68\uC2DD\uC5D0
+    \uC800\uD56D\uD558\uB294 \uCCB4\uACC4\uB97C \uC5F0\uAD6C\uD569\uB2C8\uB2E4. \uC9C1\uC6D0\uC758
+    \uCE68\uC2DD \uD53C\uD574\uAC00 \uD06C\uAC8C \uAC10\uC18C\uD569\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - xenops_ecology
+  resourceCosts: []
+  researchPointCost: 150
+  unlockEffects:
+  - {fileID: 11400000, guid: eb84914ac72827f478592726805115d0, type: 2}
+  treePosition: {x: 4, y: -2}

@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: reinforced_construction
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: reinforced_construction
+  nodeName: "\uAC15\uD654 \uAC74\uCD95"
+  description: "\uB0B4\uAD6C\uC131\uC774 \uD5A5\uC0C1\uB41C \uAC74\uCD95 \uACF5\uBC95\uC744
+    \uC5F0\uAD6C\uD569\uB2C8\uB2E4. \uAC74\uC124 \uC18D\uB3C4\uAC00 \uD06C\uAC8C
+    \uD5A5\uC0C1\uB429\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - metal_structures
+  resourceCosts: []
+  researchPointCost: 200
+  unlockEffects:
+  - {fileID: 11400000, guid: eaa3edd687a5fb140b64079a0f7cda80, type: 2}
+  treePosition: {x: -1, y: -3}

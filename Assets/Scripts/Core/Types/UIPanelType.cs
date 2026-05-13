@@ -26,4 +26,7 @@ public enum UIPanelType
 
     /// <summary>직원 채용 패널</summary>
     HiringUI,
+
+    /// <summary>연구 트리 패널</summary>
+    ResearchTreeUI,
 }

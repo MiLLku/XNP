@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: survival_basics
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: survival_basics
+  nodeName: "\uC0DD\uC874 \uAE30\uCD08"
+  description: "\uADF9\uD55C \uD658\uACBD\uC5D0\uC11C \uC9C1\uC6D0\uC774 \uC0DD\uC874\uD560
+    \uC218 \uC788\uB294 \uAE30\uCD08 \uC9C0\uC2DD\uC744 \uC5F0\uAD6C\uD569\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - research_basics
+  resourceCosts: []
+  researchPointCost: 80
+  unlockEffects:
+  - {fileID: 11400000, guid: 4b3e098f658ec8e49a6bcba9adf96ed9, type: 2}
+  treePosition: {x: -4, y: -1}

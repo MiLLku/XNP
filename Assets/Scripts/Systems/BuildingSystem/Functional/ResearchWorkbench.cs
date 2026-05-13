@@ -249,11 +249,14 @@ public class ResearchWorkbench : MonoBehaviour, IBuildingFunction
     /// <param name="deltaTime">이번 프레임의 경과 시간</param>
     public void OnResearchTick(float speedMultiplier, float deltaTime)
     {
-        if (!_isResearching || ResearchManager.instance == null) return;
+        if (!_isResearching) return;
 
         float xenopsBonus = ContaminationSphereBehavior.GetWorkSpeedBonusAt(transform.position);
-        float points = basePointsPerSecond * speedMultiplier * (1f + xenopsBonus) * deltaTime;
-        ResearchManager.instance.AddPoints(points);
+        float researchBonus = ResearchTreeManager.instance?.GetStatBonus(ResearchStatType.ResearchSpeedBonus) ?? 0f;
+        float points = basePointsPerSecond * speedMultiplier * (1f + xenopsBonus + researchBonus) * deltaTime;
+
+        ResearchManager.instance?.AddPoints(points);
+        ResearchTreeManager.instance?.AddProgress(points);
     }
 
     /// <summary>

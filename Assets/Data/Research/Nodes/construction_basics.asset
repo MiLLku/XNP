@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: construction_basics
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: construction_basics
+  nodeName: "\uAC74\uC124 \uAE30\uCD08"
+  description: "\uD6A8\uC728\uC801\uC778 \uAC74\uC124 \uACF5\uBC95\uC744 \uC5F0\uAD6C\uD569\uB2C8\uB2E4.
+    \uAC74\uC124 \uC18D\uB3C4\uAC00 \uD5A5\uC0C1\uB429\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - research_basics
+  resourceCosts: []
+  researchPointCost: 80
+  unlockEffects:
+  - {fileID: 11400000, guid: e396ff8e08d9f1346a340660821e3221, type: 2}
+  treePosition: {x: -1, y: -1}
