@@ -50,7 +50,32 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
         _eventLastTriggerTime = new Dictionary<int, float>();
         _triggeredEventIds = new HashSet<int>();
 
+        // Resources/Events/ 폴더에 있는 EventData 에셋을 자동 등록
+        LoadEventsFromResources();
+
         ScheduleNextEvent();
+    }
+
+    /// <summary>
+    /// Resources/Events/ 경로의 EventData 에셋을 allEvents에 자동 추가합니다.
+    /// 인스펙터에서 수동 등록한 이벤트와 중복되지 않도록 eventId로 비교합니다.
+    /// </summary>
+    private void LoadEventsFromResources()
+    {
+        var loaded = Resources.LoadAll<EventData>("Events");
+        if (loaded == null || loaded.Length == 0) return;
+
+        if (allEvents == null) allEvents = new List<EventData>();
+
+        foreach (var evt in loaded)
+        {
+            if (evt == null) continue;
+            if (allEvents.Exists(e => e != null && e.eventId == evt.eventId)) continue;
+            allEvents.Add(evt);
+        }
+
+        if (showDebugLogs && loaded.Length > 0)
+            Debug.Log($"[EventManager] Resources/Events 에서 {loaded.Length}개 이벤트 자동 로드");
     }
 
     private void Update()
@@ -527,6 +552,38 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
     #endregion
 
     #region 에디터 테스트
+
+    /// <summary>
+    /// XenopsAppearance 카테고리 이벤트를 조건·쿨다운 무시하고 즉시 발동합니다.
+    /// BottomBar 강제 발동 버튼 전용. 해당 카테고리 이벤트가 없으면 랜덤 폴백.
+    /// </summary>
+    public void ForceSpawnXenopsEvent()
+    {
+        var xenopsEvents = allEvents?
+            .Where(e => e != null && e.category == EventCategory.XenopsAppearance)
+            .ToList();
+
+        if (xenopsEvents != null && xenopsEvents.Count > 0)
+        {
+            int totalWeight = xenopsEvents.Sum(e => e.weight);
+            int rand = UnityEngine.Random.Range(0, totalWeight);
+            int cumulative = 0;
+            foreach (var evt in xenopsEvents)
+            {
+                cumulative += evt.weight;
+                if (rand < cumulative)
+                {
+                    TriggerEvent(evt);
+                    return;
+                }
+            }
+            TriggerEvent(xenopsEvents.Last());
+        }
+        else
+        {
+            SpawnRandomXenopsFallback();
+        }
+    }
 
     /// <summary>
     /// XenopsAppearance 카테고리 이벤트 중 하나를 랜덤으로 발생시킵니다.

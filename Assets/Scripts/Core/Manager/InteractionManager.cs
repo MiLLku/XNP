@@ -124,8 +124,11 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     {
         if (_gameMap == null) return;
         
-        HandleModeHotkeys();
-        
+        if (Input.GetKeyDown(KeyCode.Escape) && _currentMode != InteractMode.Normal)
+        {
+            SetMode(InteractMode.Normal);
+        }
+
         if (enableCheatKey && Input.GetKeyDown(KeyCode.F9))
         {
             ExecuteAllOrdersInstantly();
@@ -185,44 +188,6 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     #endregion
     
     #region 모드 관리
-    
-    private void HandleModeHotkeys()
-    {
-        if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.Escape))
-        {
-            SetMode(InteractMode.Normal);
-        }
-        else if (Input.GetKeyDown(KeyCode.Q))
-        {
-            if (_currentMode == InteractMode.Mine)
-            {
-                ConfirmMiningSelection();
-            }
-            else
-            {
-                SetMode(InteractMode.Mine);
-            }
-        }
-        else if (Input.GetKeyDown(KeyCode.W))
-        {
-            SetMode(InteractMode.Harvest);
-        }
-        else if (Input.GetKeyDown(KeyCode.B))
-        {
-            if (_currentMode == InteractMode.Build)
-            {
-                SetMode(InteractMode.Normal);
-            }
-            else
-            {
-                SetMode(InteractMode.Build);
-            }
-        }
-        else if (Input.GetKeyDown(KeyCode.R))
-        {
-            SetMode(InteractMode.Demolish);
-        }
-    }
     
     public void SetMode(InteractMode mode)
     {
@@ -806,7 +771,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         // 배치 로직은 ConstructionManager가 처리
         // InteractionManager는 모드 전환과 UI 관리만 담당
         
-        if (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(1))
+        if (Input.GetMouseButtonDown(1))
         {
             if (_constructionManager != null && _constructionManager.IsPlacementMode)
             {

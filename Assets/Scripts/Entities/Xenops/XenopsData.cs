@@ -105,11 +105,15 @@ public class XenopsData : ScriptableObject
                 $"[XenopsData] {xenopsName}: ID {xenopsID}는 Xenops 범위(6000~6999)에 속하지 않습니다!");
         }
 
-        if (benefits.Count == 0)
-            Debug.LogWarning($"[XenopsData] {xenopsName}: 이로운 효과가 없습니다! 최소 1개 필요.");
+        // Hostile 타입(전투 개체)은 직원 장착/연구 대상이 아니므로 benefits/drawbacks 불필요
+        if (xenopsType != XenopsType.Hostile)
+        {
+            if (benefits.Count == 0)
+                Debug.LogWarning($"[XenopsData] {xenopsName}: 이로운 효과가 없습니다! 최소 1개 필요.");
 
-        if (drawbacks.Count == 0)
-            Debug.LogWarning($"[XenopsData] {xenopsName}: 해로운 효과가 없습니다! 최소 1개 필요.");
+            if (drawbacks.Count == 0)
+                Debug.LogWarning($"[XenopsData] {xenopsName}: 해로운 효과가 없습니다! 최소 1개 필요.");
+        }
     }
 
     #endregion

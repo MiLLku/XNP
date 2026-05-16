@@ -21,6 +21,9 @@ public class MapRenderer : MonoBehaviour
     private GameMap _gameMap;
     private ResourceManager _resourceManager;
 
+    /// <summary>메인 타일맵 (EventEffectApplier 등 외부에서 좌표 변환용으로 참조)</summary>
+    public Tilemap MainTilemap => tilemap;
+
     #endregion
 
     #region 초기화

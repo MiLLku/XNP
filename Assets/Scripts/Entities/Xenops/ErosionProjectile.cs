@@ -1,0 +1,148 @@
+using UnityEngine;
+using UnityEngine.Tilemaps;
+
+/// <summary>
+/// 침식 투사체.
+/// ErosionProjectilePool에서 꺼내 사용하며, 아래 조건 중 하나로 풀에 반환됩니다.
+///   - 직원 명중 → 침식 + 체력 피해 적용
+///   - 건물 명중 → 건물 피해 적용 (건물 체력 시스템 연동 대기)
+///   - 타일 명중 → 타일 파괴
+///   - 수명 만료
+///
+/// 프리팹 구성:
+///   SpriteRenderer / Rigidbody2D (gravityScale=0, Continuous) /
+///   CircleCollider2D (isTrigger=true, radius=0.5) / ErosionProjectile
+/// </summary>
+[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(CircleCollider2D))]
+public class ErosionProjectile : MonoBehaviour
+{
+    private float _erosionAmount;
+    private float _healthDamage;
+    private float _lifetime;
+    private bool  _isReturned;
+
+    private Rigidbody2D           _rb;
+    private ErosionProjectilePool _pool;
+
+    private void Awake()
+    {
+        _rb = GetComponent<Rigidbody2D>();
+    }
+
+    // ─── 풀 연결 ────────────────────────────────
+    public void SetPool(ErosionProjectilePool pool) => _pool = pool;
+
+    // ─── 초기화 (풀에서 꺼낼 때마다 호출) ────────
+    public void Init(Vector2 direction, float speed, float erosionAmount, float healthDamage, float lifetime)
+    {
+        _erosionAmount = erosionAmount;
+        _healthDamage  = healthDamage;
+        _lifetime      = lifetime;
+        _isReturned    = false;
+
+        _rb.linearVelocity = direction.normalized * speed;
+    }
+
+    // ─── 생명주기 ────────────────────────────────
+    private void Update()
+    {
+        _lifetime -= Time.deltaTime;
+        if (_lifetime <= 0f)
+            ReturnToPool();
+    }
+
+    // ─── 충돌 처리 ──────────────────────────────
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (_isReturned) return;
+
+        // ── 1. 직원 명중 ──────────────────────────
+        var employee = other.GetComponent<Employee>();
+        if (employee != null)
+        {
+            if (employee.State == EmployeeState.Dead) return;
+
+            if (_healthDamage > 0f)
+                employee.ModifyHealth(-_healthDamage);
+
+            if (_erosionAmount > 0f)
+                employee.SetErosion(employee.ErosionLevel + _erosionAmount);
+
+            ReturnToPool();
+            return;
+        }
+
+        // ── 2. 건물 명중 ──────────────────────────
+        var building = other.GetComponent<Building>();
+        if (building != null)
+        {
+            HandleBuildingHit(building);
+            ReturnToPool();
+            return;
+        }
+
+        // ── 3. 타일맵 명중 ────────────────────────
+        var tilemap = other.GetComponent<Tilemap>()
+                   ?? other.GetComponentInParent<Tilemap>();
+
+        if (tilemap != null)
+        {
+            HandleTileHit(tilemap);
+            ReturnToPool();
+        }
+    }
+
+    // ─────────────────────────────────────────────
+    #region 피해 처리
+
+    private void HandleBuildingHit(Building building)
+    {
+        // TODO: 건물 체력 시스템 구현 후 연동
+        // building.ModifyHealth(-_healthDamage);
+        Debug.Log($"[ErosionProjectile] 건물 명중: {building.name} (건물 피해 시스템 대기 중)");
+    }
+
+    private void HandleTileHit(Tilemap tilemap)
+    {
+        if (MapGenerator.instance == null) return;
+
+        var gameMap     = MapGenerator.instance.GameMapInstance;
+        var mapRenderer = MapGenerator.instance.MapRendererInstance;
+        if (gameMap == null || mapRenderer == null) return;
+
+        // 투사체 현재 위치 → 타일 좌표
+        Vector3Int cellPos = tilemap.WorldToCell(transform.position);
+        int x = cellPos.x;
+        int y = cellPos.y;
+
+        if (x < 0 || x >= GameMap.MAP_WIDTH || y < 0 || y >= GameMap.MAP_HEIGHT) return;
+
+        int tileID = gameMap.TileGrid[x, y];
+
+        // 빈 타일(0) 또는 바닥 타일(7)은 무시
+        if (tileID == 0 || tileID == 7) return;
+
+        // 이미 채광 작업 중인 타일은 건드리지 않음
+        if (WorkSystemManager.instance != null &&
+            WorkSystemManager.instance.IsTileUnderWork(cellPos)) return;
+
+        // 타일 파괴 (채광 작업과 달리 자원 드랍 없음)
+        gameMap.SetTile(x, y, 0);
+        gameMap.UnmarkTileOccupied(x, y);
+        mapRenderer.UpdateTileVisual(x, y);
+
+        Debug.Log($"[ErosionProjectile] 타일 파괴: ({x},{y}) tileID={tileID}");
+    }
+
+    #endregion
+
+    // ─── 풀 반환 ────────────────────────────────
+    private void ReturnToPool()
+    {
+        if (_isReturned) return;
+        _isReturned = true;
+        _rb.linearVelocity = Vector2.zero;
+        _pool?.Return(this);
+    }
+}

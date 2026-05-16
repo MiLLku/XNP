@@ -165,7 +165,11 @@ public enum EffectType
     /// <summary>대상 직원의 침식 수치 변경 (value = 변화량, 음수 = 감소)</summary>
     ModifyErosion,
     /// <summary>포스트 레이드 가속 회복 즉시 시작</summary>
-    StartPostRaidRecovery
+    StartPostRaidRecovery,
+
+    // 적 스폰
+    /// <summary>안개 속 랜덤 위치에 제노프스 등장 (targetId = XenopsData ID)</summary>
+    SpawnXenopsInFog
 }
 
 /// <summary>

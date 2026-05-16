@@ -118,6 +118,12 @@ public class XenopsManager : DestroySingleton<XenopsManager>, ISaveModule
         }
 
         xenops.Initialize(xenopsData);
+
+        // Hostile 타입은 스폰 즉시 Active 상태로 전환 → Behavior.OnActivated() 호출
+        // (Start()가 Update() 보다 먼저 실행되므로 캐시/탐지존 초기화 후 AI 작동)
+        if (xenopsData.xenopsType == XenopsType.Hostile)
+            xenops.SetState(XenopsState.Active);
+
         RegisterXenops(xenops);
 
         Debug.Log($"[XenopsManager] {xenopsData.xenopsName} 스폰 완료 (ID:{xenops.InstanceId}, 위치:{position})");

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 /// <summary>
 /// 이벤트 효과 적용기
@@ -107,6 +108,10 @@ public static class EventEffectApplier
             // ===== 제노프스 =====
             case EffectType.SpawnXenops:
                 SpawnXenopsNearCamera(effect.targetId);
+                break;
+
+            case EffectType.SpawnXenopsInFog:
+                SpawnXenopsInFogArea(effect.targetId);
                 break;
 
             default:
@@ -356,6 +361,94 @@ public static class EventEffectApplier
 
         XenopsManager.instance.SpawnXenops(xenopsDataId, spawnPos);
         Debug.Log($"[EventEffectApplier] 제노프스 등장: ID {xenopsDataId} at {spawnPos}");
+    }
+
+    /// <summary>
+    /// 안개(미공개) 영역의 지면 위 임의 위치에 제노프스를 스폰합니다.
+    /// 조건: FogOfWar 미공개 + 해당 타일 공기(0) + 바로 아래 타일 고체.
+    /// 후보가 없으면 카메라 근처 폴백.
+    /// </summary>
+    private static void SpawnXenopsInFogArea(int xenopsDataId)
+    {
+        if (XenopsManager.instance == null)
+        {
+            Debug.LogWarning("[EventEffectApplier] XenopsManager가 없습니다.");
+            return;
+        }
+
+        var mapGen = MapGenerator.instance;
+        var fogMgr = FogOfWarManager.instance;
+
+        if (mapGen == null || fogMgr == null)
+        {
+            SpawnXenopsNearCamera(xenopsDataId);
+            return;
+        }
+
+        var gameMap = mapGen.GameMapInstance;
+        if (gameMap == null)
+        {
+            SpawnXenopsNearCamera(xenopsDataId);
+            return;
+        }
+
+        // ── 안개 속 지면 위 후보 타일 수집 ────────────────────────
+        var candidates = new List<Vector2Int>();
+        for (int x = 0; x < GameMap.MAP_WIDTH; x++)
+        {
+            for (int y = 1; y < GameMap.MAP_HEIGHT; y++)
+            {
+                if (fogMgr.IsRevealed(x, y))       continue; // 이미 보임 → 제외
+                if (gameMap.TileGrid[x, y] != 0)   continue; // 공기 아님 → 제외
+                if (gameMap.TileGrid[x, y - 1] == 0) continue; // 지면 없음 → 제외
+                candidates.Add(new Vector2Int(x, y));
+            }
+        }
+
+        if (candidates.Count == 0)
+        {
+            Debug.Log("[EventEffectApplier] 안개 속 스폰 후보 없음 → 카메라 근처 폴백");
+            SpawnXenopsNearCamera(xenopsDataId);
+            return;
+        }
+
+        // ── 랜덤 후보 선택 → 월드 좌표 변환 ──────────────────────
+        var pick = candidates[UnityEngine.Random.Range(0, candidates.Count)];
+
+        Vector3 spawnPos;
+        Tilemap tm = mapGen.MapRendererInstance?.MainTilemap;
+        if (tm != null)
+        {
+            spawnPos = tm.GetCellCenterWorld(new Vector3Int(pick.x, pick.y, 0));
+        }
+        else
+        {
+            // 타일맵 참조 불가 시 1:1 좌표 가정 (픽셀당유닛=1)
+            spawnPos = new Vector3(pick.x + 0.5f, pick.y + 0.5f, 0f);
+        }
+
+        // GameDatabase.Instance 없이도 동작하도록 XenopsData 직접 전달 오버로드 사용
+        XenopsData xenopsData = null;
+        if (GameDatabase.Instance != null)
+        {
+            xenopsData = GameDatabase.Instance.GetXenopsData(xenopsDataId);
+        }
+        else
+        {
+            // GameDatabase 미초기화 폴백: allXenopsData 직접 탐색
+            var db = Resources.FindObjectsOfTypeAll<GameDatabase>();
+            if (db.Length > 0)
+                xenopsData = db[0].allXenopsData?.Find(x => x != null && x.xenopsID == xenopsDataId);
+        }
+
+        if (xenopsData == null)
+        {
+            Debug.LogWarning($"[EventEffectApplier] XenopsData 없음 (ID {xenopsDataId}). GameDatabase에 등록했는지 확인하세요.");
+            return;
+        }
+
+        XenopsManager.instance.SpawnXenops(xenopsData, spawnPos);
+        Debug.Log($"[EventEffectApplier] 안개 속 제노프스 등장: {xenopsData.xenopsName} at tile({pick.x},{pick.y}) world{spawnPos}");
     }
 
     #endregion

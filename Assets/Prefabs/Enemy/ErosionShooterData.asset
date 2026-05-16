@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8834010dd0185a74682fc5b84b501adf, type: 3}
+  m_Name: ErosionShooterData
+  m_EditorClassIdentifier: Assembly-CSharp::ErosionShooterData
+  xenopsID: 6100
+  xenopsName: "\uCE68\uC2DD \uC0AC\uC218"
+  description: "\uCE68\uC2DD\uC131 \uD22C\uC0AC\uCCB4\uB97C \uBC1C\uC0AC\uD558\uB294
+    \uC6D0\uAC70\uB9AC \uC801. \uD53C\uD0C4 \uC2DC \uCE68\uC2DD \uC218\uCE58\uAC00
+    \uBE60\uB974\uAC8C \uC313\uC778\uB2E4."
+  icon: {fileID: 21300000, guid: 1d721de1380c3f34092c4fca0b1e0a04, type: 3}
+  xenopsType: 3
+  grade: 2
+  prefab: {fileID: 5663392544619772851, guid: 7a3f9ef8c49193d4882c9acbf13f5abb, type: 3}
+  benefits: []
+  drawbacks: []
+  maxInterpretationLevel: 10
+  baseExpRequired: 50
+  expPerInteraction: 10
+  equipmentSlot: 0
+  effectRadius: 3
+  infiltrateInterval: 30
+  hostileStats:
+    moveSpeed: 2.5
+    maxHealth: 80
+    defense: 0
+    attackSpeed: 0.6
+    attackDamage: 1
+    attackRange: 8
+    size: 1
+    aoeErosionPerSecond: 3
+    aoeErosionRange: 2.5
+    subdueDropItemId: 0
+    subdueDropAmount: 1
+  projectilePrefab: {fileID: 1201937194289528831, guid: fbb3f9640d05c064896017bed360a676, type: 3}
+  projectileSpeed: 8
+  projectileLifetime: 3
+  erosionOnHit: 12
+  healthDamageOnHit: 1

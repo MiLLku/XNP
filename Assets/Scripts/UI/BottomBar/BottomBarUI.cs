@@ -7,14 +7,19 @@ using UnityEngine.UI;
 /// 계층 구조:
 ///   BottomBar
 ///   └── ButtonContainer  [HorizontalLayoutGroup]
-///       ├── WorkBtn      → WorkModeBar 토글
-///       └── ResearchBtn  → ResearchTreeUI 토글
+///       ├── WorkBtn        → WorkModeBar 토글
+///       ├── ResearchBtn    → ResearchTreeUI 토글
+///       └── SpawnEventBtn  → XenopsAppearance 이벤트 강제 발동 (디버그/테스트용)
 /// </summary>
 public class BottomBarUI : MonoBehaviour
 {
     [Header("버튼 참조")]
     [SerializeField] private Button researchButton;
     [SerializeField] private Button workButton;
+
+    [Header("이벤트 강제 발동 버튼 (테스트용)")]
+    [Tooltip("클릭 시 XenopsAppearance 카테고리 이벤트를 조건 무시하고 즉시 발동합니다.")]
+    [SerializeField] private Button spawnEventButton;
 
     [Header("패널 참조")]
     [SerializeField] private WorkModeBarUI workModeBar;
@@ -23,6 +28,7 @@ public class BottomBarUI : MonoBehaviour
     {
         researchButton?.onClick.AddListener(OnResearchClicked);
         workButton?.onClick.AddListener(OnWorkClicked);
+        spawnEventButton?.onClick.AddListener(OnSpawnEventClicked);
     }
 
     private void OnResearchClicked()
@@ -33,5 +39,19 @@ public class BottomBarUI : MonoBehaviour
     private void OnWorkClicked()
     {
         workModeBar?.Toggle();
+    }
+
+    /// <summary>
+    /// XenopsAppearance 이벤트를 즉시 강제 발동합니다.
+    /// EventManager.allEvents 에 등록된 이벤트가 없으면 폴백으로 랜덤 제노프스를 스폰합니다.
+    /// </summary>
+    private void OnSpawnEventClicked()
+    {
+        if (EventManager.instance == null)
+        {
+            Debug.LogWarning("[BottomBarUI] EventManager가 없습니다.");
+            return;
+        }
+        EventManager.instance.ForceSpawnXenopsEvent();
     }
 }

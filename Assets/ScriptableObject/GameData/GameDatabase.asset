@@ -30,6 +30,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b1c2d3e4f5a60000b1c2d3e4f5a60006, type: 2}
   - {fileID: 11400000, guid: b1c2d3e4f5a60000b1c2d3e4f5a60007, type: 2}
   - {fileID: 11400000, guid: c8d9e0f1a2b30000c8d9e0f1a2b30010, type: 2}
+  allXenopsData:
+  - {fileID: 11400000, guid: 085925dc2a0b8564a8e33ec85c9f3b8b, type: 2}
   allItemData:
   - {fileID: 11400000, guid: 3824590cd90a121418efa5c76787ea7b, type: 2}
   - {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
