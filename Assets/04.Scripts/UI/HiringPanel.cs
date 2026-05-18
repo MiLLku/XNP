@@ -233,7 +233,7 @@ public class HiringPanel : BasePanel
         if (hired != null)
             Debug.Log($"[HiringPanel] '{data.employeeName}' 채용 완료. 스폰 위치: {spawnPos}");
 
-        _hiringOffice.MarkUsed();
+        _hiringOffice.MarkUsed(data); // 미선택 런타임 인스턴스 해제
         UIManager.instance?.HidePanel(UIPanelType.HiringUI);
     }
 

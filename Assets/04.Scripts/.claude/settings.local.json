@@ -57,7 +57,9 @@
       "mcp__e2374b58-6b21-4610-9c4f-e3a5237af426__notion-search",
       "mcp__e2374b58-6b21-4610-9c4f-e3a5237af426__notion-fetch",
       "mcp__e2374b58-6b21-4610-9c4f-e3a5237af426__notion-update-page",
-      "mcp__unityMCP__set_active_instance"
+      "mcp__unityMCP__set_active_instance",
+      "Bash(cmd /c dir \"G:\\\\Project\\\\Unity\\\\XNP\\\\Assets\")",
+      "PowerShell(New-Item -ItemType Directory -Path \"G:\\\\Project\\\\Unity\\\\XNP\\\\Assets\\\\Scripts\\\\Entities\\\\Employee\\\\Generation\" -Force)"
     ]
   },
   "enabledMcpjsonServers": [

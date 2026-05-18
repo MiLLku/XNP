@@ -51,6 +51,22 @@ public class EmployeeData : ScriptableObject
 
     #endregion
 
+    #region 외형
+
+    [Header("외형")]
+    [Tooltip("헤어 스타일·색상 등 외형 데이터. null이면 외형 적용을 건너뜁니다.")]
+    public EmployeeAppearance appearance;
+
+    #endregion
+
+    #region 초기 결격 작업
+
+    [Header("초기 결격 작업")]
+    [Tooltip("생성 시 비자격 상태로 시작할 작업 목록. 런타임에 AddDisqualification/RemoveDisqualification으로 변경 가능.")]
+    public List<WorkType> initialDisqualifications = new List<WorkType>();
+
+    #endregion
+
     #region 욕구 설정
 
     [Header("기본 욕구 설정")]

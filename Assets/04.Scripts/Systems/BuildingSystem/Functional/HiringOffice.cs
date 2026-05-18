@@ -14,9 +14,9 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
 {
     #region 필드 및 설정
 
-    [Header("채용 후보 데이터")]
-    [Tooltip("채용 가능한 전체 직원 EmployeeData SO 목록 (Inspector에서 할당)")]
-    [SerializeField] private List<EmployeeData> allEmployeeDataList = new List<EmployeeData>();
+    [Header("채용 후보 생성 설정")]
+    [Tooltip("무작위 직원 생성 규칙 (이름·헤어·특성 풀, 기본 스탯 등)")]
+    [SerializeField] private EmployeeGenerationConfig generationConfig;
 
     [Header("스폰 설정")]
     [Tooltip("건물 위치 기준 채용된 직원의 스폰 위치 오프셋")]
@@ -76,32 +76,28 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
     }
 
     /// <summary>
-    /// allEmployeeDataList에서 최대 3명을 무작위로 뽑아 _candidates에 저장합니다.
+    /// RandomEmployeeGenerator를 통해 무작위 직원 후보 3명을 런타임 생성합니다.
+    /// 생성된 EmployeeData 인스턴스는 MarkUsed() 호출 시 미선택 분이 자동 해제됩니다.
     /// </summary>
     private void GenerateCandidates()
     {
         _candidates = new List<EmployeeData>();
-        if (allEmployeeDataList == null || allEmployeeDataList.Count == 0)
+
+        if (generationConfig == null)
         {
-            Debug.LogWarning("[HiringOffice] allEmployeeDataList가 비어있습니다. Inspector에서 EmployeeData를 할당해주세요.");
+            Debug.LogError("[HiringOffice] generationConfig가 연결되지 않았습니다. Inspector에서 EmployeeGenerationConfig를 할당해주세요.");
             return;
         }
 
-        // Fisher-Yates 셔플로 복사본 섞기
-        var pool = new List<EmployeeData>(allEmployeeDataList);
-        for (int i = pool.Count - 1; i > 0; i--)
+        const int CANDIDATE_COUNT = 3;
+        for (int i = 0; i < CANDIDATE_COUNT; i++)
         {
-            int j = Random.Range(0, i + 1);
-            EmployeeData temp = pool[i];
-            pool[i] = pool[j];
-            pool[j] = temp;
+            EmployeeData data = RandomEmployeeGenerator.Generate(generationConfig);
+            if (data != null)
+                _candidates.Add(data);
         }
 
-        int count = Mathf.Min(3, pool.Count);
-        for (int i = 0; i < count; i++)
-            _candidates.Add(pool[i]);
-
-        Debug.Log($"[HiringOffice] 채용 후보 {_candidates.Count}명 선정 완료.");
+        Debug.Log($"[HiringOffice] 무작위 채용 후보 {_candidates.Count}명 생성 완료.");
     }
 
     #endregion
@@ -128,11 +124,22 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
     /// 채용을 완료하고 건물을 상호작용 비활성화 상태로 만듭니다.
     /// HiringPanel에서 직원 채용 후 호출됩니다.
     /// </summary>
-    public void MarkUsed()
+    /// <param name="selectedData">채용된 직원 데이터. 나머지 미선택 런타임 인스턴스를 해제합니다.</param>
+    public void MarkUsed(EmployeeData selectedData = null)
     {
         if (_isUsed) return;
 
         _isUsed = true;
+
+        // 미선택 런타임 생성 인스턴스 메모리 해제
+        if (_candidates != null)
+        {
+            foreach (EmployeeData candidate in _candidates)
+            {
+                if (candidate != null && candidate != selectedData)
+                    Destroy(candidate);
+            }
+        }
 
         // 콜라이더 비활성화 → 이후 클릭 이벤트 차단
         Collider2D col = GetComponent<Collider2D>();

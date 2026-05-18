@@ -41,6 +41,10 @@ public class Employee : MonoBehaviour
     [Header("상태")]
     [SerializeField] private EmployeeState currentState = EmployeeState.Idle;
 
+    [Header("외형")]
+    [Tooltip("헤어 스프라이트를 렌더링할 자식 SpriteRenderer. 없으면 Awake에서 자동 생성합니다.")]
+    [SerializeField] private SpriteRenderer hairRenderer;
+
     [Header("디버그")]
     [SerializeField] private bool showDebugInfo = false;
 
@@ -165,6 +169,28 @@ public class Employee : MonoBehaviour
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
 
+        // Hair 자식 SpriteRenderer 자동 탐색/생성
+        if (hairRenderer == null)
+        {
+            Transform hairTf = transform.Find("Hair");
+            if (hairTf != null)
+            {
+                hairRenderer = hairTf.GetComponent<SpriteRenderer>();
+            }
+            else
+            {
+                GameObject hairGo = new GameObject("Hair");
+                hairGo.transform.SetParent(transform, false);
+                hairGo.transform.localPosition = Vector3.zero;
+                hairGo.transform.localScale = Vector3.one;
+                hairRenderer = hairGo.AddComponent<SpriteRenderer>();
+                // 본체보다 한 레이어 앞에 렌더링
+                hairRenderer.sortingLayerName = spriteRenderer != null ? spriteRenderer.sortingLayerName : "Default";
+                hairRenderer.sortingOrder     = spriteRenderer != null ? spriteRenderer.sortingOrder + 1 : 1;
+            }
+        }
+        hairRenderer.enabled = false; // 스프라이트 풀이 채워지기 전까지 비활성
+
         // 서브 컴포넌트 참조 (없으면 추가)
         statsController = GetComponent<EmployeeStatsController>() ?? gameObject.AddComponent<EmployeeStatsController>();
         work = GetComponent<EmployeeWork>() ?? gameObject.AddComponent<EmployeeWork>();
@@ -241,6 +267,9 @@ public class Employee : MonoBehaviour
             ErosionManager.instance?.StageConfig,
             ErosionManager.instance?.RecoveryConfig);
 
+        // 외형 적용
+        ApplyAppearance(data.appearance);
+
         // RuntimeIDRegistry 등록
         if (instanceId > 0 && RuntimeIDRegistry.instance != null)
         {
@@ -257,6 +286,30 @@ public class Employee : MonoBehaviour
             ? SaveManager.instance.GenerateInstanceId()
             : UnityEngine.Random.Range(1000, 9999);
         Initialize(data, newId);
+    }
+
+    #endregion
+
+    #region 외형
+
+    /// <summary>
+    /// EmployeeAppearance 데이터를 기반으로 Hair 렌더러에 스프라이트/색상을 적용합니다.
+    /// hairSprite가 null이면 렌더러를 비활성 상태로 유지합니다.
+    /// </summary>
+    private void ApplyAppearance(EmployeeAppearance appearance)
+    {
+        if (hairRenderer == null) return;
+
+        if (appearance != null && appearance.hairSprite != null)
+        {
+            hairRenderer.sprite  = appearance.hairSprite;
+            hairRenderer.color   = appearance.hairColor;
+            hairRenderer.enabled = true;
+        }
+        else
+        {
+            hairRenderer.enabled = false;
+        }
     }
 
     #endregion

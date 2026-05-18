@@ -1,0 +1,89 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c83017543e066614a8ffe1401c956ada, type: 3}
+  m_Name: EmployeeConfig
+  m_EditorClassIdentifier: Assembly-CSharp::EmployeeGenerationConfig
+  lastNames:
+  - "\uAE40"
+  - "\uC774"
+  - "\uBC15"
+  - "\uCD5C"
+  - "\uC815"
+  - "\uAC15"
+  - "\uC870"
+  - "\uC724"
+  - "\uC7A5"
+  - "\uC784"
+  - "\uD55C"
+  - "\uC624"
+  - "\uC11C"
+  - "\uC2E0"
+  - "\uAD8C"
+  - "\uD669"
+  - "\uC548"
+  - "\uC1A1"
+  - "\uB958"
+  - "\uC804"
+  firstNames:
+  - "\uBBFC\uC900"
+  - "\uC11C\uC900"
+  - "\uB3C4\uC724"
+  - "\uC608\uC900"
+  - "\uC2DC\uC6B0"
+  - "\uC9C0\uD638"
+  - "\uC8FC\uC6D0"
+  - "\uD558\uC900"
+  - "\uC9C0\uD6C8"
+  - "\uC900\uC11C"
+  - "\uC11C\uC5F0"
+  - "\uC11C\uC724"
+  - "\uC9C0\uC6B0"
+  - "\uC11C\uD604"
+  - "\uD558\uC740"
+  - "\uBBFC\uC11C"
+  - "\uC218\uC544"
+  - "\uC720\uB098"
+  - "\uC9C0\uBBFC"
+  - "\uC9C0\uC544"
+  - "\uAC74\uC6B0"
+  - "\uD604\uC6B0"
+  - "\uC720\uC900"
+  - "\uB3D9\uD604"
+  - "\uC7AC\uC6D0"
+  - "\uC9C0\uC218"
+  - "\uCC44\uC6D0"
+  - "\uC218\uBE48"
+  - "\uB2E4\uC740"
+  - "\uBBFC\uC9C0"
+  hairStylePool: []
+  hairColorPool:
+  - {r: 0.1, g: 0.08, b: 0.06, a: 1}
+  - {r: 0.55, g: 0.27, b: 0.07, a: 1}
+  - {r: 1, g: 0.9, b: 0.5, a: 1}
+  - {r: 0.6, g: 0.6, b: 0.6, a: 1}
+  - {r: 0.8, g: 0.1, b: 0.1, a: 1}
+  traitPool: []
+  traitCountMin: 0
+  traitCountMax: 3
+  baseMaxHealth: 100
+  baseMaxMental: 100
+  baseAttackPower: 10
+  baseHungerDecayRate: 1
+  baseFatigueIncreaseRate: 0.5
+  defaultCanMine: 1
+  defaultCanChop: 1
+  defaultCanHaul: 1
+  defaultCanBuild: 1
+  defaultCanDemolish: 1
+  defaultCanCraft: 0
+  defaultCanResearch: 0
+  defaultCanGarden: 0

@@ -121,6 +121,19 @@ public class EmployeeWork : MonoBehaviour
         runtimeAbilities = CopyAbilities(data?.abilities);
         InitializeWorkPriorities();
         disqualifications.Clear();
+
+        // 초기 결격 작업 적용 (EmployeeData에 지정된 경우)
+        if (data?.initialDisqualifications != null)
+        {
+            foreach (WorkType wt in data.initialDisqualifications)
+            {
+                disqualifications.Add(new DisqualificationEntry
+                {
+                    workType = wt,
+                    reason   = "초기 결격"
+                });
+            }
+        }
     }
 
     /// <summary>
