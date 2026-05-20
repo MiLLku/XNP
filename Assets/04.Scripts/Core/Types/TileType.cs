@@ -6,30 +6,14 @@
 /// </summary>
 public enum TileType
 {
-    /// <summary>빈 공간 (이동 가능)</summary>
-    Air = 0,
-
-    /// <summary>흙</summary>
+    Air = 0, // 빈 공간
     Dirt = 1,
-
-    /// <summary>돌</summary>
-    Stone = 2,
-
-    /// <summary>철 광석 타일</summary>
-    IronOre = 3,
-
-    /// <summary>구리 광석 타일</summary>
-    CopperOre = 4,
-
-    /// <summary>은 광석 타일</summary>
-    SilverOre = 5,
-
-    /// <summary>금 광석 타일</summary>
-    GoldOre = 6,
-
-    /// <summary>바닥/통로 타일 (이동 가능, 채광 불가)</summary>
-    Floor = 7,
-
-    /// <summary>특수 타일 (마커·UI용)</summary>
+    GrassDirt = 2,
+    Stone = 3,
+    IronOre = 4,
+    CopperOre = 5,
+    SilverOre = 6,
+    GoldOre = 7,
+    
     Special = 99,
 }

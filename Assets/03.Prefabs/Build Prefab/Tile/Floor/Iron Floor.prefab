@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 5000}
   - component: {fileID: 6000}
   m_Layer: 0
-  m_Name: Metal Floor
+  m_Name: Iron Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -84,7 +84,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 502074122, guid: 2dbdc99de57d7f1479aa8ea75174b05c, type: 3}
+  m_Sprite: {fileID: -2131944227, guid: 285236373450b8f409a444d56b1a7e10, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -132,7 +132,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 5.15625, y: 5.15625}
+    oldSize: {x: 4.25, y: 4.234375}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0

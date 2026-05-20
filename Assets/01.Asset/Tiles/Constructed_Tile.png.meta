@@ -48,7 +48,7 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 64
+  spritePixelsToUnits: 260
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
@@ -97,13 +97,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_0"
+      name: DirtFloorTile
       rect:
         serializedVersion: 2
-        x: 192
-        y: 699
-        width: 272
-        height: 272
+        x: 193
+        y: 704
+        width: 260
+        height: 260
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -119,13 +119,13 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_1"
+      name: WoodFloorTile
       rect:
         serializedVersion: 2
-        x: 489
-        y: 699
-        width: 272
-        height: 272
+        x: 492
+        y: 704
+        width: 260
+        height: 260
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -141,13 +141,13 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_2"
+      name: StoneFloorTile
       rect:
         serializedVersion: 2
-        x: 789
-        y: 699
-        width: 272
-        height: 272
+        x: 791
+        y: 704
+        width: 260
+        height: 260
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -163,13 +163,13 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_3"
+      name: IronFloorTile
       rect:
         serializedVersion: 2
-        x: 32
-        y: 334
-        width: 272
-        height: 271
+        x: 36
+        y: 339
+        width: 260
+        height: 260
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -185,13 +185,13 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_4"
+      name: CopperFloorTile
       rect:
         serializedVersion: 2
-        x: 333
-        y: 333
-        width: 272
-        height: 272
+        x: 339
+        y: 339
+        width: 260
+        height: 260
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -207,13 +207,13 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_5"
+      name: SilverFloorTile
       rect:
         serializedVersion: 2
-        x: 637
-        y: 333
-        width: 272
-        height: 272
+        x: 644
+        y: 339
+        width: 260
+        height: 260
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -229,13 +229,13 @@ TextureImporter:
       edges: []
       weights: []
     - serializedVersion: 2
-      name: "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_6"
+      name: GoldFloorTile
       rect:
         serializedVersion: 2
-        x: 942
-        y: 333
-        width: 272
-        height: 272
+        x: 948
+        y: 339
+        width: 260
+        height: 260
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -266,13 +266,13 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":64.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":0,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_0": 801949202
-      "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_1": 861420185
-      "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_2": -232173409
-      "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_3": -2131944227
-      "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_4": 1092693809
-      "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_5": -2132902959
-      "ChatGPT Image 2026\uB144 5\uC6D4 19\uC77C \uC624\uD6C4 07_38_48-Photoroom_6": -245921240
+      CopperFloorTile: 1092693809
+      DirtFloorTile: 801949202
+      GoldFloorTile: -245921240
+      IronFloorTile: -2131944227
+      SilverFloorTile: -2132902959
+      StoneFloorTile: -232173409
+      WoodFloorTile: 861420185
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

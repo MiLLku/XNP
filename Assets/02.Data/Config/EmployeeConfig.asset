@@ -84,9 +84,9 @@ MonoBehaviour:
   defaultCanHaul: 1
   defaultCanBuild: 1
   defaultCanDemolish: 1
-  defaultCanCraft: 0
-  defaultCanResearch: 0
-  defaultCanGarden: 0
+  defaultCanCraft: 1
+  defaultCanResearch: 1
+  defaultCanGarden: 1
   baseCarryCapacityMin: 3
   baseCarryCapacityMax: 8
   disqualChances:
