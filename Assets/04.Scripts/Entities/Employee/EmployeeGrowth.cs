@@ -25,6 +25,10 @@ public class EmployeeGrowth : MonoBehaviour
     [SerializeField] private int experience = 0;
     [SerializeField] private int experienceToNextLevel = INITIAL_EXP_REQUIRED;
 
+    [Header("운반 성장 보너스")]
+    [Tooltip("레벨업으로 누적된 운반 용량 보너스 (5레벨마다 +1)")]
+    [SerializeField] private int carryCapacityBonus = 0;
+
     /// <summary>코디네이터 참조</summary>
     private Employee employee;
 
@@ -54,6 +58,9 @@ public class EmployeeGrowth : MonoBehaviour
     /// <summary>다음 레벨까지 필요한 경험치</summary>
     public int ExperienceToNextLevel => experienceToNextLevel;
 
+    /// <summary>레벨업으로 누적된 운반 용량 보너스</summary>
+    public int CarryCapacityBonus => carryCapacityBonus;
+
     #endregion
 
     #region 초기화
@@ -68,12 +75,13 @@ public class EmployeeGrowth : MonoBehaviour
     /// 성장 시스템을 초기화합니다.
     /// </summary>
     /// <param name="isUnique">유니크 직원 여부 (유니크만 성장)</param>
-    public void Initialize(bool isUnique)
+public void Initialize(bool isUnique)
     {
         growthEnabled = isUnique;
         level = 1;
         experience = 0;
         experienceToNextLevel = INITIAL_EXP_REQUIRED;
+        carryCapacityBonus = 0;
     }
 
     #endregion
@@ -102,7 +110,7 @@ public class EmployeeGrowth : MonoBehaviour
     /// <summary>
     /// 레벨업을 수행합니다.
     /// </summary>
-    private void LevelUp()
+private void LevelUp()
     {
         experience -= experienceToNextLevel;
         level++;
@@ -114,12 +122,17 @@ public class EmployeeGrowth : MonoBehaviour
         int mentalGain = 3 + level / 2;
         int attackGain = level % 3 == 0 ? 1 : 0;
 
+        // 운반 용량 증가 (5레벨마다 +1)
+        int carryGain = level % 5 == 0 ? 1 : 0;
+        carryCapacityBonus += carryGain;
+
         if (statsController != null)
         {
             statsController.IncreaseMaxStats(healthGain, mentalGain, attackGain);
         }
 
-        Debug.Log($"[Growth] {employee?.DisplayName} 레벨업! Lv.{level} (HP+{healthGain}, Mental+{mentalGain})");
+        string carryLog = carryGain > 0 ? $", Carry+{carryGain}(총 +{carryCapacityBonus})" : "";
+        Debug.Log($"[Growth] {employee?.DisplayName} 레벨업! Lv.{level} (HP+{healthGain}, Mental+{mentalGain}{carryLog})");
 
         OnLevelUp?.Invoke(level);
     }
@@ -139,22 +152,24 @@ public class EmployeeGrowth : MonoBehaviour
     /// <summary>
     /// 저장 데이터에 성장 정보를 기록합니다.
     /// </summary>
-    public void PopulateSaveData(EmployeeSaveData data)
+public void PopulateSaveData(EmployeeSaveData data)
     {
         data.level = level;
         data.experience = experience;
         data.experienceToNextLevel = experienceToNextLevel;
+        data.carryCapacityBonus = carryCapacityBonus;
     }
 
     /// <summary>
     /// 저장 데이터에서 성장 정보를 복원합니다.
     /// </summary>
-    public void RestoreFromSaveData(EmployeeSaveData data, bool isUnique)
+public void RestoreFromSaveData(EmployeeSaveData data, bool isUnique)
     {
         growthEnabled = isUnique;
         level = data.level;
         experience = data.experience;
         experienceToNextLevel = data.experienceToNextLevel;
+        carryCapacityBonus = data.carryCapacityBonus;
     }
 
     #endregion

@@ -77,15 +77,12 @@ public class DemolishOrder : IWorkTarget
     /// <summary>
     /// 건설 비용의 절반을 인벤토리에 반환합니다.
     /// </summary>
-    private void ReturnResources()
+private void ReturnResources()
     {
-        if (InventoryManager.instance == null || building.buildingData == null) return;
-
-        foreach (var cost in building.buildingData.requiredResources)
-        {
-            int returnAmount = Mathf.Max(1, cost.amount / RESOURCE_RETURN_DIVISOR);
-            InventoryManager.instance.AddItem(cost.item, returnAmount);
-        }
+        // 인벤토리 직접 추가 대신 바닥 드롭으로 전환됨.
+        // 직원이 운반(Hauling)해야 인벤토리에 들어옵니다.
+        if (building == null) return;
+        BuildingDropHelper.SpawnDestructionDrops(building.buildingData, building.transform.position);
     }
 
     /// <summary>

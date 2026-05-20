@@ -102,6 +102,19 @@ public class EmployeeGenerationConfig : ScriptableObject
 
     #endregion
 
+    #region 운반 용량
+
+    [Header("운반 용량 범위 (무작위 생성)")]
+    [Tooltip("무작위 생성 시 부여할 기본 운반 용량의 최소값")]
+    [Range(1, 50)]
+    public int baseCarryCapacityMin = 3;
+
+    [Tooltip("무작위 생성 시 부여할 기본 운반 용량의 최대값 (포함). 최소값과 같으면 고정.")]
+    [Range(1, 50)]
+    public int baseCarryCapacityMax = 8;
+
+    #endregion
+
     #region 초기 결격 작업
 
     [Header("작업별 결격 확률 (각 작업은 독립적으로 롤됩니다)")]

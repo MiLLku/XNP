@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__unityMCP__manage_script",
+      "mcp__unityMCP__manage_asset",
+      "mcp__unityMCP__script_apply_edits",
+      "mcp__unityMCP__find_in_file",
+      "mcp__unityMCP__apply_text_edits",
+      "mcp__unityMCP__read_console",
+      "mcp__unityMCP__set_active_instance",
+      "mcp__unityMCP__refresh_unity",
+      "mcp__unityMCP__manage_scene",
+      "mcp__unityMCP__find_gameobjects",
+      "mcp__unityMCP__manage_gameobject",
+      "mcp__unityMCP__manage_components",
+      "mcp__unityMCP__manage_prefabs",
+      "mcp__unityMCP__manage_scriptable_object"
+    ]
+  }
+}

@@ -73,5 +73,17 @@ public class BuildingData : ScriptableObject
 
     #endregion
 
+    #region 파괴 페이백
+
+    [Header("파괴/철거 페이백")]
+    [Tooltip("건물 파괴·철거 시 바닥에 드롭되는 재료 목록. 비어있으면 requiredResources × paybackRatio로 자동 계산됩니다.")]
+    public List<ResourceCost> destructionDrops = new List<ResourceCost>();
+
+    [Tooltip("destructionDrops가 비어있을 때 사용할 페이백 비율 (0~1). 0.5 = 건설 비용의 50%")]
+    [Range(0f, 1f)]
+    public float paybackRatio = 0.5f;
+
+    #endregion
+
     // TODO [건물시스템]: 전력 소모량, 작업 포인트 등 추가 필드 확장 가능
 }

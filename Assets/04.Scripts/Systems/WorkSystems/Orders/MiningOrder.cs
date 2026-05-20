@@ -137,20 +137,16 @@ public class MiningOrder : IWorkTarget
     /// DroppedItemManager가 있으면 DroppedItem으로 스폰 (직원이 창고로 운반).
     /// 없으면 인벤토리에 직접 추가 (폴백).
     /// </summary>
-    private void DropMinedResource(ResourceManager resourceManager)
+private void DropMinedResource(ResourceManager resourceManager)
     {
-        GameObject dropPrefab = resourceManager.GetDropPrefab(tileID);
-        if (dropPrefab == null) return;
-
-        ItemData itemData = null;
-        ClickableItem itemComponent = dropPrefab.GetComponent<ClickableItem>();
-        if (itemComponent != null)
-            itemData = itemComponent.GetItemData();
+        // 새 API: tileID → ItemData 직접 조회 (ClickableItem 경유 제거)
+        ItemData itemData = resourceManager.GetTileDropItem(tileID);
+        if (itemData == null) return;
 
         Vector3 dropPos = new Vector3(position.x + 0.5f, position.y + 0.5f, 0f);
 
         // DroppedItemManager가 있으면 바닥에 드롭 → 직원이 운반
-        if (DroppedItemManager.instance != null && itemData != null)
+        if (DroppedItemManager.instance != null)
         {
             DroppedItemManager.instance.SpawnItem(itemData, 1, dropPos);
             Debug.Log($"[MiningOrder] 드롭 스폰: {itemData.itemName} @ {dropPos}");
@@ -158,14 +154,7 @@ public class MiningOrder : IWorkTarget
         }
 
         // 폴백: 인벤토리에 직접 추가
-        if (itemData != null && InventoryManager.instance != null)
-        {
-            InventoryManager.instance.AddItem(itemData, 1);
-        }
-        else
-        {
-            GameObject.Instantiate(dropPrefab, dropPos, Quaternion.identity);
-        }
+        InventoryManager.instance?.AddItem(itemData, 1);
     }
 
     #endregion

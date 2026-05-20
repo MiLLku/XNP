@@ -60,6 +60,12 @@ public static class RandomEmployeeGenerator
             canGarden   = config.defaultCanGarden,
         };
 
+        // 운반 용량 무작위 배정 (특성·성장 보너스는 EmployeeWork.GetCarryCapacity()에서 추가 적용)
+        data.abilities.baseCarryCapacity = Random.Range(
+            config.baseCarryCapacityMin,
+            config.baseCarryCapacityMax + 1
+        );
+
         // 특성 무작위 배정 (0~traitCountMax개, 중복 없음)
         data.traits = GenerateTraits(config);
 

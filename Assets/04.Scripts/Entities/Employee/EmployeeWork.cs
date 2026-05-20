@@ -139,7 +139,7 @@ public class EmployeeWork : MonoBehaviour
     /// <summary>
     /// WorkAbilities 복사 (런타임 수정용)
     /// </summary>
-    private WorkAbilities CopyAbilities(WorkAbilities source)
+private WorkAbilities CopyAbilities(WorkAbilities source)
     {
         if (source == null) return new WorkAbilities();
 
@@ -160,7 +160,8 @@ public class EmployeeWork : MonoBehaviour
             gardeningSpeed = source.gardeningSpeed,
             buildingSpeed = source.buildingSpeed,
             haulingSpeed = source.haulingSpeed,
-            demolishSpeed = source.demolishSpeed
+            demolishSpeed = source.demolishSpeed,
+            baseCarryCapacity = source.baseCarryCapacity
         };
     }
 
@@ -278,6 +279,36 @@ public class EmployeeWork : MonoBehaviour
 
         return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier;
     }
+
+/// <summary>
+    /// 현재 직원의 실제 운반 용량을 반환합니다.
+    /// base × (1 + trait% / 100) + growth bonus, 최소 1 보장.
+    /// </summary>
+    /// <returns>운반 가능한 DroppedItem 최대 개수</returns>
+    public int GetCarryCapacity()
+    {
+        WorkAbilities abilities = Abilities;
+        int baseCap = Mathf.Max(1, abilities != null ? abilities.baseCarryCapacity : 5);
+
+        // 특성 보정 (% 합산)
+        float traitPercent = 0f;
+        EmployeeData data = employee?.Data;
+        if (data?.traits != null)
+        {
+            foreach (var trait in data.traits)
+            {
+                if (trait?.effects != null)
+                    traitPercent += trait.effects.carryCapacityModifier;
+            }
+        }
+
+        float withTrait = baseCap * (1f + traitPercent / 100f);
+        int growthBonus = growth != null ? growth.CarryCapacityBonus : 0;
+        int total = Mathf.RoundToInt(withTrait) + growthBonus;
+
+        return Mathf.Max(1, total);
+    }
+
 
     /// <summary>
     /// 특성에 의한 작업 타입별 속도 보정을 반환합니다.
@@ -538,11 +569,13 @@ public class EmployeeWork : MonoBehaviour
     /// Phase 1: 아이템 위치로 이동 → 픽업 (아이템 파괴)
     /// Phase 2: 창고로 이동 → 배달
     /// </summary>
-    private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
+private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
     {
+        const float MULTIPICK_RADIUS = 6f;
+
         DroppedItem item = haulOrder.item;
 
-        // ── Phase 1: 아이템 위치로 이동 ─────────────────────────────────────
+        // ── Phase 1: 첫 아이템 위치로 이동 ─────────────────────────────────────
         if (item == null || !item.isActiveAndEnabled)
         {
             if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: Haul 아이템이 이미 없음, 취소");
@@ -576,14 +609,63 @@ public class EmployeeWork : MonoBehaviour
             yield break;
         }
 
-        // 픽업: 아이템 데이터 저장 후 오브젝트 파괴
-        ItemData itemData = item.itemData;
-        int quantity      = item.quantity;
-        haulOrder.CompleteWork(employee);  // completed = true 표시
-        item.Remove();          // Destroy(gameObject) → DroppedItemManager.Unregister 자동
-        haulOrder.item = null; // Phase 2 중 CancelWork 시 이미 파괴된 item 접근 방지
+        // 첫 픽업: 캐리 더미에 추가
+        var carryPile = new Dictionary<ItemData, int>();
+        AddToCarryPile(carryPile, item.itemData, item.quantity);
 
-        if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: {itemData?.itemName} × {quantity} 픽업 완료");
+        haulOrder.CompleteWork(employee);
+        item.Remove();
+        haulOrder.item = null;
+
+        if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 1차 픽업 → {SummarizePile(carryPile)}");
+
+        // ── Phase 1.5: carryCapacity까지 인접 아이템 추가 픽업 ───────────────
+        int capacity = GetCarryCapacity();
+        int remainingSlots = capacity - 1;
+
+        while (remainingSlots > 0 && DroppedItemManager.instance != null)
+        {
+            Vector2 fromPos = transform.position;
+            var nearby = DroppedItemManager.instance.GetNearbyAvailableItems(
+                fromPos, MULTIPICK_RADIUS, 1, null);
+
+            if (nearby == null || nearby.Count == 0) break;
+
+            DroppedItem next = nearby[0];
+            if (next == null || !next.IsAvailable) break;
+
+            next.Claim();
+
+            Vector3 nextPickupPos = new Vector3(
+                Mathf.FloorToInt(next.transform.position.x) + 0.5f,
+                Mathf.FloorToInt(next.transform.position.y),
+                0f
+            );
+
+            bool reachedNext = false;
+            bool nextFailed  = false;
+            employee.SetState(EmployeeState.Moving);
+            movement.MoveTo(nextPickupPos,
+                onComplete: () => reachedNext = true,
+                onFailed:   () => nextFailed  = true
+            );
+
+            yield return new WaitUntil(() => reachedNext || nextFailed
+                                            || next == null || !next.isActiveAndEnabled);
+
+            if (nextFailed || next == null || !next.isActiveAndEnabled)
+            {
+                next?.Unclaim();
+                break;
+            }
+
+            AddToCarryPile(carryPile, next.itemData, next.quantity);
+            next.Remove();
+            remainingSlots--;
+
+            if (showDebugInfo)
+                Debug.Log($"[Work] {employee.DisplayName}: 추가 픽업, 남은 슬롯 {remainingSlots} → {SummarizePile(carryPile)}");
+        }
 
         // ── Phase 2: 창고로 이동 → 배달 ─────────────────────────────────────
         Vector2Int footTile = new Vector2Int(
@@ -610,21 +692,25 @@ public class EmployeeWork : MonoBehaviour
 
             if (!moveFailed)
             {
-                stockpile.Deposit(itemData, quantity);
+                foreach (var kv in carryPile)
+                    stockpile.Deposit(kv.Key, kv.Value);
+
                 if (showDebugInfo)
-                    Debug.Log($"[Work] {employee.DisplayName}: 창고 배달 완료 → {itemData?.itemName} × {quantity}");
+                    Debug.Log($"[Work] {employee.DisplayName}: 창고 배달 완료 → {SummarizePile(carryPile)}");
             }
             else
             {
                 // 창고 이동 실패 → 인벤토리 폴백
-                if (itemData != null) InventoryManager.instance?.AddItem(itemData, quantity);
+                foreach (var kv in carryPile)
+                    InventoryManager.instance?.AddItem(kv.Key, kv.Value);
                 if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 창고 이동 실패 → 인벤토리 폴백");
             }
         }
         else
         {
             // 창고 없음 → 인벤토리에 직접 추가
-            if (itemData != null) InventoryManager.instance?.AddItem(itemData, quantity);
+            foreach (var kv in carryPile)
+                InventoryManager.instance?.AddItem(kv.Key, kv.Value);
             if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 창고 없음 → 인벤토리 직접 추가");
         }
 
@@ -642,6 +728,31 @@ public class EmployeeWork : MonoBehaviour
             WorkSystemManager.instance.OnWorkerCompletedTarget(employee, completedTarget, completedOrder);
         else
             employee.SetState(EmployeeState.Idle);
+    }
+
+    /// <summary>같은 ItemData는 합산해서 캐리 더미에 추가합니다.</summary>
+    private static void AddToCarryPile(Dictionary<ItemData, int> pile, ItemData data, int qty)
+    {
+        if (pile == null || data == null || qty <= 0) return;
+        if (pile.TryGetValue(data, out int existing))
+            pile[data] = existing + qty;
+        else
+            pile[data] = qty;
+    }
+
+    /// <summary>디버그 로그용 캐리 더미 요약 문자열.</summary>
+    private static string SummarizePile(Dictionary<ItemData, int> pile)
+    {
+        if (pile == null || pile.Count == 0) return "(empty)";
+        var sb = new System.Text.StringBuilder();
+        bool first = true;
+        foreach (var kv in pile)
+        {
+            if (!first) sb.Append(", ");
+            sb.Append(kv.Key?.itemName ?? "?").Append(" × ").Append(kv.Value);
+            first = false;
+        }
+        return sb.ToString();
     }
 
     /// <summary>

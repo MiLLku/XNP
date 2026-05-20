@@ -35,8 +35,12 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     [Tooltip("여러 직원 스폰 시 간격")]
     [SerializeField] private float spawnSpacing = 2f;
 
-    [Header("디버그")]
+        [Header("디버그")]
     [SerializeField] private bool showDebugInfo = true;
+
+    [Header("직원 생성 설정")]
+    [Tooltip("무작위 직원 생성 규칙 (이름·헤어·특성 풀, 기본 스탯 등)")]
+    [SerializeField] private EmployeeGenerationConfig generationConfig;
 
     #endregion
 
@@ -56,8 +60,11 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     /// <summary>직원 수</summary>
     public int EmployeeCount => allEmployees.Count;
 
-    /// <summary>스폰 지점</summary>
+        /// <summary>스폰 지점</summary>
     public Vector3 SpawnPoint => spawnPoint;
+
+    /// <summary>무작위 직원 생성 설정 (HiringOffice 등에서 참조)</summary>
+    public EmployeeGenerationConfig GenerationConfig => generationConfig;
 
     #endregion
 

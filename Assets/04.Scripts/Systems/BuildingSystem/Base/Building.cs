@@ -312,16 +312,11 @@ public class Building : MonoBehaviour
     /// <summary>
     /// 건설 비용의 일부를 반환합니다 (50%).
     /// </summary>
-    private void ReturnPartialResources()
+private void ReturnPartialResources()
     {
-        if (InventoryManager.instance != null && buildingData != null)
-        {
-            foreach (var cost in buildingData.requiredResources)
-            {
-                int returnAmount = Mathf.Max(1, cost.amount / RESOURCE_RETURN_DIVISOR);
-                InventoryManager.instance.AddItem(cost.item, returnAmount);
-            }
-        }
+        // 인벤토리 직접 추가 대신 바닥 드롭으로 전환됨.
+        // 직원이 운반(Hauling)해야 인벤토리에 들어옵니다.
+        BuildingDropHelper.SpawnDestructionDrops(buildingData, transform.position);
     }
 
     #endregion

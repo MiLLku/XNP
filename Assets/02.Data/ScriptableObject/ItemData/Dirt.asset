@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7bf4af0a018b1c4bb9016e3783a71e3, type: 3}
   m_Name: Dirt
   m_EditorClassIdentifier: 
-  itemID: 101
+  itemType: 1
   itemName: "\uD759"
   itemIcon: {fileID: -1653309280, guid: fd59d6577824a024caef876e46b0618f, type: 3}
+  dropPrefab: {fileID: 7694659694992195722, guid: 30e1f7cf302c2bf4a816e50fa0fc091a, type: 3}

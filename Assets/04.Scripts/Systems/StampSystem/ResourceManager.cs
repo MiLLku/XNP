@@ -1,17 +1,19 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.Tilemaps;
 
 /// <summary>
-/// ID와 타일/프리팹 에셋을 연결하는 엔트리.
+/// TileType과 Tilemap에 쓰일 TileBase 에셋을 연결하는 엔트리.
 /// </summary>
 [System.Serializable]
 public class TileEntry
 {
-    /// <summary>타일 ID</summary>
-    public int id;
+    [Tooltip("이 엔트리가 매칭할 타일 종류")]
+    [FormerlySerializedAs("id")]
+    public TileType tile = TileType.Air;
 
-    /// <summary>타일 에셋</summary>
+    [Tooltip("Tilemap에 사용될 TileBase 에셋")]
     public TileBase tileAsset;
 }
 
@@ -29,16 +31,18 @@ public class EntityEntry
 }
 
 /// <summary>
-/// 타일 ID와 드롭 아이템 프리팹을 연결하는 엔트리.
+/// 채광될 TileType과 드롭될 ItemData를 연결하는 엔트리.
+/// 시각 prefab은 ItemData.dropPrefab에서 가져옵니다.
 /// </summary>
 [System.Serializable]
 public class DropEntry
 {
-    /// <summary>타일 ID (예: 1=흙, 2=돌)</summary>
-    public int tileId;
+    [Tooltip("이 타일을 채광하면 itemData가 드롭됩니다")]
+    [FormerlySerializedAs("tileId")]
+    public TileType tile = TileType.Dirt;
 
-    /// <summary>드롭 아이템 프리팹</summary>
-    public GameObject dropPrefab;
+    [Tooltip("채광 시 드롭될 ItemData (dropPrefab 포함)")]
+    public ItemData itemData;
 }
 
 /// <summary>
@@ -59,32 +63,66 @@ public class ResourceManager : ScriptableObject
     [Header("타일 드랍 아이템")]
     [SerializeField] private List<DropEntry> dropEntries;
 
-    private Dictionary<int, TileBase> _tileLookup;
+    [Header("전역 아이템 카탈로그")]
+    [Tooltip("채광·가공·드롭 등에서 ID로 조회 가능한 모든 ItemData. 가공 자원도 여기에 등록하세요.")]
+    [SerializeField] private List<ItemData> allItems;
+
+    private Dictionary<TileType, TileBase> _tileLookup;
     private Dictionary<int, GameObject> _entityLookup;
-    private Dictionary<int, GameObject> _dropLookup;
+    private Dictionary<TileType, ItemData> _dropLookup;
+    private Dictionary<ItemType, ItemData> _itemLookup;
 
     #endregion
 
     #region 초기화
 
-    private void OnEnable()
+private void OnEnable()
     {
-        _tileLookup = new Dictionary<int, TileBase>();
-        foreach (var entry in tileEntries)
+        _tileLookup = new Dictionary<TileType, TileBase>();
+        if (tileEntries != null)
         {
-            _tileLookup[entry.id] = entry.tileAsset;
+            foreach (var entry in tileEntries)
+            {
+                if (entry != null)
+                    _tileLookup[entry.tile] = entry.tileAsset;
+            }
         }
 
         _entityLookup = new Dictionary<int, GameObject>();
-        foreach (var entry in entityEntries)
+        if (entityEntries != null)
         {
-            _entityLookup[entry.id] = entry.prefab;
+            foreach (var entry in entityEntries)
+            {
+                if (entry != null)
+                    _entityLookup[entry.id] = entry.prefab;
+            }
         }
 
-        _dropLookup = new Dictionary<int, GameObject>();
-        foreach (var entry in dropEntries)
+        _dropLookup = new Dictionary<TileType, ItemData>();
+        if (dropEntries != null)
         {
-            _dropLookup[entry.tileId] = entry.dropPrefab;
+            foreach (var entry in dropEntries)
+            {
+                if (entry?.itemData != null)
+                    _dropLookup[entry.tile] = entry.itemData;
+            }
+        }
+
+        _itemLookup = new Dictionary<ItemType, ItemData>();
+        if (allItems != null)
+        {
+            foreach (var item in allItems)
+            {
+                if (item != null)
+                    _itemLookup[item.itemType] = item;
+            }
+        }
+
+        // dropEntries의 ItemData도 자동으로 카탈로그에 포함 (편의)
+        foreach (var kv in _dropLookup)
+        {
+            if (kv.Value != null && !_itemLookup.ContainsKey(kv.Value.itemType))
+                _itemLookup[kv.Value.itemType] = kv.Value;
         }
     }
 
@@ -97,11 +135,15 @@ public class ResourceManager : ScriptableObject
     /// </summary>
     /// <param name="id">타일 ID</param>
     /// <returns>타일 에셋 (없으면 null)</returns>
-    public TileBase GetTileAsset(int id)
+public TileBase GetTileAsset(TileType tile)
     {
-        _tileLookup.TryGetValue(id, out TileBase tile);
-        return tile;
+        if (_tileLookup == null) return null;
+        _tileLookup.TryGetValue(tile, out TileBase asset);
+        return asset;
     }
+
+    /// <summary>호환용 int 오버로드 — 내부적으로 (TileType)id 캐스트.</summary>
+    public TileBase GetTileAsset(int id) => GetTileAsset((TileType)id);
 
     /// <summary>
     /// 개체 ID에 해당하는 프리팹을 반환합니다.
@@ -119,11 +161,41 @@ public class ResourceManager : ScriptableObject
     /// </summary>
     /// <param name="tileId">타일 ID</param>
     /// <returns>드롭 프리팹 (없으면 null)</returns>
-    public GameObject GetDropPrefab(int tileId)
+public GameObject GetDropPrefab(TileType tile)
     {
-        _dropLookup.TryGetValue(tileId, out GameObject prefab);
-        return prefab;
+        ItemData data = GetTileDropItem(tile);
+        return data != null ? data.dropPrefab : null;
     }
+
+    /// <summary>호환용 int 오버로드.</summary>
+    public GameObject GetDropPrefab(int tileId) => GetDropPrefab((TileType)tileId);
+
+    /// <summary>
+    /// 타일 ID에 해당하는 드롭 ItemData를 반환합니다.
+    /// 가공 자원 등 모든 ItemData는 GetItemByID(itemId)로 조회하세요.
+    /// </summary>
+public ItemData GetTileDropItem(TileType tile)
+    {
+        if (_dropLookup == null) return null;
+        _dropLookup.TryGetValue(tile, out ItemData data);
+        return data;
+    }
+
+    /// <summary>호환용 int 오버로드.</summary>
+    public ItemData GetTileDropItem(int tileId) => GetTileDropItem((TileType)tileId);
+
+    /// <summary>
+    /// 아이템 ID로 ItemData를 조회합니다 (가공 자원·채광 자원 모두 포함).
+    /// </summary>
+public ItemData GetItemByID(ItemType type)
+    {
+        if (_itemLookup == null) return null;
+        _itemLookup.TryGetValue(type, out ItemData data);
+        return data;
+    }
+
+    /// <summary>호환용 int 오버로드 — itemID를 ItemType으로 캐스트해 조회.</summary>
+    public ItemData GetItemByID(int itemId) => GetItemByID((ItemType)itemId);
 
     #endregion
 }

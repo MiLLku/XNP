@@ -80,6 +80,15 @@ public class TraitEffects
 
     #endregion
 
+    #region 운반
+
+    [Header("운반")]
+    [Tooltip("운반 용량 보정 (%). 20 = 운반 가능 개수 +20% (반올림)")]
+    [Range(-50, 100)]
+    public float carryCapacityModifier = 0f;
+
+    #endregion
+
     #region 이동/성장
 
     [Header("이동")]

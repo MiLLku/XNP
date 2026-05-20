@@ -59,6 +59,9 @@ public class EmployeeSaveData
     /// <summary>다음 레벨까지 필요 경험치</summary>
     public int experienceToNextLevel;
 
+    /// <summary>레벨업으로 누적된 운반 용량 보너스</summary>
+    public int carryCapacityBonus;
+
     #endregion
 
     #region 스탯
@@ -223,6 +226,13 @@ public class WorkAbilitiesSaveData
 
     #endregion
 
+    #region 운반 용량
+
+    /// <summary>기본 운반 용량 (한 번에 들 수 있는 DroppedItem 개수)</summary>
+    public int baseCarryCapacity = 5;
+
+    #endregion
+
     public WorkAbilitiesSaveData()
     {
         miningSpeed = 1f;
@@ -240,7 +250,7 @@ public class WorkAbilitiesSaveData
     /// </summary>
     /// <param name="source">원본 WorkAbilities</param>
     /// <returns>저장 데이터</returns>
-    public static WorkAbilitiesSaveData FromWorkAbilities(WorkAbilities source)
+public static WorkAbilitiesSaveData FromWorkAbilities(WorkAbilities source)
     {
         if (source == null) return new WorkAbilitiesSaveData();
 
@@ -261,7 +271,8 @@ public class WorkAbilitiesSaveData
             gardeningSpeed = source.gardeningSpeed,
             buildingSpeed = source.buildingSpeed,
             haulingSpeed = source.haulingSpeed,
-            demolishSpeed = source.demolishSpeed
+            demolishSpeed = source.demolishSpeed,
+            baseCarryCapacity = source.baseCarryCapacity
         };
     }
 
@@ -269,7 +280,7 @@ public class WorkAbilitiesSaveData
     /// 저장 데이터를 WorkAbilities로 변환합니다.
     /// </summary>
     /// <returns>WorkAbilities 인스턴스</returns>
-    public WorkAbilities ToWorkAbilities()
+public WorkAbilities ToWorkAbilities()
     {
         return new WorkAbilities
         {
@@ -288,7 +299,8 @@ public class WorkAbilitiesSaveData
             gardeningSpeed = gardeningSpeed,
             buildingSpeed = buildingSpeed,
             haulingSpeed = haulingSpeed,
-            demolishSpeed = demolishSpeed
+            demolishSpeed = demolishSpeed,
+            baseCarryCapacity = baseCarryCapacity > 0 ? baseCarryCapacity : 5
         };
     }
 }

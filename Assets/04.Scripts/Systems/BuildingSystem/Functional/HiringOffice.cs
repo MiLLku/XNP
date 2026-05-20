@@ -14,10 +14,6 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
 {
     #region 필드 및 설정
 
-    [Header("채용 후보 생성 설정")]
-    [Tooltip("무작위 직원 생성 규칙 (이름·헤어·특성 풀, 기본 스탯 등)")]
-    [SerializeField] private EmployeeGenerationConfig generationConfig;
-
     [Header("스폰 설정")]
     [Tooltip("건물 위치 기준 채용된 직원의 스폰 위치 오프셋")]
     [SerializeField] private Vector3 spawnOffset = new Vector3(3f, 0f, 0f);
@@ -79,20 +75,21 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
     /// RandomEmployeeGenerator를 통해 무작위 직원 후보 3명을 런타임 생성합니다.
     /// 생성된 EmployeeData 인스턴스는 MarkUsed() 호출 시 미선택 분이 자동 해제됩니다.
     /// </summary>
-    private void GenerateCandidates()
+private void GenerateCandidates()
     {
         _candidates = new List<EmployeeData>();
 
-        if (generationConfig == null)
+        EmployeeGenerationConfig config = EmployeeManager.instance?.GenerationConfig;
+        if (config == null)
         {
-            Debug.LogError("[HiringOffice] generationConfig가 연결되지 않았습니다. Inspector에서 EmployeeGenerationConfig를 할당해주세요.");
+            Debug.LogError("[HiringOffice] EmployeeManager에 GenerationConfig가 설정되지 않았습니다. EmployeeManager Inspector에서 할당해주세요.");
             return;
         }
 
         const int CANDIDATE_COUNT = 3;
         for (int i = 0; i < CANDIDATE_COUNT; i++)
         {
-            EmployeeData data = RandomEmployeeGenerator.Generate(generationConfig);
+            EmployeeData data = RandomEmployeeGenerator.Generate(config);
             if (data != null)
                 _candidates.Add(data);
         }

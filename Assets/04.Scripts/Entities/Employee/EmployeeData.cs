@@ -102,6 +102,15 @@ public class WorkAbilities
 
     #endregion
 
+    #region 운반 용량
+
+    [Header("운반 (Hauling) 기본 용량")]
+    [Tooltip("한 번에 들 수 있는 DroppedItem 개수의 기본값. 특성·성장 보너스로 추가 보정됩니다.")]
+    [Range(1, 50)]
+    public int baseCarryCapacity = 5;
+
+    #endregion
+
     #region 속도 보정
 
     [Header("능력치 보정 (1.0 = 100% 속도)")]

@@ -7,7 +7,7 @@ using UnityEngine;
 /// 동작:
 ///   1. 탐지 반경(= attackRange)에 가장 먼저 진입한 직원을 타겟으로 고정
 ///   2. 타겟이 사거리 밖이면 수평 접근, 너무 가까우면 후퇴
-///   3. 사거리 안 + 시야 확보 시 투사체 발사 (ErosionProjectilePool 사용)
+///   3. 사거리 안 + 시야 확보 시 투사체 발사 (PoolManager 사용)
 ///   4. 타겟이 죽거나 탐지 범위를 벗어나면 다음 후보로 전환
 ///   5. 범위 침식 오라는 HostileErosionAura가 독립적으로 처리
 ///
@@ -85,13 +85,8 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
             return;
         }
 
-        // 풀 초기화
-        if (ErosionProjectilePool.instance == null)
-        {
-            var poolGO = new GameObject("ErosionProjectilePool");
-            poolGO.AddComponent<ErosionProjectilePool>();
-        }
-        ErosionProjectilePool.instance.EnsureInitialized(_data.projectilePrefab);
+        // 풀 초기화 — PoolManager에 prefab을 사전 등록 (prewarm·max 명시)
+        PoolManager.instance?.RegisterPool(_data.projectilePrefab, prewarm: 20, maxSize: 100);
 
         // 스탯 캐시
         var s           = _data.hostileStats;
@@ -315,7 +310,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         }
 
         Vector2 direction = (_lockedTarget.transform.position - transform.position).normalized;
-        var proj = ErosionProjectilePool.instance.Rent(transform.position);
+        var proj = PoolManager.instance.Spawn<ErosionProjectile>(_data.projectilePrefab, transform.position);
         proj.Init(direction, _projectileSpeed, _erosionOnHit, _healthDamageOnHit, _projectileLifetime);
 
         _cooldownTimer = _attackInterval;

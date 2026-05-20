@@ -41,6 +41,8 @@ public class DroppedItemManager : DestroySingleton<DroppedItemManager>
     /// <summary>WorkSystemManager가 관리하는 전역 Haul WorkOrder</summary>
     private WorkOrder _haulOrder;
 
+    // 풀링은 PoolManager가 통합 관리 (이전 _inactivePool은 제거됨)
+
     #endregion
 
     #region 등록 / 해제
@@ -66,6 +68,47 @@ public class DroppedItemManager : DestroySingleton<DroppedItemManager>
         _items.Remove(item);
     }
 
+/// <summary>
+    /// DroppedItem을 풀로 반환합니다. DroppedItem.Remove()에서 호출됩니다.
+    /// 풀이 가득 차면 실제로 Destroy합니다.
+    /// </summary>
+public void Despawn(DroppedItem item)
+    {
+        if (item == null || item.gameObject == null) return;
+
+        Unregister(item);
+
+        if (PoolManager.instance != null)
+            PoolManager.instance.Despawn(item.gameObject);
+        else
+            Destroy(item.gameObject);
+    }
+
+    /// <summary>
+    /// 이미 등록된 DroppedItem인지 확인합니다. 씬 배치 폴백 등록의 중복을 막기 위해 사용합니다.
+    /// </summary>
+    public bool IsRegistered(DroppedItem item)
+    {
+        return item != null && _items.Contains(item);
+    }
+
+    /// <summary>
+    /// 지정 위치에서 radius 내 사용 가능한 DroppedItem 목록을 거리순으로 최대 maxCount개 반환합니다.
+    /// 다중 픽업(carryCapacity)에 사용됩니다. exclude로 첫 픽업한 아이템을 제외할 수 있습니다.
+    /// </summary>
+    public List<DroppedItem> GetNearbyAvailableItems(Vector2 from, float radius, int maxCount, DroppedItem exclude = null)
+    {
+        if (maxCount <= 0) return new List<DroppedItem>();
+
+        return _items
+            .Where(i => i != null && i != exclude && i.IsAvailable &&
+                        Vector2.Distance(from, (Vector2)i.transform.position) <= radius)
+            .OrderBy(i => Vector2.Distance(from, (Vector2)i.transform.position))
+            .Take(maxCount)
+            .ToList();
+    }
+
+
     #endregion
 
     #region 스폰
@@ -74,27 +117,43 @@ public class DroppedItemManager : DestroySingleton<DroppedItemManager>
     /// 지정 위치에 DroppedItem을 스폰합니다.
     /// MiningOrder.DropMinedResource()에서 호출합니다.
     /// </summary>
-    public DroppedItem SpawnItem(ItemData data, int qty, Vector3 worldPos)
+public DroppedItem SpawnItem(ItemData data, int qty, Vector3 worldPos)
     {
         if (data == null) return null;
 
-        GameObject obj;
+        // 사용할 prefab 우선순위:
+        //   1) ItemData.dropPrefab — 자원별 고유 비주얼
+        //   2) 매니저 droppedItemPrefab — 공용 폴백
+        //   3) CreateDroppedItemObject — 코드 생성 (풀링 안 됨)
+        GameObject prefabToUse = data.dropPrefab != null ? data.dropPrefab : droppedItemPrefab;
 
-        if (droppedItemPrefab != null)
+        DroppedItem dropped = null;
+        GameObject  obj     = null;
+
+        if (prefabToUse != null && PoolManager.instance != null)
         {
-            obj = Instantiate(droppedItemPrefab, worldPos, Quaternion.identity);
+            // PoolManager 통한 풀링 경로
+            obj = PoolManager.instance.Spawn(prefabToUse, worldPos);
+        }
+        else if (prefabToUse != null)
+        {
+            // PoolManager 없을 때 — 풀링 없이 그냥 Instantiate
+            obj = Instantiate(prefabToUse, worldPos, Quaternion.identity);
         }
         else
         {
-            // 프리팹 없으면 코드로 생성
+            // 폴백: 코드로 GameObject 생성
             obj = CreateDroppedItemObject(data, worldPos);
         }
 
-        DroppedItem dropped = obj.GetComponent<DroppedItem>();
+        if (obj == null) return null;
+
+        // Resource prefab에는 DroppedItem이 없을 수 있으므로 보장
+        dropped = obj.GetComponent<DroppedItem>();
         if (dropped == null) dropped = obj.AddComponent<DroppedItem>();
 
         dropped.Initialize(data, qty);
-        // Start()에서 Register가 자동 호출됨
+        Register(dropped);
 
         return dropped;
     }

@@ -15,23 +15,32 @@ using UnityEngine.Tilemaps;
 /// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(CircleCollider2D))]
-public class ErosionProjectile : MonoBehaviour
+public class ErosionProjectile : MonoBehaviour, IPoolable
 {
     private float _erosionAmount;
     private float _healthDamage;
     private float _lifetime;
     private bool  _isReturned;
 
-    private Rigidbody2D           _rb;
-    private ErosionProjectilePool _pool;
+    private Rigidbody2D _rb;
 
     private void Awake()
     {
         _rb = GetComponent<Rigidbody2D>();
     }
 
-    // ─── 풀 연결 ────────────────────────────────
-    public void SetPool(ErosionProjectilePool pool) => _pool = pool;
+    // ─── IPoolable ─────────────────────────────
+    /// <summary>풀에서 꺼낼 때 호출. Init()이 곧이어 발사 파라미터를 설정합니다.</summary>
+    public void OnSpawn()
+    {
+        _isReturned = false;
+    }
+
+    /// <summary>풀로 반환되기 직전 호출. 다음 재사용 시 잔존 velocity 방지.</summary>
+    public void OnDespawn()
+    {
+        if (_rb != null) _rb.linearVelocity = Vector2.zero;
+    }
 
     // ─── 초기화 (풀에서 꺼낼 때마다 호출) ────────
     public void Init(Vector2 direction, float speed, float erosionAmount, float healthDamage, float lifetime)
@@ -138,11 +147,14 @@ public class ErosionProjectile : MonoBehaviour
     #endregion
 
     // ─── 풀 반환 ────────────────────────────────
-    private void ReturnToPool()
+private void ReturnToPool()
     {
         if (_isReturned) return;
         _isReturned = true;
-        _rb.linearVelocity = Vector2.zero;
-        _pool?.Return(this);
+
+        if (PoolManager.instance != null)
+            PoolManager.instance.Despawn(gameObject);
+        else
+            Destroy(gameObject);
     }
 }
