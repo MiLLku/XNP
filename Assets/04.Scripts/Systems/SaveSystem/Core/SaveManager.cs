@@ -26,8 +26,8 @@ public class SaveManager : DontDestroySingleton<SaveManager>
 {
     #region 상수
 
-    /// <summary>현재 세이브 파일 버전</summary>
-    public const int CURRENT_VERSION = 2;
+    /// <summary>현재 세이브 파일 버전 (단일 출처: SaveMigration — 버전 올릴 때 한 곳만 수정)</summary>
+    public const int CURRENT_VERSION = SaveMigration.CURRENT_VERSION;
 
     #endregion
 
