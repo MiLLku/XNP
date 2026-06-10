@@ -216,12 +216,78 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
 
     public void Capture(SaveData data)
     {
-        // TODO: SaveData에 연구 트리 저장 필드 추가 후 구현
+        var save = new ResearchTreeSaveData
+        {
+            activeNodeId    = _activeNodeId,
+            currentProgress = _currentProgress
+        };
+
+        foreach (var kv in _nodeStates)
+        {
+            save.nodeStates.Add(new ResearchNodeSaveEntry
+            {
+                nodeId = kv.Key,
+                state  = (int)kv.Value
+            });
+        }
+
+        data.researchTree = save;
     }
 
     public void Restore(SaveData data)
     {
-        // TODO: SaveData에서 연구 트리 복원 후 구현
+        // 파생 상태 초기화
+        _nodeStates.Clear();
+        _unlockedBuildingIds.Clear();
+        _unlockedRecipeIds.Clear();
+        _statBonuses.Clear();
+        _activeNodeId    = null;
+        _currentProgress = 0f;
+
+        // 저장 데이터 없으면 초기 상태로 시작
+        if (data.researchTree == null)
+        {
+            InitializeNodeStates();
+            return;
+        }
+
+        var save = data.researchTree;
+
+        // 노드 상태 복원
+        foreach (var entry in save.nodeStates)
+        {
+            if (!string.IsNullOrEmpty(entry.nodeId))
+                _nodeStates[entry.nodeId] = (ResearchNodeState)entry.state;
+        }
+
+        // 저장에 없는 노드(새 콘텐츠 추가 등)는 초기 상태로 보완
+        if (treeConfig != null)
+        {
+            foreach (var node in treeConfig.nodes)
+            {
+                if (node == null || _nodeStates.ContainsKey(node.nodeId)) continue;
+                _nodeStates[node.nodeId] = node.prerequisiteNodeIds.Count == 0
+                    ? ResearchNodeState.Available
+                    : ResearchNodeState.Locked;
+            }
+
+            // 완료된 노드의 해금 효과 재적용 → _unlockedBuildingIds 등 파생 상태 재건
+            foreach (var node in treeConfig.nodes)
+            {
+                if (node == null) continue;
+                if (GetNodeState(node.nodeId) != ResearchNodeState.Completed) continue;
+
+                foreach (var effect in node.unlockEffects)
+                    effect?.Apply();
+            }
+        }
+
+        // 진행 중 연구 복원
+        _activeNodeId    = save.activeNodeId;
+        _currentProgress = save.currentProgress;
+
+        Debug.Log($"[ResearchTreeManager] 연구 트리 복원 완료 " +
+                  $"(노드 {_nodeStates.Count}개, 진행 중: {_activeNodeId ?? "없음"})");
     }
 
     public void PostRestore(SaveData data) { }

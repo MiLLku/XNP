@@ -63,8 +63,11 @@ public class SaveData
     /// <summary>레이드 시스템 상태</summary>
     public RaidSystemSaveData raidSystem;
 
-    /// <summary>연구 포인트 누적량</summary>
+    /// <summary>연구 포인트 누적량 (레거시 — researchTree로 대체됨)</summary>
     public float researchPoints;
+
+    /// <summary>연구 트리 전체 상태 (노드별 상태·진행 중 연구·진행도)</summary>
+    public ResearchTreeSaveData researchTree;
 
     /// <summary>다음 발급할 인스턴스 ID (로드 후 이어서 발급)</summary>
     public int nextInstanceId;
