@@ -43,4 +43,22 @@ public class StockpileManager : DestroySingleton<StockpileManager>
     }
 
     public bool HasAnyStockpile => _stockpiles.Any(s => s != null && s.IsOperational);
+
+    /// <summary>
+    /// 지정 타일에서 가장 가까운, 해당 아이템을 충분히 보유한 운영 중 Stockpile을 반환합니다.
+    /// 출고(Withdraw) 작업에서 사용합니다.
+    /// </summary>
+    public Stockpile GetNearestStockpileWith(Vector2Int from, ItemData item, int amount)
+    {
+        if (item == null || amount <= 0) return null;
+
+        return _stockpiles
+            .Where(s => s != null && s.IsOperational && s.HasItem(item, amount))
+            .OrderBy(s => Vector2Int.Distance(from,
+                new Vector2Int(
+                    Mathf.FloorToInt(s.transform.position.x),
+                    Mathf.FloorToInt(s.transform.position.y)
+                )))
+            .FirstOrDefault();
+    }
 }

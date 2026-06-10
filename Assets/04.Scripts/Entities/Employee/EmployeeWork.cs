@@ -86,6 +86,13 @@ public class EmployeeWork : MonoBehaviour
     /// <summary>현재 작업 대상</summary>
     public IWorkTarget CurrentWorkTarget => currentWorkTarget;
 
+    /// <summary>
+    /// 현재 운반 작업(Hauling 또는 Withdraw)을 진행 중인지의 근사 표시.
+    /// 정확한 carryPile 추적은 별도 작업으로 분리됩니다.
+    /// 저장 시점에 이 값이 true면 자재 일부가 손실될 수 있음을 알리는 용도.
+    /// </summary>
+    public bool IsCarryingMaterials => currentWork == WorkType.Hauling && currentWorkTarget != null;
+
     /// <summary>작업 능력 (런타임 값 우선, 없으면 템플릿 복사)</summary>
     public WorkAbilities Abilities
     {
@@ -364,6 +371,12 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         }
 
         // ── 운반 작업은 별도 2단계 코루틴으로 처리 ──────────────────────────
+        if (target is WithdrawOrder withdrawOrder)
+        {
+            AssignWithdrawWork(workOrder, withdrawOrder);
+            return;
+        }
+
         if (target is HaulOrder haulOrder)
         {
             AssignHaulWork(workOrder, haulOrder);
@@ -386,9 +399,14 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             0
         );
 
+        // 건설 등 다중 셀 건물은 footprint(size) 전체를 기준으로 작업 범위/위치를 판정한다.
+        Vector2Int buildingSize = Vector2Int.one;
+        if (target is BuildOrder buildOrderForSize && buildOrderForSize.buildingData != null)
+            buildingSize = buildOrderForSize.buildingData.size;
+
         Vector3Int currentFootTile = GetFootTile();
 
-        bool inRange = IsPositionInWorkRange(targetTilePos);
+        bool inRange = IsPositionInWorkRange(targetTilePos, buildingSize);
 
         // 사정거리 안이더라도 현재 위치가 이동 차단 타일(청사진·건물) 안이면 즉시 작업 불가.
         // 그대로 StartWork를 호출하면 건설 완료 시 건물 내부에 갇히므로 안전한 위치로 이동 후 작업.
@@ -404,7 +422,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         {
             if (movement != null)
             {
-                Vector3 workPosition = FindWorkablePositionForTarget(targetTilePos);
+                Vector3 workPosition = FindWorkablePositionForTarget(targetTilePos, buildingSize);
 
                 if (workPosition == Vector3.zero)
                 {
@@ -427,13 +445,13 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
                     isRetrying = true;
 
-                    if (IsPositionInWorkRange(targetTilePos))
+                    if (IsPositionInWorkRange(targetTilePos, buildingSize))
                     {
                         StartWork(target);
                     }
                     else
                     {
-                        Vector3 newWorkPosition = FindWorkablePositionForTarget(targetTilePos);
+                        Vector3 newWorkPosition = FindWorkablePositionForTarget(targetTilePos, buildingSize);
                         if (newWorkPosition != Vector3.zero)
                         {
                             isRetrying = false;
@@ -443,7 +461,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                                 onComplete: () =>
                                 {
                                     movement.OnLanded -= onLandedHandler;
-                                    if (IsPositionInWorkRange(targetTilePos))
+                                    if (IsPositionInWorkRange(targetTilePos, buildingSize))
                                         StartWork(target);
                                     else
                                     {
@@ -474,7 +492,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                     {
                         movement.OnLanded -= onLandedHandler;
 
-                        if (IsPositionInWorkRange(targetTilePos))
+                        if (IsPositionInWorkRange(targetTilePos, buildingSize))
                             StartWork(target);
                         else
                         {
@@ -487,6 +505,15 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                     {
                         Debug.LogWarning($"[Work] {employee.DisplayName}: 이동 실패 - 경로 없음 또는 차단됨 " +
                                          $"(start={GetFootTile()}, dest={workPosition}, target={targetTilePos})");
+
+                        // fall(낙하)로 인한 일시 중단은 onLanded 핸들러가 자동으로 재이동 처리하므로
+                        // 작업을 취소하면 안 됨 (취소하면 사다리·낙하 등이 모두 깨짐).
+                        // 진짜 경로 없음(non-fall)인 경우만 CancelWork → 직원 프리징 방지.
+                        if (movement.IsFalling)
+                            return;
+
+                        movement.OnLanded -= onLandedHandler;
+                        CancelWork();
                     }
                 );
             }
@@ -728,6 +755,361 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             WorkSystemManager.instance.OnWorkerCompletedTarget(employee, completedTarget, completedOrder);
         else
             employee.SetState(EmployeeState.Idle);
+    }
+
+    /// <summary>
+    /// 출고 작업을 할당합니다.
+    /// Phase 1: 가장 가까운 자재 보유 Stockpile로 이동 → 출고
+    /// Phase 2: 사용처(IMaterialReceiver)로 이동 → 인계
+    /// </summary>
+    private void AssignWithdrawWork(WorkOrder workOrder, WithdrawOrder withdrawOrder)
+    {
+        if (!withdrawOrder.IsWorkAvailable())
+        {
+            employee.SetState(EmployeeState.Idle);
+            return;
+        }
+
+        currentWorkOrder  = workOrder;
+        currentWorkTarget = withdrawOrder;
+        currentWork       = WorkType.Hauling;
+
+        employee.SetState(EmployeeState.Moving);
+        currentWorkCoroutine = StartCoroutine(WithdrawWorkCoroutine(workOrder, withdrawOrder));
+    }
+
+    /// <summary>
+    /// 2단계 출고 코루틴.
+    /// Phase 1: 자재 보유한 가장 가까운 Stockpile로 이동 → Withdraw
+    /// Phase 2: receiver.GetDeliveryPosition()으로 이동 → OnMaterialDelivered 호출
+    /// </summary>
+    private IEnumerator WithdrawWorkCoroutine(WorkOrder order, WithdrawOrder withdrawOrder)
+    {
+        var request = withdrawOrder.request;
+        if (request == null || request.itemData == null || request.amount <= 0)
+        {
+            CancelWork();
+            yield break;
+        }
+
+        // ── Phase 1: 자재 보유 Stockpile 검색 + 이동 + 출고 ─────────────────
+        Vector2Int footTile = new Vector2Int(
+            Mathf.FloorToInt(transform.position.x),
+            Mathf.FloorToInt(transform.position.y)
+        );
+
+        Stockpile source = StockpileManager.instance?.GetNearestStockpileWith(
+            footTile, request.itemData, request.amount);
+
+        if (source == null)
+        {
+            if (showDebugInfo)
+                Debug.Log($"[Work] {employee.DisplayName}: 자재 {request.itemData.itemName}×{request.amount} 보유한 창고 없음");
+            request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
+            CancelWork();
+            yield break;
+        }
+
+        Vector3 sourcePos = source.GetDepositPosition();
+
+        bool reachedSource = false;
+        bool moveFailed    = false;
+        movement.MoveTo(sourcePos,
+            onComplete: () => reachedSource = true,
+            onFailed:   () => moveFailed    = true
+        );
+
+        yield return new WaitUntil(() => reachedSource || moveFailed
+                                         || !request.receiver.IsRequestStillValid());
+
+        if (moveFailed || !request.receiver.IsRequestStillValid())
+        {
+            request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
+            CancelWork();
+            yield break;
+        }
+
+        // 출고 — 다른 직원이 먼저 가져갔으면 실패. 다른 source가 있으면 한 번 더 시도.
+        if (!source.Withdraw(request.itemData, request.amount))
+        {
+            if (showDebugInfo)
+                Debug.Log($"[Work] {employee.DisplayName}: 창고 출고 실패(자재 부족) — 다른 source 재탐색");
+
+            // 다른 창고에서 시도 (현재 source는 다음 검색에서 제외하지 않으므로 같은 게 나올 수 있지만 시도 ok)
+            source = StockpileManager.instance?.GetNearestStockpileWith(footTile, request.itemData, request.amount);
+            if (source == null || !source.Withdraw(request.itemData, request.amount))
+            {
+                request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
+                CancelWork();
+                yield break;
+            }
+
+            // 새 source로 이동 (현재 위치에서 다를 수 있음)
+            sourcePos = source.GetDepositPosition();
+            // 출고는 이미 성공했으므로 추가 이동 없이 계속 진행 (자재는 carry로)
+        }
+
+        var carryPile = new Dictionary<ItemData, int>();
+        AddToCarryPile(carryPile, request.itemData, request.amount);
+
+        // ── Phase 1.5: 같은 자재의 다른 pending WithdrawOrder를 capacity까지 추가 픽업 ──
+        // 한 번에 여러 사이트의 같은 자재 운반을 묶어 효율 ↑ (직원 carry capacity 활용)
+        int capacity = GetCarryCapacity();
+        int remainingCapacity = capacity - request.amount;
+        var additionalRequests = new List<(WithdrawOrder wo, WorkTask task, WorkOrder workOrder)>();
+
+        if (remainingCapacity > 0 && WorkSystemManager.instance != null)
+        {
+            foreach (var wo in WorkSystemManager.instance.AllOrders.ToList())
+            {
+                if (remainingCapacity <= 0) break;
+                if (wo == order) continue;
+                if (wo.workType != WorkType.Hauling) continue;
+                if (!wo.isActive || wo.isPaused) continue;
+                if (wo.taskQueue == null) continue;
+
+                foreach (var t in wo.taskQueue.PendingTasks.ToList())
+                {
+                    if (remainingCapacity <= 0) break;
+                    if (!(t.target is WithdrawOrder otherWO)) continue;
+                    var otherReq = otherWO.request;
+                    if (otherReq == null) continue;
+                    if (otherReq.itemData != request.itemData) continue;
+                    if (otherReq.amount > remainingCapacity) continue;
+                    if (!otherWO.IsWorkAvailable()) continue;
+                    if (!source.HasItem(otherReq.itemData, otherReq.amount)) continue;
+
+                    // task를 직원에게 lock (다른 직원 픽업 방지) → 성공해야 출고
+                    if (!wo.taskQueue.TryReserveForWorker(t, employee)) continue;
+
+                    if (source.Withdraw(otherReq.itemData, otherReq.amount))
+                    {
+                        AddToCarryPile(carryPile, otherReq.itemData, otherReq.amount);
+                        additionalRequests.Add((otherWO, t, wo));
+                        remainingCapacity -= otherReq.amount;
+
+                        if (showDebugInfo)
+                            Debug.Log($"[Work] {employee.DisplayName}: 추가 픽업 {otherReq.itemData.itemName}×{otherReq.amount} " +
+                                      $"(남은 capacity={remainingCapacity})");
+                    }
+                    else
+                    {
+                        // 출고 실패 → reserve 롤백 (task를 pending으로 되돌림)
+                        t.Unassign();
+                    }
+                }
+            }
+        }
+
+        if (showDebugInfo)
+            Debug.Log($"[Work] {employee.DisplayName}: 출고 완료 → {SummarizePile(carryPile)} " +
+                      $"(추가 사이트 {additionalRequests.Count}곳 포함)");
+
+        // ── Phase 2: 첫 사용처로 이동 → 인계 ──────────────────────────────────
+        if (!request.receiver.IsRequestStillValid())
+        {
+            // 운반 중 사용처가 무효화됨 → 자재 환불 (가장 가까운 창고에 반납)
+            ReturnCarryToStorage(carryPile, "사용처 무효화");
+            request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
+            CancelAdditionalReserves(additionalRequests, refundAll: false);
+            FinishWithdrawWork();
+            yield break;
+        }
+
+        Vector3 deliveryPos = request.receiver.GetDeliveryPosition();
+        Vector3Int deliveryTile = new Vector3Int(
+            Mathf.FloorToInt(deliveryPos.x), Mathf.FloorToInt(deliveryPos.y), 0);
+
+        // 이미 work range 안이면 이동 생략하고 바로 인계
+        bool inRange = IsPositionInWorkRange(deliveryTile);
+        bool reachedDelivery = inRange;
+        moveFailed = false;
+
+        if (!inRange)
+        {
+            employee.SetState(EmployeeState.Moving);
+            movement.MoveTo(deliveryPos,
+                onComplete: () => reachedDelivery = true,
+                onFailed:   () => moveFailed      = true
+            );
+
+            // 도착 OR work range 진입 OR 실패 OR receiver 무효화
+            yield return new WaitUntil(() =>
+                reachedDelivery || moveFailed
+                || IsPositionInWorkRange(deliveryTile)
+                || !request.receiver.IsRequestStillValid());
+
+            // 이동 중 work range에 진입했으면 즉시 멈춤 (불필요한 이동/fall 방지)
+            if (!reachedDelivery && IsPositionInWorkRange(deliveryTile))
+            {
+                movement.StopMoving();
+                employee.SetState(EmployeeState.Idle);
+            }
+        }
+
+        bool canDeliverNow = !moveFailed && request.receiver.IsRequestStillValid()
+                             && (reachedDelivery || IsPositionInWorkRange(deliveryTile));
+        if (!canDeliverNow)
+        {
+            ReturnCarryToStorage(carryPile, moveFailed ? "사용처 이동 실패" : "사용처 무효화");
+            request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
+            CancelAdditionalReserves(additionalRequests, refundAll: false);
+            FinishWithdrawWork();
+            yield break;
+        }
+
+        // 첫 인계
+        request.receiver.OnMaterialDelivered(request.itemData, request.amount);
+        withdrawOrder.CompleteWork(employee);
+        carryPile.Remove(request.itemData); // 같은 자재의 추가 분량은 그대로 유지될 수 있도록 카운트만 차감
+        if (additionalRequests.Count > 0)
+        {
+            // 추가 분량 carryPile에 다시 등록 (자재 종류는 같음, 추가 총량)
+            int leftover = 0;
+            foreach (var (otherWO, _, _) in additionalRequests)
+                if (otherWO.request != null) leftover += otherWO.request.amount;
+            if (leftover > 0) AddToCarryPile(carryPile, request.itemData, leftover);
+        }
+
+        if (showDebugInfo)
+            Debug.Log($"[Work] {employee.DisplayName}: 자재 인계 완료 → {request.itemData.itemName}×{request.amount}");
+
+        // ── Phase 2.5: 추가 사용처들 순회 → 인계 ──────────────────────────────
+        foreach (var (otherWO, otherTask, otherOrder) in additionalRequests)
+        {
+            var req = otherWO.request;
+            if (req == null) { otherOrder.taskQueue.CancelTask(otherTask); continue; }
+
+            if (!req.receiver.IsRequestStillValid())
+            {
+                ReturnSingleItem(req.itemData, req.amount, "추가 사용처 무효화");
+                req.receiver?.OnMaterialRequestFailed(req.itemData, req.amount);
+                otherOrder.taskQueue.CancelTask(otherTask);
+                RemoveFromCarryPile(carryPile, req.itemData, req.amount);
+                continue;
+            }
+
+            Vector3 nextPos = req.receiver.GetDeliveryPosition();
+            Vector3Int nextTile = new Vector3Int(Mathf.FloorToInt(nextPos.x), Mathf.FloorToInt(nextPos.y), 0);
+
+            bool nextInRange = IsPositionInWorkRange(nextTile);
+            bool reached = nextInRange;
+            bool failed = false;
+
+            if (!nextInRange)
+            {
+                employee.SetState(EmployeeState.Moving);
+                movement.MoveTo(nextPos,
+                    onComplete: () => reached = true,
+                    onFailed:   () => failed = true);
+
+                yield return new WaitUntil(() =>
+                    reached || failed
+                    || IsPositionInWorkRange(nextTile)
+                    || !req.receiver.IsRequestStillValid());
+
+                if (!reached && IsPositionInWorkRange(nextTile))
+                {
+                    movement.StopMoving();
+                    employee.SetState(EmployeeState.Idle);
+                }
+            }
+
+            bool canDeliverNext = !failed && req.receiver.IsRequestStillValid()
+                                  && (reached || IsPositionInWorkRange(nextTile));
+            if (!canDeliverNext)
+            {
+                ReturnSingleItem(req.itemData, req.amount, failed ? "추가 사용처 이동 실패" : "추가 사용처 무효화");
+                req.receiver?.OnMaterialRequestFailed(req.itemData, req.amount);
+                otherOrder.taskQueue.CancelTask(otherTask);
+                RemoveFromCarryPile(carryPile, req.itemData, req.amount);
+                continue;
+            }
+
+            // 인계 + task 완료 (WorkSystemManager에 등록 안 됐으므로 직접 CompleteTask)
+            req.receiver.OnMaterialDelivered(req.itemData, req.amount);
+            otherOrder.taskQueue.CompleteTask(otherTask);
+            RemoveFromCarryPile(carryPile, req.itemData, req.amount);
+
+            if (showDebugInfo)
+                Debug.Log($"[Work] {employee.DisplayName}: 추가 인계 완료 → {req.itemData.itemName}×{req.amount}");
+        }
+
+        FinishWithdrawWork();
+    }
+
+    /// <summary>운반 실패/취소 시 추가 reserve된 task들을 정리합니다.</summary>
+    private void CancelAdditionalReserves(
+        List<(WithdrawOrder wo, WorkTask task, WorkOrder workOrder)> additionals, bool refundAll)
+    {
+        foreach (var (otherWO, otherTask, otherOrder) in additionals)
+        {
+            var req = otherWO?.request;
+            if (req != null)
+            {
+                if (refundAll)
+                    ReturnSingleItem(req.itemData, req.amount, "묶음 운반 취소");
+                req.receiver?.OnMaterialRequestFailed(req.itemData, req.amount);
+            }
+            otherOrder.taskQueue.CancelTask(otherTask);
+        }
+    }
+
+    /// <summary>단일 아이템을 가까운 창고/인벤토리로 반납합니다.</summary>
+    private void ReturnSingleItem(ItemData item, int amount, string reason)
+    {
+        if (item == null || amount <= 0) return;
+        var tmp = new Dictionary<ItemData, int> { [item] = amount };
+        ReturnCarryToStorage(tmp, reason);
+    }
+
+    /// <summary>carryPile에서 특정 아이템 일정량을 차감합니다.</summary>
+    private static void RemoveFromCarryPile(Dictionary<ItemData, int> pile, ItemData data, int qty)
+    {
+        if (pile == null || data == null || qty <= 0) return;
+        if (!pile.TryGetValue(data, out int cur)) return;
+        cur -= qty;
+        if (cur <= 0) pile.Remove(data);
+        else          pile[data] = cur;
+    }
+
+    /// <summary>WithdrawWorkCoroutine 종료 시 공통 정리/통보.</summary>
+    private void FinishWithdrawWork()
+    {
+        IWorkTarget completedTarget = currentWorkTarget;
+        WorkOrder   completedOrder  = currentWorkOrder;
+
+        currentWorkTarget    = null;
+        currentWorkOrder     = null;
+        currentWork          = WorkType.None;
+        workProgress         = 0f;
+        currentWorkCoroutine = null;
+
+        if (WorkSystemManager.instance != null && completedTarget != null && completedOrder != null)
+            WorkSystemManager.instance.OnWorkerCompletedTarget(employee, completedTarget, completedOrder);
+        else
+            employee.SetState(EmployeeState.Idle);
+    }
+
+    /// <summary>운반 중 실패 시 carryPile을 가장 가까운 창고/인벤토리로 반납합니다.</summary>
+    private void ReturnCarryToStorage(Dictionary<ItemData, int> carryPile, string reason)
+    {
+        if (carryPile == null || carryPile.Count == 0) return;
+
+        Vector2Int footTile = new Vector2Int(
+            Mathf.FloorToInt(transform.position.x),
+            Mathf.FloorToInt(transform.position.y)
+        );
+
+        Stockpile fallback = StockpileManager.instance?.GetNearestStockpile(footTile);
+        foreach (var kv in carryPile)
+        {
+            bool ok = fallback != null && fallback.Deposit(kv.Key, kv.Value);
+            if (!ok) InventoryManager.instance?.AddItem(kv.Key, kv.Value);
+        }
+
+        if (showDebugInfo)
+            Debug.Log($"[Work] {employee.DisplayName}: 자재 반납({reason}) → {SummarizePile(carryPile)}");
     }
 
     /// <summary>같은 ItemData는 합산해서 캐리 더미에 추가합니다.</summary>
@@ -1077,20 +1459,27 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
     /// <summary>
     /// 특정 위치가 현재 직원의 작업 범위 내에 있는지 확인합니다.
     /// </summary>
-    public bool IsPositionInWorkRange(Vector3Int targetPosition)
+    public bool IsPositionInWorkRange(Vector3Int targetPosition, Vector2Int buildingSize = default)
     {
         Vector3Int standingTile = GetFootTile();
 
-        int dx = Mathf.Abs(targetPosition.x - standingTile.x);
-        int dy = targetPosition.y - standingTile.y;
+        int sx = Mathf.Max(1, buildingSize.x);
+        int sy = Mathf.Max(1, buildingSize.y);
 
-        bool inRange = dx <= 1 && dy >= -1 && dy <= 2;
-
-        if (!inRange) return false;
-
-        if (!HasLineOfSight(standingTile, targetPosition)) return false;
-
-        return true;
+        // 건물 footprint의 각 셀에 대해 인접(좌우 1칸, 위 2칸/아래 1칸) + 시야를 검사한다.
+        // 큰 건물은 기준점 한 점이 아니라 footprint 전체를 기준으로 작업 범위를 판정한다.
+        for (int i = 0; i < sx; i++)
+        {
+            for (int j = 0; j < sy; j++)
+            {
+                Vector3Int cell = new Vector3Int(targetPosition.x + i, targetPosition.y + j, 0);
+                int dx = Mathf.Abs(cell.x - standingTile.x);
+                int dy = cell.y - standingTile.y;
+                if (dx <= 1 && dy >= -1 && dy <= 2 && HasLineOfSight(standingTile, cell))
+                    return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
@@ -1226,9 +1615,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
 
         // Y축 겹침: 발(foot.y) 또는 몸통(foot.y + 1) 중 하나라도 footprint Y 범위 안이면 겹침
         bool footYInside = foot.y >= targetTilePos.y && foot.y < targetTilePos.y + size.y;
-        bool bodyYInside = (foot.y + 1) >= targetTilePos.y && (foot.y + 1) < targetTilePos.y + size.y;
 
-        return footYInside || bodyYInside;
+        // 발이 footprint 안에 있을 때만 막는다(완공 시 직원이 건물 내부에 파묻히는 것을 방지).
+        // 몸통만 겹치는 경우(건물 바로 아래/위에서 작업)는 허용한다 — 완공 시 발이 footprint 밖이라 안전.
+        return footYInside;
     }
 
     #endregion
@@ -1248,7 +1638,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
     /// <summary>
     /// 작업 대상 근처에서 실제로 작업할 수 있는 위치를 찾습니다.
     /// </summary>
-    public Vector3 FindWorkablePositionForTarget(Vector3Int targetTilePos)
+    public Vector3 FindWorkablePositionForTarget(Vector3Int targetTilePos, Vector2Int buildingSize = default)
     {
         Vector3Int currentFootTile = GetFootTile();
         Vector2Int startPos = new Vector2Int(currentFootTile.x, currentFootTile.y);
@@ -1282,87 +1672,118 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
 
         List<WorkPositionCandidate> candidates = new List<WorkPositionCandidate>();
 
-        int[] dyOrder = { 1, 2, 3, 0, -1, -2, -3 };
-        int[] dxOrder = { 1, -1, 0 };
+        int sx = Mathf.Max(1, buildingSize.x);
+        int sy = Mathf.Max(1, buildingSize.y);
+        bool multiCell = sx > 1 || sy > 1;
 
-        foreach (int dy in dyOrder)
+        // 작업 위치 후보 생성
+        List<Vector2Int> candidatePositions = new List<Vector2Int>();
+        if (multiCell)
         {
-            foreach (int dx in dxOrder)
+            // 다중 셀 건물(건설 등): footprint 둘레 — 바로 아래 행(우선) → 좌/우 열 → 위 행
+            for (int i = 0; i < sx; i++) candidatePositions.Add(new Vector2Int(targetTilePos.x + i, targetTilePos.y - 1));
+            for (int j = 0; j < sy; j++)
             {
-                Vector2Int candidatePos = new Vector2Int(
-                    targetTilePos.x + dx,
-                    targetTilePos.y + dy
-                );
+                candidatePositions.Add(new Vector2Int(targetTilePos.x - 1, targetTilePos.y + j));
+                candidatePositions.Add(new Vector2Int(targetTilePos.x + sx, targetTilePos.y + j));
+            }
+            for (int i = 0; i < sx; i++) candidatePositions.Add(new Vector2Int(targetTilePos.x + i, targetTilePos.y + sy));
+        }
+        else
+        {
+            // 단일 셀(채광·벌목 등): 기존 방식 — 대상 주변 좌우 1칸 × 상하 범위
+            int[] dyOrder = { 1, 2, 3, 0, -1, -2, -3 };
+            int[] dxOrder = { 1, -1, 0 };
+            foreach (int dy in dyOrder)
+                foreach (int dx in dxOrder)
+                    candidatePositions.Add(new Vector2Int(targetTilePos.x + dx, targetTilePos.y + dy));
+        }
 
-                if (candidatePos.x < 0 || candidatePos.x >= GameMap.MAP_WIDTH ||
-                    candidatePos.y < 0 || candidatePos.y >= GameMap.MAP_HEIGHT)
-                { rejectedOutOfBounds++; continue; }
+        foreach (var candidatePos in candidatePositions)
+        {
+            if (candidatePos.x < 0 || candidatePos.x >= GameMap.MAP_WIDTH ||
+                candidatePos.y < 0 || candidatePos.y >= GameMap.MAP_HEIGHT)
+            { rejectedOutOfBounds++; continue; }
 
+            // 단일 셀만 작업 범위 제한(대상 좌우 1칸·상하 범위). 다중 셀은 둘레 후보라 인접 보장.
+            if (!multiCell)
+            {
                 int workDx = Mathf.Abs(targetTilePos.x - candidatePos.x);
                 int workDy = targetTilePos.y - candidatePos.y;
                 if (workDx > 1 || workDy < -1 || workDy > 2)
                 { rejectedOutOfRange++; continue; }
+            }
 
+            // 발 위치가 건설 대상 footprint 안이면 막힘 판정을 예외 처리한다
+            // (청사진은 아직 미완성이므로 직원이 그 위/아래/안에 겹쳐 서서 작업할 수 있어야 함).
+            bool footInFootprint = multiCell &&
+                candidatePos.x >= targetTilePos.x && candidatePos.x < targetTilePos.x + sx &&
+                candidatePos.y >= targetTilePos.y && candidatePos.y < targetTilePos.y + sy;
+            if (!footInFootprint)
+            {
                 int footTileId = gameMap.TileGrid[candidatePos.x, candidatePos.y];
                 if (footTileId != 0) { rejectedFootBlocked++; continue; }
-                // TileGrid=0이어도 청사진·건물이 이동을 차단하는 타일은 서 있을 수 없음
-                // (예: 완공 전 청사진 footprint, blocksMovement=true 건물)
                 if (gameMap.DoesTileBlockMovement(candidatePos.x, candidatePos.y))
                 { rejectedFootBlocked++; continue; }
+            }
 
-                if (candidatePos.y + 1 < GameMap.MAP_HEIGHT)
+            // 몸통 위치(발+1)도 footprint 안이면 예외 — 건물 바로 아래에서 작업 시 몸통 겹침 허용.
+            if (candidatePos.y + 1 < GameMap.MAP_HEIGHT)
+            {
+                int bodyX = candidatePos.x, bodyY = candidatePos.y + 1;
+                bool bodyInFootprint = multiCell &&
+                    bodyX >= targetTilePos.x && bodyX < targetTilePos.x + sx &&
+                    bodyY >= targetTilePos.y && bodyY < targetTilePos.y + sy;
+                if (!bodyInFootprint)
                 {
-                    int bodyTileId = gameMap.TileGrid[candidatePos.x, candidatePos.y + 1];
+                    int bodyTileId = gameMap.TileGrid[bodyX, bodyY];
                     if (bodyTileId != 0) { rejectedBodyBlocked++; continue; }
-                    // 몸통 위치도 이동 차단 타일이면 서 있을 수 없음
-                    if (gameMap.DoesTileBlockMovement(candidatePos.x, candidatePos.y + 1))
+                    if (gameMap.DoesTileBlockMovement(bodyX, bodyY))
                     { rejectedBodyBlocked++; continue; }
                 }
-
-                int groundY = candidatePos.y - 1;
-                if (groundY < 0) { rejectedNoGround++; continue; }
-
-                int groundTileId = gameMap.TileGrid[candidatePos.x, groundY];
-                bool hasFloorTile = FloorTile.HasFloorTileAt(new Vector2Int(candidatePos.x, groundY));
-                // IsFloorSupport는 완공된 바닥 건물만 true — 건설 예정지(blueprint)는 false.
-                // 구식 IsTileOccupied+!BlocksMovement 체크는 blueprint도 true로 잡혀 미완성 타일 위를
-                // 발판으로 오인하는 버그가 있었으므로 IsFloorSupport로 교체합니다.
-                bool hasConstructedFloor = gameMap.IsFloorSupport(candidatePos.x, groundY);
-                bool hasGround = groundTileId != 0 || hasFloorTile || hasConstructedFloor;
-
-                if (!hasGround)
-                {
-                    FloorTile ladder = FloorTile.GetFloorTileAt(new Vector2Int(candidatePos.x, groundY));
-                    FloorTile currentLadder = FloorTile.GetFloorTileAt(candidatePos);
-                    bool hasLadder = (ladder != null && ladder.AllowsVerticalMovement()) ||
-                                     (currentLadder != null && currentLadder.AllowsVerticalMovement());
-                    if (!hasLadder) { rejectedNoGround++; continue; }
-                }
-
-                if (candidatePos == startPos) { rejectedSamePos++; continue; }
-
-                List<Vector2Int> path = pathfinder.FindPath(startPos, candidatePos);
-                if (path == null || path.Count == 0) { rejectedNoPath++; continue; }
-
-                float distance = Vector2Int.Distance(startPos, candidatePos);
-                int heightDiff = Mathf.Abs(candidatePos.y - currentFootTile.y);
-
-                bool willFallAfterMining = (candidatePos.x == targetTilePos.x) &&
-                                           (candidatePos.y > targetTilePos.y) &&
-                                           (candidatePos.y == targetTilePos.y + 1);
-                int fallSafety = willFallAfterMining ? 1 : 0;
-                int verticalPriority = (candidatePos.y > targetTilePos.y) ? 0 : 1;
-
-                candidates.Add(new WorkPositionCandidate
-                {
-                    position = candidatePos,
-                    distance = distance,
-                    heightDiff = heightDiff,
-                    pathLength = path.Count,
-                    fallSafety = fallSafety,
-                    verticalPriority = verticalPriority
-                });
             }
+
+            int groundY = candidatePos.y - 1;
+            if (groundY < 0) { rejectedNoGround++; continue; }
+
+            int groundTileId = gameMap.TileGrid[candidatePos.x, groundY];
+            bool hasFloorTile = FloorTile.HasFloorTileAt(new Vector2Int(candidatePos.x, groundY));
+            // IsFloorSupport는 완공된 바닥 건물만 true — 건설 예정지(blueprint)는 false.
+            bool hasConstructedFloor = gameMap.IsFloorSupport(candidatePos.x, groundY);
+            bool hasGround = groundTileId != 0 || hasFloorTile || hasConstructedFloor;
+
+            if (!hasGround)
+            {
+                FloorTile ladder = FloorTile.GetFloorTileAt(new Vector2Int(candidatePos.x, groundY));
+                FloorTile currentLadder = FloorTile.GetFloorTileAt(candidatePos);
+                bool hasLadder = (ladder != null && ladder.AllowsVerticalMovement()) ||
+                                 (currentLadder != null && currentLadder.AllowsVerticalMovement());
+                if (!hasLadder) { rejectedNoGround++; continue; }
+            }
+
+            if (candidatePos == startPos) { rejectedSamePos++; continue; }
+
+            List<Vector2Int> path = pathfinder.FindPath(startPos, candidatePos);
+            if (path == null || path.Count == 0) { rejectedNoPath++; continue; }
+
+            float distance = Vector2Int.Distance(startPos, candidatePos);
+            int heightDiff = Mathf.Abs(candidatePos.y - currentFootTile.y);
+
+            bool willFallAfterMining = (candidatePos.x == targetTilePos.x) &&
+                                       (candidatePos.y > targetTilePos.y) &&
+                                       (candidatePos.y == targetTilePos.y + 1);
+            int fallSafety = willFallAfterMining ? 1 : 0;
+            int verticalPriority = (candidatePos.y > targetTilePos.y) ? 0 : 1;
+
+            candidates.Add(new WorkPositionCandidate
+            {
+                position = candidatePos,
+                distance = distance,
+                heightDiff = heightDiff,
+                pathLength = path.Count,
+                fallSafety = fallSafety,
+                verticalPriority = verticalPriority
+            });
         }
 
         if (candidates.Count == 0)

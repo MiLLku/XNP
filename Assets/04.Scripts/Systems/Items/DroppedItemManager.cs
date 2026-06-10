@@ -45,19 +45,115 @@ public class DroppedItemManager : DestroySingleton<DroppedItemManager>
 
     #endregion
 
+    #region 생명주기
+
+    void Start()
+    {
+        // 새 직원이 생성될 때 기존 모든 DroppedItem과 충돌 무시 처리
+        if (EmployeeManager.instance != null)
+        {
+            EmployeeManager.instance.OnEmployeeSpawned += IgnoreCollisionsForNewEmployee;
+        }
+    }
+
+    void OnDestroy()
+    {
+        if (EmployeeManager.instance != null)
+        {
+            EmployeeManager.instance.OnEmployeeSpawned -= IgnoreCollisionsForNewEmployee;
+        }
+    }
+
+    #endregion
+
     #region 등록 / 해제
 
     /// <summary>
     /// DroppedItem이 Start()에서 호출합니다.
     /// 아이템을 추적 목록에 추가하고 HaulOrder 태스크를 생성합니다.
+    /// 다른 DroppedItem 및 모든 Employee와 물리 충돌을 무시하여
+    /// 아이템이 한 자리에 겹치고, 직원이 자재 위를 통과해도 밀려나지 않게 합니다.
     /// </summary>
     public void Register(DroppedItem item)
     {
         if (item == null || _items.Contains(item)) return;
+
+        // 다른 DroppedItem과 충돌 무시 (아이템끼리 중첩 가능)
+        IgnoreCollisionsWithOthers(item);
+
+        // 모든 Employee와 충돌 무시 (직원이 자재 위/옆을 통과해도 밀리지 않음)
+        IgnoreCollisionsWithAllEmployees(item);
+
         _items.Add(item);
 
         CreateHaulTask(item);
         Debug.Log($"[DroppedItemManager] 아이템 등록: {item.itemData?.itemName} × {item.quantity} @ {item.transform.position}");
+    }
+
+    /// <summary>
+    /// 새로 등록되는 DroppedItem과 기존 모든 DroppedItem 간 물리 충돌을 무시 처리합니다.
+    /// </summary>
+    private void IgnoreCollisionsWithOthers(DroppedItem newItem)
+    {
+        if (newItem == null) return;
+        Collider2D newCol = newItem.Collider;
+        if (newCol == null) return;
+
+        for (int i = 0; i < _items.Count; i++)
+        {
+            DroppedItem other = _items[i];
+            if (other == null || other == newItem) continue;
+            Collider2D otherCol = other.Collider;
+            if (otherCol == null) continue;
+            Physics2D.IgnoreCollision(newCol, otherCol, true);
+        }
+    }
+
+    /// <summary>
+    /// 새로 등록되는 DroppedItem과 모든 Employee의 Collider 간 물리 충돌을 무시 처리합니다.
+    /// (자재가 직원의 발에 밀려나거나 직원의 이동을 차단하지 않도록)
+    /// </summary>
+    private void IgnoreCollisionsWithAllEmployees(DroppedItem newItem)
+    {
+        if (newItem == null) return;
+        Collider2D newCol = newItem.Collider;
+        if (newCol == null) return;
+        if (EmployeeManager.instance == null) return;
+
+        foreach (var emp in EmployeeManager.instance.AllEmployees)
+        {
+            if (emp == null) continue;
+            // Employee는 RequireComponent(Collider2D)이므로 1개 이상 있음 — 모두 무시 처리
+            var empCols = emp.GetComponentsInChildren<Collider2D>();
+            foreach (var ec in empCols)
+            {
+                if (ec == null) continue;
+                Physics2D.IgnoreCollision(newCol, ec, true);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 새 Employee가 spawn될 때 기존 모든 DroppedItem과 충돌 무시 처리합니다.
+    /// EmployeeManager.OnEmployeeSpawned 이벤트에서 호출됩니다.
+    /// </summary>
+    private void IgnoreCollisionsForNewEmployee(Employee employee)
+    {
+        if (employee == null) return;
+        var empCols = employee.GetComponentsInChildren<Collider2D>();
+        if (empCols == null || empCols.Length == 0) return;
+
+        foreach (var item in _items)
+        {
+            if (item == null) continue;
+            Collider2D itemCol = item.Collider;
+            if (itemCol == null) continue;
+            foreach (var ec in empCols)
+            {
+                if (ec == null) continue;
+                Physics2D.IgnoreCollision(itemCol, ec, true);
+            }
+        }
     }
 
     /// <summary>

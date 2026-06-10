@@ -11,9 +11,24 @@ using UnityEngine;
 ///
 /// 비주얼:
 ///   - 스프라이트 없이 원형 SpriteRenderer + 아이템 아이콘 색상으로 표현
+///
+/// 물리:
+///   - Awake에서 Rigidbody2D + CircleCollider2D를 자동 추가 (prefab에 없어도 동작)
+///   - Rigidbody2D는 dynamic + gravityScale=2 로 중력 적용 → 바닥에 떨어짐
+///   - DroppedItem끼리는 Physics2D.IgnoreCollision으로 충돌 무시 (DroppedItemManager에서 처리)
 /// </summary>
 public class DroppedItem : MonoBehaviour, IPoolable
 {
+    #region 상수
+
+    /// <summary>중력 가속도 배율 (1=기본). 빠르게 떨어지도록 2로 설정.</summary>
+    private const float GRAVITY_SCALE = 2f;
+
+    /// <summary>충돌 반경 (월드 단위)</summary>
+    private const float COLLIDER_RADIUS = 0.25f;
+
+    #endregion
+
     #region 필드
 
     /// <summary>아이템 데이터</summary>
@@ -26,6 +41,8 @@ public class DroppedItem : MonoBehaviour, IPoolable
     public bool IsClaimed { get; private set; }
 
     private SpriteRenderer _spriteRenderer;
+    private Rigidbody2D    _rigidbody;
+    private CircleCollider2D _collider;
 
     #endregion
 
@@ -34,7 +51,36 @@ public class DroppedItem : MonoBehaviour, IPoolable
     void Awake()
     {
         _spriteRenderer = GetComponent<SpriteRenderer>();
+        EnsurePhysicsComponents();
     }
+
+    /// <summary>
+    /// prefab에 Rigidbody2D / CircleCollider2D가 없으면 자동으로 부착하고,
+    /// 중력 + 회전 잠금 + 비-트리거 충돌 설정을 적용합니다.
+    /// </summary>
+    private void EnsurePhysicsComponents()
+    {
+        // Rigidbody2D: 중력 적용
+        _rigidbody = GetComponent<Rigidbody2D>();
+        if (_rigidbody == null)
+            _rigidbody = gameObject.AddComponent<Rigidbody2D>();
+
+        _rigidbody.bodyType        = RigidbodyType2D.Dynamic;
+        _rigidbody.gravityScale    = GRAVITY_SCALE;
+        _rigidbody.freezeRotation  = true; // 회전 잠금
+        _rigidbody.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+
+        // CircleCollider2D: 바닥/벽과 충돌 (트리거 아님)
+        _collider = GetComponent<CircleCollider2D>();
+        if (_collider == null)
+            _collider = gameObject.AddComponent<CircleCollider2D>();
+
+        _collider.isTrigger = false;
+        _collider.radius    = COLLIDER_RADIUS;
+    }
+
+    /// <summary>외부에서 접근할 수 있도록 collider를 노출 (DroppedItemManager의 충돌 무시 처리용).</summary>
+    public Collider2D Collider => _collider;
 
 void Start()
     {
@@ -115,12 +161,15 @@ public void Remove()
     {
         if (_spriteRenderer == null) return;
 
-        // 아이콘 스프라이트가 있으면 사용, 없으면 Unity 기본 Sprite(흰 원형)
-        if (itemData?.itemIcon != null)
+        // dropPrefab이 자체 sprite를 갖고 있으면 그대로 사용 (정상 흐름).
+        // ItemData.itemIcon은 UI 표시용이므로 덮어쓰지 않습니다.
+        //
+        // 폴백: prefab 없이 코드로 생성된 경우(_spriteRenderer.sprite == null)
+        // 또는 dropPrefab의 SpriteRenderer가 비어있는 경우에 한해 itemIcon으로 채웁니다.
+        if (_spriteRenderer.sprite == null && itemData?.itemIcon != null)
             _spriteRenderer.sprite = itemData.itemIcon;
 
-        // 색상: 아이템 아이콘 색 or 기본 흰색
-        _spriteRenderer.color = Color.white;
+        // 색상은 prefab이 가진 값을 유지 (덮어쓰지 않음)
     }
 
     #endregion

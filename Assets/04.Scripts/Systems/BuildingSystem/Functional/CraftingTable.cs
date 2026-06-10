@@ -4,29 +4,49 @@ using UnityEngine;
 using System.Linq;
 
 [RequireComponent(typeof(Collider2D))]
-public class CraftingTable : MonoBehaviour, IBuildingFunction
+public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver, IBuildingExtraSerializable
 {
     [Header("제작 설정")]
     [Tooltip("이 작업대에서 만들 수 있는 레시피 목록")]
     [SerializeField] private List<CraftingRecipe> availableRecipes;
-    
+
+    [Header("자재 운반 설정")]
+    [Tooltip("자재 운반 작업물의 최대 동시 작업자 수")]
+    [SerializeField] private int withdrawMaxWorkers = 3;
+    [Tooltip("자재 운반 작업물 우선순위 (낮을수록 우선)")]
+    [SerializeField] private int withdrawPriority = 3;
+    [Tooltip("직원이 자재를 인계할 때 사용할 오프셋 (작업대 좌측 하단 기준)")]
+    [SerializeField] private Vector2 deliveryOffset = new Vector2(0.5f, 0f);
+
     [Header("제작 진행 표시")]
     [Tooltip("제작 진행 바 (선택사항)")]
     [SerializeField] private GameObject progressBarPrefab;
     [SerializeField] private Vector3 progressBarOffset = new Vector3(0, 1.5f, 0);
-    
+
     [Header("오디오 (선택사항)")]
     [SerializeField] private AudioClip craftingStartSound;
     [SerializeField] private AudioClip craftingCompleteSound;
-    
+
     private bool _isCrafting = false;
     private CraftingRecipe _currentRecipe;
     private float _craftingProgress = 0f;
     private GameObject _progressBarInstance;
     private Coroutine _currentCraftingCoroutine;
-    
+
+    // ── 자재 운반(출고) 상태 ──────────────────────────────────────────────
+    /// <summary>InventoryManager 예약 ID (자재 잠금, 다른 작업이 가져가지 못하게)</summary>
+    private int _reservationId = -1;
+    /// <summary>아직 도착하지 않은 자재 (자재 도착 시 차감 → 0이면 제작 시작)</summary>
+    private readonly Dictionary<ItemData, int> _pendingMaterials = new Dictionary<ItemData, int>();
+    /// <summary>이미 도착한 자재 (취소 시 환불 드롭으로 사용)</summary>
+    private readonly Dictionary<ItemData, int> _deliveredMaterials = new Dictionary<ItemData, int>();
+    /// <summary>자재 운반 작업물 (모든 자재 도착 후 정리)</summary>
+    private WorkOrder _withdrawWorkOrder;
+    /// <summary>현재 자재 운반 단계인지 여부</summary>
+    private bool _isAwaitingMaterials = false;
+
     // IBuildingFunction 구현
-    public bool IsOperating => _isCrafting;
+    public bool IsOperating => _isCrafting || _isAwaitingMaterials;
     
     void Start()
     {
@@ -35,13 +55,19 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction
     
     void OnDestroy()
     {
+        // 자재 운반 대기 단계라면 예약/작업 정리
+        if (_isAwaitingMaterials)
+        {
+            CancelMaterialRequest("작업대 파괴");
+        }
+
         // 진행 중인 제작 취소
         if (_currentCraftingCoroutine != null)
         {
             StopCoroutine(_currentCraftingCoroutine);
             RefundMaterials();
         }
-        
+
         if (_progressBarInstance != null)
         {
             Destroy(_progressBarInstance);
@@ -88,41 +114,393 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction
         }
     }
     
+    /// <summary>
+    /// 제작을 시작합니다.
+    /// 출고 흐름:
+    ///   1. 사용 가능한 자재(예약 미반영분)가 충분한지 확인
+    ///   2. InventoryManager.TryReserve로 자재 잠금
+    ///   3. 각 자재마다 WithdrawOrder 생성 → 직원이 창고에서 운반
+    ///   4. 모든 자재가 도착하면(OnMaterialDelivered) CancelReservation + 실제 제작 시작
+    /// </summary>
     public void TryStartCrafting(CraftingRecipe recipe)
     {
-        if (_isCrafting)
+        if (_isCrafting || _isAwaitingMaterials)
         {
-            Debug.LogWarning("[CraftingTable] 이미 제작 중입니다.");
+            Debug.LogWarning("[CraftingTable] 이미 제작 또는 자재 대기 중입니다.");
             return;
         }
-        
+
         if (recipe == null)
         {
             Debug.LogError("[CraftingTable] 레시피가 null입니다.");
             return;
         }
-        
-        // 재료 확인
-        if (!InventoryManager.instance.HasItems(recipe.requiredMaterials))
+
+        if (InventoryManager.instance == null)
         {
-            Debug.LogWarning($"[CraftingTable] 재료 부족: '{recipe.outputItem.itemName}'");
+            Debug.LogError("[CraftingTable] InventoryManager가 없습니다.");
+            return;
+        }
+
+        // 사용 가능 자재 체크 (예약된 자재 제외)
+        if (!InventoryManager.instance.HasAvailableItems(recipe.requiredMaterials))
+        {
+            Debug.LogWarning($"[CraftingTable] 자재 부족(예약 고려): '{recipe.outputItem.itemName}'");
             ShowInsufficientMaterialsMessage(recipe);
             return;
         }
-        
-        // 재료 소모
-        if (!InventoryManager.instance.RemoveItems(recipe.requiredMaterials))
+
+        // 자재 예약 (다른 작업이 가져가지 못하도록 잠금)
+        int reservationId = InventoryManager.instance.TryReserve(recipe.requiredMaterials);
+        if (reservationId < 0)
         {
-            Debug.LogError("[CraftingTable] 재료 소모 실패!");
+            Debug.LogWarning("[CraftingTable] 자재 예약 실패");
             return;
         }
-        
-        // 제작 시작
+
         _currentRecipe = recipe;
-        _currentCraftingCoroutine = StartCoroutine(CraftingCoroutine(recipe));
-        
-        // 사운드 재생
+        _reservationId = reservationId;
+        _isAwaitingMaterials = true;
+
+        // 도착 대기 자재 카운트 + 누적 도착 자재 초기화
+        _pendingMaterials.Clear();
+        _deliveredMaterials.Clear();
+        foreach (var cost in recipe.requiredMaterials)
+        {
+            if (cost.item == null || cost.amount <= 0) continue;
+            _pendingMaterials[cost.item] = cost.amount;
+        }
+
+        // 즉시 자재 없는 레시피라면 바로 제작 시작
+        if (_pendingMaterials.Count == 0)
+        {
+            StartActualCrafting();
+            return;
+        }
+
+        // WithdrawOrder들을 묶을 WorkOrder 생성
+        if (WorkSystemManager.instance == null)
+        {
+            Debug.LogError("[CraftingTable] WorkSystemManager가 없어 자재 운반을 요청할 수 없습니다.");
+            InventoryManager.instance.CancelReservation(_reservationId);
+            _reservationId = -1;
+            _currentRecipe = null;
+            _isAwaitingMaterials = false;
+            _pendingMaterials.Clear();
+            return;
+        }
+
+        _withdrawWorkOrder = WorkSystemManager.instance.CreateWorkOrder(
+            $"제작 자재 운반: {recipe.outputItem.itemName}",
+            WorkType.Hauling,
+            maxWorkers: withdrawMaxWorkers,
+            priority:   withdrawPriority
+        );
+
+        foreach (var cost in recipe.requiredMaterials)
+        {
+            if (cost.item == null || cost.amount <= 0) continue;
+            var request = new MaterialRequest(cost.item, cost.amount, this, _reservationId);
+            var task    = new WithdrawOrder(request);
+            _withdrawWorkOrder.AddTarget(task);
+        }
+
+        Debug.Log($"[CraftingTable] 자재 운반 요청 생성: {recipe.outputItem.itemName} ({_pendingMaterials.Count}종)");
+    }
+
+    /// <summary>모든 자재가 도착한 후 호출되어 실제 제작 코루틴을 시작합니다.</summary>
+    private void StartActualCrafting()
+    {
+        if (_currentRecipe == null) return;
+
+        // 자재는 이미 직원이 Withdraw로 InventoryManager에서 차감했음.
+        // ConsumeReservation은 RemoveItem을 또 호출하므로 사용하면 안 됨.
+        // 예약 잠금만 해제 (자재 차감은 이미 됨).
+        if (_reservationId >= 0 && InventoryManager.instance != null)
+        {
+            InventoryManager.instance.CancelReservation(_reservationId);
+            _reservationId = -1;
+        }
+
+        // 자재 운반 작업물은 이미 모든 태스크가 완료되어 있을 것이지만, 안전하게 제거
+        if (_withdrawWorkOrder != null && WorkSystemManager.instance != null)
+        {
+            WorkSystemManager.instance.RemoveWorkOrder(_withdrawWorkOrder, isCancellation: false);
+            _withdrawWorkOrder = null;
+        }
+
+        _isAwaitingMaterials = false;
+        _deliveredMaterials.Clear(); // 정상 제작 진행 → 도착 자재는 "소비"된 것으로 간주, 환불 불필요
+
+        // 실제 제작 코루틴 시작
+        _currentCraftingCoroutine = StartCoroutine(CraftingCoroutine(_currentRecipe));
+
         PlaySound(craftingStartSound);
+    }
+
+    /// <summary>자재 요청을 취소하고 이미 도착한 자재는 작업대 위치에 DroppedItem으로 환불합니다.</summary>
+    private void CancelMaterialRequest(string reason)
+    {
+        if (_reservationId >= 0 && InventoryManager.instance != null)
+        {
+            InventoryManager.instance.CancelReservation(_reservationId);
+            _reservationId = -1;
+        }
+        if (_withdrawWorkOrder != null && WorkSystemManager.instance != null)
+        {
+            WorkSystemManager.instance.RemoveWorkOrder(_withdrawWorkOrder, isCancellation: true);
+            _withdrawWorkOrder = null;
+        }
+
+        // 도착한 자재 환불 (DroppedItem 떨어뜨림 → 직원이 가까운 창고로 다시 운반)
+        if (_deliveredMaterials.Count > 0)
+        {
+            ItemRefundHelper.SpawnRefunds(_deliveredMaterials, transform.position, Vector2Int.one);
+            _deliveredMaterials.Clear();
+        }
+
+        _pendingMaterials.Clear();
+        _isAwaitingMaterials = false;
+        _currentRecipe = null;
+
+        Debug.Log($"[CraftingTable] 자재 요청 취소: {reason}");
+    }
+
+    // ─── IMaterialReceiver ──────────────────────────────────────────────────
+
+    public Vector3 GetDeliveryPosition()
+    {
+        // 기본: 작업대 좌측 하단 + deliveryOffset.
+        // 작업대 footprint 자체가 직원의 발판이 안 되면 인접 발판 우선 (ConstructionSite와 동일 정책).
+        Vector3 basePos = transform.position + new Vector3(deliveryOffset.x, deliveryOffset.y, 0f);
+        var gameMap = MapGenerator.instance?.GameMapInstance;
+        if (gameMap == null) return basePos;
+
+        int bx = Mathf.FloorToInt(basePos.x);
+        int by = Mathf.FloorToInt(basePos.y);
+
+        var candidates = new System.Collections.Generic.List<Vector2Int>
+        {
+            new Vector2Int(bx,     by),
+            new Vector2Int(bx - 1, by),
+            new Vector2Int(bx + 1, by),
+            new Vector2Int(bx,     by - 1),
+        };
+
+        foreach (var pos in candidates)
+        {
+            if (pos.x < 0 || pos.x >= GameMap.MAP_WIDTH) continue;
+            if (pos.y < 0 || pos.y >= GameMap.MAP_HEIGHT) continue;
+
+            int tileId = gameMap.TileGrid[pos.x, pos.y];
+            bool walkable = tileId == 0 && !gameMap.DoesTileBlockMovement(pos.x, pos.y);
+            if (!walkable) continue;
+
+            int gy = pos.y - 1;
+            bool hasGround = gy >= 0 && (gameMap.IsSolidGround(pos.x, gy) || FloorTile.HasFloorTileAt(new Vector2Int(pos.x, gy)));
+            if (!hasGround) continue;
+
+            return new Vector3(pos.x + 0.5f, pos.y, 0f);
+        }
+        return basePos;
+    }
+
+    public bool IsRequestStillValid()
+    {
+        // 작업대 자체 + 제작 단계 검증
+        if (this == null) return false;
+        Building b = GetComponent<Building>();
+        if (b != null && !b.IsFunctional) return false;
+        return _isAwaitingMaterials && _currentRecipe != null;
+    }
+
+    public void OnMaterialDelivered(ItemData itemData, int amount)
+    {
+        if (itemData == null || amount <= 0) return;
+
+        // 도착 자재 누적 기록 (취소 시 환불용)
+        if (_deliveredMaterials.TryGetValue(itemData, out int already))
+            _deliveredMaterials[itemData] = already + amount;
+        else
+            _deliveredMaterials[itemData] = amount;
+
+        if (_pendingMaterials.TryGetValue(itemData, out int remaining))
+        {
+            remaining -= amount;
+            if (remaining <= 0) _pendingMaterials.Remove(itemData);
+            else                _pendingMaterials[itemData] = remaining;
+
+            Debug.Log($"[CraftingTable] 자재 도착: {itemData.itemName}×{amount} (남은 종류: {_pendingMaterials.Count})");
+        }
+
+        if (_pendingMaterials.Count == 0)
+        {
+            StartActualCrafting();
+        }
+    }
+
+    public void OnMaterialRequestFailed(ItemData itemData, int amount)
+    {
+        // 자재 한 가지라도 실패하면 전체 취소 (운반된 자재는 ReturnCarryToStorage로 이미 반납됨)
+        CancelMaterialRequest($"자재 운반 실패: {itemData?.itemName} × {amount}");
+    }
+
+    // ─── IBuildingExtraSerializable (저장/복원) ────────────────────────────
+
+    [System.Serializable]
+    private class CraftingTableExtraData
+    {
+        public int recipeId = -1;
+        public int reservationId = -1;
+        public bool isAwaitingMaterials;
+        public bool isCrafting;
+        public float craftingProgress;
+        public List<ItemStackSaveData> pendingMaterials = new List<ItemStackSaveData>();
+        public List<ItemStackSaveData> deliveredMaterials = new List<ItemStackSaveData>();
+    }
+
+    public string SerializeExtra()
+    {
+        // 활성 상태(자재 대기 OR 제작 중)일 때만 저장
+        if (!_isAwaitingMaterials && !_isCrafting) return "";
+
+        var data = new CraftingTableExtraData
+        {
+            recipeId            = _currentRecipe != null ? _currentRecipe.recipeID : -1,
+            reservationId       = _reservationId,
+            isAwaitingMaterials = _isAwaitingMaterials,
+            isCrafting          = _isCrafting,
+            craftingProgress    = _craftingProgress
+        };
+
+        foreach (var kv in _pendingMaterials)
+        {
+            if (kv.Key == null || kv.Value <= 0) continue;
+            data.pendingMaterials.Add(new ItemStackSaveData { itemId = kv.Key.itemID, amount = kv.Value });
+        }
+        foreach (var kv in _deliveredMaterials)
+        {
+            if (kv.Key == null || kv.Value <= 0) continue;
+            data.deliveredMaterials.Add(new ItemStackSaveData { itemId = kv.Key.itemID, amount = kv.Value });
+        }
+
+        return JsonUtility.ToJson(data);
+    }
+
+    public void DeserializeExtra(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return;
+
+        CraftingTableExtraData data;
+        try
+        {
+            data = JsonUtility.FromJson<CraftingTableExtraData>(json);
+        }
+        catch
+        {
+            return;
+        }
+        if (data == null) return;
+
+        var db = GameDatabase.Instance;
+        if (db == null) return;
+
+        // 레시피 복원
+        var recipe = db.GetRecipeData(data.recipeId);
+        if (recipe == null) return;
+        _currentRecipe = recipe;
+        _reservationId = data.reservationId;
+
+        _pendingMaterials.Clear();
+        _deliveredMaterials.Clear();
+        foreach (var s in data.pendingMaterials)
+        {
+            var item = db.GetItemData(s.itemId);
+            if (item != null && s.amount > 0) _pendingMaterials[item] = s.amount;
+        }
+        foreach (var s in data.deliveredMaterials)
+        {
+            var item = db.GetItemData(s.itemId);
+            if (item != null && s.amount > 0) _deliveredMaterials[item] = s.amount;
+        }
+
+        if (data.isCrafting)
+        {
+            // 제작 진행 중이었음 → 진행도 이어서 재시작
+            _isCrafting = true;
+            _craftingProgress = data.craftingProgress;
+            _isAwaitingMaterials = false;
+            _currentCraftingCoroutine = StartCoroutine(ResumeCraftingCoroutine(recipe, data.craftingProgress));
+        }
+        else if (data.isAwaitingMaterials)
+        {
+            _isAwaitingMaterials = true;
+
+            if (_pendingMaterials.Count == 0)
+            {
+                // 모든 자재가 도착해 있던 상태 → 바로 제작 시작
+                StartActualCrafting();
+            }
+            else
+            {
+                // 미도착 자재 있음 → WithdrawOrder 재생성
+                RecreateWithdrawOrdersFromPending();
+            }
+        }
+    }
+
+    /// <summary>현재 _pendingMaterials 기준으로 WithdrawOrder들을 다시 만들어 운반 재개합니다.</summary>
+    private void RecreateWithdrawOrdersFromPending()
+    {
+        if (_pendingMaterials.Count == 0) return;
+        if (WorkSystemManager.instance == null || _currentRecipe == null) return;
+
+        _withdrawWorkOrder = WorkSystemManager.instance.CreateWorkOrder(
+            $"제작 자재 운반(재개): {_currentRecipe.outputItem.itemName}",
+            WorkType.Hauling,
+            maxWorkers: withdrawMaxWorkers,
+            priority:   withdrawPriority
+        );
+
+        foreach (var kv in _pendingMaterials)
+        {
+            if (kv.Key == null || kv.Value <= 0) continue;
+            var request = new MaterialRequest(kv.Key, kv.Value, this, _reservationId);
+            _withdrawWorkOrder.AddTarget(new WithdrawOrder(request));
+        }
+
+        Debug.Log($"[CraftingTable] 자재 운반 재개 ({_pendingMaterials.Count}종)");
+    }
+
+    /// <summary>저장 시점의 진행도부터 제작을 이어가는 코루틴.</summary>
+    private IEnumerator ResumeCraftingCoroutine(CraftingRecipe recipe, float startProgress)
+    {
+        _isCrafting = true;
+        _craftingProgress = Mathf.Clamp01(startProgress);
+
+        if (progressBarPrefab != null && _progressBarInstance == null)
+        {
+            _progressBarInstance = Instantiate(progressBarPrefab, transform.position + progressBarOffset, Quaternion.identity, transform);
+        }
+
+        float elapsedTime = recipe.craftingTime * _craftingProgress;
+        var powerConsumer = GetComponent<PowerConsumer>();
+        while (elapsedTime < recipe.craftingTime)
+        {
+            // 정전 시 진행 정지 (전력 복구 시 이어서 진행)
+            if (powerConsumer != null && !powerConsumer.IsPowered)
+            {
+                yield return null;
+                continue;
+            }
+
+            elapsedTime += Time.deltaTime;
+            _craftingProgress = elapsedTime / recipe.craftingTime;
+            UpdateProgressBar(_craftingProgress);
+            yield return null;
+        }
+
+        CompleteCrafting(recipe);
     }
     
     private IEnumerator CraftingCoroutine(CraftingRecipe recipe)
@@ -139,14 +517,22 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction
         }
         
         float elapsedTime = 0f;
+        var powerConsumer = GetComponent<PowerConsumer>();
         while (elapsedTime < recipe.craftingTime)
         {
+            // 정전 시 진행 정지 (전력 복구 시 이어서 진행)
+            if (powerConsumer != null && !powerConsumer.IsPowered)
+            {
+                yield return null;
+                continue;
+            }
+
             elapsedTime += Time.deltaTime;
             _craftingProgress = elapsedTime / recipe.craftingTime;
-            
+
             // 진행 바 업데이트
             UpdateProgressBar(_craftingProgress);
-            
+
             yield return null;
         }
         
@@ -172,10 +558,17 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction
     
     public void CancelCrafting()
     {
+        // 자재 운반 대기 단계 취소
+        if (_isAwaitingMaterials)
+        {
+            CancelMaterialRequest("사용자 취소");
+            return;
+        }
+
         if (!_isCrafting || _currentCraftingCoroutine == null) return;
-        
+
         Debug.Log("[CraftingTable] 제작 취소됨");
-        
+
         StopCoroutine(_currentCraftingCoroutine);
         RefundMaterials();
         ResetCraftingState();
@@ -224,6 +617,12 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction
     // IBuildingFunction 인터페이스 구현
     public void OnBuildingDisabled()
     {
+        // 자재 운반 대기 단계도 취소
+        if (_isAwaitingMaterials)
+        {
+            CancelMaterialRequest("건물 비활성화");
+        }
+
         // 제작 중이었다면 취소하고 재료 환불
         if (_isCrafting)
         {

@@ -41,8 +41,17 @@ public class BuildOrder : IWorkTarget
     /// <summary>건설에 소요되는 시간을 반환합니다 (초).</summary>
     public float GetWorkTime() => buildingData != null ? buildingData.constructionTime : 5f;
 
-    /// <summary>작업 가능 여부를 반환합니다.</summary>
-    public bool IsWorkAvailable() => !completed && constructionSite != null && !constructionSite.IsCompleted;
+    /// <summary>
+    /// 작업 가능 여부.
+    /// 자재가 모두 도착해야 직원이 실제 건설 작업을 시작할 수 있습니다.
+    /// (자재 운반은 별도 WithdrawOrder들로 처리됨)
+    /// </summary>
+    public bool IsWorkAvailable()
+    {
+        if (completed || constructionSite == null || constructionSite.IsCompleted)
+            return false;
+        return constructionSite.IsMaterialsReady;
+    }
 
     /// <summary>
     /// 작업 완료 처리.

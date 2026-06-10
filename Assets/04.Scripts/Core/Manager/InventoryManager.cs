@@ -9,9 +9,13 @@ using System.Linq;
 /// 자원 예약 흐름:
 ///   1. TryReserve()로 자원을 예약 (다른 곳에서 사용 불가)
 ///   2. 작업 완료 시 ConsumeReservation()으로 실제 소모
-///   3. 작업 취소 시 CancelReservation()으로 예약 해제 
+///   3. 작업 취소 시 CancelReservation()으로 예약 해제
+///
+/// 저장소 추상화:
+///   IItemStorage를 구현하여 Stockpile의 linkedStorage가 이 매니저를 위임 대상으로 삼습니다.
+///   향후 창고별 LocalStorage(IItemStorage) 구현체로 교체할 수 있습니다.
 /// </summary>
-public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule
+public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule, IItemStorage
 {
     #region 필드 및 설정
 

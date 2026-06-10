@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// 건물 저장 데이터 (완성된 건물).
@@ -58,9 +59,22 @@ public class ConstructionSiteSaveData
     /// <summary>자원 예약 ID (-1이면 예약 없음)</summary>
     public int reservationId;
 
+    // ── 자재 운반 상태 (출고 흐름) ──────────────────────────────────────────
+    /// <summary>아직 도착하지 않은 자재 목록</summary>
+    public List<ItemStackSaveData> pendingMaterials;
+
+    /// <summary>이미 도착한 자재 목록 (취소 시 환불 대상)</summary>
+    public List<ItemStackSaveData> deliveredMaterials;
+
+    /// <summary>모든 자재가 도착해 건설 작업이 시작 가능한지 여부</summary>
+    public bool isMaterialsReady;
+
     public ConstructionSiteSaveData()
     {
-        workOrderId = -1;
-        reservationId = -1;
+        workOrderId         = -1;
+        reservationId       = -1;
+        pendingMaterials    = new List<ItemStackSaveData>();
+        deliveredMaterials  = new List<ItemStackSaveData>();
+        isMaterialsReady    = false;
     }
 }
