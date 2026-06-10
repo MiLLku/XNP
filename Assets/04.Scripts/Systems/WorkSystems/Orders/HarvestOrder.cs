@@ -49,6 +49,8 @@ public class HarvestOrder : IWorkTarget
     /// <inheritdoc/>
     public void CompleteWork(Employee worker)
     {
+        if (completed) return; // 이중 호출 방지 (MiningOrder, BuildOrder와 동일 패턴)
+
         if (target != null)
         {
             target.Harvest();

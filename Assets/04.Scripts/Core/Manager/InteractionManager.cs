@@ -62,12 +62,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     
     // 모드 관리
     private InteractMode _currentMode = InteractMode.Normal;
-    
-    // 예약 시스템 (채광용)
-    private HashSet<Vector3Int> _pendingMiningTiles = new HashSet<Vector3Int>();
-    private WorkOrderVisual _pendingVisual; 
-    private GameObject _pendingVisualObject; 
-    
+
     // 드래그 선택
     private bool _isDragging = false;
     private Vector3 _dragStartPos;
@@ -195,12 +190,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     
         ExitCurrentMode();
         _currentMode = mode;
-    
-        if (mode == InteractMode.Mine)
-        {
-            PrepareMiningPendingVisual();
-        }
-        else if (mode == InteractMode.Build)
+
+        if (mode == InteractMode.Build)
         {
             // UIManager를 통해 건설 UI 열기
             if (UIManager.instance != null)
@@ -218,12 +209,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     private void ExitCurrentMode()
     {
         CancelDrag();
-        
-        if (_currentMode == InteractMode.Mine)
-        {
-            ClearMiningPending();
-        }
-        else if (_currentMode == InteractMode.Build)
+
+        if (_currentMode == InteractMode.Build)
         {
             // 배치 모드가 활성화되어 있으면 종료
             if (_constructionManager != null && _constructionManager.IsPlacementMode)
@@ -493,127 +480,164 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     #endregion
 
     #region 채광 모드
-    
-    private void PrepareMiningPendingVisual()
-    {
-        if (_pendingVisualObject == null && workOrderVisualPrefab != null)
-        {
-            _pendingVisualObject = Instantiate(workOrderVisualPrefab);
-            _pendingVisualObject.name = "Pending Mining Selection";
-            _pendingVisual = _pendingVisualObject.GetComponent<WorkOrderVisual>();
-        }
-        
-        if (_pendingVisualObject != null) _pendingVisualObject.SetActive(true);
-        _pendingMiningTiles.Clear();
-    }
 
-    private void ClearMiningPending()
-    {
-        _pendingMiningTiles.Clear();
-        if (_pendingVisualObject != null)
-        {
-            Destroy(_pendingVisualObject);
-            _pendingVisualObject = null;
-            _pendingVisual = null;
-        }
-    }
-
+    /// <summary>
+    /// 채광 모드 드래그 처리.
+    /// - 좌클릭 드래그: 마우스를 떼는 순간 영역 내 채광 가능 타일로 즉시 WorkOrder 생성
+    /// - 우클릭 드래그: 영역 내 기존 채광 작업 더미 취소
+    /// </summary>
     private void HandleMineMode()
     {
         if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
         {
+            if (IsPointerOverInteractiveUI()) return;
             _dragStartPos = _cameraController.GetMouseWorldPosition();
             _isDragging = true;
         }
-        
+
         if (_isDragging)
         {
             _dragEndPos = _cameraController.GetMouseWorldPosition();
             UpdateSelectionBox();
         }
-        
+
         if ((Input.GetMouseButtonUp(0) || Input.GetMouseButtonUp(1)) && _isDragging)
         {
-            bool isAdding = Input.GetMouseButtonUp(0); 
-            ModifyPendingTiles(isAdding);
+            bool isAdding = Input.GetMouseButtonUp(0);
+            if (isAdding)
+            {
+                CreateMiningWorkOrderFromDragArea();
+            }
+            else
+            {
+                CancelMiningWorkOrdersInDragArea();
+            }
             _isDragging = false;
             if (_selectionBox != null) _selectionBox.SetActive(false);
         }
     }
 
-    private void ModifyPendingTiles(bool isAdding)
+    /// <summary>
+    /// 현재 드래그 영역(_dragStartPos~_dragEndPos)을 순회하여 채광 가능 타일을 모으고
+    /// 즉시 단일 WorkOrder + WorkOrderVisual을 생성합니다.
+    /// </summary>
+    private void CreateMiningWorkOrderFromDragArea()
     {
         Vector3Int startCell = groundTilemap.WorldToCell(_dragStartPos);
         Vector3Int endCell = groundTilemap.WorldToCell(_dragEndPos);
-    
+
         int minX = Mathf.Min(startCell.x, endCell.x);
         int maxX = Mathf.Max(startCell.x, endCell.x);
         int minY = Mathf.Min(startCell.y, endCell.y);
         int maxY = Mathf.Max(startCell.y, endCell.y);
-        
-        List<Vector3Int> currentSelection = new List<Vector3Int>();
 
+        List<Vector3Int> tiles = new List<Vector3Int>();
         for (int x = minX; x <= maxX; x++)
         {
             for (int y = minY; y <= maxY; y++)
             {
-                if (isAdding)
-                {
-                    if (CanMineTile(x, y)) 
-                        currentSelection.Add(new Vector3Int(x, y, 0));
-                }
-                else
-                {
-                    currentSelection.Add(new Vector3Int(x, y, 0));
-                }
+                if (CanMineTile(x, y))
+                    tiles.Add(new Vector3Int(x, y, 0));
             }
         }
 
-        if (isAdding)
+        if (tiles.Count == 0)
         {
-            _pendingMiningTiles.UnionWith(currentSelection);
-        }
-        else
-        {
-            _pendingMiningTiles.ExceptWith(currentSelection);
+            Debug.Log("[Interaction] 채광 가능한 타일이 영역 내에 없습니다.");
+            return;
         }
 
-        if (_pendingVisual != null)
+        if (tiles.Count > maxTilesPerOrder)
         {
-            _pendingVisual.UpdateTiles(_pendingMiningTiles.ToList());
+            Debug.LogWarning($"[Interaction] 선택 타일 {tiles.Count}개가 최대 {maxTilesPerOrder}개를 초과 → 앞 {maxTilesPerOrder}개만 사용");
+            tiles = tiles.GetRange(0, maxTilesPerOrder);
         }
+
+        CreateMiningWorkOrder(tiles);
+        Debug.Log($"[Interaction] 채광 작업 더미 생성: {tiles.Count}개 타일");
     }
 
-    private void ConfirmMiningSelection()
+    /// <summary>
+    /// 현재 드래그 영역과 겹치는 모든 채광 작업 더미를 취소합니다.
+    /// (한 WorkOrder의 일부 타일만 영역에 포함되어도 해당 WorkOrder 전체를 취소)
+    /// </summary>
+    private void CancelMiningWorkOrdersInDragArea()
     {
-        if (_pendingMiningTiles.Count > 0)
+        if (_workSystemManager == null) return;
+
+        Vector3Int startCell = groundTilemap.WorldToCell(_dragStartPos);
+        Vector3Int endCell = groundTilemap.WorldToCell(_dragEndPos);
+
+        int minX = Mathf.Min(startCell.x, endCell.x);
+        int maxX = Mathf.Max(startCell.x, endCell.x);
+        int minY = Mathf.Min(startCell.y, endCell.y);
+        int maxY = Mathf.Max(startCell.y, endCell.y);
+
+        var miningOrders = _workSystemManager.AllOrders
+            .Where(o => o.workType == WorkType.Mining && o.isActive)
+            .ToList();
+
+        int cancelled = 0;
+        foreach (var order in miningOrders)
         {
-            CreateMiningWorkOrder(_pendingMiningTiles.ToList());
-            Debug.Log($"[Interaction] 채광 작업 확정: {_pendingMiningTiles.Count}개 타일");
+            bool overlaps = false;
+            foreach (var task in order.taskQueue.PendingTasks)
+            {
+                Vector3 pos = task.GetPosition();
+                int px = Mathf.FloorToInt(pos.x);
+                int py = Mathf.FloorToInt(pos.y);
+                if (px >= minX && px <= maxX && py >= minY && py <= maxY)
+                {
+                    overlaps = true;
+                    break;
+                }
+            }
+
+            if (!overlaps)
+            {
+                foreach (var task in order.taskQueue.AssignedTasks)
+                {
+                    Vector3 pos = task.GetPosition();
+                    int px = Mathf.FloorToInt(pos.x);
+                    int py = Mathf.FloorToInt(pos.y);
+                    if (px >= minX && px <= maxX && py >= minY && py <= maxY)
+                    {
+                        overlaps = true;
+                        break;
+                    }
+                }
+            }
+
+            if (overlaps)
+            {
+                _workSystemManager.RemoveWorkOrder(order);
+                cancelled++;
+            }
         }
-        
-        SetMode(InteractMode.Normal);
+
+        if (cancelled > 0)
+            Debug.Log($"[Interaction] 채광 작업 더미 {cancelled}개 취소");
     }
 
     private bool CanMineTile(int x, int y)
     {
         if (x < 0 || x >= GameMap.MAP_WIDTH || y < 0 || y >= GameMap.MAP_HEIGHT) return false;
-        
+
         int tileID = _gameMap.TileGrid[x, y];
         if (tileID == 0 || tileID == 7) return false;
 
         if (_workSystemManager != null && _workSystemManager.IsTileUnderWork(new Vector3Int(x, y, 0)))
         {
-            return false; 
+            return false;
         }
-        
+
         return true;
     }
-    
+
     private void CreateMiningWorkOrder(List<Vector3Int> tiles)
     {
         if (_workSystemManager == null) return;
-    
+
         WorkOrderVisual visual = _workSystemManager.CreateWorkOrderWithVisual(
             $"채광 작업 ({tiles.Count}개)",
             WorkType.Mining,
@@ -621,12 +645,12 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             tiles: tiles,
             priority: 3
         );
-    
+
         if (visual != null)
         {
             WorkOrder workOrder = visual.WorkOrder;
             List<IWorkTarget> targets = new List<IWorkTarget>();
-            
+
             foreach (var tile in tiles)
             {
                 MiningOrder miningOrder = new MiningOrder
@@ -641,8 +665,12 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             }
             workOrder.AddTargets(targets);
         }
+        else
+        {
+            Debug.LogError("[Interaction] WorkOrderVisual 생성 실패 — WorkSystemManager 인스펙터에 workOrderVisualPrefab이 할당됐는지 확인하세요.");
+        }
     }
-    
+
     #endregion
 
     #region 수확 모드

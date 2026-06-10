@@ -101,7 +101,8 @@ public class WorkTaskQueue
             return null;
 
         // nextRetryTime이 지나지 않은 태스크는 재시도 대상에서 제외 (도달불가 타일 무한재시도 방지)
-        var validTasks = pendingTasks.Where(t => t.IsValid() && Time.time >= t.nextRetryTime).ToList();
+        // CanBeAssigned: IsValid(영구 무효 아님) + IsWorkAvailable(일시 조건 만족)
+        var validTasks = pendingTasks.Where(t => t.CanBeAssigned() && Time.time >= t.nextRetryTime).ToList();
 
         if (validTasks.Count == 0)
             return null;
@@ -137,7 +138,7 @@ public class WorkTaskQueue
         if (worker == null || pendingTasks.Count == 0)
             return null;
 
-        var validTasks = pendingTasks.Where(t => t.IsValid() && Time.time >= t.nextRetryTime).ToList();
+        var validTasks = pendingTasks.Where(t => t.CanBeAssigned() && Time.time >= t.nextRetryTime).ToList();
 
         if (validTasks.Count == 0)
             return null;
@@ -203,7 +204,7 @@ public class WorkTaskQueue
 
         var validInZone = pendingTasks.Where(t =>
         {
-            if (!t.IsValid()) return false;
+            if (!t.CanBeAssigned()) return false;
             Vector3 pos = t.GetPosition();
             var tile = new Vector2Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y));
             return zone.ContainsTile(tile);
@@ -408,6 +409,23 @@ public class WorkTaskQueue
     public int TotalCount => pendingTasks.Count + assignedTasks.Count + completedTasks.Count;
 
     /// <summary>대기 작업 목록 (읽기 전용)</summary>
+    /// <summary>
+    /// 외부에서 특정 task를 직원에게 직접 예약합니다 (multi-pickup 같은 특수 케이스).
+    /// pendingTasks에 있는 task만 예약 가능하며, 성공 시 assignedTasks로 이동합니다.
+    /// WorkSystemManager의 employeeToTaskMap에는 등록되지 않으므로
+    /// 호출한 코루틴이 직접 CompleteTask 또는 CancelTask를 호출해야 합니다.
+    /// </summary>
+    public bool TryReserveForWorker(WorkTask task, Employee worker)
+    {
+        if (task == null || worker == null) return false;
+        if (!pendingTasks.Contains(task)) return false;
+        if (!task.Assign(worker)) return false;
+
+        pendingTasks.Remove(task);
+        assignedTasks.Add(task);
+        return true;
+    }
+
     public IReadOnlyList<WorkTask> PendingTasks => pendingTasks;
     /// <summary>할당 작업 목록 (읽기 전용)</summary>
     public IReadOnlyList<WorkTask> AssignedTasks => assignedTasks;

@@ -572,7 +572,31 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
         if (task == null)
         {
             if (showDebugInfo)
+            {
                 Debug.LogWarning($"[WorkSystemManager] '{order.orderName}'에 할당 가능한 작업 없음{(zone != null ? " (구역 내)" : "")}");
+
+                // 진단: pending tasks가 왜 모두 제외됐는지 출력
+                var pendings = order.taskQueue?.PendingTasks;
+                if (pendings != null && pendings.Count > 0)
+                {
+                    Debug.Log($"  └─ pendingTasks={pendings.Count}개 — 제외 이유:");
+                    foreach (var t in pendings)
+                    {
+                        string reason;
+                        if (t.target == null) reason = "target=null";
+                        else if (t.state == WorkTask.TaskState.Completed) reason = "state=Completed";
+                        else if (t.state == WorkTask.TaskState.Cancelled) reason = "state=Cancelled";
+                        else if (!t.target.IsWorkAvailable()) reason = $"IsWorkAvailable=false ({t.target.GetType().Name})";
+                        else if (Time.time < t.nextRetryTime) reason = $"cooldown {(t.nextRetryTime - Time.time):F1}s 남음";
+                        else reason = "알 수 없음(zone 필터?)";
+                        Debug.Log($"     task {t.taskId} @ {t.GetPosition()}: {reason}");
+                    }
+                }
+                else
+                {
+                    Debug.Log($"  └─ pendingTasks=0 (할당 가능한 후보 자체가 없음)");
+                }
+            }
             return false;
         }
 
@@ -647,12 +671,15 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
             {
                 Debug.Log($"[WorkSystemManager] 작업물 '{order.orderName}' 완전 완료!");
             }
-            
+
             order.UnassignWorker(worker);
             employeeToOrderMap.Remove(worker);
             employeeToTaskMap.Remove(worker);
-            
+
             RemoveWorkOrder(order, isCancellation: false);
+
+            // 직원이 다음 작업을 EmployeeAI에서 가져올 수 있도록 Idle로 전환
+            worker.SetState(EmployeeState.Idle);
             return;
         }
 
@@ -736,6 +763,9 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
             order.UnassignWorker(worker);
             employeeToOrderMap.Remove(worker);
             employeeToTaskMap.Remove(worker);
+
+            // 직원이 다음 작업(다른 WorkOrder)을 EmployeeAI에서 가져올 수 있도록 Idle로 전환
+            worker.SetState(EmployeeState.Idle);
         }
         else
         {
@@ -829,6 +859,14 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     private void OnWorkerToggled(Employee employee)
     {
         if (currentUIOrder == null) return;
+
+        // 작업물이 이미 비활성/완료 상태면 UI를 닫고 무시 (잔존 패널 정리)
+        if (!currentUIOrder.isActive || currentUIOrder.IsCompleted())
+        {
+            Debug.Log($"[WorkSystemManager] 작업물 '{currentUIOrder.orderName}' 이미 비활성/완료 — UI 자동 닫기");
+            CloseAssignmentUI();
+            return;
+        }
 
         if (currentUIOrder.IsWorkerAssigned(employee))
         {

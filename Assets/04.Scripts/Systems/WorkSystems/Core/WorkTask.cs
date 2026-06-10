@@ -81,8 +81,8 @@ public class WorkTask
     /// </summary>
     public float nextRetryTime = 0f;
 
-    /// <summary>도달불가 타일 재시도 대기 시간 (초)</summary>
-    public const float RETRY_COOLDOWN = 10f;
+    /// <summary>도달불가 타일 재시도 대기 시간 (초). 짧게 둬서 다른 직원이 빨리 시도하도록.</summary>
+    public const float RETRY_COOLDOWN = 3f;
 
     #endregion
 
@@ -221,15 +221,29 @@ public class WorkTask
     #region 조회
 
     /// <summary>
-    /// 작업이 유효한지 확인합니다 (대상이 아직 작업 가능한지).
+    /// 작업이 큐에 머물러야 하는지 확인합니다 (영구 무효 아닌지).
+    /// CleanupInvalidTasks가 사용 — 완료/취소/target null인 task만 제거합니다.
+    /// "지금 작업 가능한가"는 <see cref="CanBeAssigned"/>로 별도 체크합니다.
+    ///
+    /// 이유: BuildOrder처럼 자재 도착 전엔 일시적으로 IsWorkAvailable=false인 태스크가
+    /// cleanup으로 영구 제거되어, 조건이 충족된 후에도 작업이 사라져버리는 버그를 막기 위함.
     /// </summary>
-    /// <returns>유효 여부</returns>
+    /// <returns>큐에 머물러야 하는지 여부</returns>
     public bool IsValid()
     {
         if (target == null) return false;
         if (state == TaskState.Completed || state == TaskState.Cancelled) return false;
+        return true;
+    }
 
-        return target.IsWorkAvailable();
+    /// <summary>
+    /// 지금 이 순간 직원에게 할당 가능한지 확인합니다.
+    /// IsValid(영구 무효 아님) + IsWorkAvailable(일시적 조건 만족) 모두 체크.
+    /// WorkTaskQueue의 할당 후보 필터에서 사용.
+    /// </summary>
+    public bool CanBeAssigned()
+    {
+        return IsValid() && target.IsWorkAvailable();
     }
 
     /// <summary>

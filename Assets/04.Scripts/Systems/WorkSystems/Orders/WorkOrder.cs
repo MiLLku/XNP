@@ -207,13 +207,14 @@ public class WorkOrder
     }
 
     /// <summary>
-    /// [호환성] 아직 할당되지 않은 유효한 작업 대상을 반환합니다.
+    /// [호환성] 아직 할당되지 않은 할당 가능한 작업 대상을 반환합니다.
+    /// CanBeAssigned: 큐에 머물러야 함(IsValid) + 지금 작업 가능(IsWorkAvailable)
     /// </summary>
-    /// <returns>대기 중인 유효 작업 대상 목록</returns>
+    /// <returns>대기 중인 할당 가능한 작업 대상 목록</returns>
     public List<IWorkTarget> GetAvailableTargets()
     {
         return taskQueue.PendingTasks
-            .Where(t => t.IsValid())
+            .Where(t => t.CanBeAssigned())
             .Select(t => t.target)
             .ToList();
     }
@@ -349,7 +350,7 @@ public class WorkOrder
 
         return taskQueue.PendingTasks.Where(t =>
         {
-            if (!t.IsValid()) return false;
+            if (!t.CanBeAssigned()) return false;
             Vector3 pos = t.GetPosition();
             var tile = new Vector2Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y));
             return zone.ContainsTile(tile);
@@ -478,6 +479,10 @@ public class WorkOrder
     /// </summary>
     public void Cancel()
     {
+        // 호출처 추적용 — 의도하지 않은 cancel 발생 시 원인 진단
+        Debug.Log($"[WorkOrder] Cancel 호출: '{orderName}' (id={orderId}, type={workType})\n" +
+                  $"StackTrace:\n{System.Environment.StackTrace}");
+
         isActive = false;
 
         taskQueue.CancelAll();
