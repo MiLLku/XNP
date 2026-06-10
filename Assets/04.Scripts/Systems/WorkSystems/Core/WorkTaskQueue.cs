@@ -205,6 +205,7 @@ public class WorkTaskQueue
         var validInZone = pendingTasks.Where(t =>
         {
             if (!t.CanBeAssigned()) return false;
+            if (Time.time < t.nextRetryTime) return false; // 도달불가 재시도 쿨다운 (다른 할당 경로와 동일)
             Vector3 pos = t.GetPosition();
             var tile = new Vector2Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y));
             return zone.ContainsTile(tile);
