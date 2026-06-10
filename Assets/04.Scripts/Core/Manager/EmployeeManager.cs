@@ -336,6 +336,20 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         foreach (var esd in data.employees)
         {
             EmployeeData empData = db.GetEmployeeData(esd.templateId);
+
+            // 무작위 생성 직원: GameDatabase에 없음 → 저장된 스냅샷으로 런타임 재구성
+            if (empData == null && esd.generated != null && esd.generated.isGenerated)
+            {
+                empData = RandomEmployeeGenerator.Rebuild(
+                    esd.generated, esd.templateId, esd.abilities, generationConfig);
+
+                if (empData != null && generationConfig == null &&
+                    (esd.generated.traitNames.Count > 0 || !string.IsNullOrEmpty(esd.generated.hairSpriteName)))
+                {
+                    Debug.LogWarning("[EmployeeManager] GenerationConfig 미할당 — 무작위 직원의 특성/헤어 복원이 생략됩니다.");
+                }
+            }
+
             if (empData == null)
             {
                 Debug.LogWarning($"[EmployeeManager] 직원 데이터 없음: ID {esd.templateId}");

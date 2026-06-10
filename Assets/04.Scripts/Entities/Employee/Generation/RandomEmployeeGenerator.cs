@@ -11,12 +11,16 @@ using UnityEngine;
 ///           → MarkUsed(selected) → 미선택 2개 자동 해제
 ///
 /// 저장 호환: 생성 직원의 employeeID는 RANDOM_ID_OFFSET(10000) 이상으로 설정됩니다.
-/// 추후 GameDatabase에 무작위 생성 직원 복원 로직을 추가할 때 이 범위를 활용하세요.
+/// 저장 시 CreateSnapshot()으로 생성 결과를 EmployeeSaveData.generated에 보존하고,
+/// 로드 시 GameDatabase 조회가 실패하면 Rebuild()로 EmployeeData를 재구성합니다.
 /// </summary>
 public static class RandomEmployeeGenerator
 {
     // GameDatabase의 고정 ID와 충돌하지 않도록 오프셋 적용
-    private const int RANDOM_ID_OFFSET = 10_000;
+    public const int RANDOM_ID_OFFSET = 10_000;
+
+    /// <summary>해당 employeeID가 무작위 생성 직원의 ID 대역인지 여부.</summary>
+    public static bool IsGeneratedId(int employeeId) => employeeId >= RANDOM_ID_OFFSET;
 
     /// <summary>
     /// config를 기반으로 무작위 EmployeeData 인스턴스를 생성합니다.
@@ -79,6 +83,137 @@ public static class RandomEmployeeGenerator
         data.appearance = GenerateAppearance(config);
 
         return data;
+    }
+
+    // ─── 저장/복원 ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 생성된 EmployeeData에서 저장용 스냅샷을 만듭니다 (Employee.CreateSaveData에서 호출).
+    /// </summary>
+    public static GeneratedEmployeeSaveData CreateSnapshot(EmployeeData data)
+    {
+        if (data == null) return null;
+
+        var snap = new GeneratedEmployeeSaveData
+        {
+            isGenerated         = true,
+            employeeName        = data.employeeName,
+            maxHealth           = data.maxHealth,
+            maxMental           = data.maxMental,
+            attackPower         = data.attackPower,
+            hungerDecayRate     = data.hungerDecayRate,
+            fatigueIncreaseRate = data.fatigueIncreaseRate,
+        };
+
+        if (data.initialDisqualifications != null)
+        {
+            foreach (WorkType wt in data.initialDisqualifications)
+                snap.initialDisqualifications.Add((int)wt);
+        }
+
+        if (data.traits != null)
+        {
+            foreach (EmployeeTrait trait in data.traits)
+            {
+                if (trait != null) snap.traitNames.Add(trait.name);
+            }
+        }
+
+        if (data.appearance != null)
+        {
+            snap.hairSpriteName = data.appearance.hairSprite != null ? data.appearance.hairSprite.name : "";
+            Color c = data.appearance.hairColor;
+            snap.hairColorR = c.r;
+            snap.hairColorG = c.g;
+            snap.hairColorB = c.b;
+            snap.hairColorA = c.a;
+        }
+
+        return snap;
+    }
+
+    /// <summary>
+    /// 저장된 스냅샷에서 런타임 EmployeeData를 재구성합니다 (EmployeeManager.Restore에서 호출).
+    /// 특성·헤어는 config 풀에서 이름으로 찾으며, config가 null이거나 풀에서 못 찾으면
+    /// 해당 항목만 생략하고 직원 자체는 복원합니다.
+    /// </summary>
+    /// <param name="snap">저장된 생성 스냅샷</param>
+    /// <param name="employeeId">저장된 employeeID (templateId)</param>
+    /// <param name="abilities">저장된 런타임 작업 능력 (템플릿 값으로 재사용)</param>
+    /// <param name="config">이름 조회용 생성 설정 (EmployeeManager.GenerationConfig)</param>
+    public static EmployeeData Rebuild(
+        GeneratedEmployeeSaveData snap,
+        int employeeId,
+        WorkAbilitiesSaveData abilities,
+        EmployeeGenerationConfig config)
+    {
+        if (snap == null || !snap.isGenerated) return null;
+
+        EmployeeData data = ScriptableObject.CreateInstance<EmployeeData>();
+
+        data.employeeName        = snap.employeeName;
+        data.employeeID          = employeeId;
+        data.isUnique            = true;
+        data.maxHealth           = snap.maxHealth;
+        data.maxMental           = snap.maxMental;
+        data.attackPower         = snap.attackPower;
+        data.hungerDecayRate     = snap.hungerDecayRate;
+        data.fatigueIncreaseRate = snap.fatigueIncreaseRate;
+
+        data.abilities = abilities != null ? abilities.ToWorkAbilities() : new WorkAbilities();
+
+        data.initialDisqualifications = new List<WorkType>();
+        if (snap.initialDisqualifications != null)
+        {
+            foreach (int wt in snap.initialDisqualifications)
+                data.initialDisqualifications.Add((WorkType)wt);
+        }
+
+        // 특성: config.traitPool에서 에셋 이름으로 조회
+        data.traits = new List<EmployeeTrait>();
+        if (snap.traitNames != null && snap.traitNames.Count > 0)
+        {
+            foreach (string traitName in snap.traitNames)
+            {
+                EmployeeTrait found = FindTraitByName(config, traitName);
+                if (found != null) data.traits.Add(found);
+                else Debug.LogWarning($"[RandomEmployeeGenerator] 특성 '{traitName}'을 traitPool에서 찾지 못해 생략 (직원: {snap.employeeName})");
+            }
+        }
+
+        // 외형: 헤어 스프라이트 이름 조회 + 색상 복원
+        data.appearance = new EmployeeAppearance
+        {
+            hairColor = new Color(snap.hairColorR, snap.hairColorG, snap.hairColorB, snap.hairColorA)
+        };
+        if (!string.IsNullOrEmpty(snap.hairSpriteName))
+        {
+            data.appearance.hairSprite = FindHairSpriteByName(config, snap.hairSpriteName);
+            if (data.appearance.hairSprite == null)
+                Debug.LogWarning($"[RandomEmployeeGenerator] 헤어 '{snap.hairSpriteName}'을 hairStylePool에서 찾지 못해 생략 (직원: {snap.employeeName})");
+        }
+
+        return data;
+    }
+
+    private static EmployeeTrait FindTraitByName(EmployeeGenerationConfig config, string traitName)
+    {
+        if (config == null || config.traitPool == null || string.IsNullOrEmpty(traitName)) return null;
+        foreach (EmployeeTrait trait in config.traitPool)
+        {
+            if (trait != null && trait.name == traitName) return trait;
+        }
+        return null;
+    }
+
+    private static Sprite FindHairSpriteByName(EmployeeGenerationConfig config, string spriteName)
+    {
+        if (config == null || config.hairStylePool == null || string.IsNullOrEmpty(spriteName)) return null;
+        foreach (Sprite sprite in config.hairStylePool)
+        {
+            if (sprite != null && sprite.name == spriteName) return sprite;
+        }
+        return null;
     }
 
     // ─── private helpers ────────────────────────────────────────────────────

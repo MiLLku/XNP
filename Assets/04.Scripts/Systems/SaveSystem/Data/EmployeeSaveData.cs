@@ -176,6 +176,17 @@ public class EmployeeSaveData
 
     #endregion
 
+    #region 무작위 생성 직원
+
+    /// <summary>
+    /// 무작위 생성 직원(templateId ≥ RandomEmployeeGenerator.RANDOM_ID_OFFSET)의 재구성 데이터.
+    /// GameDatabase에서 templateId 조회가 실패하면 이 데이터로 EmployeeData를 런타임 재생성합니다.
+    /// 주의: JsonUtility는 null 객체도 기본값 인스턴스로 역직렬화하므로 isGenerated 플래그로 구분합니다.
+    /// </summary>
+    public GeneratedEmployeeSaveData generated;
+
+    #endregion
+
     public EmployeeSaveData()
     {
         assignedWorkOrderId = -1;
@@ -319,4 +330,44 @@ public class WorkPrioritySaveData
 
     /// <summary>활성화 여부</summary>
     public bool enabled;
+}
+
+/// <summary>
+/// 무작위 생성 직원의 생성 결과 스냅샷.
+/// 로드 시 RandomEmployeeGenerator.Rebuild()로 EmployeeData를 재구성하는 데 사용합니다.
+///
+/// 작업 능력(WorkAbilities)은 별도로 저장하지 않습니다 —
+/// EmployeeSaveData.abilities(런타임 능력)가 이미 저장되므로 재구성 시 그것을 템플릿 값으로 씁니다.
+/// 특성/헤어는 에셋 참조라서 이름으로 저장하고 EmployeeGenerationConfig 풀에서 이름으로 찾습니다.
+/// </summary>
+[Serializable]
+public class GeneratedEmployeeSaveData
+{
+    /// <summary>유효한 생성 스냅샷인지 여부 (JsonUtility의 기본값 역직렬화와 구분용)</summary>
+    public bool isGenerated;
+
+    /// <summary>생성된 이름</summary>
+    public string employeeName;
+
+    /// <summary>기본 스탯</summary>
+    public int maxHealth;
+    public int maxMental;
+    public int attackPower;
+    public float hungerDecayRate;
+    public float fatigueIncreaseRate;
+
+    /// <summary>초기 결격 작업 목록 (WorkType int)</summary>
+    public List<int> initialDisqualifications = new List<int>();
+
+    /// <summary>특성 에셋 이름 목록 (EmployeeGenerationConfig.traitPool에서 이름으로 조회)</summary>
+    public List<string> traitNames = new List<string>();
+
+    /// <summary>헤어 스프라이트 이름 (EmployeeGenerationConfig.hairStylePool에서 이름으로 조회, 빈 문자열이면 없음)</summary>
+    public string hairSpriteName;
+
+    /// <summary>헤어 색상 (RGBA)</summary>
+    public float hairColorR = 0f;
+    public float hairColorG = 0f;
+    public float hairColorB = 0f;
+    public float hairColorA = 1f;
 }
