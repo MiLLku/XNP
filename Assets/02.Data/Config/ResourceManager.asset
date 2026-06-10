@@ -13,56 +13,74 @@ MonoBehaviour:
   m_Name: ResourceManager
   m_EditorClassIdentifier: 
   tileEntries:
+  - tile: 0
+    tileAsset: {fileID: 0}
   - tile: 1
     tileAsset: {fileID: 11400000, guid: 45fc5612c47f362409e3aa546648d0ce, type: 2}
   - tile: 2
-    tileAsset: {fileID: 11400000, guid: 6550851fc5c607448ab09881f934ea61, type: 2}
-  - tile: 3
     tileAsset: {fileID: 11400000, guid: 4c53772f81754d14bb3a939339f592d8, type: 2}
-  - tile: 4
-    tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
-  - tile: 5
+  - tile: 3
     tileAsset: {fileID: 11400000, guid: 394248374930c3a4ba7b48d2022637a9, type: 2}
-  - tile: 6
-    tileAsset: {fileID: 11400000, guid: c7fac7989b64a5445a7d8a58e02b674c, type: 2}
-  - tile: 7
-    tileAsset: {fileID: 11400000, guid: a8a2442aaec02f44c87b4794342d6478, type: 2}
-  - tile: 0
+  - tile: 4
     tileAsset: {fileID: 0}
+  - tile: 5
+    tileAsset: {fileID: 11400000, guid: a8a2442aaec02f44c87b4794342d6478, type: 2}
+  - tile: 6
+    tileAsset: {fileID: 11400000, guid: 6550851fc5c607448ab09881f934ea61, type: 2}
+  - tile: 9
+    tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
+  - tile: 10
+    tileAsset: {fileID: 11400000, guid: c7fac7989b64a5445a7d8a58e02b674c, type: 2}
   - tile: 99
     tileAsset: {fileID: 0}
   entityEntries:
-  - id: 2001
+  - entity: 2001
     prefab: {fileID: 1710648230924364092, guid: ae4d5b90c3812aa49b6e7271303dcf22, type: 3}
-  - id: 2002
+  - entity: 2002
     prefab: {fileID: 5555555555555555551, guid: 7744ec76d26e55d429455ce10bfc8ee9, type: 3}
-  - id: 2003
+  - entity: 2003
     prefab: {fileID: 5254875874074808394, guid: 01013e3909ccf4748b87fb969a5726aa, type: 3}
-  - id: 20
+  - entity: 20
     prefab: {fileID: 2513507033668713303, guid: 21edc317125955641aff5fc87f57b829, type: 3}
-  - id: 21
+  - entity: 21
     prefab: {fileID: 8981467727152508161, guid: e12d23da7d07cfd439186f3671f2192d, type: 3}
-  - id: 2004
+  - entity: 2004
     prefab: {fileID: 1000, guid: a1b2c3d4e5f60000a1b2c3d4e5f60004, type: 3}
-  - id: 2005
+  - entity: 2005
     prefab: {fileID: 7158746851217845667, guid: 93e10cc539125c34aa9bc78f38b33ccb, type: 3}
-  - id: 2006
+  - entity: 2006
     prefab: {fileID: 7777777777777777771, guid: 9e778d2e63c26da4d9f1914451df3ba6, type: 3}
+  - entity: 2010
+    prefab: {fileID: 1000, guid: a1b2c3d4e5f60000a1b2c3d4e5f60001, type: 3}
+  - entity: 2011
+    prefab: {fileID: 1000, guid: a1b2c3d4e5f60000a1b2c3d4e5f60002, type: 3}
+  - entity: 2012
+    prefab: {fileID: 1000, guid: a1b2c3d4e5f60000a1b2c3d4e5f60003, type: 3}
+  - entity: 2013
+    prefab: {fileID: 7505152173001505341, guid: 2853fd1db479b3a40a4458d139e20ba4, type: 3}
+  - entity: 2014
+    prefab: {fileID: 1000, guid: 4ebd5779362506544b590b6e03630586, type: 3}
+  - entity: 2015
+    prefab: {fileID: 1000, guid: b7541334c7fc7604a86101b7a5eb0404, type: 3}
+  - entity: 2016
+    prefab: {fileID: 1000, guid: 0f17da8d5deb4174f895b181abd35d3d, type: 3}
   dropEntries:
   - tile: 1
     itemData: {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
   - tile: 2
-    itemData: {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
-  - tile: 3
     itemData: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
+  - tile: 3
+    itemData: {fileID: 11400000, guid: 3066b6303fe3824458224f0a49daf3c3, type: 2}
   - tile: 4
-    itemData: {fileID: 11400000, guid: 3066b6303fe3824458224f0a49daf3c3, type: 2}
+    itemData: {fileID: 11400000, guid: a57498eaac13bbd479e5422f7ff5efcc, type: 2}
   - tile: 5
-    itemData: {fileID: 11400000, guid: 3066b6303fe3824458224f0a49daf3c3, type: 2}
-  - tile: 6
-    itemData: {fileID: 11400000, guid: 09ce745046665d24b87c78a7fc2e7848, type: 2}
-  - tile: 7
     itemData: {fileID: 11400000, guid: 588966bd842a65643a3c94860af4ddee, type: 2}
+  - tile: 6
+    itemData: {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
+  - tile: 7
+    itemData: {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
+  - tile: 10
+    itemData: {fileID: 11400000, guid: 09ce745046665d24b87c78a7fc2e7848, type: 2}
   allItems:
   - {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
   - {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}

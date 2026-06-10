@@ -16,12 +16,16 @@ MonoBehaviour:
   buildingName: "\uB3CC \uBC14\uB2E5"
   icon: {fileID: 0}
   category: 3
-  description: "\uB3CC\uB85C \uB9CC\uB4E0 \uD29C\uD29C\uD55C \uBC14\uB2E5. \uB0B4\uAD6C\uC131\uC774 \uC88B\uC2B5\uB2C8\uB2E4."
+  description: "\uB3CC\uB85C \uB9CC\uB4E0 \uBC14\uB2E5. \uAC78\uC5B4\uB2E4\uB2D0 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
   buildingPrefab: {fileID: 1000, guid: a1b2c3d4e5f60000a1b2c3d4e5f60002, type: 3}
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}
   constructionTime: 5
-  requiredResources: []
+  requiredResources:
+  - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
+    amount: 2
   maxHealth: 150
   blocksMovement: 0
   requiresFloorSupport: 0
+  destructionDrops: []
+  paybackRatio: 0.5

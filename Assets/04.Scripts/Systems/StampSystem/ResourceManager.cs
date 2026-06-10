@@ -18,15 +18,16 @@ public class TileEntry
 }
 
 /// <summary>
-/// ID와 개체 프리팹을 연결하는 엔트리.
+/// EntityType과 개체 프리팹을 연결하는 엔트리.
 /// </summary>
 [System.Serializable]
 public class EntityEntry
 {
-    /// <summary>개체 ID</summary>
-    public int id;
+    [Tooltip("이 엔트리가 매칭할 개체 종류")]
+    [FormerlySerializedAs("id")]
+    public EntityType entity = EntityType.None;
 
-    /// <summary>개체 프리팹</summary>
+    [Tooltip("개체 프리팹")]
     public GameObject prefab;
 }
 
@@ -68,7 +69,7 @@ public class ResourceManager : ScriptableObject
     [SerializeField] private List<ItemData> allItems;
 
     private Dictionary<TileType, TileBase> _tileLookup;
-    private Dictionary<int, GameObject> _entityLookup;
+    private Dictionary<EntityType, GameObject> _entityLookup;
     private Dictionary<TileType, ItemData> _dropLookup;
     private Dictionary<ItemType, ItemData> _itemLookup;
 
@@ -88,13 +89,13 @@ private void OnEnable()
             }
         }
 
-        _entityLookup = new Dictionary<int, GameObject>();
+        _entityLookup = new Dictionary<EntityType, GameObject>();
         if (entityEntries != null)
         {
             foreach (var entry in entityEntries)
             {
                 if (entry != null)
-                    _entityLookup[entry.id] = entry.prefab;
+                    _entityLookup[entry.entity] = entry.prefab;
             }
         }
 
@@ -146,15 +147,19 @@ public TileBase GetTileAsset(TileType tile)
     public TileBase GetTileAsset(int id) => GetTileAsset((TileType)id);
 
     /// <summary>
-    /// 개체 ID에 해당하는 프리팹을 반환합니다.
+    /// 개체 종류에 해당하는 프리팹을 반환합니다.
     /// </summary>
-    /// <param name="id">개체 ID</param>
+    /// <param name="entity">개체 종류</param>
     /// <returns>프리팹 (없으면 null)</returns>
-    public GameObject GetEntityPrefab(int id)
+    public GameObject GetEntityPrefab(EntityType entity)
     {
-        _entityLookup.TryGetValue(id, out GameObject prefab);
+        if (_entityLookup == null) return null;
+        _entityLookup.TryGetValue(entity, out GameObject prefab);
         return prefab;
     }
+
+    /// <summary>호환용 int 오버로드 — 내부적으로 (EntityType)id 캐스트.</summary>
+    public GameObject GetEntityPrefab(int id) => GetEntityPrefab((EntityType)id);
 
     /// <summary>
     /// 타일 ID에 해당하는 드롭 아이템 프리팹을 반환합니다.

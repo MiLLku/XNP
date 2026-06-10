@@ -74,20 +74,13 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     private const int IRON_ID          = 4;  // 철
     private const int GOLD_ID          = 5;  // 금
     private const int GRASS_ID         = 6;  // 잔디
-    private const int PROCESSED_DIRT_ID = 7; // 가공된 흙
     // ── 신규 광물 ────────────────────────────────────────────────────────────
     private const int COAL_ID          = 9;  // 석탄  (표층 근처, 흔함)
     private const int SILVER_ID        = 10; // 은    (중간 깊이)
     private const int CRYSTAL_ID       = 11; // 수정  (심층, 희귀)
-    // ── 침식 식물 엔티티 ID (ResourceManager 등록 필요) ─────────────────────
-    private const int ENTITY_TOXIC_FERN          = 20; // 독성 고사리
-    private const int ENTITY_CORRUPTED_MUSHROOM  = 21; // 부패한 버섯
-    // ── 스타팅 룸 엔티티 ID ──────────────────────────────────────────────────
-    private const int ENTITY_HIRING_OFFICE        = 2002; // 채용 사무소 (기존 ResourceManager 등록)
-    private const int ENTITY_WOOD_LADDER          = 2004; // 나무 사다리
-    private const int ENTITY_CHEST                = 2005; // 상자
-    private const int ENTITY_WOOD_DOOR            = 2006; // 나무 문
-    
+    // 개체(식물·건물) 종류는 EntityType enum으로 관리합니다. MapEntity.id에는 (int) 캐스트로 대입합니다.
+
+
     public GameMap GameMapInstance { get; private set; }
     public MapStamper StamperInstance { get; private set; }
     public MapRenderer MapRendererInstance { get; private set; }
@@ -291,7 +284,17 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                                    || ly == 0 || ly == roomHeight - 1) && !isDoorOpening;
                 bool isDivider     = (ly == dividerY) && lx != ladderLX;   // 사다리 열은 뚫어둠
 
-                _gameMap.SetTile(wx, wy, (isOuterWall || isDivider) ? DIRT_ID : AIR_ID);
+                _gameMap.SetTile(wx, wy, AIR_ID);
+                if (isOuterWall || isDivider)
+                {
+                    _gameMap.AddEntity(new MapEntity
+                    {
+                        position = new Vector2Int(wx, wy),
+                        type     = TypeObjectTile.Building,
+                        id       = (int)EntityType.StoneFloor
+                    });
+                    _gameMap.MarkTileOccupied(wx, wy, blocksMovement: true);
+                }
             }
         }
 
@@ -306,7 +309,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             {
                 position = new Vector2Int(ladderWorldX, groundY + ly),
                 type     = TypeObjectTile.Building,
-                id       = ENTITY_WOOD_LADDER
+                id       = (int)EntityType.WoodLadder
             });
         }
 
@@ -317,13 +320,13 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         {
             position = new Vector2Int(roomLeft,                  groundY + 1),
             type     = TypeObjectTile.Building,
-            id       = ENTITY_WOOD_DOOR
+            id       = (int)EntityType.WoodDoor
         });
         _gameMap.AddEntity(new MapEntity
         {
             position = new Vector2Int(roomLeft + roomWidth - 1,  groundY + 1),
             type     = TypeObjectTile.Building,
-            id       = ENTITY_WOOD_DOOR
+            id       = (int)EntityType.WoodDoor
         });
 
         // ── 5. 채용 사무소 (상층 중앙, BuildingData size=3×3) ─────────────────
@@ -335,7 +338,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         {
             position = new Vector2Int(officeWX, officeWY),
             type     = TypeObjectTile.Building,
-            id       = ENTITY_HIRING_OFFICE
+            id       = (int)EntityType.HiringOffice
         });
         // 건물 풋프린트 점유 마킹 (3×3)
         for (int dx = 0; dx < 3; dx++)
@@ -348,18 +351,21 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         {
             position = new Vector2Int(roomLeft + 5, groundY + 1),
             type     = TypeObjectTile.Building,
-            id       = ENTITY_CHEST
+            id       = (int)EntityType.Chest
         });
 
         // ── 6. 직원 스폰 포인트 (방 오른쪽 바깥) ─────────────────────────────────
         SetupEmployeeSpawn(roomLeft + roomWidth + 1, groundY + 1);
 
-        // ── 7. 스타팅 룸 전체를 영구 안개 공개 ──────────────────────────────────
+        // ── 7. 스타팅 룸 + 주변 1칸을 영구 안개 공개 ────────────────────────────
         //    벽/상자/사다리는 Building 컴포넌트 없이도 방 전체가 보이도록 영구 등록.
+        //    스타팅 룸의 벽(StoneFloor)도 일반 건물처럼 자기 너머 1칸까지 비추도록
+        //    공개 영역을 사방으로 1칸씩 확장합니다 (벽이 "시야를 밝히는" 효과).
         //    FogOfWarManager.instance는 Awake()에서 이미 생성되므로 접근 가능.
+        const int REVEAL_MARGIN = 1; // 벽 바깥 1칸까지 공개 (취향에 따라 조정)
         FogOfWarManager.instance?.PermanentlyRevealArea(
-            new Vector2Int(roomLeft, groundY),
-            new Vector2Int(roomWidth, roomHeight)
+            new Vector2Int(roomLeft - REVEAL_MARGIN, groundY - REVEAL_MARGIN),
+            new Vector2Int(roomWidth + REVEAL_MARGIN * 2, roomHeight + REVEAL_MARGIN * 2)
         );
 
         Debug.Log($"[PlaceStartingRoom] 스타팅 룸 배치 완료. " +
@@ -532,7 +538,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                     {
                         position = new Vector2Int(x, y + 1),
                         type     = TypeObjectTile.Plant,
-                        id       = ENTITY_TOXIC_FERN
+                        id       = (int)EntityType.ToxicFern
                     });
                     _gameMap.MarkTileOccupied(x, y);
                     toxicCount++;
@@ -543,7 +549,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                     {
                         position = new Vector2Int(x, y + 1),
                         type     = TypeObjectTile.Plant,
-                        id       = ENTITY_CORRUPTED_MUSHROOM
+                        id       = (int)EntityType.CorruptedMushroom
                     });
                     _gameMap.MarkTileOccupied(x, y);
                     mushroomCount++;
@@ -693,7 +699,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         var erosionPlants = FindObjectsByType<ErosionPlantEntity>(FindObjectsSortMode.None);
         foreach (var ep in erosionPlants)
         {
-            int variant = (ep.entityId == ENTITY_TOXIC_FERN) ? 2 : 3;
+            int variant = (ep.entityId == (int)EntityType.ToxicFern) ? 2 : 3;
             entities.Add(new MapEntitySaveData
             {
                 x = Mathf.FloorToInt(ep.transform.position.x),
@@ -735,7 +741,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                     {
                         position = pos,
                         type     = TypeObjectTile.Plant,
-                        id       = ENTITY_TOXIC_FERN
+                        id       = (int)EntityType.ToxicFern
                     });
                     break;
                 case 3: // 부패한 버섯
@@ -743,7 +749,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                     {
                         position = pos,
                         type     = TypeObjectTile.Plant,
-                        id       = ENTITY_CORRUPTED_MUSHROOM
+                        id       = (int)EntityType.CorruptedMushroom
                     });
                     break;
             }

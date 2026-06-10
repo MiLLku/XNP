@@ -10,22 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
-  m_Name: DirtTile
-  m_EditorClassIdentifier: 
-  buildingID: 3001
-  buildingName: "\uAC00\uACF5\uB41C \uD759 \uBC14\uB2E5"
+  m_Name: SilverFloor
+  m_EditorClassIdentifier:
+  buildingID: 3011
+  buildingName: "은 바닥"
   icon: {fileID: 0}
   category: 3
-  description: 
-  buildingPrefab: {fileID: 7505152173001505341, guid: 2853fd1db479b3a40a4458d139e20ba4, type: 3}
+  description: "은으로 만든 바닥."
+  buildingPrefab: {fileID: 1000, guid: 0f17da8d5deb4174f895b181abd35d3d, type: 3}
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}
-  constructionTime: 3
+  constructionTime: 7
   requiredResources:
-  - item: {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
+  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
     amount: 2
-  maxHealth: 100
-  blocksMovement: 1
+  maxHealth: 140
+  blocksMovement: 0
   requiresFloorSupport: 0
   destructionDrops: []
   paybackRatio: 0.5

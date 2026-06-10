@@ -152,7 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a4a515eb760f0348aca3e03293b65b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  buildingData: {fileID: 11400000, guid: b1c2d3e4f5a60000b1c2d3e4f5a60001, type: 3}
+  buildingData: {fileID: 11400000, guid: b1c2d3e4f5a60000b1c2d3e4f5a60010, type: 2}
   manualFunctionalScripts: []
   showDebugInfo: 0
 --- !u!114 &6000

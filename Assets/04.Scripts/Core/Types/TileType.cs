@@ -6,14 +6,18 @@
 /// </summary>
 public enum TileType
 {
-    Air = 0, // 빈 공간
-    Dirt = 1,
-    GrassDirt = 2,
-    Stone = 3,
-    IronOre = 4,
-    CopperOre = 5,
-    SilverOre = 6,
-    GoldOre = 7,
-    
+    Air          = 0,  // 빈 공간
+    Dirt         = 1,  // 흙
+    Stone        = 2,  // 돌
+    CopperOre    = 3,  // 구리 광석
+    IronOre      = 4,  // 철 광석
+    GoldOre      = 5,  // 금 광석
+    GrassDirt    = 6,  // 잔디흙 (지표면)
+    ProcessedDirt = 7, // 가공된 흙
+    Ladder       = 8,  // 사다리
+    Coal         = 9,  // 석탄
+    SilverOre    = 10, // 은 광석
+    Crystal      = 11, // 수정
+
     Special = 99,
 }
