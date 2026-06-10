@@ -121,9 +121,29 @@ public class ResourceInventoryUI : BasePanel
         if (items.Count == 0)
         {
             GameObject emptyRow = Instantiate(itemRowPrefab, contentContainer);
-            TextMeshProUGUI[] texts = emptyRow.GetComponentsInChildren<TextMeshProUGUI>();
-            if (texts.Length > 0) texts[0].text = "비어있음";
-            if (texts.Length > 1) texts[1].text = "";
+
+            // 아이콘 숨김
+            Transform iconTr = emptyRow.transform.Find("Icon")
+                            ?? emptyRow.transform.Find("IconImage")
+                            ?? emptyRow.transform.Find("Image");
+            if (iconTr != null)
+            {
+                Image iconImg = iconTr.GetComponent<Image>();
+                if (iconImg != null) iconImg.enabled = false;
+            }
+
+            Transform nameTr  = emptyRow.transform.Find("NameText");
+            Transform countTr = emptyRow.transform.Find("CountText") ?? emptyRow.transform.Find("AmountText");
+            if (nameTr  != null) { var t = nameTr.GetComponent<TextMeshProUGUI>();  if (t != null) t.text = "비어있음"; }
+            if (countTr != null) { var t = countTr.GetComponent<TextMeshProUGUI>(); if (t != null) t.text = ""; }
+
+            // 폴백
+            if (nameTr == null || countTr == null)
+            {
+                TextMeshProUGUI[] texts = emptyRow.GetComponentsInChildren<TextMeshProUGUI>();
+                if (nameTr == null  && texts.Length > 0) texts[0].text = "비어있음";
+                if (countTr == null && texts.Length > 1) texts[1].text = "";
+            }
             return;
         }
 
@@ -136,7 +156,11 @@ public class ResourceInventoryUI : BasePanel
 
     /// <summary>
     /// 아이템 행을 생성합니다.
-    /// 예약된 수량이 있으면 함께 표시합니다.
+    /// itemRowPrefab 구성 (자식 이름 매칭):
+    ///   - "Icon" 또는 "IconImage" (Image)         — itemData.itemIcon 표시
+    ///   - "NameText" (TextMeshProUGUI)            — 아이템 이름
+    ///   - "CountText" 또는 "AmountText" (TMP)     — 수량 (예약량 함께 표시)
+    /// 자식 이름이 매칭되지 않으면 폴백으로 자식 텍스트 0/1번에 이름/수량을 채웁니다.
     /// </summary>
     /// <param name="itemData">표시할 아이템 데이터</param>
     /// <param name="count">보유 수량</param>
@@ -147,18 +171,40 @@ public class ResourceInventoryUI : BasePanel
         GameObject row = Instantiate(itemRowPrefab, contentContainer);
 
         int reserved = InventoryManager.instance.GetReservedAmount(itemData);
+        string countLabel = reserved > 0 ? $"x{count} ({reserved} 예약됨)" : $"x{count}";
 
-        TextMeshProUGUI[] texts = row.GetComponentsInChildren<TextMeshProUGUI>();
-        if (texts.Length > 0)
+        // ── 아이콘 ────────────────────────────────────────────────
+        // 자식 이름으로 매칭: Icon / IconImage / Image 순으로 탐색
+        Transform iconTr = row.transform.Find("Icon")
+                        ?? row.transform.Find("IconImage")
+                        ?? row.transform.Find("Image");
+        if (iconTr != null)
         {
-            texts[0].text = itemData.itemName;
+            Image iconImg = iconTr.GetComponent<Image>();
+            if (iconImg != null && itemData.itemIcon != null)
+            {
+                iconImg.sprite  = itemData.itemIcon;
+                iconImg.enabled = true;
+            }
         }
-        if (texts.Length > 1)
+
+        // ── 텍스트(이름/수량) ─────────────────────────────────────
+        // 자식 이름으로 매칭 시도 (정확도 우선)
+        Transform nameTr  = row.transform.Find("NameText");
+        Transform countTr = row.transform.Find("CountText") ?? row.transform.Find("AmountText");
+
+        TextMeshProUGUI nameLabel  = nameTr  != null ? nameTr.GetComponent<TextMeshProUGUI>()  : null;
+        TextMeshProUGUI countLabel2 = countTr != null ? countTr.GetComponent<TextMeshProUGUI>() : null;
+
+        if (nameLabel != null)  nameLabel.text  = itemData.itemName;
+        if (countLabel2 != null) countLabel2.text = countLabel;
+
+        // 폴백: 이름 매칭 실패 시 컴포넌트 순서대로 채움 (기존 호환)
+        if (nameLabel == null || countLabel2 == null)
         {
-            if (reserved > 0)
-                texts[1].text = $"x{count} ({reserved} 예약됨)";
-            else
-                texts[1].text = $"x{count}";
+            TextMeshProUGUI[] texts = row.GetComponentsInChildren<TextMeshProUGUI>();
+            if (nameLabel == null && texts.Length > 0)  texts[0].text = itemData.itemName;
+            if (countLabel2 == null && texts.Length > 1) texts[1].text = countLabel;
         }
     }
 

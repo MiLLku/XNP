@@ -89,22 +89,6 @@ MonoBehaviour:
   defaultCanGarden: 1
   baseCarryCapacityMin: 3
   baseCarryCapacityMax: 8
-  disqualChances:
-  - workType: 1
-    chance: 30
-  - workType: 2
-    chance: 25
-  - workType: 7
-    chance: 20
-  - workType: 6
-    chance: 15
-  - workType: 8
-    chance: 20
-  - workType: 4
-    chance: 10
-  - workType: 3
-    chance: 5
-  - workType: 5
-    chance: 15
+  disqualChances: []
   disqualCountMax: 4
   speedBonusPerDisqual: 10
