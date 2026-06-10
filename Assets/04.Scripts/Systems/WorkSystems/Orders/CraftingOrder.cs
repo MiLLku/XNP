@@ -282,6 +282,12 @@ public class CraftingOrder : WorkOrder, IWorkTarget
             return;
         }
 
+        // 정전 시 진행도 누적을 건너뜁니다 (작업 일시정지 — 취소·환불 없음).
+        if (building != null && building.IsUnpowered())
+        {
+            return;
+        }
+
         _craftingProgress += deltaTime / _totalTime;
 
         if (_craftingProgress >= 1f)

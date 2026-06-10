@@ -108,6 +108,14 @@ public static class GameIDRegistry
         public const int FARM = 3300;
         public const int BARN = 3301;
         public const int GREENHOUSE = 3302;
+        public const int HYDROPONICS = 3303;        // 수경 재배기 (전력 소비, 4x1)
+
+        // 전력 건물 (3400~3499) — PowerBuildingType enum과 값 일치
+        public const int WIND_GENERATOR = 3400;     // 풍력 발전기 (무한, 4x2)
+        public const int POWER_BATTERY = 3401;      // 축전기 (1x2)
+        public const int POWER_WIRE = 3402;         // 전선 (1x1, 겹쳐 설치)
+        public const int WOOD_GENERATOR = 3403;     // 나무 화력 발전기 (연료, 2x2)
+        public const int EROSION_GENERATOR = 3404;  // 침식 융해 발전기 (2x2)
 
         public const int MIN = 3000;
         public const int MAX = 3999;

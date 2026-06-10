@@ -51,6 +51,9 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
     /// <summary>Building 컴포넌트 캐시</summary>
     protected Building _building;
 
+    /// <summary>전력 소비 컴포넌트 캐시 (없으면 전력 제약 없음)</summary>
+    protected PowerConsumer _powerConsumer;
+
     #endregion
 
     #region 프로퍼티
@@ -73,6 +76,16 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
     /// <summary>진행 중인 주문이 있는지 여부</summary>
     public bool HasActiveOrder => _currentOrder != null;
 
+    /// <summary>
+    /// 전력 소비 건물인데 현재 정전 상태인지 여부.
+    /// PowerConsumer가 없으면(전력 미사용 건물) 항상 false를 반환합니다.
+    /// CraftingOrder가 작업 진행 중 정전 시 진행도 누적을 멈추는 데 사용합니다.
+    /// </summary>
+    public bool IsUnpowered()
+    {
+        return _powerConsumer != null && !_powerConsumer.IsPowered;
+    }
+
     #endregion
 
     #region 초기화 및 정리
@@ -80,6 +93,7 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
     protected virtual void Awake()
     {
         _building = GetComponent<Building>();
+        _powerConsumer = GetComponent<PowerConsumer>();
 
         if (workPosition == null)
         {

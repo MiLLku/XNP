@@ -56,9 +56,12 @@ public class GameDatabase : ScriptableObject
     /// </summary>
     public void Initialize()
     {
-        if (_initialized) return;
-
+        // 에디터 반복 Play 대비: Instance는 항상 설정하고, 캐시가 비어 있을 때만 재빌드한다.
+        // (ScriptableObject의 _initialized 플래그가 도메인 리로드를 넘어 남아
+        //  GameDatabase.Instance가 null로 방치되던 문제 방지)
         Instance = this;
+        if (_initialized && _buildingDataMap != null) return;
+
         BuildCaches();
         _initialized = true;
 

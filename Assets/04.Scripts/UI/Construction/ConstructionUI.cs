@@ -206,6 +206,7 @@ public class ConstructionUI : BasePanel
             case BuildingCategory.Furniture: return "가구";
             case BuildingCategory.Infrastructure: return "기반시설";
             case BuildingCategory.Special: return "특수";
+            case BuildingCategory.Power: return "전력시설";
             default: return category.ToString();
         }
     }

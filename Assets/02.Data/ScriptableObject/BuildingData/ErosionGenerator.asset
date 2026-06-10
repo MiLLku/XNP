@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: ErosionGenerator
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 3404
+  buildingName: "\uCE68\uC2DD \uC735\uD574 \uBC1C\uC804\uAE30"
+  icon: {fileID: 0}
+  category: 5
+  description: "\uCE68\uC2DD \uBB3C\uC9C8\uC744 \uC735\uD574\uD574 \uACE0\uCD9C\uB825
+    \uC804\uB825\uC744 \uC0DD\uC0B0\uD558\uB294 \uBC1C\uC804\uAE30."
+  buildingPrefab: {fileID: 1000, guid: 0a0114d3ff13a4c4d83392db94fd8c71, type: 3}
+  size: {x: 2, y: 2}
+  pivot: {x: 0, y: 0}
+  constructionTime: 15
+  requiredResources: []
+  maxHealth: 350
+  blocksMovement: 1
+  requiresFloorSupport: 1
+  destructionDrops: []
+  paybackRatio: 0.5
+  powerConsumption: 0
+  allowOverlap: 0

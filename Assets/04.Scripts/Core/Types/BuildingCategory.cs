@@ -13,5 +13,7 @@ public enum BuildingCategory
     /// <summary>기반시설 (벽, 바닥)</summary>
     Infrastructure,
     /// <summary>특수</summary>
-    Special
+    Special,
+    /// <summary>전력시설 (발전기, 축전기, 전선)</summary>
+    Power
 }

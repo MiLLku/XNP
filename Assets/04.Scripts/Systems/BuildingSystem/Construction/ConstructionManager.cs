@@ -465,6 +465,10 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
 
         if (gameMap == null) return false;
 
+        // 오버레이 설치물(전선 등)은 점유 그리드를 무시하고 별도 규칙으로 검사합니다.
+        if (selectedBuildingData.allowOverlap)
+            return CanPlaceOverlay(gridPos);
+
         // 모든 타일 검사
         for (int x = 0; x < selectedBuildingData.size.x; x++)
         {
@@ -481,6 +485,13 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
 
                 if (!gameMap.IsSpaceAvailable(checkX, checkY))
                 {
+                    // 진단 로그: 어떤 좌표가 왜 막혔는지 사용자가 알 수 있도록
+                    // (안개 영역의 경우 일반적으로 자연 흙/돌이라 AIR가 아니므로 차단됨)
+                    int tileId = gameMap.TileGrid[checkX, checkY];
+                    bool occupied = gameMap.IsTileOccupied(checkX, checkY);
+                    Debug.Log($"[ConstructionManager] CanPlaceAt 실패: ({checkX},{checkY}) — " +
+                              $"tileId={tileId}(0=AIR), occupied={occupied}. " +
+                              $"안개 영역이라면 채광 먼저 필요.");
                     return false;
                 }
             }
@@ -497,6 +508,8 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
 
                 if (groundY < 0 || !gameMap.IsSolidGround(checkX, groundY))
                 {
+                    Debug.Log($"[ConstructionManager] CanPlaceAt 실패: 바닥 없음 ({checkX},{groundY}). " +
+                              $"requiresFloorSupport=true 건물은 아래 솔리드 타일 필요.");
                     return false;
                 }
             }
@@ -504,6 +517,33 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
 
         // TODO [건설시스템]: 물 위, 특정 지형 등 특수 배치 조건 추가
 
+        return true;
+    }
+
+    /// <summary>
+    /// 오버레이 설치물(전선 등 allowOverlap=true)의 배치 가능 여부를 검사합니다.
+    /// 점유 그리드를 무시하므로 기존 건축물(바닥·벽·건물) 위에도 겹쳐 놓을 수 있으며,
+    /// 같은 셀에 동일 오버레이(전선)가 중복되지 않는지와 맵 범위만 확인합니다.
+    /// </summary>
+    /// <param name="gridPos">확인할 그리드 좌표 (왼쪽 아래 기준)</param>
+    /// <returns>배치 가능 여부</returns>
+    private bool CanPlaceOverlay(Vector3Int gridPos)
+    {
+        for (int x = 0; x < selectedBuildingData.size.x; x++)
+        {
+            for (int y = 0; y < selectedBuildingData.size.y; y++)
+            {
+                int cx = gridPos.x + x;
+                int cy = gridPos.y + y;
+
+                if (cx < 0 || cx >= GameMap.MAP_WIDTH || cy < 0 || cy >= GameMap.MAP_HEIGHT)
+                    return false;
+
+                // 같은 자리에 전선이 이미 있으면 중복 설치 금지
+                if (PowerWire.HasWireAt(new Vector2Int(cx, cy)))
+                    return false;
+            }
+        }
         return true;
     }
 
