@@ -341,8 +341,10 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
 
     public void OnMaterialRequestFailed(ItemData itemData, int amount)
     {
-        // 자재 한 가지라도 실패하면 전체 취소 (운반된 자재는 ReturnCarryToStorage로 이미 반납됨)
-        CancelMaterialRequest($"자재 운반 실패: {itemData?.itemName} × {amount}");
+        // 자재 운반 실패는 일시적일 수 있으니(직원 낙하·경로 차단·창고 일시 부족 등) 제작을 취소하지 않습니다.
+        // 예약·WithdrawOrder·대기 상태를 유지하면 해당 태스크가 큐로 복귀해 다른 직원이 재시도합니다
+        // (ConstructionSite와 동일 정책). 명시적 취소는 CancelMaterialRequest가 처리합니다.
+        Debug.LogWarning($"[CraftingTable] 자재 운반 실패: {itemData?.itemName}×{amount} — 재시도 대기");
     }
 
     // ─── IBuildingExtraSerializable (저장/복원) ────────────────────────────
