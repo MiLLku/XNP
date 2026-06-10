@@ -305,14 +305,46 @@ public static class EventEffectApplier
 
     private static void ModifyGlobalWorkSpeed(float modifier)
     {
-        // TODO: 전역 작업 속도 수정 시스템 구현 필요
+        // 전역 작업 속도 조절: TimeManager 배속으로 근사치 구현
+        // (정밀한 per-employee modifier 시스템은 EmployeeStatsController 확장 시 교체)
+        if (TimeManager.instance == null)
+        {
+            Debug.LogWarning("[EventEffectApplier] TimeManager 없음 — 작업 속도 수정 무시");
+            return;
+        }
+
+        if (TimeManager.instance.IsPaused) return; // 정지 중에는 변경 안 함
+
+        if (modifier <= -0.3f)
+        {
+            // 큰 둔화 → 1배속 강제
+            TimeManager.instance.SetSpeedToNormal();
+        }
+        else if (modifier >= 0.3f)
+        {
+            // 큰 가속 → 2배속
+            TimeManager.instance.SetSpeed(2);
+        }
+
         Debug.Log($"[EventEffectApplier] 작업 속도 수정: {modifier:+0.##;-0.##}");
     }
 
     private static void PauseAllWork(bool pause)
     {
-        // TODO: 작업 일시정지 시스템 구현 필요
-        Debug.Log($"[EventEffectApplier] 작업 일시정지: {pause}");
+        // 활성 WorkOrder 전체 일시정지/재개
+        if (WorkSystemManager.instance == null)
+        {
+            Debug.LogWarning("[EventEffectApplier] WorkSystemManager 없음 — 작업 일시정지 무시");
+            return;
+        }
+
+        foreach (var order in WorkSystemManager.instance.AllOrders)
+        {
+            if (pause) order.Pause();
+            else       order.Resume();
+        }
+
+        Debug.Log($"[EventEffectApplier] 전체 작업 {(pause ? "일시정지" : "재개")} ({WorkSystemManager.instance.AllOrders.Count}개)");
     }
 
     #endregion
@@ -337,8 +369,9 @@ public static class EventEffectApplier
 
     private static void ShowNotification(string message)
     {
-        Debug.Log($"[EventEffectApplier] 알림: {message}");
-        // TODO: UI 알림 시스템과 연동
+        // UIManager에 알림 패널이 등록되어 있으면 표시, 없으면 콘솔 출력
+        // (향후 Toast/Notification 전용 패널 추가 후 UIManager.ShowNotification() 호출로 교체)
+        Debug.Log($"[이벤트 알림] {message}");
     }
 
     private static void SpawnXenopsNearCamera(int xenopsDataId)
@@ -366,7 +399,9 @@ public static class EventEffectApplier
     /// <summary>
     /// 안개(미공개) 영역의 지면 위 임의 위치에 제노프스를 스폰합니다.
     /// 조건: FogOfWar 미공개 + 해당 타일 공기(0) + 바로 아래 타일 고체.
-    /// 후보가 없으면 카메라 근처 폴백.
+    /// 기지 근처(건설물·직원 반경 NEAR_BASE_RADIUS) 안개 타일을 우선 선택하여
+    /// 위협이 기지를 향하도록 합니다. 기지 근처 후보가 없으면 전체 후보, 그래도
+    /// 없으면 카메라 근처로 폴백합니다.
     /// </summary>
     private static void SpawnXenopsInFogArea(int xenopsDataId)
     {
@@ -412,8 +447,50 @@ public static class EventEffectApplier
             return;
         }
 
+        // ── 기지 앵커 수집: 건설물 + 살아있는 직원 위치 ──────────────
+        // "기지 근처" = 플레이어의 건설물·직원이 모여 있는 영역.
+        var anchors = new List<Vector2>();
+
+        var buildings = UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None);
+        foreach (var b in buildings)
+        {
+            if (b != null) anchors.Add(b.transform.position);
+        }
+
+        if (EmployeeManager.instance != null)
+        {
+            foreach (var emp in EmployeeManager.instance.AllEmployees)
+            {
+                if (emp != null && emp.State != EmployeeState.Dead)
+                    anchors.Add(emp.transform.position);
+            }
+        }
+
+        // ── 기지 앵커 근처(반경 NEAR_BASE_RADIUS) 안개 후보 우선 선별 ──
+        const float NEAR_BASE_RADIUS = 16f;
+        var nearCandidates = new List<Vector2Int>();
+        if (anchors.Count > 0)
+        {
+            float sqrRadius = NEAR_BASE_RADIUS * NEAR_BASE_RADIUS;
+            foreach (var cand in candidates)
+            {
+                Vector2 candWorld = new Vector2(cand.x + 0.5f, cand.y + 0.5f);
+                foreach (var anchor in anchors)
+                {
+                    if ((anchor - candWorld).sqrMagnitude <= sqrRadius)
+                    {
+                        nearCandidates.Add(cand);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 기지 근처 후보가 있으면 그쪽에서, 없으면 전체 후보에서 선택
+        var pool = nearCandidates.Count > 0 ? nearCandidates : candidates;
+
         // ── 랜덤 후보 선택 → 월드 좌표 변환 ──────────────────────
-        var pick = candidates[UnityEngine.Random.Range(0, candidates.Count)];
+        var pick = pool[UnityEngine.Random.Range(0, pool.Count)];
 
         Vector3 spawnPos;
         Tilemap tm = mapGen.MapRendererInstance?.MainTilemap;

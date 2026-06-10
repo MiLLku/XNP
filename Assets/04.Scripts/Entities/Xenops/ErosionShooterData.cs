@@ -28,4 +28,7 @@ public class ErosionShooterData : XenopsData
 
     [Tooltip("피격 1회당 체력 직접 피해량 — 메인은 침식, 체력 피해는 최소치")]
     [Min(0f)] public float healthDamageOnHit = 1f;
+
+    [Tooltip("벽·건설물 명중 시 가하는 구조물 피해량 (Building.TakeDamage). 지형 타일은 1발에 파괴됨)")]
+    [Min(0f)] public float structureDamage = 50f;
 }

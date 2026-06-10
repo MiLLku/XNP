@@ -225,6 +225,14 @@ public class Xenops : MonoBehaviour
     {
         if (spriteRenderer == null) return;
 
+        // 적대형(Hostile)은 스프라이트/애니메이션 아트 본연의 색을 유지한다.
+        // (상태 색 틴트는 플레이스홀더용이며, 실제 적 스프라이트를 덮어쓰지 않도록 제외)
+        if (Type == XenopsType.Hostile)
+        {
+            spriteRenderer.color = Color.white;
+            return;
+        }
+
         Color color = currentState switch
         {
             XenopsState.Active => Color.green,

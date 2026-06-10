@@ -19,6 +19,7 @@ public class ErosionProjectile : MonoBehaviour, IPoolable
 {
     private float _erosionAmount;
     private float _healthDamage;
+    private float _structureDamage;
     private float _lifetime;
     private bool  _isReturned;
 
@@ -43,12 +44,14 @@ public class ErosionProjectile : MonoBehaviour, IPoolable
     }
 
     // ─── 초기화 (풀에서 꺼낼 때마다 호출) ────────
-    public void Init(Vector2 direction, float speed, float erosionAmount, float healthDamage, float lifetime)
+    public void Init(Vector2 direction, float speed, float erosionAmount, float healthDamage,
+                     float structureDamage, float lifetime)
     {
-        _erosionAmount = erosionAmount;
-        _healthDamage  = healthDamage;
-        _lifetime      = lifetime;
-        _isReturned    = false;
+        _erosionAmount   = erosionAmount;
+        _healthDamage    = healthDamage;
+        _structureDamage = structureDamage;
+        _lifetime        = lifetime;
+        _isReturned      = false;
 
         _rb.linearVelocity = direction.normalized * speed;
     }
@@ -107,9 +110,13 @@ public class ErosionProjectile : MonoBehaviour, IPoolable
 
     private void HandleBuildingHit(Building building)
     {
-        // TODO: 건물 체력 시스템 구현 후 연동
-        // building.ModifyHealth(-_healthDamage);
-        Debug.Log($"[ErosionProjectile] 건물 명중: {building.name} (건물 피해 시스템 대기 중)");
+        // 건설물(벽 등)에 구조물 피해를 가함. 체력이 0이 되면 Building이 스스로 파괴됨.
+        if (_structureDamage > 0f)
+        {
+            int dmg = Mathf.CeilToInt(_structureDamage);
+            building.TakeDamage(dmg);
+            Debug.Log($"[ErosionProjectile] 건물 명중: {building.name} -{dmg} (남은 체력 {building.CurrentHealth})");
+        }
     }
 
     private void HandleTileHit(Tilemap tilemap)

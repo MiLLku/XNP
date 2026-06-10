@@ -17,8 +17,8 @@ MonoBehaviour:
   description: "\uCE68\uC2DD\uC131 \uD22C\uC0AC\uCCB4\uB97C \uBC1C\uC0AC\uD558\uB294
     \uC6D0\uAC70\uB9AC \uC801. \uD53C\uD0C4 \uC2DC \uCE68\uC2DD \uC218\uCE58\uAC00
     \uBE60\uB974\uAC8C \uC313\uC778\uB2E4."
-  icon: {fileID: 21300000, guid: 1d721de1380c3f34092c4fca0b1e0a04, type: 3}
-  xenopsType: 3
+  icon: {fileID: -444769877, guid: 87dca31d0a40bff45ae4612cc4113c61, type: 3}
+  xenopsType: 1
   grade: 2
   prefab: {fileID: 5663392544619772851, guid: 7a3f9ef8c49193d4882c9acbf13f5abb, type: 3}
   benefits: []
@@ -46,3 +46,4 @@ MonoBehaviour:
   projectileLifetime: 3
   erosionOnHit: 12
   healthDamageOnHit: 1
+  structureDamage: 50

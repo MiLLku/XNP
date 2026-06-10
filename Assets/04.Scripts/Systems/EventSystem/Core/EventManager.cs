@@ -457,8 +457,9 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
 
     private void ShowEventChoiceUI(EventData eventData)
     {
-        // TODO: UI 시스템과 연동하여 실제 선택지 UI 표시
-        Debug.LogWarning($"[EventManager] 선택지 UI 미구현: {eventData.title} (선택지 {eventData.choices.Count}개 대기 중)");
+        // 이벤트는 완전 무작위 발생 설계 — 선택지가 있어도 첫 번째를 자동 적용
+        if (eventData.choices != null && eventData.choices.Count > 0)
+            MakeChoice(eventData, 0);
     }
 
     #endregion

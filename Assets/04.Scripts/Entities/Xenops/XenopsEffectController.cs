@@ -215,14 +215,21 @@ public class XenopsEffectController : MonoBehaviour
                 employee.ModifyFatigue(value * Time.deltaTime);
                 break;
 
-            // ModifyWorkSpeed, ModifyAttackPower 등은
-            // 직접 스탯을 변경하기보다 modifier로 적용하는 것이 이상적.
-            // 현재는 구조만 준비하고, 추후 modifier 시스템 확장 시 연동.
+            case XenopsEffectType.BlockWorkType:
+                // targetId를 WorkType으로 캐스팅하여 비자격 적용.
+                // Xenops가 해제(Unequip/제거)될 때 RemoveDisqualification 호출 필요.
+                if (System.Enum.IsDefined(typeof(WorkType), targetId))
+                {
+                    var workComp = employee.GetComponent<EmployeeWork>();
+                    if (workComp != null)
+                        workComp.AddDisqualification((WorkType)targetId, "제노프스 효과");
+                }
+                break;
+
+            // 영구 modifier 시스템 필요 — EmployeeStatsController 확장 시 연동
             case XenopsEffectType.ModifyWorkSpeed:
             case XenopsEffectType.ModifyAttackPower:
             case XenopsEffectType.GrantWorkAbility:
-            case XenopsEffectType.BlockWorkType:
-                // TODO: Employee modifier 시스템과 연동
                 break;
         }
     }
@@ -235,13 +242,12 @@ public class XenopsEffectController : MonoBehaviour
         switch (type)
         {
             case XenopsEffectType.CorrodeBuildingHealth:
-                // 건물 체력 부식 — Building의 체력 시스템과 연동
-                // TODO: Building.ModifyHealth() 메서드와 연동
+                // 매 틱마다 value만큼 건물 체력 감소
+                building.TakeDamage(Mathf.Max(1, (int)value));
                 break;
 
             case XenopsEffectType.ModifyProductionSpeed:
-                // 생산 속도 보정 — ProductionBuilding과 연동
-                // TODO: ProductionBuilding modifier 시스템과 연동
+                // 생산 속도 보정 — ProductionBuilding modifier 시스템 구현 후 연동
                 break;
         }
     }
