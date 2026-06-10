@@ -173,21 +173,20 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     }
 
     /// <summary>
-    /// 작업 우선순위를 기본값으로 초기화합니다.
+    /// 작업 우선순위를 기본값으로 초기화합니다 (WorkTypeDefaults.BaseOrder가 단일 출처).
     /// </summary>
     private void InitializeWorkPriorities()
     {
-        workPriorities = new List<WorkPriority>
+        workPriorities = new List<WorkPriority>();
+        foreach (WorkType type in WorkTypeDefaults.BaseOrder)
         {
-            new WorkPriority { workType = WorkType.Mining, priority = 1, enabled = true },
-            new WorkPriority { workType = WorkType.Chopping, priority = 2, enabled = true },
-            new WorkPriority { workType = WorkType.Crafting, priority = 3, enabled = true },
-            new WorkPriority { workType = WorkType.Research, priority = 4, enabled = true },
-            new WorkPriority { workType = WorkType.Gardening, priority = 5, enabled = true },
-            new WorkPriority { workType = WorkType.Hauling, priority = 6, enabled = true },
-            new WorkPriority { workType = WorkType.Building, priority = 7, enabled = true },
-            new WorkPriority { workType = WorkType.Demolish, priority = 8, enabled = true }
-        };
+            workPriorities.Add(new WorkPriority
+            {
+                workType = type,
+                priority = WorkTypeDefaults.GetBasePriority(type),
+                enabled  = true
+            });
+        }
     }
 
     #endregion
@@ -792,61 +791,61 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             yield break;
         }
 
-        // ── Phase 1: 자재 보유 Stockpile 검색 + 이동 + 출고 ─────────────────
-        Vector2Int footTile = new Vector2Int(
-            Mathf.FloorToInt(transform.position.x),
-            Mathf.FloorToInt(transform.position.y)
-        );
+        // ── Phase 1: 자재 보유 Stockpile 검색 → 이동 → 출고 ─────────────────
+        // 도착하기 전에 다른 직원이 자재를 가져갔으면, 현재 위치 기준으로 다른 창고를
+        // 재탐색해 실제로 이동한 뒤 다시 출고합니다 (창고별 개별 저장소 구조에서도 안전).
+        const int MAX_SOURCE_ATTEMPTS = 3;
 
-        Stockpile source = StockpileManager.instance?.GetNearestStockpileWith(
-            footTile, request.itemData, request.amount);
+        Stockpile source = null;
+        bool withdrawn   = false;
+        bool moveFailed  = false;
 
-        if (source == null)
+        for (int attempt = 0; attempt < MAX_SOURCE_ATTEMPTS && !withdrawn; attempt++)
         {
-            if (showDebugInfo)
-                Debug.Log($"[Work] {employee.DisplayName}: 자재 {request.itemData.itemName}×{request.amount} 보유한 창고 없음");
-            request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
-            CancelWork();
-            yield break;
-        }
+            Vector2Int footTile = new Vector2Int(
+                Mathf.FloorToInt(transform.position.x),
+                Mathf.FloorToInt(transform.position.y)
+            );
 
-        Vector3 sourcePos = source.GetDepositPosition();
+            source = StockpileManager.instance?.GetNearestStockpileWith(
+                footTile, request.itemData, request.amount);
 
-        bool reachedSource = false;
-        bool moveFailed    = false;
-        movement.MoveTo(sourcePos,
-            onComplete: () => reachedSource = true,
-            onFailed:   () => moveFailed    = true
-        );
+            if (source == null) break;
 
-        yield return new WaitUntil(() => reachedSource || moveFailed
-                                         || !request.receiver.IsRequestStillValid());
+            Vector3 sourcePos = source.GetDepositPosition();
 
-        if (moveFailed || !request.receiver.IsRequestStillValid())
-        {
-            request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
-            CancelWork();
-            yield break;
-        }
+            bool reachedSource = false;
+            moveFailed = false;
+            movement.MoveTo(sourcePos,
+                onComplete: () => reachedSource = true,
+                onFailed:   () => moveFailed    = true
+            );
 
-        // 출고 — 다른 직원이 먼저 가져갔으면 실패. 다른 source가 있으면 한 번 더 시도.
-        if (!source.Withdraw(request.itemData, request.amount))
-        {
-            if (showDebugInfo)
-                Debug.Log($"[Work] {employee.DisplayName}: 창고 출고 실패(자재 부족) — 다른 source 재탐색");
+            yield return new WaitUntil(() => reachedSource || moveFailed
+                                             || !request.receiver.IsRequestStillValid());
 
-            // 다른 창고에서 시도 (현재 source는 다음 검색에서 제외하지 않으므로 같은 게 나올 수 있지만 시도 ok)
-            source = StockpileManager.instance?.GetNearestStockpileWith(footTile, request.itemData, request.amount);
-            if (source == null || !source.Withdraw(request.itemData, request.amount))
+            if (moveFailed || !request.receiver.IsRequestStillValid())
             {
                 request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
                 CancelWork();
                 yield break;
             }
 
-            // 새 source로 이동 (현재 위치에서 다를 수 있음)
-            sourcePos = source.GetDepositPosition();
-            // 출고는 이미 성공했으므로 추가 이동 없이 계속 진행 (자재는 carry로)
+            // 도착 후 출고 — 이동하는 사이 자재가 소진됐으면 다음 후보 창고로 재시도
+            withdrawn = source.Withdraw(request.itemData, request.amount);
+
+            if (!withdrawn && showDebugInfo)
+                Debug.Log($"[Work] {employee.DisplayName}: {source.name} 출고 실패(도착 전 소진) — " +
+                          $"다른 창고 재탐색 ({attempt + 1}/{MAX_SOURCE_ATTEMPTS})");
+        }
+
+        if (!withdrawn)
+        {
+            if (showDebugInfo)
+                Debug.Log($"[Work] {employee.DisplayName}: 자재 {request.itemData.itemName}×{request.amount} 보유한 창고 없음");
+            request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
+            CancelWork();
+            yield break;
         }
 
         var carryPile = new Dictionary<ItemData, int>();
@@ -1291,7 +1290,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             yield return null;
         }
 
-        target.CompleteWork(employee);
+        // 주의: target.CompleteWork(부수효과)는 여기서 직접 호출하지 않는다.
+        // CompleteWork() → WSM.OnWorkerCompletedTarget → order.CompleteTask → WorkTask.Complete가
+        // 단일 호출 지점이다. (과거 직접 호출+체인 호출의 이중 실행으로 벌목 이중드롭·철거 자원
+        // 이중반환이 발생했음 — IWorkTarget 구현체가 가드를 빼먹어도 안전하도록 호출을 단일화)
         CompleteWork();
     }
 
