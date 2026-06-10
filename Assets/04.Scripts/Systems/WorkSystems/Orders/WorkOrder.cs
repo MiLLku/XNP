@@ -416,6 +416,12 @@ public class WorkOrder
         {
             taskQueue.CompleteTask(task);
         }
+        else
+        {
+            // 큐에 추적되지 않는 타겟(비정상 경로) — WorkTask.Complete를 못 타므로
+            // 부수효과 단일 호출을 여기서 보장한다. (정상 경로는 task.Complete가 호출)
+            target.CompleteWork(worker);
+        }
     }
 
     /// <summary>

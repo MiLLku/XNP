@@ -50,6 +50,7 @@ public class DemolishOrder : IWorkTarget
     /// <inheritdoc/>
     public void CompleteWork(Employee worker)
     {
+        if (completed) return; // 이중 호출 방지 (자원 이중 반환 차단 — 형제 오더와 동일 패턴)
         completed = true;
 
         if (building != null)
