@@ -169,7 +169,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PowerProducer
   outputWatts: 1000
   requiresFuel: 1
-  fuelItem: {fileID: 0}
+  fuelItem: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
   fuelUnitsPerSecond: 0.1
   fuelBuffer: 100
   maxFuelBuffer: 100
+  autoRefuel: 1
+  fuelUnitsPerItem: 25
+  refuelThreshold: 0.5
+  refuelPriority: 3

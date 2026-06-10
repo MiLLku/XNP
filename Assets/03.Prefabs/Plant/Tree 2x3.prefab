@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5764203634148111220}
   - component: {fileID: 3901448548319648121}
+  - component: {fileID: 3901448548319648200}
   m_Layer: 0
   m_Name: Tree 2x3
   m_TagString: Untagged
@@ -87,3 +88,24 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &3901448548319648200
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1710648230924364092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de7aef12b2bcfab43a6c1f574afce280, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  growthTime: 60
+  chopTime: 5
+  woodItem: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+  woodYield: 5
+  seedItem: {fileID: 0}
+  seedYield: 2
+  seedlingSprite: {fileID: 0}
+  youngSprite: {fileID: 0}
+  matureSprite: {fileID: 21300000, guid: 518949c817d09dc41874821f2e9d6d17, type: 3}

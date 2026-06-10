@@ -138,25 +138,43 @@ public class ChoppableTree : MonoBehaviour, IHarvestable, IWorkTarget
         if (!CanHarvest()) return;
         
         Debug.Log($"[Tree] 나무 벌목됨!");
-        
-        // 자원 드롭
-        if (InventoryManager.instance != null)
+
+        // 자원 드롭 — 채광과 동일하게 바닥에 떨어뜨려 직원이 창고로 운반 (Haul 루프)
+        if (woodItem != null)
         {
-            if (woodItem != null)
-            {
-                InventoryManager.instance.AddItem(woodItem, woodYield);
-            }
-            if (seedItem != null && Random.Range(0f, 1f) < 0.5f) // 50% 확률로 씨앗
-            {
-                InventoryManager.instance.AddItem(seedItem, seedYield);
-            }
+            DropHarvestItem(woodItem, woodYield);
         }
-        
+        if (seedItem != null && Random.Range(0f, 1f) < 0.5f) // 50% 확률로 씨앗
+        {
+            DropHarvestItem(seedItem, seedYield);
+        }
+
         // 그루터기로 변경하거나 제거
         CreateStump();
         Destroy(gameObject);
     }
     
+    /// <summary>
+    /// 수확물을 나무 밑동 주변 바닥에 떨어뜨립니다.
+    /// DroppedItemManager가 없으면 인벤토리로 직접 반납 (폴백).
+    /// </summary>
+    private void DropHarvestItem(ItemData item, int amount)
+    {
+        if (item == null || amount <= 0) return;
+
+        if (DroppedItemManager.instance == null)
+        {
+            InventoryManager.instance?.AddItem(item, amount);
+            return;
+        }
+
+        for (int i = 0; i < amount; i++)
+        {
+            Vector3 dropPos = transform.position + new Vector3(Random.Range(-0.5f, 0.5f), 0.25f, 0f);
+            DroppedItemManager.instance.SpawnItem(item, 1, dropPos);
+        }
+    }
+
     public float GetHarvestTime()
     {
         return chopTime;

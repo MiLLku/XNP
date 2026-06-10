@@ -21,6 +21,7 @@ public enum ItemType
     CopperOre = 4,
     SilverOre = 5,
     GoldOre   = 6,
+    Wood      = 7,
 
     // ─── 가공 자원 (101~200) ────────────────────
     IronIngot   = 101,
