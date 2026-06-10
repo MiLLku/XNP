@@ -475,6 +475,12 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     /// 할당 가능한 후보 작업물을 우선순위순으로 반환합니다.
     /// - 자동 픽업 작업(채광/건설/벌목 등): 자격 직원이면 모두 후보.
     /// - 전용 할당 작업(연구/제작 등): 미리 명시적으로 등록된 직원만 후보.
+    ///
+    /// 정렬 규칙:
+    ///   1) 직원이 설정한 작업별 우선순위 (1~9, 낮을수록 먼저)
+    ///   2) 동률이면 작업 종류의 기본 우선순위 (WorkTypeDefaults.BaseOrder)
+    ///   3) 같은 작업 종류 안에서는 작업물 우선순위 (order.priority)
+    ///   4) 그래도 같으면 먼저 만들어진 작업물부터
     /// </summary>
     private IEnumerable<WorkOrder> GetCandidateOrders(Employee employee, List<WorkType> enabledTypes)
     {
@@ -485,7 +491,9 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                 // 전용 할당 작업물은 사전 등록된 직원만 자격을 가짐
                 (o.IsAutoPickup || o.IsWorkerAssigned(employee))
             ))
-            .OrderBy(o => o.priority)
+            .OrderBy(o => employee.GetWorkPriority(o.workType))
+            .ThenBy(o => WorkTypeDefaults.GetBasePriority(o.workType))
+            .ThenBy(o => o.priority)
             .ThenBy(o => o.createdTime);
     }
 
