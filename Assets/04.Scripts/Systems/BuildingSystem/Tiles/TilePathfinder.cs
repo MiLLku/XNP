@@ -388,12 +388,14 @@ public class TilePathfinder
         if (!hasGround)
         {
             FloorTile ladder = FloorTile.GetFloorTileAt(new Vector2Int(x, groundY));
-            if (ladder == null || !ladder.AllowsVerticalMovement())
-            {
-                FloorTile currentLadder = FloorTile.GetFloorTileAt(new Vector2Int(x, y));
-                if (currentLadder == null || !currentLadder.AllowsVerticalMovement())
-                    return false;
-            }
+            bool floorLadder = ladder != null && ladder.AllowsVerticalMovement();
+            FloorTile currentLadder = FloorTile.GetFloorTileAt(new Vector2Int(x, y));
+            bool floorCurrentLadder = currentLadder != null && currentLadder.AllowsVerticalMovement();
+            // 일반 건물(사다리 옵션)도 수직 이동 발판으로 인정
+            bool buildingLadder = Building.AllowsVerticalMovementAt(new Vector2Int(x, groundY)) ||
+                                  Building.AllowsVerticalMovementAt(new Vector2Int(x, y));
+            if (!floorLadder && !floorCurrentLadder && !buildingLadder)
+                return false;
         }
 
         for (int i = 0; i < EMPLOYEE_HEIGHT; i++)
@@ -417,6 +419,12 @@ public class TilePathfinder
         {
             float speedMult = floorTile.GetMovementSpeedMultiplier();
             if (speedMult > 0) baseCost /= speedMult;
+        }
+        else
+        {
+            // FloorTile이 없으면 일반 건물(작업대·울타리 등)의 이동속도 배율 적용
+            float buildingMult = Building.GetSpeedMultiplierAt(to);
+            if (buildingMult > 0) baseCost /= buildingMult;
         }
 
         int heightDifference = Mathf.Abs(to.y - from.y);

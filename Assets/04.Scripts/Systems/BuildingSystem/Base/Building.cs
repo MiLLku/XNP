@@ -74,6 +74,12 @@ public class Building : MonoBehaviour
     /// <summary>초기화 완료 여부 (Awake + SpawnBuilding 이중 초기화 방지)</summary>
     private bool _isInitialized = false;
 
+    /// <summary>위치별 건물 정적 레지스트리 (이동속도·수직이동 조회용). FloorTile 레지스트리 패턴을 일반 건물로 일반화.</summary>
+    private static readonly Dictionary<Vector2Int, Building> buildingRegistry = new Dictionary<Vector2Int, Building>();
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ClearBuildingRegistry() => buildingRegistry.Clear();
+
     #endregion
 
     #region 프로퍼티
@@ -195,9 +201,19 @@ public class Building : MonoBehaviour
 
     /// <summary>
     /// 현재 상태를 저장 데이터로 변환합니다.
+    /// IBuildingExtraSerializable 컴포넌트가 있으면 그 상태를 extraData(JSON)에 저장합니다.
     /// </summary>
     public BuildingSaveData CreateSaveData()
     {
+        string extra = "";
+        var extras = GetComponents<IBuildingExtraSerializable>();
+        if (extras != null && extras.Length > 0 && extras[0] != null)
+        {
+            extra = extras[0].SerializeExtra() ?? "";
+            if (extras.Length > 1)
+                Debug.LogWarning($"[Building] {name}: IBuildingExtraSerializable이 여러 개 — 첫 번째만 저장됨");
+        }
+
         return new BuildingSaveData
         {
             instanceId = _instanceId,
@@ -206,13 +222,14 @@ public class Building : MonoBehaviour
             gridY = Mathf.FloorToInt(transform.position.y),
             currentHealth = _currentHealth,
             isFunctional = _isFunctional,
-            extraData = ""
+            extraData = extra
         };
     }
 
     /// <summary>
     /// 저장된 데이터로 상태를 복원합니다.
     /// Instantiate + Awake(Initialize) 이후에 호출됩니다.
+    /// extraData가 비어있지 않으면 IBuildingExtraSerializable로 복원합니다.
     /// </summary>
     public void RestoreState(BuildingSaveData saveData)
     {
@@ -230,6 +247,23 @@ public class Building : MonoBehaviour
         if (_instanceId >= 0 && RuntimeIDRegistry.instance != null)
         {
             RuntimeIDRegistry.instance.Register(_instanceId, this);
+        }
+
+        // 추가 상태 복원 (CraftingTable 등)
+        if (!string.IsNullOrEmpty(saveData.extraData))
+        {
+            var extras = GetComponents<IBuildingExtraSerializable>();
+            if (extras != null && extras.Length > 0 && extras[0] != null)
+            {
+                try
+                {
+                    extras[0].DeserializeExtra(saveData.extraData);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"[Building] {name}: extraData 복원 실패 — {e.Message}");
+                }
+            }
         }
     }
 
@@ -281,6 +315,7 @@ public class Building : MonoBehaviour
     public void TakeDamage(int amount)
     {
         if (!_isFunctional || amount <= 0) return;
+        if (buildingData == null) return; // 초기화 전 또는 데이터 미연결 시 피해 무시
 
         _currentHealth -= amount;
         Debug.Log($"[Building] {buildingData.buildingName}이(가) {amount}의 피해를 받았습니다. (남은 체력: {_currentHealth}/{buildingData.maxHealth})");
@@ -297,7 +332,8 @@ public class Building : MonoBehaviour
     /// </summary>
     private void DestroyBuilding()
     {
-        Debug.Log($"[Building] {buildingData.buildingName}이(가) 파괴되었습니다!");
+        string bName = buildingData != null ? buildingData.buildingName : name;
+        Debug.Log($"[Building] {bName}이(가) 파괴되었습니다!");
 
         ReleaseOccupiedTiles();
 
@@ -390,6 +426,8 @@ private void ReturnPartialResources()
     private void RegisterToGameMap()
     {
         if (buildingData == null || MapGenerator.instance == null) return;
+        // 전선 등 오버레이 설치물은 점유 그리드를 사용하지 않습니다 (PowerWire 자체 레지스트리로 위치 관리).
+        if (buildingData.allowOverlap) return;
 
         GameMap gameMap = MapGenerator.instance.GameMapInstance;
         Vector2Int basePos = new Vector2Int(
@@ -404,6 +442,7 @@ private void ReturnPartialResources()
                 int tx = basePos.x + x;
                 int ty = basePos.y + y;
                 gameMap.MarkTileOccupied(tx, ty, buildingData.blocksMovement);
+                buildingRegistry[new Vector2Int(tx, ty)] = this; // 이동속도·수직이동 조회용
                 // 통행 가능 건물(바닥 타일, 다리 등)은 그 위에 서거나 건물을 올릴 수 있도록
                 // FloorSupportGrid에 등록합니다. 건설 예정지는 여기에 포함되지 않습니다.
                 if (!buildingData.blocksMovement)
@@ -414,6 +453,35 @@ private void ReturnPartialResources()
         // Fog of War — 건물 풋프린트 + 주변 buildingRadius 영역의 안개를 제거합니다.
         // 건물이 파괴되기 전까지는 영구적으로 비춤 (참조 카운터 +1).
         FogOfWarManager.instance?.AddBuildingSight(basePos, buildingData.size);
+        Debug.Log($"[Building] '{buildingData.buildingName}' 시야 등록 (pos={basePos}, size={buildingData.size})");
+
+        // 신축 건물이 LOS를 차단하므로 주변 직원의 시야를 즉시 재계산합니다.
+        // (직원이 움직이지 않는 상태에서도 새로 가려진 타일이 즉시 안개로 덮이게 함)
+        RefreshNearbyEmployeeSight(basePos);
+    }
+
+    /// <summary>
+    /// 이 건물의 영향 범위 내에 있는 직원들의 시야를 재계산합니다.
+    /// 새 건물이 LOS를 차단하면 직원 가만히 있어도 영향이 즉시 반영됩니다.
+    /// </summary>
+    private void RefreshNearbyEmployeeSight(Vector2Int basePos)
+    {
+        if (EmployeeManager.instance == null || FogOfWarManager.instance == null) return;
+
+        // 직원 시야 반경(기본 5) 보다 여유롭게 잡아 경계 직원도 포함
+        const int CHECK_RADIUS_SQ = 12 * 12;
+
+        foreach (var emp in EmployeeManager.instance.AllEmployees)
+        {
+            if (emp == null) continue;
+            Vector3Int footTile3 = emp.GetFootTile();
+            int dx = footTile3.x - basePos.x;
+            int dy = footTile3.y - basePos.y;
+            if (dx * dx + dy * dy <= CHECK_RADIUS_SQ)
+            {
+                FogOfWarManager.instance.RefreshEmployeeSight(new Vector2Int(footTile3.x, footTile3.y));
+            }
+        }
     }
 
     /// <summary>
@@ -422,6 +490,8 @@ private void ReturnPartialResources()
     private void UnregisterFromGameMap()
     {
         if (buildingData == null || MapGenerator.instance == null) return;
+        // 오버레이 설치물은 점유한 적이 없으므로 해제도 불필요합니다.
+        if (buildingData.allowOverlap) return;
 
         GameMap gameMap = MapGenerator.instance.GameMapInstance;
         Vector2Int basePos = new Vector2Int(
@@ -433,7 +503,10 @@ private void ReturnPartialResources()
         {
             for (int y = 0; y < buildingData.size.y; y++)
             {
-                gameMap.UnmarkTileOccupied(basePos.x + x, basePos.y + y);
+                var rpos = new Vector2Int(basePos.x + x, basePos.y + y);
+                gameMap.UnmarkTileOccupied(rpos.x, rpos.y);
+                if (buildingRegistry.TryGetValue(rpos, out var rb) && rb == this)
+                    buildingRegistry.Remove(rpos);
             }
         }
 
@@ -449,6 +522,35 @@ private void ReturnPartialResources()
         if (_tilesReleased) return;
         _tilesReleased = true;
         UnregisterFromGameMap();
+    }
+
+    // ── 위치별 건물 조회 (이동속도·수직이동 일반화) ───────────────────────
+
+    /// <summary>해당 칸을 점유한 건물을 반환합니다 (없으면 null).</summary>
+    public static Building GetBuildingAt(Vector2Int pos)
+    {
+        buildingRegistry.TryGetValue(pos, out Building b);
+        return b;
+    }
+
+    /// <summary>해당 칸 건물의 이동속도 배율 (없으면 1.0, 비활성 건물이면 절반 감속).</summary>
+    public static float GetSpeedMultiplierAt(Vector2Int pos)
+    {
+        if (buildingRegistry.TryGetValue(pos, out Building b) && b != null && b.buildingData != null)
+        {
+            float m = b.buildingData.movementSpeedMultiplier;
+            if (!b._isFunctional) m *= 0.5f;
+            return m > 0f ? m : 1f;
+        }
+        return 1f;
+    }
+
+    /// <summary>해당 칸 건물이 수직 이동(사다리)을 허용하는지 여부.</summary>
+    public static bool AllowsVerticalMovementAt(Vector2Int pos)
+    {
+        if (buildingRegistry.TryGetValue(pos, out Building b) && b != null && b.buildingData != null && b._isFunctional)
+            return b.buildingData.allowsVerticalMovement;
+        return false;
     }
 
     #endregion

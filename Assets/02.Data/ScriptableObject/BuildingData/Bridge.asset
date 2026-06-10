@@ -21,7 +21,11 @@ MonoBehaviour:
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}
   constructionTime: 8
-  requiredResources: []
+  requiredResources:
+  - item: {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
+    amount: 3
   maxHealth: 100
   blocksMovement: 0
   requiresFloorSupport: 0
+  destructionDrops: []
+  paybackRatio: 0.5

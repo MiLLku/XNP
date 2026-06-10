@@ -71,6 +71,13 @@ public class BuildingData : ScriptableObject
              "• false : 공중·허공에도 배치 가능 (바닥 타일, 사다리, 다리 등 기반 시설)")]
     public bool requiresFloorSupport = true;
 
+    [Tooltip("이 건물 위를 지나갈 때 적용할 이동속도 배율 (1.0=기본, <1 감속).\n" +
+             "통과 가능(blocksMovement=false) 건물에만 의미 — 울타리·사다리 등.")]
+    public float movementSpeedMultiplier = 1.0f;
+
+    [Tooltip("사다리처럼 수직 이동(층 이동)을 허용하는지 여부.")]
+    public bool allowsVerticalMovement = false;
+
     #endregion
 
     #region 파괴 페이백
@@ -85,5 +92,17 @@ public class BuildingData : ScriptableObject
 
     #endregion
 
-    // TODO [건물시스템]: 전력 소모량, 작업 포인트 등 추가 필드 확장 가능
+    #region 전력
+
+    [Header("전력")]
+    [Tooltip("이 건물이 가동에 필요로 하는 전력(W). 0이면 전력을 소비하지 않습니다.\n" +
+             "0보다 크면 프리팹에 PowerConsumer 컴포넌트를 함께 부착하세요.")]
+    public int powerConsumption = 0;
+
+    [Tooltip("기존 건축물(바닥·벽·일반 건물)과 같은 타일에 겹쳐 설치할 수 있는지 여부.\n" +
+             "• true  : 점유 그리드를 사용하지 않는 오버레이 설치물 (전선 등). 별도 레지스트리로 위치를 관리합니다.\n" +
+             "• false : 일반 건물 (한 타일을 단독 점유).")]
+    public bool allowOverlap = false;
+
+    #endregion
 }

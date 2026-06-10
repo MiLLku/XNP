@@ -151,6 +151,10 @@ public class GameMap
         if (TileGrid[x, y] != AIR_ID) return true;
         // 완성된 바닥 건물 (FloorSupportGrid에 등록된 것만 — 건설 예정지 제외)
         if (FloorSupportGrid[x, y]) return true;
+        // 건설된 바닥 타일도 발판으로 인정한다.
+        // 바닥 타일은 blocksMovement=true로 설정되어 FloorSupportGrid에 등록되지 않으므로
+        // FloorTile 정적 레지스트리로 직접 확인한다(완성된 바닥 타일만 등록되며 건설 예정지는 제외).
+        if (FloorTile.HasFloorTileAt(new Vector2Int(x, y))) return true;
         return false;
     }
 

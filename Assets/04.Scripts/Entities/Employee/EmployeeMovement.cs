@@ -378,6 +378,16 @@ public class EmployeeMovement : MonoBehaviour
     }
 
     /// <summary>
+    /// 해당 타일이 수직 이동(사다리 등)을 지원하는지 확인합니다.
+    /// 사다리 위에서는 fall 모드 대신 controlled descent를 사용합니다.
+    /// </summary>
+    private bool IsVerticalMovementTile(Vector2Int tile)
+    {
+        var floor = FloorTile.GetFloorTileAt(tile);
+        return floor != null && floor.AllowsVerticalMovement();
+    }
+
+    /// <summary>
     /// 바닥에 착지합니다.
     /// X/Y 좌표 보정, 고체 안 진입 보정을 수행한 뒤 OnLanded 이벤트를 발생시킵니다.
     /// </summary>
@@ -676,9 +686,13 @@ public class EmployeeMovement : MonoBehaviour
         float journeyLength = Vector3.Distance(startPos, endPos);
         float startTime = Time.time;
 
-        // 수직 이동(사다리) 및 대각선 상승 이동 시 낙하 판정 비활성화
-        // 이유: Lerp 도중 발 아래 타일이 없는 순간(계단 중간 지점)이 생겨 오탐 낙하가 발생함
-        if (heightDiff > 0) isClimbing = true;
+        // 수직/사다리 이동 시 낙하 판정 비활성화 (controlled vertical movement)
+        // - 위로 올라가기 (heightDiff > 0) — 계단/사다리 모두 포함
+        // - 사다리/수직 이동 가능 타일 위에서 내려가기 — 추락이 아닌 의도된 controlled descent
+        // 이유: Lerp 도중 발 아래 타일이 없는 순간(계단 중간)에 오탐 낙하가 발생하기 때문
+        Vector2Int currentFootTile = GetFootTile();
+        bool isLadderMove = IsVerticalMovementTile(currentFootTile) || IsVerticalMovementTile(targetTile);
+        if (heightDiff > 0 || isLadderMove) isClimbing = true;
 
         if (showDebugLogs)
         {
@@ -907,7 +921,10 @@ public class EmployeeMovement : MonoBehaviour
             return currentTile.GetMovementSpeedMultiplier();
         }
 
-        return 1.0f;
+        // FloorTile이 없으면 일반 건물(작업대·울타리 등)의 이동속도 배율 — 발 아래 칸 우선, 없으면 현재 칸
+        float groundBuildingMult = Building.GetSpeedMultiplierAt(groundPos);
+        if (groundBuildingMult != 1.0f) return groundBuildingMult;
+        return Building.GetSpeedMultiplierAt(tilePos);
     }
 
     #endregion

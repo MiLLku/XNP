@@ -230,14 +230,19 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
 
     /// <summary>
     /// 타일 (x, y)가 불투명(solid)한지 반환합니다.
-    /// TileGrid가 AIR(0)이 아닌 모든 타일은 시야를 차단합니다.
+    /// 다음 중 하나라도 해당하면 차단:
+    ///   1) 자연 지형 (TileGrid != AIR)
+    ///   2) 점유된 타일 (건설된 Floor·벽·작업대 등 모든 건물)
+    ///      Floor는 blocksMovement=false라도 벽 역할(LOS 차단)을 하도록 OccupiedGrid 기반으로 판정합니다.
     /// </summary>
     private bool IsSolid(int x, int y)
     {
         if (!InBounds(x, y)) return true; // 맵 밖은 차단으로 처리
         var gameMap = MapGenerator.instance?.GameMapInstance;
         if (gameMap == null) return false;
-        return gameMap.TileGrid[x, y] != 0; // 0 = AIR
+        if (gameMap.TileGrid[x, y] != 0) return true;        // 자연 지형
+        if (gameMap.IsTileOccupied(x, y)) return true;       // 건설된 건물(Floor·벽·작업대 등)
+        return false;
     }
 
     /// <summary>
