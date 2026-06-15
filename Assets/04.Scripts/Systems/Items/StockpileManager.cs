@@ -45,6 +45,17 @@ public class StockpileManager : DestroySingleton<StockpileManager>
     public bool HasAnyStockpile => _stockpiles.Any(s => s != null && s.IsOperational);
 
     /// <summary>
+    /// 운영 중인 창고 중 해당 아이템을 amount 이상 보유한 곳이 하나라도 있는지 확인합니다.
+    /// 출고(Withdraw) 작업 가용성 판정에 사용 — 자재가 없으면 직원을 보내지 않아
+    /// 헛걸음·재시도 스팸을 방지합니다. (GetNearestStockpileWith의 위치 정렬 없는 경량 버전)
+    /// </summary>
+    public bool HasItemAnywhere(ItemData item, int amount)
+    {
+        if (item == null || amount <= 0) return false;
+        return _stockpiles.Any(s => s != null && s.IsOperational && s.HasItem(item, amount));
+    }
+
+    /// <summary>
     /// 지정 타일에서 가장 가까운, 해당 아이템을 충분히 보유한 운영 중 Stockpile을 반환합니다.
     /// 출고(Withdraw) 작업에서 사용합니다.
     /// </summary>
