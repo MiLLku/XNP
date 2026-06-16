@@ -438,6 +438,9 @@ public class EmployeeAI : MonoBehaviour
             return;
         }
 
+        // 4.5 식량 미소지 시 미리 챙겨두기 (유도) — 작업 전 식량 1개 확보
+        if (TryStockUpFood()) return;
+
         // 5. 작업
         ExecuteWork();
     }
@@ -463,11 +466,35 @@ public class EmployeeAI : MonoBehaviour
             return true;
         }
 
-        // 2. 소지분이 없으면 창고에서 챙겨 먹기.
-        //    현재는 전역 단일 저장소 구조라 '음식이 인벤토리에 있으면 가장 가까운 아무 창고'로 간다.
-        //    (창고별 개별 저장소로 확장하면 '음식 보유 창고 찾기'로 교체)
+        // 2. 소지분이 없으면 창고로 이동해 챙긴 뒤 먹는다.
+        return GoToStockpileForFood(work, eatAfterStocking: true);
+    }
+
+    /// <summary>
+    /// 식량 미소지 시 자유시간에 미리 1개 챙겨두는 '유도'. 작업 전에 호출합니다.
+    /// 평소에 식량을 확보해 두면 작업 중 배고파질 때 창고 왕복 없이 즉시 먹을 수 있습니다.
+    /// </summary>
+    /// <returns>챙기러 가는 행동을 시작했으면 true.</returns>
+    private bool TryStockUpFood()
+    {
+        var work = employee.GetComponent<EmployeeWork>();
+        if (work == null || work.HasFood) return false; // 이미 소지 중이면 스킵
+
+        return GoToStockpileForFood(work, eatAfterStocking: false);
+    }
+
+    /// <summary>
+    /// 가장 가까운 창고로 이동해 음식 1개를 소지 슬롯에 챙깁니다.
+    /// 현재는 전역 단일 저장소 구조라 '음식이 인벤토리에 있으면 가장 가까운 아무 창고'로 갑니다.
+    /// (창고별 개별 저장소로 확장하면 '음식 보유 창고 찾기'로 교체)
+    /// </summary>
+    /// <param name="work">대상 직원의 작업 컴포넌트</param>
+    /// <param name="eatAfterStocking">true면 챙긴 직후 바로 섭취(배고픔 처리), false면 소지만(유도)</param>
+    /// <returns>이동 행동을 시작했으면 true.</returns>
+    private bool GoToStockpileForFood(EmployeeWork work, bool eatAfterStocking)
+    {
         if (InventoryManager.instance == null || !InventoryManager.instance.HasAnyFood())
-            return false; // 먹을 음식이 없음 — 굶주림 진행 (창고/식량 확보 필요)
+            return false; // 먹을 음식이 없음 (창고/식량 확보 필요)
 
         if (StockpileManager.instance == null) return false;
 
@@ -476,7 +503,7 @@ public class EmployeeAI : MonoBehaviour
             Mathf.FloorToInt(transform.position.y));
 
         Stockpile target = StockpileManager.instance.GetNearestStockpile(footTile);
-        if (target == null) return false; // 창고 없음 — 소지 식량 없이는 먹지 못함
+        if (target == null) return false; // 창고 없음
 
         CancelCurrentAction();
         employee.SetState(EmployeeState.Moving);
@@ -484,12 +511,17 @@ public class EmployeeAI : MonoBehaviour
         movement.MoveTo(target.GetDepositPosition(),
             onComplete: () =>
             {
-                // 도착 후 창고(전역 저장소)에서 음식 1개를 꺼내 소지 → 즉시 섭취
+                // 도착 후 창고(전역 저장소)에서 음식 1개를 꺼내 소지
                 ItemData food = InventoryManager.instance.TakeAnyFood(1);
                 if (food != null && work.StoreFood(food, 1))
-                    EatHeldFood(work);
+                {
+                    if (eatAfterStocking) EatHeldFood(work);
+                    else                  employee.SetState(EmployeeState.Idle);
+                }
                 else
+                {
                     employee.SetState(EmployeeState.Idle);
+                }
             },
             onFailed: () => employee.SetState(EmployeeState.Idle));
 
