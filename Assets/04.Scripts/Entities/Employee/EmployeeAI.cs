@@ -30,8 +30,6 @@ public class EmployeeAI : MonoBehaviour
     private const float HUNGER_FULL_THRESHOLD    = 80f;
     private const float EROSION_LOW_THRESHOLD    = 5f;
     private const float MENTAL_FULL_RATIO        = 0.8f;
-    private const float EMERGENCY_FOOD_AMOUNT    = 30f;
-    private const float NORMAL_FOOD_AMOUNT       = 50f;
 
     /// <summary>자유 시간 중 욕구 재확인 간격 (초). 스케줄 체크와 분리.</summary>
     private const float NEEDS_CHECK_INTERVAL = 8f;
@@ -407,14 +405,12 @@ public class EmployeeAI : MonoBehaviour
 
     private void ExecuteFreeTime()
     {
-        // 1. 배고픔 — FoodStorage 태그 미정의로 인한 UnityException 방지를 위해 임시 비활성화
-        // TODO: FoodStorage 태그를 Unity에 등록한 뒤 아래 주석을 해제하세요.
-        // if (employee.Needs.hunger < FREE_HUNGER_THRESHOLD &&
-        //     employee.State != EmployeeState.Eating)
-        // {
-        //     HandleHunger();
-        //     return;
-        // }
+        // 1. 배고픔 (최우선) — 소지 식량으로 먹거나, 없으면 창고에서 챙겨 먹는다.
+        if (employee.Needs.hunger < FREE_HUNGER_THRESHOLD &&
+            employee.State != EmployeeState.Eating)
+        {
+            if (HandleHunger()) return;
+        }
 
         // 2. 피로
         if (employee.Needs.fatigue < FREE_FATIGUE_THRESHOLD &&
@@ -450,35 +446,72 @@ public class EmployeeAI : MonoBehaviour
 
     #region 배고픔
 
-    // TODO: FoodStorage 태그를 Unity Tag Manager에 등록한 뒤 아래 메서드 주석을 해제하세요.
-    // private void HandleHunger()
-    // {
-    //     CancelCurrentAction();
-    //
-    //     var foodStorages = FindWithTagCached(FacilityTag.FoodStorage);
-    //     if (foodStorages.Length > 0)
-    //     {
-    //         var nearest = foodStorages
-    //             .Where(f => f != null)
-    //             .OrderBy(f => Vector2.Distance(transform.position, f.transform.position))
-    //             .FirstOrDefault();
-    //
-    //         if (nearest != null && movement != null)
-    //         {
-    //             employee.SetState(EmployeeState.Eating);
-    //             movement.MoveTo(nearest.transform.position,
-    //                 onComplete: () =>
-    //                 {
-    //                     employee.Eat(NORMAL_FOOD_AMOUNT);
-    //                     employee.SetState(EmployeeState.Idle);
-    //                 });
-    //         }
-    //     }
-    //     else
-    //     {
-    //         employee.Eat(EMERGENCY_FOOD_AMOUNT);
-    //     }
-    // }
+    /// <summary>
+    /// 배고픔 처리. 소지 식량이 있으면 그 자리에서 먹고,
+    /// 없으면 가장 가까운 창고로 이동해 음식 1개를 챙긴 뒤 먹습니다.
+    /// </summary>
+    /// <returns>식사 행동을 시작했으면 true (다른 자유시간 행동을 막음).</returns>
+    private bool HandleHunger()
+    {
+        var work = employee.GetComponent<EmployeeWork>();
+        if (work == null) return false;
+
+        // 1. 소지 식량이 있으면 즉시 먹기 (이동 불필요)
+        if (work.HasFood)
+        {
+            EatHeldFood(work);
+            return true;
+        }
+
+        // 2. 소지분이 없으면 창고에서 챙겨 먹기.
+        //    현재는 전역 단일 저장소 구조라 '음식이 인벤토리에 있으면 가장 가까운 아무 창고'로 간다.
+        //    (창고별 개별 저장소로 확장하면 '음식 보유 창고 찾기'로 교체)
+        if (InventoryManager.instance == null || !InventoryManager.instance.HasAnyFood())
+            return false; // 먹을 음식이 없음 — 굶주림 진행 (창고/식량 확보 필요)
+
+        if (StockpileManager.instance == null) return false;
+
+        Vector2Int footTile = new Vector2Int(
+            Mathf.FloorToInt(transform.position.x),
+            Mathf.FloorToInt(transform.position.y));
+
+        Stockpile target = StockpileManager.instance.GetNearestStockpile(footTile);
+        if (target == null) return false; // 창고 없음 — 소지 식량 없이는 먹지 못함
+
+        CancelCurrentAction();
+        employee.SetState(EmployeeState.Moving);
+
+        movement.MoveTo(target.GetDepositPosition(),
+            onComplete: () =>
+            {
+                // 도착 후 창고(전역 저장소)에서 음식 1개를 꺼내 소지 → 즉시 섭취
+                ItemData food = InventoryManager.instance.TakeAnyFood(1);
+                if (food != null && work.StoreFood(food, 1))
+                    EatHeldFood(work);
+                else
+                    employee.SetState(EmployeeState.Idle);
+            },
+            onFailed: () => employee.SetState(EmployeeState.Idle));
+
+        return true;
+    }
+
+    /// <summary>소지 식량 1개를 소비해 배고픔을 회복합니다.</summary>
+    private void EatHeldFood(EmployeeWork work)
+    {
+        int nutrition = work.ConsumeOneFood();
+        if (nutrition <= 0)
+        {
+            employee.SetState(EmployeeState.Idle);
+            return;
+        }
+
+        employee.Eat(nutrition);
+        employee.SetState(EmployeeState.Idle);
+
+        if (showDebugLogs)
+            Debug.Log($"[AI] {employee.DisplayName}: 식사 (회복 +{nutrition}, 배고픔 {employee.Needs.hunger:F0}%, 남은 식량 {work.HeldFoodCount})");
+    }
 
     #endregion
 

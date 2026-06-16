@@ -191,6 +191,40 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
         return true;
     }
 
+    /// <summary>인벤토리에 가용(예약 제외) 음식이 하나라도 있는지 여부.</summary>
+    public bool HasAnyFood()
+    {
+        foreach (var kv in globalInventory)
+        {
+            if (kv.Key != null && kv.Key.isFood && GetAvailableAmount(kv.Key) > 0)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 인벤토리에서 음식(isFood) 아이템 1종을 amount만큼 꺼냅니다(차감).
+    /// 직원 식량 지급에 사용 — 성공 시 꺼낸 ItemData, 없으면 null.
+    /// 예약분을 제외한 가용 수량 기준으로 판단합니다.
+    /// </summary>
+    public ItemData TakeAnyFood(int amount = 1)
+    {
+        if (amount <= 0) return null;
+
+        ItemData found = null;
+        foreach (var kv in globalInventory)
+        {
+            if (kv.Key != null && kv.Key.isFood && GetAvailableAmount(kv.Key) >= amount)
+            {
+                found = kv.Key;
+                break;
+            }
+        }
+
+        if (found != null) RemoveItem(found, amount);
+        return found;
+    }
+
     /// <summary>
     /// 인벤토리를 완전히 비움 (예약 포함).
     /// </summary>

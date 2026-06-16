@@ -164,6 +164,12 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
         employee.Initialize(employeeData);
         allEmployees.Add(employee);
+
+        // 신규 직원에게 시작 식량 1개 지급 (인벤토리에 음식이 있으면 차감해 소지로 이전).
+        // 채용 직후 굶주림 전까지 버틸 안전망 — 로드 복원 직원은 이 경로를 타지 않고
+        // RestoreFromSaveData가 소지 식량을 복원한다.
+        GrantInitialFood(employee);
+
         OnEmployeeSpawned?.Invoke(employee);
 
         if (showDebugInfo)
@@ -172,6 +178,19 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         }
 
         return employee;
+    }
+
+    /// <summary>신규 직원에게 인벤토리의 음식 1개를 지급합니다 (있을 때만).</summary>
+    private void GrantInitialFood(Employee employee)
+    {
+        if (InventoryManager.instance == null || employee == null) return;
+
+        var work = employee.GetComponent<EmployeeWork>();
+        if (work == null) return;
+
+        ItemData food = InventoryManager.instance.TakeAnyFood(1);
+        if (food != null && work.StoreFood(food, 1) && showDebugInfo)
+            Debug.Log($"[EmployeeManager] '{employee.Data?.employeeName}'에게 시작 식량 지급: {food.itemName}");
     }
 
     /// <summary>

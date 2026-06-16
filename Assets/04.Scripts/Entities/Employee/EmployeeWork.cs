@@ -59,6 +59,13 @@ public class EmployeeWork : MonoBehaviour
     /// <summary>동적 비자격 리스트</summary>
     [SerializeField] private List<DisqualificationEntry> disqualifications = new List<DisqualificationEntry>();
 
+    /// <summary>
+    /// 개인 식량 소지 슬롯 (운반 작업의 임시 carryPile과 별개의 영구 슬롯).
+    /// 직원은 식량을 한 종류씩 소지하다가 배고프면 꺼내 먹습니다.
+    /// </summary>
+    private ItemData _heldFood;
+    private int _heldFoodCount;
+
     // 컴포넌트 참조
     private Employee employee;
     private EmployeeStatsController statsController;
@@ -313,6 +320,45 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         int total = Mathf.RoundToInt(withTrait) + growthBonus;
 
         return Mathf.Max(1, total);
+    }
+
+    #endregion
+
+    #region 식량 소지
+
+    /// <summary>식량을 소지 중인지 여부.</summary>
+    public bool HasFood => _heldFood != null && _heldFoodCount > 0;
+
+    /// <summary>현재 소지 중인 식량 종류 (없으면 null).</summary>
+    public ItemData HeldFood => _heldFood;
+
+    /// <summary>현재 소지 중인 식량 개수.</summary>
+    public int HeldFoodCount => _heldFoodCount;
+
+    /// <summary>
+    /// 식량을 소지 슬롯에 추가합니다 (한 종류만 누적). 음식이 아니거나 다른 종류면 실패.
+    /// </summary>
+    public bool StoreFood(ItemData food, int count)
+    {
+        if (food == null || !food.isFood || count <= 0) return false;
+        if (_heldFood != null && _heldFood != food) return false; // 한 종류만 소지
+
+        _heldFood = food;
+        _heldFoodCount += count;
+        return true;
+    }
+
+    /// <summary>
+    /// 소지 식량 1개를 소비하고 영양값을 반환합니다. 소지분이 없으면 0.
+    /// </summary>
+    public int ConsumeOneFood()
+    {
+        if (!HasFood) return 0;
+
+        int nutrition = _heldFood.nutrition;
+        _heldFoodCount--;
+        if (_heldFoodCount <= 0) _heldFood = null;
+        return nutrition;
     }
 
 
@@ -1845,6 +1891,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         {
             data.disqualifiedWorkTypes.Add((int)dq.workType);
         }
+
+        // 소지 식량
+        data.heldFoodItemId = _heldFood != null ? _heldFood.itemID : 0;
+        data.heldFoodCount  = _heldFoodCount;
     }
 
     /// <summary>
@@ -1887,6 +1937,19 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
                     workType = (WorkType)wt,
                     reason = "저장 데이터 복원"
                 });
+            }
+        }
+
+        // 소지 식량 복원
+        _heldFood = null;
+        _heldFoodCount = 0;
+        if (data.heldFoodItemId != 0 && data.heldFoodCount > 0)
+        {
+            var food = GameDatabase.Instance?.GetItemData(data.heldFoodItemId);
+            if (food != null)
+            {
+                _heldFood = food;
+                _heldFoodCount = data.heldFoodCount;
             }
         }
     }

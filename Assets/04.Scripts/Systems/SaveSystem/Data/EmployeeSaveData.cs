@@ -107,6 +107,12 @@ public class EmployeeSaveData
     /// <summary>동적 비자격 작업 타입 목록 (WorkType int 값)</summary>
     public List<int> disqualifiedWorkTypes;
 
+    /// <summary>소지 중인 식량 아이템 ID (0 = 없음)</summary>
+    public int heldFoodItemId;
+
+    /// <summary>소지 중인 식량 개수</summary>
+    public int heldFoodCount;
+
     #endregion
 
     #region 정신 이벤트
