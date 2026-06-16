@@ -24,4 +24,11 @@ public class ItemData : ScriptableObject
     [Header("드롭 비주얼")]
     [Tooltip("바닥에 떨어졌을 때 사용할 prefab. 비어있으면 DroppedItemManager의 공용 prefab을 사용합니다.")]
     public GameObject dropPrefab;
+
+    [Header("음식")]
+    [Tooltip("직원이 섭취할 수 있는 음식인지 여부.")]
+    public bool isFood = false;
+
+    [Tooltip("섭취 시 회복되는 배고픔 수치 (0~100). isFood가 true일 때만 의미가 있습니다.")]
+    public int nutrition = 0;
 }

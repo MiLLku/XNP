@@ -13800,6 +13800,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxStackSize: 99
   showDebugLogs: 1
+  startingInventory: {fileID: 11400000, guid: 4378c01afa98482e85143972df73c241, type: 2}
 --- !u!1 &1874034326
 GameObject:
   m_ObjectHideFlags: 0

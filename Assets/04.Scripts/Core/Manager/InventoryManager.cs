@@ -39,6 +39,39 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
     [SerializeField] private int maxStackSize = 999;
     [SerializeField] private bool showDebugLogs = true;
 
+    [Header("시작 인벤토리")]
+    [Tooltip("새 게임 시작 시 지급할 기본 아이템 목록 (식량 등). 로드 게임에는 적용되지 않습니다.")]
+    [SerializeField] private StartingInventoryConfig startingInventory;
+
+    #endregion
+
+    #region 생명주기
+
+    private void Start()
+    {
+        GrantStartingInventory();
+    }
+
+    /// <summary>
+    /// 시작 인벤토리 설정의 아이템을 글로벌 인벤토리에 1회 지급합니다.
+    /// 세이브 로드 시에는 이후 Restore가 ClearInventory로 덮어쓰므로 중복되지 않습니다.
+    /// </summary>
+    private void GrantStartingInventory()
+    {
+        if (startingInventory == null || startingInventory.startingItems == null) return;
+
+        int granted = 0;
+        foreach (var stack in startingInventory.startingItems)
+        {
+            if (stack.item == null || stack.amount <= 0) continue;
+            AddItem(stack.item, stack.amount);
+            granted++;
+        }
+
+        if (showDebugLogs && granted > 0)
+            Debug.Log($"[InventoryManager] 시작 인벤토리 지급: {granted}종");
+    }
+
     #endregion
 
     #region 아이템 추가/제거
