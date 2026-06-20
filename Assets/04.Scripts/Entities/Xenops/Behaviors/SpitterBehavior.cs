@@ -172,7 +172,7 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
 
         // ── 공격 적중 처리 ──
         // 1. 즉시 체력 피해
-        _target.ModifyHealth(-_attackDamage);
+        _target.TakeDamage(_attackDamage);
 
         // 2. 지속 피해 (DoT)
         if (_dotDps > 0f && _dotDuration > 0f)

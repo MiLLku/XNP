@@ -332,7 +332,7 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
             if (dist <= explosionRadius)
             {
                 if (explosionDamage > 0f)
-                    emp.ModifyHealth(-(int)explosionDamage);
+                    emp.TakeDamage((int)explosionDamage);
 
                 if (explosionMentalDamage > 0f)
                     emp.ModifyMental(-(int)explosionMentalDamage);

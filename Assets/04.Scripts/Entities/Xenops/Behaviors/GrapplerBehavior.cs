@@ -140,7 +140,7 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
             return;
         }
 
-        _target.ModifyHealth(-_attackDamage);
+        _target.TakeDamage(_attackDamage);
         _cooldownTimer = _attackInterval;
         _state         = State.Cooldown;
     }

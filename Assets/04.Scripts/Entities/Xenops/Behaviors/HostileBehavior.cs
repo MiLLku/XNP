@@ -105,7 +105,7 @@ public class HostileBehavior : MonoBehaviour, IXenopsBehavior
 
             if (Vector3.Distance(pos, employee.transform.position) <= radius)
             {
-                employee.ModifyHealth(-damage);
+                employee.TakeDamage(damage);
 
                 if (xenops != null && xenops.Data != null)
                 {

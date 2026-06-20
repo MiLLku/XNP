@@ -81,8 +81,8 @@ public class DotEffect : UnityEngine.MonoBehaviour
             return;
         }
 
-        // 초당 피해를 프레임 단위로 적용
-        _employee.ModifyHealth(-damagePerSecond * UnityEngine.Time.deltaTime);
+        // 초당 피해를 프레임 단위로 적용 (받는 피해 배율 적용)
+        _employee.TakeDamage(damagePerSecond * UnityEngine.Time.deltaTime);
     }
 
     #endregion

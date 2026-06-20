@@ -409,6 +409,18 @@ public class Employee : MonoBehaviour
     /// <summary>체력 수정</summary>
     public void ModifyHealth(float amount) => statsController?.ModifyHealth(amount);
 
+    /// <summary>
+    /// 외부(적·함정·지속피해)로부터 피해를 받습니다. 받는 피해 배율(특성·스킬)이 적용됩니다.
+    /// 회복·이벤트 등 배율을 적용하면 안 되는 체력 변화는 ModifyHealth를 직접 사용하세요.
+    /// </summary>
+    /// <param name="amount">감산할 피해량(양수). 0 이하는 무시.</param>
+    public void TakeDamage(float amount)
+    {
+        if (amount <= 0f) return;
+        float mult = statsController != null ? statsController.CachedDamageTakenMult : 1f;
+        statsController?.ModifyHealth(-amount * mult);
+    }
+
     /// <summary>정신력 수정</summary>
     public void ModifyMental(float amount) => statsController?.ModifyMental(amount);
 
