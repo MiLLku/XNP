@@ -17,18 +17,22 @@ MonoBehaviour:
   icon: {fileID: 0}
   type: 0
   effects:
-    healthModifier: 0
-    mentalModifier: 0
+    healthMult: 1
+    mentalMult: 1
+    damageTakenMult: 1
+    erosionDamageMult: 1
+    mentalDecayMult: 1
+    abnormalResistMult: 1
+    moveSpeedMult: 1.1
+    workSpeedMultipliers: []
     attackModifier: 0
     globalWorkSpeedModifier: 0
-    specificWorkModifiers: []
     hungerRateModifier: 0
     fatigueRateModifier: 0
+    carryCapacityModifier: 0
+    skillGainRateModifier: 0
+    erosionIgnoreBonus: 0
     canWorkAtNight: 0
     cannotWorkInRain: 0
     lonewolfBonus: 0
     teamworkBonus: 0
-    physicalDamageReduction: 0
-    erosionIgnoreBonus: 0
-    moveSpeedModifier: 10
-    skillGainRateModifier: 0
