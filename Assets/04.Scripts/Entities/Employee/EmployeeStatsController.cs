@@ -49,31 +49,42 @@ public class EmployeeStatsController : MonoBehaviour
     /// <summary>현재 욕구</summary>
     [SerializeField] private EmployeeNeeds currentNeeds;
 
-    /// <summary>특성 효과: 체력 보정</summary>
-    private float cachedHealthModifier = 1f;
+    // ── 곱연산 배율 (특성·스킬의 같은 배율을 곱해서 누적, 1.0 = 변화 없음) ──
+    /// <summary>최대 체력 배율</summary>
+    private float cachedHealthMult = 1f;
 
-    /// <summary>특성 효과: 정신력 보정</summary>
-    private float cachedMentalModifier = 1f;
+    /// <summary>최대 정신력 배율</summary>
+    private float cachedMentalMult = 1f;
 
-    /// <summary>특성 효과: 작업 속도 보정</summary>
+    /// <summary>받는 물리 피해 배율</summary>
+    private float cachedDamageTakenMult = 1f;
+
+    /// <summary>받는 침식 피해 배율</summary>
+    private float cachedErosionDamageMult = 1f;
+
+    /// <summary>정신력 감소 속도 배율</summary>
+    private float cachedMentalDecayMult = 1f;
+
+    /// <summary>이상행동 발동 임계점 배율 (높을수록 저항)</summary>
+    private float cachedAbnormalResistMult = 1f;
+
+    /// <summary>이동 속도 배율</summary>
+    private float cachedMoveSpeedMult = 1f;
+
+    // ── 가산·flat 보정 (1.0 또는 0에서 누적) ──
+    /// <summary>특성 효과: 전체 작업 속도 보정 (가산, 1.0 기준)</summary>
     private float cachedWorkSpeedModifier = 1f;
 
-    /// <summary>특성 효과: 배고픔 감소 속도 보정</summary>
+    /// <summary>특성 효과: 배고픔 감소 속도 보정 (가산, 1.0 기준)</summary>
     private float cachedHungerRateModifier = 1f;
 
-    /// <summary>특성 효과: 피로 증가 속도 보정</summary>
+    /// <summary>특성 효과: 피로 증가 속도 보정 (가산, 1.0 기준)</summary>
     private float cachedFatigueRateModifier = 1f;
-
-    /// <summary>특성/스킬 효과: 물리 피해 감소 (%)</summary>
-    private float cachedPhysicalDamageReduction = 0f;
 
     /// <summary>특성/스킬 효과: 침식 오라 무시 수치 (flat)</summary>
     private float cachedErosionIgnoreBonus = 0f;
 
-    /// <summary>특성/스킬 효과: 이동 속도 보정 (1.0 = 정상)</summary>
-    private float cachedMoveSpeedModifier = 1f;
-
-    /// <summary>특성/스킬 효과: 기술 상승 속도 보정 (1.0 = 정상)</summary>
+    /// <summary>특성/스킬 효과: 기술 상승 속도 보정 (가산, 1.0 기준)</summary>
     private float cachedSkillGainRateModifier = 1f;
 
     /// <summary>장비 스탯 보정 (슬롯별)</summary>
@@ -108,14 +119,23 @@ public class EmployeeStatsController : MonoBehaviour
     /// <summary>캐시된 글로벌 작업 속도 보정</summary>
     public float CachedWorkSpeedModifier => cachedWorkSpeedModifier;
 
-    /// <summary>캐시된 물리 피해 감소 (%)</summary>
-    public float CachedPhysicalDamageReduction => cachedPhysicalDamageReduction;
+    /// <summary>캐시된 받는 물리 피해 배율 (0.8 = 20% 감소)</summary>
+    public float CachedDamageTakenMult => cachedDamageTakenMult;
+
+    /// <summary>캐시된 받는 침식 피해 배율</summary>
+    public float CachedErosionDamageMult => cachedErosionDamageMult;
+
+    /// <summary>캐시된 정신력 감소 속도 배율</summary>
+    public float CachedMentalDecayMult => cachedMentalDecayMult;
+
+    /// <summary>캐시된 이상행동 발동 임계점 배율 (높을수록 저항)</summary>
+    public float CachedAbnormalResistMult => cachedAbnormalResistMult;
 
     /// <summary>캐시된 침식 오라 무시 수치 (flat)</summary>
     public float CachedErosionIgnoreBonus => cachedErosionIgnoreBonus;
 
-    /// <summary>캐시된 이동 속도 보정 (1.0 = 정상)</summary>
-    public float CachedMoveSpeedModifier => cachedMoveSpeedModifier;
+    /// <summary>캐시된 이동 속도 배율 (1.0 = 정상)</summary>
+    public float CachedMoveSpeedMult => cachedMoveSpeedMult;
 
     /// <summary>캐시된 기술 상승 속도 보정 (1.0 = 정상)</summary>
     public float CachedSkillGainRateModifier => cachedSkillGainRateModifier;
@@ -140,10 +160,10 @@ public class EmployeeStatsController : MonoBehaviour
 
         currentStats = new EmployeeStats
         {
-            health = Mathf.RoundToInt(data.maxHealth * cachedHealthModifier),
-            maxHealth = Mathf.RoundToInt(data.maxHealth * cachedHealthModifier),
-            mental = Mathf.RoundToInt(data.maxMental * cachedMentalModifier),
-            maxMental = Mathf.RoundToInt(data.maxMental * cachedMentalModifier),
+            health = Mathf.RoundToInt(data.maxHealth * cachedHealthMult),
+            maxHealth = Mathf.RoundToInt(data.maxHealth * cachedHealthMult),
+            mental = Mathf.RoundToInt(data.maxMental * cachedMentalMult),
+            maxMental = Mathf.RoundToInt(data.maxMental * cachedMentalMult),
             attackPower = Mathf.RoundToInt(data.attackPower * (1f + GetTraitAttackModifier(data)))
         };
 
@@ -241,14 +261,19 @@ public class EmployeeStatsController : MonoBehaviour
     /// </summary>
     public void CalculateTraitModifiers(EmployeeData data)
     {
-        cachedHealthModifier           = 1f;
-        cachedMentalModifier           = 1f;
+        // 배율 (곱연산 기준값 1.0)
+        cachedHealthMult           = 1f;
+        cachedMentalMult           = 1f;
+        cachedDamageTakenMult      = 1f;
+        cachedErosionDamageMult    = 1f;
+        cachedMentalDecayMult      = 1f;
+        cachedAbnormalResistMult   = 1f;
+        cachedMoveSpeedMult        = 1f;
+        // 가산·flat (1.0 또는 0 기준)
         cachedWorkSpeedModifier        = 1f;
         cachedHungerRateModifier       = 1f;
         cachedFatigueRateModifier      = 1f;
-        cachedPhysicalDamageReduction  = 0f;
         cachedErosionIgnoreBonus       = 0f;
-        cachedMoveSpeedModifier        = 1f;
         cachedSkillGainRateModifier    = 1f;
 
         // EmployeeData 내장 특성
@@ -279,15 +304,21 @@ public class EmployeeStatsController : MonoBehaviour
 
     private void ApplyTraitEffects(TraitEffects fx)
     {
-        cachedHealthModifier          += fx.healthModifier / 100f;
-        cachedMentalModifier          += fx.mentalModifier / 100f;
-        cachedWorkSpeedModifier       += fx.globalWorkSpeedModifier / 100f;
-        cachedHungerRateModifier      += fx.hungerRateModifier / 100f;
-        cachedFatigueRateModifier     += fx.fatigueRateModifier / 100f;
-        cachedPhysicalDamageReduction += fx.physicalDamageReduction;
-        cachedErosionIgnoreBonus      += fx.erosionIgnoreBonus;
-        cachedMoveSpeedModifier       += fx.moveSpeedModifier / 100f;
-        cachedSkillGainRateModifier   += fx.skillGainRateModifier / 100f;
+        // 배율: 곱연산 누적
+        cachedHealthMult         *= fx.healthMult;
+        cachedMentalMult         *= fx.mentalMult;
+        cachedDamageTakenMult    *= fx.damageTakenMult;
+        cachedErosionDamageMult  *= fx.erosionDamageMult;
+        cachedMentalDecayMult    *= fx.mentalDecayMult;
+        cachedAbnormalResistMult *= fx.abnormalResistMult;
+        cachedMoveSpeedMult      *= fx.moveSpeedMult;
+
+        // 가산·flat: 기존 방식 유지
+        cachedWorkSpeedModifier     += fx.globalWorkSpeedModifier / 100f;
+        cachedHungerRateModifier    += fx.hungerRateModifier / 100f;
+        cachedFatigueRateModifier   += fx.fatigueRateModifier / 100f;
+        cachedErosionIgnoreBonus    += fx.erosionIgnoreBonus;
+        cachedSkillGainRateModifier += fx.skillGainRateModifier / 100f;
     }
 
     /// <summary>
@@ -423,8 +454,8 @@ public class EmployeeStatsController : MonoBehaviour
         EmployeeData data = employee?.Data;
         if (data == null) return;
 
-        float baseMaxHealth = data.maxHealth * cachedHealthModifier;
-        float baseMaxMental = data.maxMental * cachedMentalModifier;
+        float baseMaxHealth = data.maxHealth * cachedHealthMult;
+        float baseMaxMental = data.maxMental * cachedMentalMult;
         int baseAttack = Mathf.RoundToInt(data.attackPower * (1f + GetTraitAttackModifier(data)));
 
         // 장비 절대값 보정 합산

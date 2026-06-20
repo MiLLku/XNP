@@ -184,16 +184,21 @@ public class EmployeeSkillState : MonoBehaviour
             if (skill?.grantedTrait == null) continue;
 
             var fx = skill.grantedTrait.effects;
-            merged.healthModifier              += fx.healthModifier;
-            merged.mentalModifier              += fx.mentalModifier;
-            merged.attackModifier              += fx.attackModifier;
-            merged.globalWorkSpeedModifier     += fx.globalWorkSpeedModifier;
-            merged.hungerRateModifier          += fx.hungerRateModifier;
-            merged.fatigueRateModifier         += fx.fatigueRateModifier;
-            merged.physicalDamageReduction     += fx.physicalDamageReduction;
-            merged.erosionIgnoreBonus          += fx.erosionIgnoreBonus;
-            merged.moveSpeedModifier           += fx.moveSpeedModifier;
-            merged.skillGainRateModifier       += fx.skillGainRateModifier;
+            // 배율: 곱연산 누적 (merged는 new TraitEffects()라 기본 1.0에서 시작)
+            merged.healthMult         *= fx.healthMult;
+            merged.mentalMult         *= fx.mentalMult;
+            merged.damageTakenMult    *= fx.damageTakenMult;
+            merged.erosionDamageMult  *= fx.erosionDamageMult;
+            merged.mentalDecayMult    *= fx.mentalDecayMult;
+            merged.abnormalResistMult *= fx.abnormalResistMult;
+            merged.moveSpeedMult      *= fx.moveSpeedMult;
+            // 가산·flat
+            merged.attackModifier          += fx.attackModifier;
+            merged.globalWorkSpeedModifier += fx.globalWorkSpeedModifier;
+            merged.hungerRateModifier      += fx.hungerRateModifier;
+            merged.fatigueRateModifier     += fx.fatigueRateModifier;
+            merged.erosionIgnoreBonus      += fx.erosionIgnoreBonus;
+            merged.skillGainRateModifier   += fx.skillGainRateModifier;
         }
 
         return merged;

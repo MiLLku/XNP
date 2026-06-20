@@ -21,8 +21,21 @@ public class EmployeeTrait : ScriptableObject
 }
 
 /// <summary>
-/// 작업 타입별 속도 보정 데이터.
-/// 특정 작업에 대한 속도 보정을 정의합니다.
+/// 작업 타입별 속도 배율 데이터 (곱연산). 특성의 특정 작업 속도 보정에 사용합니다.
+/// </summary>
+[System.Serializable]
+public struct WorkSpeedMultiplier
+{
+    /// <summary>대상 작업 타입</summary>
+    public WorkType workType;
+
+    /// <summary>속도 배율 (1.0 = 변화 없음)</summary>
+    [Range(0f, 3f)]
+    public float multiplier;
+}
+
+/// <summary>
+/// 작업 타입별 속도 보정 데이터 (가산 %). 장비(EquipmentData) 등에서 사용합니다.
 /// </summary>
 [System.Serializable]
 public struct WorkSpeedModifier
@@ -82,13 +95,13 @@ public static class TraitFactory
         };
     }
 
-    /// <summary>"대식가" 특성 효과를 반환합니다 (배고픔 감소 +50%, 체력 +10%)</summary>
+    /// <summary>"대식가" 특성 효과를 반환합니다 (배고픔 감소 +50%, 최대 체력 ×1.1)</summary>
     public static TraitEffects GetGluttonEffects()
     {
         return new TraitEffects
         {
             hungerRateModifier = 50f,
-            healthModifier = 10f
+            healthMult = 1.1f
         };
     }
 }

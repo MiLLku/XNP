@@ -373,12 +373,12 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
         foreach (var trait in data.traits)
         {
-            if (trait == null || trait.effects.specificWorkModifiers == null) continue;
+            if (trait == null || trait.effects.workSpeedMultipliers == null) continue;
 
-            var specific = trait.effects.specificWorkModifiers.FirstOrDefault(m => m.workType == type);
+            var specific = trait.effects.workSpeedMultipliers.FirstOrDefault(m => m.workType == type);
             if (specific.workType == type)
             {
-                modifier += specific.speedModifier / 100f;
+                modifier *= specific.multiplier; // 곱연산 배율
             }
         }
 
