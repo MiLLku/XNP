@@ -212,17 +212,17 @@ public class EmployeeStatsController : MonoBehaviour
             currentNeeds.fatigue = Mathf.Clamp(currentNeeds.fatigue, 0f, 100f);
         }
 
-        // 기아: 체력/정신력 감소
+        // 기아: 체력/정신력 감소 (정신 감소는 특성 배율 적용)
         if (currentNeeds.hunger <= 0f)
         {
             currentStats.health -= STARVATION_HEALTH_DECAY * deltaTime;
-            currentStats.mental -= STARVATION_MENTAL_DECAY * deltaTime;
+            currentStats.mental -= STARVATION_MENTAL_DECAY * cachedMentalDecayMult * deltaTime;
         }
 
-        // 탈진: 정신력 감소
+        // 탈진: 정신력 감소 (특성 배율 적용)
         if (currentNeeds.fatigue <= 0f)
         {
-            currentStats.mental -= EXHAUSTION_MENTAL_DECAY * deltaTime;
+            currentStats.mental -= EXHAUSTION_MENTAL_DECAY * cachedMentalDecayMult * deltaTime;
         }
 
         // 클램프

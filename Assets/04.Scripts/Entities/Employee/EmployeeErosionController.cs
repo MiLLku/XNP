@@ -175,7 +175,12 @@ public class EmployeeErosionController : MonoBehaviour
 
         if (stageConfig == null) return;
 
-        var def = stageConfig.GetStageDefinition(erosion);
+        // 이상행동 임계점 배율: 저항이 높을수록 유효 침식을 낮춰 단계 상승(=이상행동)을 늦춘다.
+        // (완전 침식/변이 판정은 실제 침식 그대로 — 위에서 처리)
+        float resist = statsController.CachedAbnormalResistMult;
+        float effectiveErosion = resist > 0f ? erosion / resist : erosion;
+
+        var def = stageConfig.GetStageDefinition(effectiveErosion);
         if (def == null) return;
 
         ErosionStage newStage = def.stage;
@@ -391,11 +396,13 @@ public class EmployeeErosionController : MonoBehaviour
         if (tileIntensity <= 0f) return;
         if (tileIntensity <= naturalErosionWatermark) return;
 
-        float delta = tileIntensity - naturalErosionWatermark;
+        float rawDelta = tileIntensity - naturalErosionWatermark;
         naturalErosionWatermark = tileIntensity;
 
         if (statsController != null)
         {
+            // 받는 침식 피해 배율 적용 (특성·스킬, 0.8 = 침식 20% 덜 쌓임)
+            float delta = rawDelta * statsController.CachedErosionDamageMult;
             float newErosion = statsController.ErosionLevel + delta;
             statsController.SetErosion(newErosion);
             Debug.Log($"[ErosionController] {employee.DisplayName}: 자연 침식 +{delta:F1} (수치={newErosion:F1}, 워터마크={naturalErosionWatermark:F1})");
