@@ -52,6 +52,11 @@ public class ChoppableTree : MonoBehaviour, IHarvestable, IWorkTarget
         {
             spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
         }
+
+        // 수확(벌목) 드래그 선택(Physics2D.OverlapBox)에 잡히도록 Collider 보장.
+        // 프리팹에 콜라이더가 없어도 런타임에 스프라이트 크기에 맞춰 자동 부착된다.
+        if (GetComponent<Collider2D>() == null)
+            gameObject.AddComponent<BoxCollider2D>();
     }
     
     void Start()
