@@ -103,3 +103,7 @@ MonoBehaviour:
   emptySprite: {fileID: 1090381399, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
   halfSprite: {fileID: 1688306315, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
   fullSprite: {fileID: 198984507, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
+  itemToProduce: {fileID: 11400000, guid: deb0f62de7e0436bb9fc8a85f2cf9d23, type: 2}
+  harvestAmount: 3
+  growthTime: 40
+  harvestTime: 2
