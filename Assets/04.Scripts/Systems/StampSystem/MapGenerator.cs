@@ -48,6 +48,11 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [SerializeField] [Range(2, 20)] private int minTreeDistance = 5;
     [SerializeField] [Range(5, 50)] private int spawnAreaPadding = 15;
     [SerializeField] [Range(0f, 1f)] private float treePlacementChance = 0.5f;
+    [Header("베리 덤불 배치 (지표면 잔디, 식량원)")]
+    [Tooltip("StampLibrary의 베리 덤불 스탬프 키 (대소문자 정확히 일치해야 함)")]
+    [SerializeField] private string berryBushStampKey = "BERRY_BUSH";
+    [SerializeField] [Range(2, 20)] private int minBerryBushDistance = 7;
+    [SerializeField] [Range(0f, 1f)] private float berryBushPlacementChance = 0.3f;
     [Header("침식 식물 (지상 잔디/흙)")]
     [Tooltip("독성 고사리 타일당 생성 확률")]
     [SerializeField] [Range(0f, 0.1f)] private float toxicFernSpawnChance = 0.03f;
@@ -163,6 +168,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         PlaceStartingRoom(groundHeightMap);              // 스타팅 룸 배치
         PlaceErosionPlants();                            // 침식 식물 배치
         PlaceTrees(groundHeightMap);
+        PlaceBerryBushes(groundHeightMap);               // 베리 덤불(식량원) 배치
     }
 
     #region 지형 및 광물 (Terrain & Ores)
@@ -608,6 +614,40 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             } else { failedFlatGroundCheck++; }
         }
         Debug.Log($"[PlaceTrees] 배치 완료. (배치: {treesPlaced}그루, 평지실패: {failedFlatGroundCheck}칸, 확률실패: {failedChanceRoll}칸)");
+    }
+
+    /// <summary>
+    /// 지표면 잔디에 베리 덤불(식량원)을 배치합니다. 베리 덤불은 1칸이며,
+    /// 나무·다른 베리 덤불과 겹치지 않도록 IsTileSpawnable(점유 그리드)을 확인합니다.
+    /// 스폰 지점 주변(spawnAreaPadding)은 제외합니다.
+    /// </summary>
+    private void PlaceBerryBushes(int[] groundHeightMap)
+    {
+        if (berryBushPlacementChance <= 0f) return;
+
+        int spawnX = 100;
+        int lastX = -minBerryBushDistance;
+        int placed = 0;
+
+        for (int x = 0; x < GameMap.MAP_WIDTH; x++)
+        {
+            if (x >= spawnX - spawnAreaPadding && x <= spawnX + spawnAreaPadding) continue;
+            if (x < lastX + minBerryBushDistance) continue;
+
+            int y = groundHeightMap[x];
+
+            // 잔디이고 점유되지 않은 칸에만 (나무가 이미 차지한 칸 회피)
+            if (!_gameMap.IsTileSpawnable(x, y) || _gameMap.TileGrid[x, y] != GRASS_ID) continue;
+
+            if (Random.value < berryBushPlacementChance)
+            {
+                _stamper.PlaceStamp(berryBushStampKey, new Vector2Int(x, y + 1));
+                lastX = x;
+                _gameMap.MarkTileOccupied(x, y);
+                placed++;
+            }
+        }
+        Debug.Log($"[PlaceBerryBushes] 배치 완료. (배치: {placed}개)");
     }
 
     #endregion
