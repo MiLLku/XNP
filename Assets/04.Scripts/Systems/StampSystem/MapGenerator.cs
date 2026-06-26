@@ -51,8 +51,10 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [Header("베리 덤불 배치 (지표면 잔디, 식량원)")]
     [Tooltip("StampLibrary의 베리 덤불 스탬프 키 (대소문자 정확히 일치해야 함)")]
     [SerializeField] private string berryBushStampKey = "BERRY_BUSH";
-    [SerializeField] [Range(2, 20)] private int minBerryBushDistance = 7;
-    [SerializeField] [Range(0f, 1f)] private float berryBushPlacementChance = 0.3f;
+    // 밸런스: 초반 직원 소수엔 여유, 직원이 늘수록 빡빡해지도록 공급 적정화.
+    // (직원 1명 ~20베리/일 소비, 덤불 1개 ~36베리/일 생산[재성장 50초] → 덤불 1개가 직원 ~1.8명 부양)
+    [SerializeField] [Range(2, 20)] private int minBerryBushDistance = 11;
+    [SerializeField] [Range(0f, 1f)] private float berryBushPlacementChance = 0.25f;
     [Header("침식 식물 (지상 잔디/흙)")]
     [Tooltip("독성 고사리 타일당 생성 확률")]
     [SerializeField] [Range(0f, 0.1f)] private float toxicFernSpawnChance = 0.03f;

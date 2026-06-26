@@ -14414,6 +14414,9 @@ MonoBehaviour:
   minTreeDistance: 5
   spawnAreaPadding: 15
   treePlacementChance: 0.5
+  berryBushStampKey: BERRY_BUSH
+  minBerryBushDistance: 11
+  berryBushPlacementChance: 0.25
   toxicFernSpawnChance: 0.03
   corruptedMushroomSpawnChance: 0.02
   clusterMinSize: 2
