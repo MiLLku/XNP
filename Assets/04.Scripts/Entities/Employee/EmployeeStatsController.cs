@@ -455,6 +455,21 @@ public class EmployeeStatsController : MonoBehaviour
     }
 
     /// <summary>
+    /// 피로(수면 부족)에 따른 침식 저항 배율을 반환합니다 (구간형).
+    /// 수면 관리가 무너져도 침식 임계점이 낮아진다 — 재미(GetFunErosionFactor)와 곱연산으로 누적.
+    /// 침식이 일정해도 욕구 관리 실패만으로 이상행동 위험이 생기는 설계.
+    /// </summary>
+    public float GetFatigueErosionFactor()
+    {
+        FunConfig cfg = EmployeeManager.instance?.FunConfig;
+        if (cfg == null) return 1f;
+
+        if (currentNeeds.fatigue < cfg.fatigueSevereThreshold) return cfg.fatigueSevereFactor;
+        if (currentNeeds.fatigue < cfg.fatigueVulnerableThreshold) return cfg.fatigueVulnerableFactor;
+        return 1f;
+    }
+
+    /// <summary>
     /// 최대 스탯을 직접 증가시킵니다 (레벨업용).
     /// </summary>
     public void IncreaseMaxStats(int healthGain, int mentalGain, int attackGain)

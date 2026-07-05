@@ -37,6 +37,19 @@ public class FunConfig : ScriptableObject
     [Tooltip("취약 2단계 저항 배율 (0.6 = 유효 침식 66% 증가)")]
     public float severeVulnerableFactor = 0.6f;
 
+    [Header("침식 취약 (피로 — 수면 부족)")]
+    [Tooltip("피로가 이 수치 미만이면 침식 취약 1단계. 수면 관리 실패도 침식 임계점을 낮춘다")]
+    [Range(0f, 100f)] public float fatigueVulnerableThreshold = 30f;
+
+    [Tooltip("피로 취약 1단계 저항 배율 (0.85 = 유효 침식 ~18% 증가)")]
+    public float fatigueVulnerableFactor = 0.85f;
+
+    [Tooltip("피로가 이 수치 미만이면 침식 취약 2단계 (심각한 수면 부족)")]
+    [Range(0f, 100f)] public float fatigueSevereThreshold = 10f;
+
+    [Tooltip("피로 취약 2단계 저항 배율 (0.7 = 유효 침식 ~43% 증가)")]
+    public float fatigueSevereFactor = 0.7f;
+
     [Header("AI 행동 기준")]
     [Tooltip("오락 활동 시 이 수치에 도달하면 종료 (충분히 즐김)")]
     [Range(0f, 100f)] public float recreationTargetFun = 90f;

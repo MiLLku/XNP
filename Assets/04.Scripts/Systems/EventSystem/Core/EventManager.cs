@@ -117,7 +117,8 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
     /// </summary>
     public void TriggerEvent(int eventId)
     {
-        EventData eventData = allEvents.FirstOrDefault(e => e.eventId == eventId);
+        // null 가드: 인스펙터 리스트에 빈 슬롯이 있어도 NRE 없이 건너뛴다
+        EventData eventData = allEvents.FirstOrDefault(e => e != null && e.eventId == eventId);
 
         if (eventData != null)
         {
@@ -347,8 +348,8 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
     /// </summary>
     private EventData SelectRandomEvent()
     {
-        // 1. 발동 가능한 이벤트 필터링
-        var validEvents = allEvents.Where(e => CanTriggerEvent(e)).ToList();
+        // 1. 발동 가능한 이벤트 필터링 (null 슬롯 방어 — 인스펙터 빈 칸이 NRE를 유발할 수 있는 경로)
+        var validEvents = allEvents.Where(e => e != null && CanTriggerEvent(e)).ToList();
 
         if (validEvents.Count == 0)
             return null;
@@ -522,7 +523,7 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
         _activePersistentEvents.Clear();
         foreach (var persistentData in data.activePersistentEvents)
         {
-            EventData eventData = allEvents.FirstOrDefault(e => e.eventId == persistentData.eventId);
+            EventData eventData = allEvents.FirstOrDefault(e => e != null && e.eventId == persistentData.eventId);
             if (eventData != null)
             {
                 _activePersistentEvents[persistentData.eventId] = new ActivePersistentEvent
