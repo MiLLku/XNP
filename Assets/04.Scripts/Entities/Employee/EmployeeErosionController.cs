@@ -176,8 +176,9 @@ public class EmployeeErosionController : MonoBehaviour
         if (stageConfig == null) return;
 
         // 이상행동 임계점 배율: 저항이 높을수록 유효 침식을 낮춰 단계 상승(=이상행동)을 늦춘다.
+        // 재미가 낮으면 저항이 깎여(GetFunErosionFactor < 1) 유효 침식이 높아진다 — 취약.
         // (완전 침식/변이 판정은 실제 침식 그대로 — 위에서 처리)
-        float resist = statsController.CachedAbnormalResistMult;
+        float resist = statsController.CachedAbnormalResistMult * statsController.GetFunErosionFactor();
         float effectiveErosion = resist > 0f ? erosion / resist : erosion;
 
         var def = stageConfig.GetStageDefinition(effectiveErosion);

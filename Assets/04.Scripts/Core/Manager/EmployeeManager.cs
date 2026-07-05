@@ -42,6 +42,10 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     [Tooltip("무작위 직원 생성 규칙 (이름·헤어·특성 풀, 기본 스탯 등)")]
     [SerializeField] private EmployeeGenerationConfig generationConfig;
 
+    [Header("재미(오락) 시스템 설정")]
+    [Tooltip("재미 감소율·효과 구간 기준값. 미할당 시 재미 효과는 중립으로 동작")]
+    [SerializeField] private FunConfig funConfig;
+
     #endregion
 
     #region 이벤트
@@ -65,6 +69,9 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     /// <summary>무작위 직원 생성 설정 (HiringOffice 등에서 참조)</summary>
     public EmployeeGenerationConfig GenerationConfig => generationConfig;
+
+    /// <summary>재미 시스템 기준값 (StatsController/AI에서 참조, null 허용)</summary>
+    public FunConfig FunConfig => funConfig;
 
     #endregion
 

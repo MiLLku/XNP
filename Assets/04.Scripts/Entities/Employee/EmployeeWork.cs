@@ -276,7 +276,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
     /// <summary>
     /// 특정 작업 타입의 작업 속도를 반환합니다.
-    /// 기본속도 × 특성보정 × 피로보정 × 글로벌보정 × 정신이벤트보정
+    /// 기본속도 × 특성보정 × 피로보정 × 글로벌보정 × 정신이벤트보정 × 침식보정 × 재미보정
     /// </summary>
     public float GetWorkSpeed(WorkType type)
     {
@@ -289,8 +289,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         float globalModifier = statsController != null ? statsController.CachedWorkSpeedModifier : 1f;
         float mentalModifier = mental != null ? mental.GetActiveSpeedModifier() : 1f;
         float erosionModifier = erosionController != null ? erosionController.WorkSpeedModifier : 1f;
+        float funModifier = statsController != null ? statsController.GetFunWorkModifier() : 1f;
 
-        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier;
+        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * funModifier;
     }
 
 /// <summary>

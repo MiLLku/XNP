@@ -406,6 +406,9 @@ public class Employee : MonoBehaviour
     /// <summary>식사하여 허기 회복</summary>
     public void Eat(float nutritionValue) => statsController?.Eat(nutritionValue);
 
+    /// <summary>재미 수정 (오락 시설·약물·이벤트용 위임)</summary>
+    public void ModifyFun(float amount) => statsController?.ModifyFun(amount);
+
     /// <summary>체력 수정</summary>
     public void ModifyHealth(float amount) => statsController?.ModifyHealth(amount);
 

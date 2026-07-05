@@ -7,7 +7,7 @@ using UnityEngine;
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 3;
+    public const int CURRENT_VERSION = 4;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -35,6 +35,9 @@ public static class SaveMigration
                     break;
                 case 2:
                     data = MigrateV2ToV3(data);
+                    break;
+                case 3:
+                    data = MigrateV3ToV4(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -151,6 +154,27 @@ public static class SaveMigration
         }
 
         data.saveVersion = 3;
+        return data;
+    }
+
+    /// <summary>
+    /// v3 → v4 마이그레이션
+    /// 재미(fun) 욕구 추가: 구 세이브에는 필드가 없어 JsonUtility가 0으로 채우므로
+    /// 기본값 70으로 보정합니다 (로드 직후 전 직원이 침식 취약 상태가 되는 것 방지).
+    /// </summary>
+    private static SaveData MigrateV3ToV4(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v3 → v4 마이그레이션 시작 (재미 욕구 추가)...");
+
+        if (data.employees != null)
+        {
+            foreach (var employee in data.employees)
+            {
+                employee.fun = 70f;
+            }
+        }
+
+        data.saveVersion = 4;
         return data;
     }
 

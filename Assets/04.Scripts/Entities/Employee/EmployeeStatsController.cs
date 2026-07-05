@@ -170,7 +170,8 @@ public class EmployeeStatsController : MonoBehaviour
         currentNeeds = new EmployeeNeeds
         {
             hunger = INITIAL_NEEDS_VALUE,
-            fatigue = INITIAL_NEEDS_VALUE
+            fatigue = INITIAL_NEEDS_VALUE,
+            fun = INITIAL_NEEDS_VALUE
         };
     }
 
@@ -210,6 +211,18 @@ public class EmployeeStatsController : MonoBehaviour
         {
             currentNeeds.fatigue += REST_FATIGUE_RECOVERY * deltaTime;
             currentNeeds.fatigue = Mathf.Clamp(currentNeeds.fatigue, 0f, 100f);
+        }
+
+        // 재미: 자연 감소 (작업 중이면 더 빠르게) — 기준값은 FunConfig(SO)
+        FunConfig funCfg = EmployeeManager.instance?.FunConfig;
+        if (funCfg != null)
+        {
+            float funDecay = funCfg.decayPerSecond;
+            if (employee.State == EmployeeState.Working)
+                funDecay += funCfg.workingExtraDecayPerSecond;
+
+            currentNeeds.fun -= funDecay * deltaTime;
+            currentNeeds.fun = Mathf.Clamp(currentNeeds.fun, 0f, 100f);
         }
 
         // 기아: 체력/정신력 감소 (정신 감소는 특성 배율 적용)
@@ -385,6 +398,14 @@ public class EmployeeStatsController : MonoBehaviour
         OnNeedsChanged?.Invoke(currentNeeds);
     }
 
+    /// <summary>재미 수정 (오락 시설 이용·약물 복용·이벤트 등)</summary>
+    public void ModifyFun(float amount)
+    {
+        currentNeeds.fun += amount;
+        currentNeeds.fun = Mathf.Clamp(currentNeeds.fun, 0f, 100f);
+        OnNeedsChanged?.Invoke(currentNeeds);
+    }
+
     /// <summary>침식 수치를 설정합니다. 0 = 회복, 양수 = 제노프스 등에 의한 침식 적용.</summary>
     public void SetErosion(float level)
     {
@@ -403,6 +424,33 @@ public class EmployeeStatsController : MonoBehaviour
     {
         if (currentNeeds.fatigue < 20f) return SEVERE_FATIGUE_SPEED;
         if (currentNeeds.fatigue < 50f) return MODERATE_FATIGUE_SPEED;
+        return 1f;
+    }
+
+    /// <summary>
+    /// 재미에 따른 작업 속도 배율을 반환합니다 (구간형, 피로와 동일 스타일).
+    /// 재미가 높으면(기본 70 이상) 보너스, 그 외 1.0. 기준값은 FunConfig(SO).
+    /// </summary>
+    public float GetFunWorkModifier()
+    {
+        FunConfig cfg = EmployeeManager.instance?.FunConfig;
+        if (cfg == null) return 1f;
+
+        return currentNeeds.fun >= cfg.workBonusThreshold ? cfg.workBonusMultiplier : 1f;
+    }
+
+    /// <summary>
+    /// 재미에 따른 침식 저항 배율을 반환합니다 (구간형).
+    /// 재미가 낮으면 1.0 미만 → 이상행동 유효 침식이 높아져 단계에 더 빨리 도달(취약).
+    /// EmployeeErosionController.UpdateStage에서 abnormalResistMult에 곱해집니다.
+    /// </summary>
+    public float GetFunErosionFactor()
+    {
+        FunConfig cfg = EmployeeManager.instance?.FunConfig;
+        if (cfg == null) return 1f;
+
+        if (currentNeeds.fun < cfg.severeVulnerableThreshold) return cfg.severeVulnerableFactor;
+        if (currentNeeds.fun < cfg.vulnerableThreshold) return cfg.vulnerableFactor;
         return 1f;
     }
 
@@ -515,6 +563,7 @@ public class EmployeeStatsController : MonoBehaviour
 
         data.hunger = currentNeeds.hunger;
         data.fatigue = currentNeeds.fatigue;
+        data.fun = currentNeeds.fun;
     }
 
     /// <summary>
@@ -534,7 +583,8 @@ public class EmployeeStatsController : MonoBehaviour
         currentNeeds = new EmployeeNeeds
         {
             hunger = data.hunger,
-            fatigue = data.fatigue
+            fatigue = data.fatigue,
+            fun = data.fun
         };
 
         // 특성 보정 캐시 재계산

@@ -91,6 +91,9 @@ public class EmployeeSaveData
     /// <summary>피로 (0~100, 낮을수록 피곤함)</summary>
     public float fatigue;
 
+    /// <summary>재미 (0~100, 낮을수록 침식 취약). v4 추가 — 구 세이브는 마이그레이션에서 채움</summary>
+    public float fun;
+
     #endregion
 
     #region 작업

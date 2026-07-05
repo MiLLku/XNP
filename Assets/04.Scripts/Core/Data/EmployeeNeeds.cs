@@ -15,4 +15,8 @@ public struct EmployeeNeeds
     /// <summary>피로 (0~100, 0이면 탈진)</summary>
     [Range(0, 100)]
     public float fatigue;
+
+    /// <summary>재미 (0~100, 높으면 작업 효율↑ / 낮으면 침식 취약)</summary>
+    [Range(0, 100)]
+    public float fun;
 }
