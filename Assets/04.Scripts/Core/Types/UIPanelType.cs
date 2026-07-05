@@ -29,4 +29,10 @@ public enum UIPanelType
 
     /// <summary>연구 트리 패널</summary>
     ResearchTreeUI,
+
+    /// <summary>레터(메시지 로그) 상세 팝업</summary>
+    LetterDetail,
+
+    /// <summary>직원 작업 일정(스케줄) 편집 패널</summary>
+    ScheduleUI,
 }

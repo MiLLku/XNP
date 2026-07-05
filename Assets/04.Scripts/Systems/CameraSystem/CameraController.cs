@@ -32,9 +32,17 @@ public class CameraController : MonoBehaviour
     private Camera _cam;
     private float _minX, _maxX, _minY, _maxY;
 
+    /// <summary>외부에서 카메라 포커스를 요청하기 위한 인스턴스 참조.</summary>
+    public static CameraController Instance { get; private set; }
+
     #endregion
 
     #region 생명주기
+
+    void Awake()
+    {
+        Instance = this;
+    }
 
     void Start()
     {
@@ -121,6 +129,22 @@ public class CameraController : MonoBehaviour
         Vector3 mousePos = Input.mousePosition;
         mousePos.z = -_cam.transform.position.z;
         return _cam.ScreenToWorldPoint(mousePos);
+    }
+
+    /// <summary>
+    /// 지정한 월드 좌표로 카메라를 즉시 이동합니다(맵 경계 제한 적용).
+    /// 알림 배너 클릭 시 대상 직원으로 점프하는 데 사용합니다.
+    /// </summary>
+    /// <param name="worldPos">바라볼 월드 좌표</param>
+    public void FocusOn(Vector3 worldPos)
+    {
+        if (_cam == null) _cam = Camera.main;
+        if (_cam == null) return;
+
+        Vector3 pos = new Vector3(worldPos.x, worldPos.y, transform.position.z);
+        CalculateBounds();
+        ClampPosition(ref pos);
+        transform.position = pos;
     }
 
     #endregion
