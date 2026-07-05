@@ -15,5 +15,7 @@ public enum BuildingCategory
     /// <summary>특수</summary>
     Special,
     /// <summary>전력시설 (발전기, 축전기, 전선)</summary>
-    Power
+    Power,
+    /// <summary>오락시설 (다트판, 게임기)</summary>
+    Recreation
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -85,12 +86,16 @@ public class EmployeeAI : MonoBehaviour
     /// <summary>자유 시간 욕구 재확인 타이머</summary>
     private float needsCheckTimer;
 
+    /// <summary>진행 중인 오락 회복 코루틴 (null = 오락 중 아님)</summary>
+    private Coroutine recreationRoutine;
+
     // 컴포넌트 참조
     private Employee employee;
     private EmployeeMovement movement;
     private EmployeeSchedule schedule;
     private EmployeeDraft draft;
     private EmployeeZoneAssignment zoneAssignment;
+    private EmployeeStatsController statsController;
 
     #endregion
 
@@ -98,11 +103,12 @@ public class EmployeeAI : MonoBehaviour
 
     void Awake()
     {
-        employee       = GetComponent<Employee>();
-        movement       = GetComponent<EmployeeMovement>();
-        schedule       = GetComponent<EmployeeSchedule>();
-        draft          = GetComponent<EmployeeDraft>();
-        zoneAssignment = GetComponent<EmployeeZoneAssignment>();
+        employee        = GetComponent<Employee>();
+        movement        = GetComponent<EmployeeMovement>();
+        schedule        = GetComponent<EmployeeSchedule>();
+        draft           = GetComponent<EmployeeDraft>();
+        zoneAssignment  = GetComponent<EmployeeZoneAssignment>();
+        statsController = GetComponent<EmployeeStatsController>();
     }
 
     void OnEnable()
@@ -268,8 +274,18 @@ public class EmployeeAI : MonoBehaviour
                 return HasFacilityForActivity(FacilityTag.Bed, ZoneType.Sleep);
 
             case ScheduleActivity.Recreation:
-                if (employee.Stats.mental >= employee.Stats.maxMental * MENTAL_FULL_RATIO) return false;
-                return HasFacilityForActivity(FacilityTag.Recreation, ZoneType.Recreation);
+            {
+                // 재미와 정신력 둘 다 충분하면 오락 불필요
+                FunConfig funCfg = EmployeeManager.instance?.FunConfig;
+                float funTarget = funCfg != null ? funCfg.recreationTargetFun : 90f;
+                bool funFull    = employee.Needs.fun >= funTarget;
+                bool mentalFull = employee.Stats.mental >= employee.Stats.maxMental * MENTAL_FULL_RATIO;
+                if (funFull && mentalFull) return false;
+
+                // 오락거리: 시설 또는 약물(창고 복용) 중 하나라도 있으면 수행 가능
+                return HasFacilityForActivity(FacilityTag.Recreation, ZoneType.Recreation) ||
+                       IsDrugAvailable();
+            }
 
             case ScheduleActivity.Wash:
                 if (employee.ErosionLevel <= EROSION_LOW_THRESHOLD) return false;
@@ -318,6 +334,10 @@ public class EmployeeAI : MonoBehaviour
 
     private void ExecuteActivity(ScheduleActivity activity)
     {
+        // 오락 진행 중 다른 활동으로 전환하면 오락을 중단
+        if (activity != ScheduleActivity.Recreation)
+            StopRecreation();
+
         currentExecutingActivity = activity;
 
         switch (activity)
@@ -380,13 +400,205 @@ public class EmployeeAI : MonoBehaviour
 
     // ─── Recreation ───
 
+    /// <summary>
+    /// 오락거리를 알아서 찾아 재미를 회복합니다.
+    /// 선택: 우선순위(IFunSource.Priority / FunConfig.drugPriority) 높은 순 → 동률이면 거리순.
+    ///   - 오락 시설: 이동 → 이용(초당 재미/정신력 회복) → 목표치 도달 또는 활동 전환 시 종료
+    ///   - 약물: 창고로 이동 → 복용 → 즉시 회복 (추후 '정책' 시스템으로 개인 소지 확장 예정)
+    /// </summary>
     private void ExecuteRecreation()
     {
-        if (employee.State == EmployeeState.Resting) return;
+        if (recreationRoutine != null) return; // 이미 오락 중
+
+        // 1. 최선 시설 후보 (구역 필터 + 사용 가능 + 우선순위/거리 정렬)
+        RecreationFacility bestFacility = SelectBestRecreationFacility();
+
+        // 2. 약물 후보와 우선순위 비교
+        FunConfig funCfg = EmployeeManager.instance?.FunConfig;
+        int drugPriority = funCfg != null ? funCfg.drugPriority : -10;
+        bool drugAvailable = IsDrugAvailable();
+
+        if (bestFacility != null && (!drugAvailable || bestFacility.Priority >= drugPriority))
+        {
+            GoUseRecreationFacility(bestFacility);
+        }
+        else if (drugAvailable)
+        {
+            GoTakeDrug();
+        }
+        // 둘 다 없으면 아무것도 안 함 (CanExecuteActivity가 걸러 Anything으로 대체됨)
+    }
+
+    /// <summary>
+    /// 사용 가능한 오락 시설 중 최선(우선순위 → 거리)을 반환합니다.
+    /// 오락 구역이 할당돼 있으면 구역 내 시설만 후보로 삼습니다.
+    /// </summary>
+    private RecreationFacility SelectBestRecreationFacility()
+    {
+        var objs = FindWithTagCached(FacilityTag.Recreation);
+        if (objs.Length == 0) return null;
+
+        // 구역 필터 준비
+        Zone zone = null;
+        int zoneId = zoneAssignment != null
+            ? zoneAssignment.GetAssignedZoneId(ZoneType.Recreation)
+            : -1;
+        if (zoneId >= 0 && ZoneManager.instance != null)
+            zone = ZoneManager.instance.GetZone(zoneId);
+
+        RecreationFacility best = null;
+        float bestDist = float.MaxValue;
+
+        foreach (var obj in objs)
+        {
+            if (obj == null) continue;
+
+            var facility = obj.GetComponent<RecreationFacility>();
+            if (facility == null || !facility.CanUse(employee)) continue;
+
+            // 구역 할당 시 구역 내 시설만
+            if (zone != null)
+            {
+                var tile = new Vector2Int(
+                    Mathf.FloorToInt(obj.transform.position.x),
+                    Mathf.FloorToInt(obj.transform.position.y));
+                if (!zone.ContainsTile(tile)) continue;
+            }
+
+            float dist = Vector2.Distance(transform.position, obj.transform.position);
+
+            // 우선순위 높은 순 → 동률이면 가까운 순
+            if (best == null ||
+                facility.Priority > best.Priority ||
+                (facility.Priority == best.Priority && dist < bestDist))
+            {
+                best = facility;
+                bestDist = dist;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>시설로 이동해 오락 이용을 시작합니다.</summary>
+    private void GoUseRecreationFacility(RecreationFacility facility)
+    {
+        if (movement == null || facility == null) return;
 
         CancelCurrentAction();
-        MoveToFacility(ScheduleActivity.Recreation, FacilityTag.Recreation, () =>
-            employee.SetState(EmployeeState.Resting));
+        employee.SetState(EmployeeState.Moving);
+
+        // 구역 할당 시 구역 내 경로만 허용 (MoveToFacility와 동일 규칙)
+        PathOptions pathOpts = null;
+        int zoneId = zoneAssignment != null
+            ? zoneAssignment.GetAssignedZoneId(ZoneType.Recreation)
+            : -1;
+        if (zoneId >= 0)
+            pathOpts = PathOptions.ForZone(zoneId);
+
+        Action onArrive = () =>
+        {
+            // 이동 중 활동이 바뀌었으면 이용하지 않음
+            if (currentExecutingActivity != ScheduleActivity.Recreation &&
+                currentExecutingActivity != ScheduleActivity.Anything)
+            {
+                employee.SetState(EmployeeState.Idle);
+                return;
+            }
+            recreationRoutine = StartCoroutine(RecreationTick(facility));
+        };
+        Action onFailed = () => employee.SetState(EmployeeState.Idle);
+
+        if (pathOpts != null)
+            movement.MoveTo(facility.transform.position, pathOpts, onComplete: onArrive, onFailed: onFailed);
+        else
+            movement.MoveTo(facility.transform.position, onComplete: onArrive, onFailed: onFailed);
+    }
+
+    /// <summary>
+    /// 시설 이용 루프 — 초당 재미/정신력을 회복하고,
+    /// 목표치 도달·시설 사용 불가·상태 변화 시 종료합니다.
+    /// </summary>
+    private IEnumerator RecreationTick(RecreationFacility facility)
+    {
+        employee.SetState(EmployeeState.Resting);
+
+        FunConfig funCfg = EmployeeManager.instance?.FunConfig;
+        float target = funCfg != null ? funCfg.recreationTargetFun : 90f;
+
+        if (showDebugLogs)
+            Debug.Log($"[AI] {employee.DisplayName}: 오락 시작 ({facility.name}, 재미 {employee.Needs.fun:F0} → 목표 {target:F0})");
+
+        while (employee != null &&
+               employee.State == EmployeeState.Resting &&
+               facility != null && facility.IsOperating &&
+               employee.Needs.fun < target)
+        {
+            employee.ModifyFun(facility.FunPerSecond * Time.deltaTime);
+            statsController?.ModifyMental(facility.MentalPerSecond * Time.deltaTime);
+            yield return null;
+        }
+
+        if (showDebugLogs && employee != null)
+            Debug.Log($"[AI] {employee.DisplayName}: 오락 종료 (재미 {employee.Needs.fun:F0})");
+
+        recreationRoutine = null;
+        if (employee != null && employee.State == EmployeeState.Resting)
+            employee.SetState(EmployeeState.Idle);
+    }
+
+    /// <summary>진행 중인 오락을 중단합니다 (활동 전환 등).</summary>
+    private void StopRecreation()
+    {
+        if (recreationRoutine == null) return;
+
+        StopCoroutine(recreationRoutine);
+        recreationRoutine = null;
+
+        if (employee != null && employee.State == EmployeeState.Resting)
+            employee.SetState(EmployeeState.Idle);
+    }
+
+    /// <summary>약물 복용이 가능한 상태인지 (재고 + 창고 존재).</summary>
+    private bool IsDrugAvailable()
+    {
+        return InventoryManager.instance != null &&
+               InventoryManager.instance.HasAnyDrug() &&
+               StockpileManager.instance != null;
+    }
+
+    /// <summary>
+    /// 창고로 이동해 약물 1개를 복용합니다 (즉시 재미 회복).
+    /// 추후 '정책' 시스템 도입 시: 여기서 복용 대신 소지 슬롯에 넣는 분기가 추가될 예정
+    /// (식량의 GoToStockpileForFood(eatAfterStocking) 패턴 참고).
+    /// </summary>
+    private void GoTakeDrug()
+    {
+        if (movement == null || StockpileManager.instance == null) return;
+
+        Vector2Int footTile = new Vector2Int(
+            Mathf.FloorToInt(transform.position.x),
+            Mathf.FloorToInt(transform.position.y));
+
+        Stockpile target = StockpileManager.instance.GetNearestStockpile(footTile);
+        if (target == null) return;
+
+        CancelCurrentAction();
+        employee.SetState(EmployeeState.Moving);
+
+        movement.MoveTo(target.GetDepositPosition(),
+            onComplete: () =>
+            {
+                ItemData drug = InventoryManager.instance?.TakeAnyDrug(1);
+                if (drug != null)
+                {
+                    employee.ModifyFun(drug.funValue);
+                    if (showDebugLogs)
+                        Debug.Log($"[AI] {employee.DisplayName}: 약물 복용 ({drug.itemName}, 재미 +{drug.funValue} → {employee.Needs.fun:F0})");
+                }
+                employee.SetState(EmployeeState.Idle);
+            },
+            onFailed: () => employee.SetState(EmployeeState.Idle));
     }
 
     // ─── Wash ───
@@ -435,6 +647,18 @@ public class EmployeeAI : MonoBehaviour
             HasFacilityForActivity(FacilityTag.WashStation, ZoneType.Wash))
         {
             ExecuteWash();
+            return;
+        }
+
+        // 4.3 재미 — 낮으면 스스로 오락거리를 찾는다 (시설 또는 약물)
+        FunConfig freeFunCfg = EmployeeManager.instance?.FunConfig;
+        if (freeFunCfg != null &&
+            employee.Needs.fun < freeFunCfg.freeTimeFunThreshold &&
+            employee.State != EmployeeState.Resting &&
+            recreationRoutine == null &&
+            CanExecuteActivity(ScheduleActivity.Recreation))
+        {
+            ExecuteRecreation();
             return;
         }
 
@@ -551,6 +775,8 @@ public class EmployeeAI : MonoBehaviour
 
     private void CancelCurrentAction()
     {
+        StopRecreation(); // 오락 이용 중이었다면 중단 (아니면 no-op)
+
         if (employee.State == EmployeeState.Working)
             employee.CancelWork();
 

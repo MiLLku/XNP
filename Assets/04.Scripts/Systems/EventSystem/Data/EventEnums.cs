@@ -116,6 +116,8 @@ public enum EffectType
     ModifyHunger,
     /// <summary>피로도 변경</summary>
     ModifyFatigue,
+    /// <summary>재미 변경 (축제·오락 관련 이벤트)</summary>
+    ModifyFun,
 
     // 자원
     /// <summary>아이템 추가</summary>

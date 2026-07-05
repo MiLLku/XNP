@@ -31,4 +31,11 @@ public class ItemData : ScriptableObject
 
     [Tooltip("섭취 시 회복되는 배고픔 수치 (0~100). isFood가 true일 때만 의미가 있습니다.")]
     public int nutrition = 0;
+
+    [Header("약물 (오락 소모품)")]
+    [Tooltip("직원이 복용해 재미를 회복하는 약물인지 여부.")]
+    public bool isDrug = false;
+
+    [Tooltip("복용 시 회복되는 재미 수치 (0~100). isDrug가 true일 때만 의미가 있습니다.")]
+    public int funValue = 0;
 }

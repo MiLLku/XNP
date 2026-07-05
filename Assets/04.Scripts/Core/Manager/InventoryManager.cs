@@ -202,6 +202,53 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
         return false;
     }
 
+    /// <summary>인벤토리의 음식(isFood) 아이템 가용(예약 제외) 총량을 반환합니다.</summary>
+    public int GetTotalFoodCount()
+    {
+        int total = 0;
+        foreach (var kv in globalInventory)
+        {
+            if (kv.Key != null && kv.Key.isFood)
+                total += GetAvailableAmount(kv.Key);
+        }
+        return total;
+    }
+
+    /// <summary>인벤토리에 가용(예약 제외) 약물이 하나라도 있는지 여부.</summary>
+    public bool HasAnyDrug()
+    {
+        foreach (var kv in globalInventory)
+        {
+            if (kv.Key != null && kv.Key.isDrug && GetAvailableAmount(kv.Key) > 0)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 인벤토리에서 약물(isDrug) 아이템 1종을 amount만큼 꺼냅니다(차감).
+    /// 직원 오락(복용)에 사용 — 성공 시 꺼낸 ItemData, 없으면 null.
+    /// TakeAnyFood와 동일 패턴. 추후 '정책' 시스템으로 개인 소지 확장 시에도
+    /// 이 메서드로 출고한 뒤 소지 슬롯에 넣는 흐름을 유지합니다.
+    /// </summary>
+    public ItemData TakeAnyDrug(int amount = 1)
+    {
+        if (amount <= 0) return null;
+
+        ItemData found = null;
+        foreach (var kv in globalInventory)
+        {
+            if (kv.Key != null && kv.Key.isDrug && GetAvailableAmount(kv.Key) >= amount)
+            {
+                found = kv.Key;
+                break;
+            }
+        }
+
+        if (found != null) RemoveItem(found, amount);
+        return found;
+    }
+
     /// <summary>
     /// 인벤토리에서 음식(isFood) 아이템 1종을 amount만큼 꺼냅니다(차감).
     /// 직원 식량 지급에 사용 — 성공 시 꺼낸 ItemData, 없으면 null.

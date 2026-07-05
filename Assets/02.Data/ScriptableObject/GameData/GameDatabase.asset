@@ -36,8 +36,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 028edddb0edab7d4abcf478542e523d0, type: 2}
   - {fileID: 11400000, guid: 70da16e511f747a48af5fa2d555a3270, type: 2}
   - {fileID: 11400000, guid: a7370d123d26fb448bec0ff26e57fa46, type: 2}
-  allXenopsData:
-  - {fileID: 11400000, guid: 085925dc2a0b8564a8e33ec85c9f3b8b, type: 2}
+  - {fileID: 11400000, guid: 9070d4ba5a4bfdf4a9ccb173edbe2a86, type: 2}
+  - {fileID: 11400000, guid: 4ab5003181ad256428ccb094227f65d4, type: 2}
   allItemData:
   - {fileID: 11400000, guid: 3824590cd90a121418efa5c76787ea7b, type: 2}
   - {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
@@ -46,3 +46,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a96130139a7bf224c9c006d9e49bc97b, type: 2}
   - {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
   - {fileID: 11400000, guid: deb0f62de7e0436bb9fc8a85f2cf9d23, type: 2}
+  - {fileID: 11400000, guid: 4ac1dde47e7d4484898a4bb5188ad19a, type: 2}
+  allRecipeData: []
+  allXenopsData:
+  - {fileID: 11400000, guid: 085925dc2a0b8564a8e33ec85c9f3b8b, type: 2}
+  allEquipmentData: []

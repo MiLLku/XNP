@@ -117,6 +117,10 @@ public static class GameIDRegistry
         public const int WOOD_GENERATOR = 3403;     // 나무 화력 발전기 (연료, 2x2)
         public const int EROSION_GENERATOR = 3404;  // 침식 융해 발전기 (2x2)
 
+        // 오락 건물 (3500~3599) — RecreationBuildingType enum과 값 일치
+        public const int DART_BOARD = 3500;         // 다트판 (1x2, 무전력)
+        public const int ARCADE_MACHINE = 3501;     // 게임기 (2x2, 전력 소비)
+
         public const int MIN = 3000;
         public const int MAX = 3999;
 

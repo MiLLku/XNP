@@ -50,6 +50,11 @@ public static class EventEffectApplier
                     (e, v) => e.ModifyFatigue(v), effect.value);
                 break;
 
+            case EffectType.ModifyFun:
+                ModifyEmployeeStat(effect.target, effect.value,
+                    (e, v) => e.ModifyFun(v), effect.value);
+                break;
+
             // ===== 자원 =====
             case EffectType.AddItem:
                 AddItem(effect.targetId, (int)effect.value);
