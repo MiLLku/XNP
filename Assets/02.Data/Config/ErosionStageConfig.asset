@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0af54eb7e625c684495e40d24549481c, type: 3}
+  m_Name: ErosionStageConfig
+  m_EditorClassIdentifier: Assembly-CSharp::ErosionStageConfig
+  stages:
+  - stage: 0
+    minErosionLevel: 0
+    workSpeedModifier: 1
+    moveSpeedModifier: 1
+    behaviorCheckInterval: 0
+    behaviorChance: 0
+    availableBehaviors: 
+    hasErosionAura: 0
+    auraErosionPerSecond: 0
+    auraRange: 0
+  - stage: 1
+    minErosionLevel: 50
+    workSpeedModifier: 0.9
+    moveSpeedModifier: 0.95
+    behaviorCheckInterval: 0
+    behaviorChance: 0
+    availableBehaviors: 
+    hasErosionAura: 0
+    auraErosionPerSecond: 0
+    auraRange: 0
+  - stage: 2
+    minErosionLevel: 100
+    workSpeedModifier: 0.75
+    moveSpeedModifier: 0.85
+    behaviorCheckInterval: 10
+    behaviorChance: 0.15
+    availableBehaviors: 0100000002000000
+    hasErosionAura: 0
+    auraErosionPerSecond: 0
+    auraRange: 0
+  - stage: 3
+    minErosionLevel: 150
+    workSpeedModifier: 0.5
+    moveSpeedModifier: 0.7
+    behaviorCheckInterval: 6
+    behaviorChance: 0.35
+    availableBehaviors: 0100000002000000
+    hasErosionAura: 1
+    auraErosionPerSecond: 2
+    auraRange: 3
+  - stage: 4
+    minErosionLevel: 200
+    workSpeedModifier: 0.3
+    moveSpeedModifier: 0.5
+    behaviorCheckInterval: 0
+    behaviorChance: 0
+    availableBehaviors: 
+    hasErosionAura: 0
+    auraErosionPerSecond: 0
+    auraRange: 0

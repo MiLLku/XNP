@@ -10742,6 +10742,7 @@ Transform:
   - {fileID: 298246186}
   - {fileID: 436778864}
   - {fileID: 988526455}
+  - {fileID: 1787619466}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1009719779
@@ -20678,6 +20679,54 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ResearchManager
   totalResearchPoints: 0
+--- !u!1 &1787619465
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1787619466}
+  - component: {fileID: 1787619467}
+  m_Layer: 0
+  m_Name: ErosionManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1787619466
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1787619465}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1006733511}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1787619467
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1787619465}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35e680f891b22a248a80080e1581dded, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ErosionManager
+  stageConfig: {fileID: 11400000, guid: 1024491685f93c54ebf14612cd2ef6e8, type: 2}
+  recoveryConfig: {fileID: 11400000, guid: 36cc49acc36fddf418452a97d345a195, type: 2}
+  corrodedXenopsDataId: 6100
+  showDebugLogs: 0
 --- !u!1 &1788568269
 GameObject:
   m_ObjectHideFlags: 0
