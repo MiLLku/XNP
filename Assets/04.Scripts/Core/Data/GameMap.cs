@@ -54,8 +54,10 @@ public class GameMap
     public bool[,] BlocksMovementGrid { get; private set; }
 
     /// <summary>
-    /// 바닥 지지 그리드.
-    /// 완성된 바닥 건물(blocksMovement=false)이 놓인 타일만 true입니다.
+    /// 발판 지지 그리드.
+    /// 완성된 차단 건물(blocksMovement=true)이 놓인 타일만 true입니다 —
+    /// 차단 건물은 직원과 겹칠 수 없는 대신 지형처럼 위를 밟고 지나갈 수 있습니다.
+    /// 통과 건물(가구)은 발판이 아니며, 바닥/다리/사다리의 지지는 FloorTile 레지스트리가 별도 제공합니다.
     /// 건설 예정지(ConstructionSite)는 포함되지 않으므로,
     /// 경로탐색기가 건설 예정지 위를 발판으로 오인하지 않습니다.
     /// </summary>
@@ -149,11 +151,10 @@ public class GameMap
         if (!IsInBounds(x, y)) return false;
         // 자연 지형 타일 (공기가 아닌 모든 타일: 흙, 돌, 사다리 등)
         if (TileGrid[x, y] != AIR_ID) return true;
-        // 완성된 바닥 건물 (FloorSupportGrid에 등록된 것만 — 건설 예정지 제외)
+        // 완성된 차단 건물 위 (FloorSupportGrid — 지형처럼 밟을 수 있음, 건설 예정지 제외)
         if (FloorSupportGrid[x, y]) return true;
-        // 건설된 바닥 타일도 발판으로 인정한다.
-        // 바닥 타일은 blocksMovement=true로 설정되어 FloorSupportGrid에 등록되지 않으므로
-        // FloorTile 정적 레지스트리로 직접 확인한다(완성된 바닥 타일만 등록되며 건설 예정지는 제외).
+        // 건설된 바닥 타일 (통과형이지만 FloorTile 레지스트리가 지지를 제공 — 다리/사다리 포함,
+        // 완성된 것만 등록되며 건설 예정지는 제외)
         if (FloorTile.HasFloorTileAt(new Vector2Int(x, y))) return true;
         return false;
     }
@@ -227,8 +228,8 @@ public class GameMap
     }
 
     /// <summary>
-    /// 완성된 바닥 건물의 발판 지지 여부를 설정합니다.
-    /// Building.RegisterToGameMap()에서 blocksMovement=false인 건물이 완공될 때 호출합니다.
+    /// 완성된 차단 건물의 발판 지지 여부를 설정합니다.
+    /// Building.RegisterToGameMap()에서 blocksMovement=true인 건물이 완공될 때 호출합니다.
     /// </summary>
     public void MarkFloorSupport(int x, int y, bool isSupport)
     {
@@ -237,7 +238,7 @@ public class GameMap
     }
 
     /// <summary>
-    /// 해당 타일이 완성된 바닥 건물로 발판을 제공하는지 확인합니다.
+    /// 해당 타일이 완성된 차단 건물로 발판을 제공하는지 확인합니다.
     /// 건설 예정지는 false를 반환합니다.
     /// </summary>
     public bool IsFloorSupport(int x, int y)

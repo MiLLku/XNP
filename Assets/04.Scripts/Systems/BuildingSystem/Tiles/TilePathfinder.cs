@@ -380,8 +380,8 @@ public class TilePathfinder
 
         int groundTileId = gameMap.TileGrid[x, groundY];
         bool hasFloorTile     = FloorTile.HasFloorTileAt(new Vector2Int(x, groundY));
-        // IsFloorSupport: 완성된 바닥 건물만 true. 건설 예정지(ConstructionSite)는 false.
-        // → 직원이 건설 예정지 위로 올라가려는 오류 방지
+        // IsFloorSupport: 완성된 차단 건물(위를 밟을 수 있는 구조물)만 true.
+        // 건설 예정지(ConstructionSite)는 false → 직원이 예정지 위로 올라가려는 오류 방지
         bool hasConstructed   = gameMap.IsFloorSupport(x, groundY);
         bool hasGround        = groundTileId != 0 || hasFloorTile || hasConstructed;
 

@@ -443,9 +443,11 @@ private void ReturnPartialResources()
                 int ty = basePos.y + y;
                 gameMap.MarkTileOccupied(tx, ty, buildingData.blocksMovement);
                 buildingRegistry[new Vector2Int(tx, ty)] = this; // 이동속도·수직이동 조회용
-                // 통행 가능 건물(바닥 타일, 다리 등)은 그 위에 서거나 건물을 올릴 수 있도록
-                // FloorSupportGrid에 등록합니다. 건설 예정지는 여기에 포함되지 않습니다.
-                if (!buildingData.blocksMovement)
+                // 차단 건물(blocksMovement=true)은 지형처럼 위를 밟고 지나갈 수 있도록
+                // FloorSupportGrid에 등록합니다. 통과 건물(가구)은 발판이 아닙니다 —
+                // 바닥·다리·사다리의 지지는 FloorTile 레지스트리가 별도로 제공합니다.
+                // 건설 예정지는 여기에 포함되지 않습니다.
+                if (buildingData.blocksMovement)
                     gameMap.MarkFloorSupport(tx, ty, true);
             }
         }

@@ -367,8 +367,8 @@ public class EmployeeMovement : MonoBehaviour
             return true;
         }
 
-        // 완공된 바닥 건물만 true — 건설 예정지(blueprint)는 포함되지 않음
-        // (IsFloorSupport는 Building.RegisterToGameMap에서 blocksMovement=false일 때만 설정)
+        // 완공된 차단 건물(위를 밟을 수 있음)만 true — 건설 예정지(blueprint)는 포함되지 않음
+        // (IsFloorSupport는 Building.RegisterToGameMap에서 blocksMovement=true일 때만 설정)
         if (gameMap.IsFloorSupport(tilePos.x, tilePos.y))
         {
             return true;

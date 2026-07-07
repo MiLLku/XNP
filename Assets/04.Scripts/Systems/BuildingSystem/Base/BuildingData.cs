@@ -63,7 +63,11 @@ public class BuildingData : ScriptableObject
     public int maxHealth = 100;
 
     [Header("이동 설정")]
-    [Tooltip("직원의 이동을 막는지 여부")]
+    [Tooltip("직원의 이동을 막는지 여부.\n" +
+             "• true  : 차단형 — 직원과 절대 겹칠 수 없고, 대신 지형처럼 위를 밟고 지나갈 수 있습니다.\n" +
+             "• false : 통과형 — 직원이 겹쳐 지나갈 수 있지만 위는 발판이 아닙니다 (가구·오락시설 등).\n" +
+             "  통과 중 감속은 movementSpeedMultiplier로 설정합니다.\n" +
+             "  (문처럼 '시간을 소모해 통과'하는 조건부 통과는 false + Door 컴포넌트 조합)")]
     public bool blocksMovement = true;
 
     [Tooltip("건설 시 아래 타일에 지면이 필요한지 여부.\n" +
