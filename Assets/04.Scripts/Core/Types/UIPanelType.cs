@@ -35,4 +35,7 @@ public enum UIPanelType
 
     /// <summary>직원 작업 일정(스케줄) 편집 패널</summary>
     ScheduleUI,
+
+    /// <summary>직원 관리 패널 (상태·장비·필수 소지)</summary>
+    EmployeeUI,
 }

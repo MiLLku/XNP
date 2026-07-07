@@ -20,6 +20,9 @@ public class BottomBarUI : MonoBehaviour
     [Tooltip("직원 작업 일정(스케줄) 편집 패널 토글 버튼")]
     [SerializeField] private Button scheduleButton;
 
+    [Tooltip("직원 관리 패널(상태·장비·필수 소지) 토글 버튼")]
+    [SerializeField] private Button employeeButton;
+
     [Header("이벤트 강제 발동 버튼 (테스트용)")]
     [Tooltip("클릭 시 XenopsAppearance 카테고리 이벤트를 조건 무시하고 즉시 발동합니다.")]
     [SerializeField] private Button spawnEventButton;
@@ -32,7 +35,13 @@ public class BottomBarUI : MonoBehaviour
         researchButton?.onClick.AddListener(OnResearchClicked);
         workButton?.onClick.AddListener(OnWorkClicked);
         scheduleButton?.onClick.AddListener(OnScheduleClicked);
+        employeeButton?.onClick.AddListener(OnEmployeeClicked);
         spawnEventButton?.onClick.AddListener(OnSpawnEventClicked);
+    }
+
+    private void OnEmployeeClicked()
+    {
+        UIManager.instance?.TogglePanel(UIPanelType.EmployeeUI, isPopup: false);
     }
 
     private void OnResearchClicked()

@@ -11,7 +11,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 87c9285b7c367df4e9efa75590425a23, type: 3}
   m_Name: StartingInventoryConfig
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   startingItems:
   - item: {fileID: 11400000, guid: deb0f62de7e0436bb9fc8a85f2cf9d23, type: 2}
     amount: 8
+  startingEquipment:
+  - equipment: {fileID: 11400000, guid: 0b3bf22c6fe1ea244a166eccec9a4064, type: 2}
+    amount: 2
+  - equipment: {fileID: 11400000, guid: 5ae0d5e41379200459cf87c392b16169, type: 2}
+    amount: 2
