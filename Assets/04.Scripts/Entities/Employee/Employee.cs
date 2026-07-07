@@ -420,6 +420,15 @@ public class Employee : MonoBehaviour
     public void TakeDamage(float amount)
     {
         if (amount <= 0f) return;
+
+        // 장비 피해 감소(%) + 방어구 내구도 소모
+        if (equipment != null)
+        {
+            float reduction = equipment.GetTotalDamageReduction();
+            if (reduction > 0f) amount *= 1f - reduction / 100f;
+            equipment.NotifyDamageTaken();
+        }
+
         float mult = statsController != null ? statsController.CachedDamageTakenMult : 1f;
         statsController?.ModifyHealth(-amount * mult);
     }

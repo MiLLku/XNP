@@ -116,6 +116,18 @@ public class EmployeeSaveData
     /// <summary>소지 중인 식량 개수</summary>
     public int heldFoodCount;
 
+    /// <summary>소지 중인 약물 아이템 ID (0 = 없음, v5)</summary>
+    public int heldDrugItemId;
+
+    /// <summary>소지 중인 약물 개수 (v5)</summary>
+    public int heldDrugCount;
+
+    /// <summary>필수 소지 식량 개수 설정 (v5 — 구 세이브는 마이그레이션에서 1로 보정)</summary>
+    public int desiredFoodCount;
+
+    /// <summary>필수 소지 약물 개수 설정 (v5)</summary>
+    public int desiredDrugCount;
+
     #endregion
 
     #region 정신 이벤트

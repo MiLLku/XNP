@@ -26,6 +26,19 @@ public class EquipmentData : ScriptableObject
     [Tooltip("장착 슬롯")]
     public EquipmentSlot slot;
 
+    [Header("내구도")]
+    [Tooltip("최대 내구도. 작업 마모·전투 소모로 감소하며 0이 되면 파괴됩니다.")]
+    [Min(1)] public float maxDurability = 100f;
+
+    [Tooltip("파괴 불가 (유니크 장비) — 내구도가 감소하지 않습니다.")]
+    public bool indestructible = false;
+
+    [Tooltip("작업 중 초당 마모량 (0.02 = 100 내구도 기준 약 83분 작업)")]
+    [Min(0f)] public float workWearPerSecond = 0.02f;
+
+    [Tooltip("전투 소모량 — 무기: 공격 1회당 / 방어구: 피격 1회당")]
+    [Min(0f)] public float combatWearPerHit = 1f;
+
     [Header("스탯 보정")]
     [Tooltip("장착 시 직원 스탯 변경")]
     public EquipmentStatModifier statModifier;

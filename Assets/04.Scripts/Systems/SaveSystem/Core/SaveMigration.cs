@@ -7,7 +7,7 @@ using UnityEngine;
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 4;
+    public const int CURRENT_VERSION = 5;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -38,6 +38,9 @@ public static class SaveMigration
                     break;
                 case 3:
                     data = MigrateV3ToV4(data);
+                    break;
+                case 4:
+                    data = MigrateV4ToV5(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -175,6 +178,28 @@ public static class SaveMigration
         }
 
         data.saveVersion = 4;
+        return data;
+    }
+
+    /// <summary>
+    /// v4 → v5 마이그레이션
+    /// 장비 시스템 확장: 필수 소지 식량 기본 1 보정(기존 동작 유지),
+    /// 장착 장비 내구도는 EmployeeEquipment 복원부에서 0 이하 → 최대치로 보정하므로 별도 처리 불필요.
+    /// </summary>
+    private static SaveData MigrateV4ToV5(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v4 → v5 마이그레이션 시작 (장비/필수 소지)...");
+
+        if (data.employees != null)
+        {
+            foreach (var employee in data.employees)
+            {
+                employee.desiredFoodCount = 1; // 기존 '식량 1개 유도' 동작 유지
+                employee.desiredDrugCount = 0;
+            }
+        }
+
+        data.saveVersion = 5;
         return data;
     }
 

@@ -63,6 +63,9 @@ public class SaveData
     /// <summary>레이드 시스템 상태</summary>
     public RaidSystemSaveData raidSystem;
 
+    /// <summary>장비 보관소 풀 (v5)</summary>
+    public EquipmentStorageSaveData equipmentStorage;
+
     /// <summary>연구 포인트 누적량 (레거시 — researchTree로 대체됨)</summary>
     public float researchPoints;
 

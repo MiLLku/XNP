@@ -547,7 +547,9 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
         // 아이템 추가
         if (InventoryManager.instance != null)
         {
-            InventoryManager.instance.AddItem(recipe.outputItem, recipe.outputAmount);
+            // 산출물이 장비면 인벤토리 대신 장비 보관소 풀에 인스턴스로 입고
+            if (!EquipmentStorageManager.TryAddCraftOutput(recipe.outputItem, recipe.outputAmount))
+                InventoryManager.instance.AddItem(recipe.outputItem, recipe.outputAmount);
             Debug.Log($"[CraftingTable] '{recipe.outputItem.itemName}' x{recipe.outputAmount} 제작 완료!");
         }
         

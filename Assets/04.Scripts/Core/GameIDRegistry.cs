@@ -98,6 +98,7 @@ public static class GameIDRegistry
         public const int WOODEN_CHEST = 3100;
         public const int IRON_CHEST = 3101;
         public const int WAREHOUSE = 3102;
+        public const int ARMORY = 3103;             // 장비 보관소 (2x2, 장착/해제 접근 지점)
 
         // 주거 건물 (3200~3299)
         public const int WOODEN_HOUSE = 3200;

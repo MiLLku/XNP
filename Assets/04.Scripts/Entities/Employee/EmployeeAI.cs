@@ -559,9 +559,12 @@ public class EmployeeAI : MonoBehaviour
             employee.SetState(EmployeeState.Idle);
     }
 
-    /// <summary>약물 복용이 가능한 상태인지 (재고 + 창고 존재).</summary>
+    /// <summary>약물 복용이 가능한 상태인지 (개인 소지분 또는 창고 재고).</summary>
     private bool IsDrugAvailable()
     {
+        var work = employee.GetComponent<EmployeeWork>();
+        if (work != null && work.HasDrug) return true;
+
         return InventoryManager.instance != null &&
                InventoryManager.instance.HasAnyDrug() &&
                StockpileManager.instance != null;
@@ -574,6 +577,20 @@ public class EmployeeAI : MonoBehaviour
     /// </summary>
     private void GoTakeDrug()
     {
+        // 개인 소지분이 있으면 이동 없이 즉시 복용 ('정책' 소지 시스템)
+        var heldWork = employee.GetComponent<EmployeeWork>();
+        if (heldWork != null && heldWork.HasDrug)
+        {
+            int funValue = heldWork.ConsumeOneDrug();
+            if (funValue > 0)
+            {
+                employee.ModifyFun(funValue);
+                if (showDebugLogs)
+                    Debug.Log($"[AI] {employee.DisplayName}: 소지 약물 복용 (재미 +{funValue} → {employee.Needs.fun:F0})");
+            }
+            return;
+        }
+
         if (movement == null || StockpileManager.instance == null) return;
 
         Vector2Int footTile = new Vector2Int(
@@ -662,8 +679,9 @@ public class EmployeeAI : MonoBehaviour
             return;
         }
 
-        // 4.5 식량 미소지 시 미리 챙겨두기 (유도) — 작업 전 식량 1개 확보
+        // 4.5 필수 소지 설정만큼 미리 챙겨두기 (유도) — 식량·약물
         if (TryStockUpFood()) return;
+        if (TryStockUpDrug()) return;
 
         // 5. 작업
         ExecuteWork();
@@ -702,9 +720,45 @@ public class EmployeeAI : MonoBehaviour
     private bool TryStockUpFood()
     {
         var work = employee.GetComponent<EmployeeWork>();
-        if (work == null || work.HasFood) return false; // 이미 소지 중이면 스킵
+        if (work == null) return false;
+        // 필수 소지 설정(직원 관리창)만큼 채워져 있으면 스킵
+        if (work.DesiredFoodCount <= 0 || work.HeldFoodCount >= work.DesiredFoodCount) return false;
 
         return GoToStockpileForFood(work, eatAfterStocking: false);
+    }
+
+    /// <summary>
+    /// 약물 필수 소지 설정만큼 미리 챙겨두는 '유도' (식량과 동일 패턴).
+    /// </summary>
+    private bool TryStockUpDrug()
+    {
+        var work = employee.GetComponent<EmployeeWork>();
+        if (work == null) return false;
+        if (work.DesiredDrugCount <= 0 || work.HeldDrugCount >= work.DesiredDrugCount) return false;
+
+        if (InventoryManager.instance == null || !InventoryManager.instance.HasAnyDrug()) return false;
+        if (StockpileManager.instance == null || movement == null) return false;
+
+        Vector2Int footTile = new Vector2Int(
+            Mathf.FloorToInt(transform.position.x),
+            Mathf.FloorToInt(transform.position.y));
+
+        Stockpile target = StockpileManager.instance.GetNearestStockpile(footTile);
+        if (target == null) return false;
+
+        CancelCurrentAction();
+        employee.SetState(EmployeeState.Moving);
+
+        movement.MoveTo(target.GetDepositPosition(),
+            onComplete: () =>
+            {
+                ItemData drug = InventoryManager.instance?.TakeAnyDrug(1);
+                if (drug != null) work.StoreDrug(drug, 1);
+                employee.SetState(EmployeeState.Idle);
+            },
+            onFailed: () => employee.SetState(EmployeeState.Idle));
+
+        return true;
     }
 
     /// <summary>
@@ -836,6 +890,51 @@ public class EmployeeAI : MonoBehaviour
     public void SetAutonomousBehavior(bool enabled)
     {
         enableAutonomousBehavior = enabled;
+    }
+
+    /// <summary>
+    /// 장비 장착/해제 지시 (직원 관리창에서 호출).
+    /// 하던 행동을 중단하고 가장 가까운 장비 보관소로 이동해 처리합니다.
+    /// </summary>
+    /// <param name="slot">대상 슬롯</param>
+    /// <param name="poolInstanceId">장착할 보관소 풀 인스턴스 ID (0 = 해제만)</param>
+    public void RequestEquipChange(EquipmentSlot slot, int poolInstanceId)
+    {
+        var mgr = EquipmentStorageManager.instance;
+        if (mgr == null || movement == null) return;
+        if (employee.State == EmployeeState.Dead) return;
+
+        var armory = mgr.GetNearestArmory(transform.position);
+        if (armory == null)
+        {
+            Debug.LogWarning($"[AI] {employee.DisplayName}: 장비 보관소가 없어 장착 지시를 수행할 수 없습니다.");
+            return;
+        }
+
+        CancelCurrentAction();
+        employee.SetState(EmployeeState.Moving);
+
+        movement.MoveTo(armory.transform.position,
+            onComplete: () =>
+            {
+                var equipment = employee.GetComponent<EmployeeEquipment>();
+                if (equipment == null) { employee.SetState(EmployeeState.Idle); return; }
+
+                // 기존 장비 반납 (풀로)
+                var old = equipment.UnequipToInstance(slot);
+                if (old != null) mgr.ReturnInstance(old);
+
+                // 새 장비 장착 (풀에서 꺼내기 — 그새 사라졌으면 취소)
+                if (poolInstanceId > 0)
+                {
+                    var inst = mgr.TakeInstance(poolInstanceId);
+                    if (inst != null && !equipment.EquipInstance(slot, inst))
+                        mgr.ReturnInstance(inst); // 슬롯 불일치 등 실패 시 반납
+                }
+
+                employee.SetState(EmployeeState.Idle);
+            },
+            onFailed: () => employee.SetState(EmployeeState.Idle));
     }
 
     /// <summary>외부(스케줄 변경 등)에서 즉시 재결정을 요청합니다.</summary>

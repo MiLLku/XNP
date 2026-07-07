@@ -31,6 +31,9 @@ public class EmployeeEquipment : MonoBehaviour
     /// <summary>능력 쿨다운 추적 (abilityName → 남은 쿨다운)</summary>
     private Dictionary<string, float> abilityCooldowns;
 
+    /// <summary>슬롯별 장착 인스턴스 (내구도 추적 — Item 출처 슬롯만)</summary>
+    private Dictionary<EquipmentSlot, EquipmentInstance> equippedInstances;
+
     #endregion
 
     #region 초기화
@@ -44,6 +47,7 @@ public class EmployeeEquipment : MonoBehaviour
         itemSlots = new Dictionary<EquipmentSlot, EquipmentData>();
         xenopsSlots = new Dictionary<EquipmentSlot, Xenops>();
         abilityCooldowns = new Dictionary<string, float>();
+        equippedInstances = new Dictionary<EquipmentSlot, EquipmentInstance>();
 
         // 모든 슬롯을 빈 상태로 초기화
         foreach (EquipmentSlot slot in Enum.GetValues(typeof(EquipmentSlot)))
@@ -56,6 +60,127 @@ public class EmployeeEquipment : MonoBehaviour
     {
         UpdateAbilityCooldowns();
         UpdatePeriodicAbilities();
+        UpdateWorkWear();
+    }
+
+    #endregion
+
+    #region 인스턴스 장착 (내구도 보유 실물)
+
+    /// <summary>
+    /// 장비 인스턴스를 장착합니다 (보관소 풀에서 꺼낸 실물).
+    /// 기존 인스턴스가 있으면 먼저 UnequipToInstance로 반납할 것.
+    /// </summary>
+    public bool EquipInstance(EquipmentSlot slot, EquipmentInstance inst)
+    {
+        if (inst == null) return false;
+
+        var data = GameDatabase.Instance?.GetEquipmentData(inst.equipmentId);
+        if (data == null || data.slot != slot) return false;
+
+        if (!EquipItem(slot, data)) return false;
+
+        equippedInstances[slot] = inst;
+        return true;
+    }
+
+    /// <summary>
+    /// 슬롯을 해제하고 장착돼 있던 인스턴스를 반환합니다 (보관소 반납용).
+    /// 인스턴스 없이 장착된 레거시 장비면 새 인스턴스(내구도 최대)로 만들어 반환합니다.
+    /// </summary>
+    public EquipmentInstance UnequipToInstance(EquipmentSlot slot)
+    {
+        if (GetSlotType(slot) != EquipmentSourceType.Item) return null;
+
+        equippedInstances.TryGetValue(slot, out var inst);
+        var data = UnequipItem(slot);
+        equippedInstances.Remove(slot);
+
+        if (inst == null && data != null)
+        {
+            inst = new EquipmentInstance
+            {
+                equipmentId = data.itemData != null ? data.itemData.itemID : 0,
+                durability = data.maxDurability
+            };
+        }
+        return inst;
+    }
+
+    /// <summary>슬롯의 장착 인스턴스 (내구도 조회용, 없으면 null)</summary>
+    public EquipmentInstance GetInstanceInSlot(EquipmentSlot slot)
+    {
+        return equippedInstances.TryGetValue(slot, out var inst) ? inst : null;
+    }
+
+    #endregion
+
+    #region 내구도
+
+    /// <summary>
+    /// 슬롯 장비의 내구도를 소모합니다. 0 이하가 되면 파괴(해제+소멸+레터).
+    /// indestructible 장비는 감소하지 않습니다.
+    /// </summary>
+    public void ApplyWear(EquipmentSlot slot, float amount)
+    {
+        if (amount <= 0f) return;
+        if (!equippedInstances.TryGetValue(slot, out var inst)) return;
+
+        var data = GetItemInSlot(slot);
+        if (data == null || data.indestructible) return;
+
+        inst.durability -= amount;
+        if (inst.durability <= 0f)
+            BreakEquipment(slot, data);
+    }
+
+    /// <summary>공격 수행 시 무기 내구도 소모 (전투 시스템에서 호출 — 훅 준비).</summary>
+    public void NotifyAttackPerformed()
+    {
+        var weapon = GetItemInSlot(EquipmentSlot.Weapon);
+        if (weapon != null) ApplyWear(EquipmentSlot.Weapon, weapon.combatWearPerHit);
+    }
+
+    /// <summary>피격 시 방어구(슈트) 내구도 소모. Employee.TakeDamage에서 호출.</summary>
+    public void NotifyDamageTaken()
+    {
+        var suit = GetItemInSlot(EquipmentSlot.Suit);
+        if (suit != null) ApplyWear(EquipmentSlot.Suit, suit.combatWearPerHit);
+    }
+
+    /// <summary>작업 중 장착 장비 전체가 서서히 마모됩니다.</summary>
+    private void UpdateWorkWear()
+    {
+        if (employee == null || employee.State != EmployeeState.Working) return;
+        if (equippedInstances.Count == 0) return;
+
+        // ApplyWear가 파괴 시 딕셔너리를 수정하므로 키 스냅샷 순회
+        var slots = new List<EquipmentSlot>(equippedInstances.Keys);
+        foreach (var slot in slots)
+        {
+            var data = GetItemInSlot(slot);
+            if (data != null && data.workWearPerSecond > 0f)
+                ApplyWear(slot, data.workWearPerSecond * Time.deltaTime);
+        }
+    }
+
+    /// <summary>장비 파괴: 해제 + 인스턴스 소멸 + 플레이어 레터 알림.</summary>
+    private void BreakEquipment(EquipmentSlot slot, EquipmentData data)
+    {
+        UnequipItem(slot);
+        equippedInstances.Remove(slot);
+
+        string itemName = data.itemData != null ? data.itemData.itemName : "장비";
+        Debug.Log($"[EmployeeEquipment] {employee?.DisplayName}: {itemName} 파괴됨! ({slot})");
+
+        NotificationManager.instance?.PushLetter(new Letter
+        {
+            title = $"장비 파괴: {itemName}",
+            body = $"{employee?.DisplayName}의 {itemName}이(가) 내구도를 다해 파괴되었습니다.\n" +
+                   $"보관소에서 새 장비를 장착시키세요.",
+            type = LetterType.Neutral,
+            icon = data.itemData != null ? data.itemData.itemIcon : null
+        });
     }
 
     #endregion
@@ -548,6 +673,10 @@ public class EmployeeEquipment : MonoBehaviour
             {
                 var item = GetItemInSlot(slot);
                 slotData.itemId = item?.itemData?.itemID ?? 0;
+
+                var inst = GetInstanceInSlot(slot);
+                slotData.durability = inst != null ? inst.durability : (item != null ? item.maxDurability : 0f);
+                slotData.equipInstanceId = inst?.instanceId ?? 0;
             }
             else if (slotType == EquipmentSourceType.Xenops)
             {
@@ -580,6 +709,13 @@ public class EmployeeEquipment : MonoBehaviour
                     if (equipData != null)
                     {
                         EquipItem(slot, equipData);
+                        // 내구도 인스턴스 복원 (0 이하 = 구 세이브 → 최대치로 보정)
+                        equippedInstances[slot] = new EquipmentInstance
+                        {
+                            instanceId = slotData.equipInstanceId,
+                            equipmentId = slotData.itemId,
+                            durability = slotData.durability > 0f ? slotData.durability : equipData.maxDurability
+                        };
                     }
                     else
                     {

@@ -13,4 +13,15 @@ public class StartingInventoryConfig : ScriptableObject
 {
     [Tooltip("새 게임 시작 시 지급할 아이템과 수량. 식량을 포함해 초반 생존을 지탱합니다.")]
     public List<ResourceCost> startingItems = new List<ResourceCost>();
+
+    [Tooltip("새 게임 시작 시 장비 보관소 풀에 지급할 장비. EquipmentStorageManager가 읽습니다.")]
+    public List<StartingEquipmentEntry> startingEquipment = new List<StartingEquipmentEntry>();
+}
+
+/// <summary>시작 지급 장비 항목.</summary>
+[System.Serializable]
+public class StartingEquipmentEntry
+{
+    public EquipmentData equipment;
+    [Min(1)] public int amount = 1;
 }

@@ -66,6 +66,14 @@ public class EmployeeWork : MonoBehaviour
     private ItemData _heldFood;
     private int _heldFoodCount;
 
+    /// <summary>개인 소지 약물 슬롯 (식량과 동일 패턴, 한 종류만)</summary>
+    private ItemData _heldDrug;
+    private int _heldDrugCount;
+
+    /// <summary>필수 소지 설정 — 자유시간에 이 개수까지 미리 챙겨둔다 (직원 관리창에서 조정)</summary>
+    private int desiredFoodCount = 1;
+    private int desiredDrugCount = 0;
+
     // 컴포넌트 참조
     private Employee employee;
     private EmployeeStatsController statsController;
@@ -339,6 +347,51 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     /// <summary>
     /// 식량을 소지 슬롯에 추가합니다 (한 종류만 누적). 음식이 아니거나 다른 종류면 실패.
     /// </summary>
+    /// <summary>소지 약물 보유 여부</summary>
+    public bool HasDrug => _heldDrug != null && _heldDrugCount > 0;
+
+    /// <summary>소지 약물 종류</summary>
+    public ItemData HeldDrug => _heldDrug;
+
+    /// <summary>소지 약물 개수</summary>
+    public int HeldDrugCount => _heldDrugCount;
+
+    /// <summary>필수 소지 식량 개수 (직원 관리창에서 설정, 0~5)</summary>
+    public int DesiredFoodCount
+    {
+        get => desiredFoodCount;
+        set => desiredFoodCount = Mathf.Clamp(value, 0, 5);
+    }
+
+    /// <summary>필수 소지 약물 개수 (직원 관리창에서 설정, 0~5)</summary>
+    public int DesiredDrugCount
+    {
+        get => desiredDrugCount;
+        set => desiredDrugCount = Mathf.Clamp(value, 0, 5);
+    }
+
+    /// <summary>약물을 개인 슬롯에 보관합니다 (한 종류만).</summary>
+    public bool StoreDrug(ItemData drug, int count)
+    {
+        if (drug == null || !drug.isDrug || count <= 0) return false;
+        if (_heldDrug != null && _heldDrug != drug) return false;
+
+        _heldDrug = drug;
+        _heldDrugCount += count;
+        return true;
+    }
+
+    /// <summary>소지 약물 1개를 소비하고 재미 회복량을 반환합니다 (없으면 0).</summary>
+    public int ConsumeOneDrug()
+    {
+        if (!HasDrug) return 0;
+
+        int funValue = _heldDrug.funValue;
+        _heldDrugCount--;
+        if (_heldDrugCount <= 0) _heldDrug = null;
+        return funValue;
+    }
+
     public bool StoreFood(ItemData food, int count)
     {
         if (food == null || !food.isFood || count <= 0) return false;
@@ -1896,6 +1949,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         // 소지 식량
         data.heldFoodItemId = _heldFood != null ? _heldFood.itemID : 0;
         data.heldFoodCount  = _heldFoodCount;
+        data.heldDrugItemId = _heldDrug != null ? _heldDrug.itemID : 0;
+        data.heldDrugCount  = _heldDrugCount;
+        data.desiredFoodCount = desiredFoodCount;
+        data.desiredDrugCount = desiredDrugCount;
     }
 
     /// <summary>
@@ -1942,6 +1999,20 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         }
 
         // 소지 식량 복원
+        _heldDrug = null;
+        _heldDrugCount = 0;
+        if (data.heldDrugItemId != 0 && data.heldDrugCount > 0)
+        {
+            var drug = GameDatabase.Instance?.GetItemData(data.heldDrugItemId);
+            if (drug != null)
+            {
+                _heldDrug = drug;
+                _heldDrugCount = data.heldDrugCount;
+            }
+        }
+        desiredFoodCount = Mathf.Clamp(data.desiredFoodCount, 0, 5);
+        desiredDrugCount = Mathf.Clamp(data.desiredDrugCount, 0, 5);
+
         _heldFood = null;
         _heldFoodCount = 0;
         if (data.heldFoodItemId != 0 && data.heldFoodCount > 0)

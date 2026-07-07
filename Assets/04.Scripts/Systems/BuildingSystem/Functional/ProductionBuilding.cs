@@ -435,7 +435,9 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
         int totalOutput = recipe.outputAmount * amount;
         if (InventoryManager.instance != null)
         {
-            InventoryManager.instance.AddItem(recipe.outputItem, totalOutput);
+            // 산출물이 장비면 인벤토리 대신 장비 보관소 풀에 인스턴스로 입고
+            if (!EquipmentStorageManager.TryAddCraftOutput(recipe.outputItem, totalOutput))
+                InventoryManager.instance.AddItem(recipe.outputItem, totalOutput);
         }
 
         Debug.Log($"[{GetBuildingName()}] 제작 완료! {recipe.outputItem.itemName} x{totalOutput}이(가) 인벤토리에 추가되었습니다. (예약 #{reservationId} 소모)");
