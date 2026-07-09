@@ -110,7 +110,8 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
         else if (availableRecipes.Count > 0)
         {
             // 테스트용: 첫 번째 레시피 자동 제작
-            TryStartCrafting(availableRecipes[0]);
+            var firstAvailable = availableRecipes.FirstOrDefault(r => r.IsAvailable());
+            if (firstAvailable != null) TryStartCrafting(firstAvailable);
         }
     }
     
@@ -124,6 +125,13 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
     /// </summary>
     public void TryStartCrafting(CraftingRecipe recipe)
     {
+        // 연구로 잠긴 레시피 방어 (UI 필터를 우회한 호출 대비)
+        if (recipe != null && !recipe.IsAvailable())
+        {
+            Debug.LogWarning($"[CraftingTable] 연구 미해금 레시피: {recipe.outputItem?.itemName}");
+            return;
+        }
+
         if (_isCrafting || _isAwaitingMaterials)
         {
             Debug.LogWarning("[CraftingTable] 이미 제작 또는 자재 대기 중입니다.");

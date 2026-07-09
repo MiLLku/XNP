@@ -79,6 +79,8 @@ public class ProductionUI : BasePanel
     /// <param name="sourceBuilding">호출한 건물 (헤더 표시용)</param>
     public void Setup(List<CraftingRecipe> recipes, Action<CraftingRecipe, int, Employee> onStartProduction, MonoBehaviour sourceBuilding = null)
     {
+        // 연구로 잠긴 레시피는 표시·시작 대상에서 제외
+        recipes = recipes?.FindAll(r => r != null && r.IsAvailable()) ?? new List<CraftingRecipe>();
         _availableRecipes = recipes;
         _onStartProductionCallback = onStartProduction;
         _sourceBuilding = sourceBuilding;

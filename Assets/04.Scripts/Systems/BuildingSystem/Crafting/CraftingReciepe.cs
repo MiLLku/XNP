@@ -34,4 +34,19 @@ public class CraftingRecipe : ScriptableObject
     public float craftingTime = 2f;
 
     #endregion
+
+    #region 연구 해금
+
+    [Header("연구 해금")]
+    [Tooltip("true면 연구로 해금해야 사용 가능 (ResearchRecipeUnlockEffect). false면 항상 사용 가능.")]
+    public bool requiresResearch = false;
+
+    /// <summary>현재 사용 가능한 레시피인지 (연구 잠금 고려).</summary>
+    public bool IsAvailable()
+    {
+        if (!requiresResearch) return true;
+        return ResearchTreeManager.instance != null && ResearchTreeManager.instance.IsRecipeUnlocked(this);
+    }
+
+    #endregion
 }
