@@ -47,11 +47,16 @@ public class EmployeeCombat : MonoBehaviour
         draft     = GetComponent<EmployeeDraft>();
         movement  = GetComponent<EmployeeMovement>();
         equipment = GetComponent<EmployeeEquipment>();
+
+        // Start가 아닌 Awake에서 구독 — 스폰 직후 같은 프레임에 소집되면 이벤트를 놓친다
+        if (draft != null) draft.OnDraftChanged += OnDraftChanged;
     }
 
     private void Start()
     {
-        if (draft != null) draft.OnDraftChanged += OnDraftChanged;
+        // 구독 이전에 이미 소집된 상태로 시작하는 경우(로드 복원 등) anchor 보정
+        if (draft != null && draft.IsDrafted && anchor == Vector3.zero)
+            anchor = transform.position;
     }
 
     private void OnDestroy()

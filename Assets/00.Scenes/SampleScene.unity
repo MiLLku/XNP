@@ -23221,6 +23221,7 @@ MonoBehaviour:
   showDebugInfo: 1
   generationConfig: {fileID: 11400000, guid: 600aa6dd1531c6247bc16994ed9c322a, type: 2}
   funConfig: {fileID: 11400000, guid: 6cee1892eb6af8f48b5c4258ce9765fb, type: 2}
+  combatConfig: {fileID: 11400000, guid: 737b3aa5499ea954bbbc41ca9b27d6c1, type: 2}
 --- !u!1 &1682204058
 GameObject:
   m_ObjectHideFlags: 0

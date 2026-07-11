@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2c038cca33540b44fa20558ea1ffa717, type: 3}
+  m_Name: CombatConfig
+  m_EditorClassIdentifier: Assembly-CSharp::CombatConfig
+  unarmedRange: 1.5
+  unarmedInterval: 1.2
+  targetScanInterval: 0.5
+  guardRadius: 6
+  guardLeashRadius: 9
+  kitingMinDistance: 3
+  kitingPreferredDistance: 5
+  defendReductionMultiplier: 1.5
+  defendAggroWeight: 3
