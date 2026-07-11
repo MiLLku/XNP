@@ -104,6 +104,18 @@ public class EmployeeCombat : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// 플레이어 이동 명령 시 호출 (EmployeeDraft.CommandMoveTo).
+    /// 경계/점거 기준점을 목적지로 옮기고 현재 교전을 해제해 이동 명령이 우선되게 한다.
+    /// 도착 후에는 새 기준점에서 태세대로 재교전한다.
+    /// </summary>
+    public void OnPlayerMoveCommand(Vector3 destination)
+    {
+        anchor = destination;
+        target = null;
+        movingToTarget = false;
+    }
+
     /// <summary>방어형 장비(isDefensiveGear) 보유 여부 — 슬롯 전체 검사.</summary>
     public bool HasDefensiveGear()
     {

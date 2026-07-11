@@ -75,9 +75,18 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     private Color _originalColor;
     private SpriteRenderer _hoveredRenderer;
     
+    // 직원 선택 (Normal 모드 좌클릭 — 태세 바 UI가 구독)
+    private Employee _selectedEmployee;
+
     // 이벤트
     public delegate void ModeChangedDelegate(InteractMode newMode);
     public event ModeChangedDelegate OnModeChanged;
+
+    /// <summary>직원 선택/해제 시 발생 (null = 해제)</summary>
+    public event System.Action<Employee> OnEmployeeSelected;
+
+    /// <summary>현재 선택된 직원 (없으면 null)</summary>
+    public Employee SelectedEmployee => _selectedEmployee;
     
     protected override void Awake()
     {
@@ -119,9 +128,12 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     {
         if (_gameMap == null) return;
         
-        if (Input.GetKeyDown(KeyCode.Escape) && _currentMode != InteractMode.Normal)
+        if (Input.GetKeyDown(KeyCode.Escape))
         {
-            SetMode(InteractMode.Normal);
+            if (_currentMode != InteractMode.Normal)
+                SetMode(InteractMode.Normal);
+            else
+                DeselectEmployee();
         }
 
         if (enableCheatKey && Input.GetKeyDown(KeyCode.F9))
@@ -279,9 +291,19 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             // 클릭 처리: 모든 콜라이더를 검사해 우선순위 높은 오브젝트부터 처리
             // (TilemapCollider가 BuildingCollider를 가리는 문제 방지)
             Collider2D[] allHits = Physics2D.OverlapPointAll(mousePos);
-            if (allHits.Length > 0)
+            bool consumed = allHits.Length > 0 && HandleNormalModeClickAll(allHits);
+
+            // 직원이 아닌 곳 클릭 → 선택 해제
+            if (!consumed) DeselectEmployee();
+        }
+
+        // 우클릭: 선택된 소집 직원에게 이동 명령
+        if (Input.GetMouseButtonDown(1))
+        {
+            if (!IsPointerOverInteractiveUI() &&
+                _selectedEmployee != null && _selectedEmployee.IsDrafted)
             {
-                HandleNormalModeClickAll(allHits);
+                _selectedEmployee.CommandMoveTo(mousePos);
             }
         }
     }
@@ -290,38 +312,40 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     /// 겹친 모든 콜라이더 중 우선순위 순으로 클릭 처리.
     /// 우선순위: WorkOrderVisual > ConstructionSite > Employee > Building > Harvestable
     /// </summary>
-    private void HandleNormalModeClickAll(Collider2D[] hits)
+    /// <returns>클릭이 오브젝트에 소비되었는지 (false = 빈 곳 클릭)</returns>
+    private bool HandleNormalModeClickAll(Collider2D[] hits)
     {
         // 우선순위 1: WorkOrderVisual
         foreach (var col in hits)
         {
             WorkOrderVisual workVisual = col.GetComponent<WorkOrderVisual>();
-            if (workVisual != null) { workVisual.OnClicked(); return; }
+            if (workVisual != null) { DeselectEmployee(); workVisual.OnClicked(); return true; }
         }
         // 우선순위 2: ConstructionSite
         foreach (var col in hits)
         {
             ConstructionSite site = col.GetComponent<ConstructionSite>();
-            if (site != null) { OnConstructionSiteClicked(site); return; }
+            if (site != null) { DeselectEmployee(); OnConstructionSiteClicked(site); return true; }
         }
         // 우선순위 3: Employee
         foreach (var col in hits)
         {
             Employee emp = col.GetComponent<Employee>();
-            if (emp != null) { OnEmployeeClicked(emp); return; }
+            if (emp != null) { OnEmployeeClicked(emp); return true; }
         }
         // 우선순위 4: Building
         foreach (var col in hits)
         {
             Building building = col.GetComponent<Building>();
-            if (building != null) { OnBuildingClicked(building); return; }
+            if (building != null) { DeselectEmployee(); OnBuildingClicked(building); return true; }
         }
         // 우선순위 5: IHarvestable
         foreach (var col in hits)
         {
             IHarvestable harvestable = col.GetComponent<IHarvestable>();
-            if (harvestable != null) { OnHarvestableClicked(harvestable, col.gameObject); return; }
+            if (harvestable != null) { DeselectEmployee(); OnHarvestableClicked(harvestable, col.gameObject); return true; }
         }
+        return false;
     }
 
     private bool IsPointerOverInteractiveUI()
@@ -420,7 +444,24 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     
     private void OnEmployeeClicked(Employee employee)
     {
-        Debug.Log($"[Interaction] 직원 클릭: {employee.name}");
+        SelectEmployee(employee);
+    }
+
+    /// <summary>직원을 선택합니다 (태세 바 표시). 다른 UI에서도 호출 가능.</summary>
+    public void SelectEmployee(Employee employee)
+    {
+        if (_selectedEmployee == employee) return;
+        _selectedEmployee = employee;
+        OnEmployeeSelected?.Invoke(employee);
+        Debug.Log($"[Interaction] 직원 선택: {employee.name}");
+    }
+
+    /// <summary>직원 선택을 해제합니다 (선택이 없으면 무시).</summary>
+    public void DeselectEmployee()
+    {
+        if (_selectedEmployee == null) return;
+        _selectedEmployee = null;
+        OnEmployeeSelected?.Invoke(null);
     }
     
     private void OnBuildingClicked(Building building)

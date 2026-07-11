@@ -96,6 +96,9 @@ public class EmployeeDraft : MonoBehaviour
     {
         if (!isDrafted || employee == null) return;
 
+        // 전투 기준점을 목적지로 이동 + 현재 교전 해제 (이동 명령 우선)
+        GetComponent<EmployeeCombat>()?.OnPlayerMoveCommand(worldPosition);
+
         // Drafted 상태 유지하면서 이동
         if (movement != null)
         {
