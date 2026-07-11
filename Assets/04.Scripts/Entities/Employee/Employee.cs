@@ -65,6 +65,7 @@ public class Employee : MonoBehaviour
     private EmployeeErosionController erosionController;
     private EmployeeSchedule schedule;
     private EmployeeDraft draft;
+    private EmployeeCombat combat;
     private EmployeeZoneAssignment zoneAssignment;
     private SpriteRenderer spriteRenderer;
 
@@ -202,6 +203,7 @@ public class Employee : MonoBehaviour
         erosionController = GetComponent<EmployeeErosionController>() ?? gameObject.AddComponent<EmployeeErosionController>();
         schedule = GetComponent<EmployeeSchedule>() ?? gameObject.AddComponent<EmployeeSchedule>();
         draft = GetComponent<EmployeeDraft>() ?? gameObject.AddComponent<EmployeeDraft>();
+        combat = GetComponent<EmployeeCombat>() ?? gameObject.AddComponent<EmployeeCombat>();
         zoneAssignment = GetComponent<EmployeeZoneAssignment>() ?? gameObject.AddComponent<EmployeeZoneAssignment>();
     }
 
@@ -425,6 +427,12 @@ public class Employee : MonoBehaviour
         if (equipment != null)
         {
             float reduction = equipment.GetTotalDamageReduction();
+            // 방어 태세: 방어형 장비 감쇄 증폭 (최대 90% 클램프)
+            if (combat != null && combat.IsDefending)
+            {
+                var cfg = EmployeeManager.instance?.CombatConfig;
+                reduction = Mathf.Min(90f, reduction * (cfg != null ? cfg.defendReductionMultiplier : 1.5f));
+            }
             if (reduction > 0f) amount *= 1f - reduction / 100f;
             equipment.NotifyDamageTaken();
         }

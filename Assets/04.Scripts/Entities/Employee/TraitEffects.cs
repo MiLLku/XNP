@@ -78,6 +78,9 @@ public class TraitEffects
     [Min(0)]
     public float erosionIgnoreBonus = 0f;
 
+    [Tooltip("경계 태세 반경 가감 (타일, flat). 예: +2 = 더 넓게 경계")]
+    public float guardRangeBonus = 0f;
+
     #endregion
 
     #region 특수 효과 (플래그)

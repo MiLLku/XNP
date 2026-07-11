@@ -46,6 +46,9 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     [Tooltip("재미 감소율·효과 구간 기준값. 미할당 시 재미 효과는 중립으로 동작")]
     [SerializeField] private FunConfig funConfig;
 
+    [Tooltip("전투 태세 기준값. 미할당 시 코드 기본값으로 동작")]
+    [SerializeField] private CombatConfig combatConfig;
+
     #endregion
 
     #region 이벤트
@@ -72,6 +75,9 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     /// <summary>재미 시스템 기준값 (StatsController/AI에서 참조, null 허용)</summary>
     public FunConfig FunConfig => funConfig;
+
+    /// <summary>전투 태세 기준값 (EmployeeCombat에서 참조, null 허용)</summary>
+    public CombatConfig CombatConfig => combatConfig;
 
     #endregion
 

@@ -26,6 +26,19 @@ public class EquipmentData : ScriptableObject
     [Tooltip("장착 슬롯")]
     public EquipmentSlot slot;
 
+    [Header("전투 (무기/방어구)")]
+    [Tooltip("무기 분류 — 가용 전투 태세 결정 (근접: 점거/방어/경계, 원거리: 점거/경계/카이팅)")]
+    public WeaponClass weaponClass = WeaponClass.Melee;
+
+    [Tooltip("공격 사거리 (타일). 근접 ~1.5, 원거리 6~8")]
+    [Min(0.5f)] public float attackRange = 1.5f;
+
+    [Tooltip("공격 간격 (초)")]
+    [Min(0.1f)] public float attackInterval = 1.2f;
+
+    [Tooltip("방어형 장비 — 보유 시 '방어' 태세 활성 (감쇄 증폭 + 어그로)")]
+    public bool isDefensiveGear = false;
+
     [Header("내구도")]
     [Tooltip("최대 내구도. 작업 마모·전투 소모로 감소하며 0이 되면 파괴됩니다.")]
     [Min(1)] public float maxDurability = 100f;
