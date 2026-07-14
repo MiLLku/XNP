@@ -196,19 +196,8 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
     // ─────────────────────────────────────────
     private Employee FindNearestEmployee()
     {
-        if (EmployeeManager.instance == null) return null;
-
-        Employee nearest = null;
-        float    minDist = float.MaxValue;
-
-        foreach (var emp in EmployeeManager.instance.AllEmployees)
-        {
-            if (emp == null || emp.State == EmployeeState.Dead) continue;
-            float d = Vector2.Distance(transform.position, emp.transform.position);
-            if (d < minDist) { minDist = d; nearest = emp; }
-        }
-
-        return nearest;
+        // 방어 태세 직원 어그로 가중 (CombatTargeting 공통 헬퍼)
+        return CombatTargeting.PickEmployeeTarget(transform.position);
     }
 
     private float HorizontalDist(Employee emp)

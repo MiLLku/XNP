@@ -355,12 +355,15 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         }
     }
 
-    /// <summary>trackingTargets 마스크에 해당하는 가장 가까운 대상을 찾습니다.</summary>
+    /// <summary>
+    /// trackingTargets 마스크에 해당하는 가장 가까운 대상을 찾습니다.
+    /// 직원은 방어 태세 어그로 가중 유효 거리(CombatTargeting)로 비교합니다.
+    /// </summary>
     private Component FindNearestTarget(bool excludeBlacklisted)
     {
-        Component nearest = null;
-        float     bestSqr = float.MaxValue;
-        Vector2   myPos   = transform.position;
+        Component nearest  = null;
+        float     bestDist = float.MaxValue;
+        Vector2   myPos    = transform.position;
 
         if ((trackingTargets & TrackTargetType.Employee) != 0 && EmployeeManager.instance != null)
         {
@@ -368,8 +371,8 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
             {
                 if (emp == null || emp.State == EmployeeState.Dead) continue;
                 if (excludeBlacklisted && IsBlacklisted(emp)) continue;
-                float d = ((Vector2)emp.transform.position - myPos).sqrMagnitude;
-                if (d < bestSqr) { bestSqr = d; nearest = emp; }
+                float d = CombatTargeting.EffectiveDistance(myPos, emp);
+                if (d < bestDist) { bestDist = d; nearest = emp; }
             }
         }
         if ((trackingTargets & TrackTargetType.Building) != 0)
@@ -379,8 +382,8 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
             {
                 if (b == null) continue;
                 if (excludeBlacklisted && IsBlacklisted(b)) continue;
-                float d = ((Vector2)b.transform.position - myPos).sqrMagnitude;
-                if (d < bestSqr) { bestSqr = d; nearest = b; }
+                float d = Vector2.Distance((Vector2)b.transform.position, myPos);
+                if (d < bestDist) { bestDist = d; nearest = b; }
             }
         }
         return nearest;

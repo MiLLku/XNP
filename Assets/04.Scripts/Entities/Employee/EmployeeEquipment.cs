@@ -560,8 +560,11 @@ public class EmployeeEquipment : MonoBehaviour
                 if (xenops == null || xenops.State == XenopsState.Subdued) continue;
                 if (Vector3.Distance(center, xenops.transform.position) <= radius)
                 {
-                    // Hostile에 직접 피해 (제압 판정은 별도)
-                    Debug.Log($"[AoEDamage] {xenops.DisplayName}에 {damage} 피해");
+                    var health = xenops.GetComponent<XenopsHealth>();
+                    if (health == null || health.IsDead) continue;
+
+                    health.TakeDamage(damage);
+                    Debug.Log($"[AoEDamage] {xenops.DisplayName}에 {damage} 피해 (남은 HP {health.CurrentHealth})");
                 }
             }
         }
@@ -630,7 +633,7 @@ public class EmployeeEquipment : MonoBehaviour
                 if (xenops == null || xenops.State == XenopsState.Subdued) continue;
                 if (Vector3.Distance(center, xenops.transform.position) <= radius)
                 {
-                    // TODO: Xenops에 기절 상태 추가
+                    xenops.Stun(ability.duration);
                     Debug.Log($"[Stun] {xenops.DisplayName} 기절 ({ability.duration}초)");
                 }
             }

@@ -16,6 +16,10 @@ MonoBehaviour:
   description: "\uAE30\uBCF8 \uCCA0\uC81C \uBC29\uC5B4\uAD6C. \uBC1B\uB294 \uD53C\uD574
     20% \uAC10\uC18C."
   slot: 0
+  weaponClass: 0
+  attackRange: 1.5
+  attackInterval: 1.2
+  isDefensiveGear: 1
   maxDurability: 150
   indestructible: 0
   workWearPerSecond: 0.02

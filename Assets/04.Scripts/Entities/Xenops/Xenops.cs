@@ -73,6 +73,48 @@ public class Xenops : MonoBehaviour
     /// <summary>현재 상태</summary>
     public XenopsState State => currentState;
 
+    /// <summary>기절 중 여부 (장비 능력 Stun — 행동 정지)</summary>
+    public bool IsStunned => stunTimer > 0f;
+
+    #endregion
+
+    #region 스턴
+
+    private float stunTimer;
+
+    /// <summary>
+    /// 지정 시간 동안 기절시킵니다 — Behavior 정지 + 이동 정지.
+    /// 중첩 시 더 긴 잔여 시간이 유지됩니다. (장비 능력 Stun에서 호출)
+    /// </summary>
+    public void Stun(float duration)
+    {
+        if (duration <= 0f) return;
+        stunTimer = Mathf.Max(stunTimer, duration);
+
+        SetBehaviorScriptEnabled(false);
+
+        var rb = GetComponent<Rigidbody2D>();
+        if (rb != null) rb.linearVelocity = Vector2.zero;
+
+        if (showDebugInfo)
+            Debug.Log($"[Xenops] {DisplayName} 기절 ({duration:F1}초)");
+    }
+
+    private void Update()
+    {
+        if (stunTimer <= 0f) return;
+
+        stunTimer -= Time.deltaTime;
+        if (stunTimer <= 0f && currentState == XenopsState.Active)
+            SetBehaviorScriptEnabled(true);
+    }
+
+    /// <summary>Behavior MonoBehaviour의 Update 실행을 켜고 끕니다 (스턴용).</summary>
+    private void SetBehaviorScriptEnabled(bool value)
+    {
+        if (behavior is MonoBehaviour mb) mb.enabled = value;
+    }
+
     #endregion
 
     #region 프로퍼티 — 해석도 (Interpretation 위임)

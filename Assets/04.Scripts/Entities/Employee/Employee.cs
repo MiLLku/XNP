@@ -526,6 +526,9 @@ public class Employee : MonoBehaviour
     /// <summary>소집 컴포넌트 참조</summary>
     public EmployeeDraft Draft => draft;
 
+    /// <summary>전투 컴포넌트 참조 (적 타겟 선정 어그로 등에서 사용)</summary>
+    public EmployeeCombat Combat => combat;
+
     #endregion
 
     #region 파사드 — 구역 할당 (ZoneAssignment 위임)
