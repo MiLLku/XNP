@@ -31,6 +31,16 @@ public class CombatConfig : ScriptableObject
     [Tooltip("후퇴 시 확보하려는 목표 거리")]
     public float kitingPreferredDistance = 5f;
 
+    [Header("원거리 (아군 투사체)")]
+    [Tooltip("아군 투사체 프리팹 (AllyProjectile 컴포넌트 필수). 미설정 시 원거리 무기도 즉시 타격으로 폴백")]
+    public GameObject allyProjectilePrefab;
+
+    [Tooltip("아군 투사체 속도 (타일/초)")]
+    public float allyProjectileSpeed = 10f;
+
+    [Tooltip("아군 투사체 수명 (초) — 사거리 밖으로 무한히 날아가지 않게 제한")]
+    public float allyProjectileLifetime = 1.5f;
+
     [Header("방어 (Defend)")]
     [Tooltip("방어 태세 중 방어형 장비 감쇄 증폭 배율 (1.5 = 감쇄 50% 증폭)")]
     public float defendReductionMultiplier = 1.5f;

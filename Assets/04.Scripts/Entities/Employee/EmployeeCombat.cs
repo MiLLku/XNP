@@ -30,6 +30,7 @@ public class EmployeeCombat : MonoBehaviour
     private float attackTimer;
     private Xenops target;
     private bool movingToTarget;
+    private bool projectilePoolReady;
 
     /// <summary>현재 태세</summary>
     public CombatStance Stance => stance;
@@ -181,13 +182,15 @@ public class EmployeeCombat : MonoBehaviour
                 float prefer  = Cfg != null ? Cfg.kitingPreferredDistance : 5f;
                 if (dist < minDist)
                 {
-                    // 적 반대 방향으로 후퇴
+                    // 적 반대 방향으로 후퇴 (후퇴 중에도 사격은 계속)
                     float dir = Mathf.Sign(transform.position.x - target.transform.position.x);
                     if (dir == 0f) dir = 1f;
                     Approach(target.transform.position + new Vector3(dir * prefer, 0f, 0f));
                 }
-                else if (dist <= range) { StopApproach(); TryAttack(target); }
+                else if (dist <= range) StopApproach();
                 else Approach(target.transform.position);
+
+                if (dist <= range) TryAttack(target);
                 break;
         }
     }
@@ -251,11 +254,55 @@ public class EmployeeCombat : MonoBehaviour
         var health = victim.GetComponent<XenopsHealth>();
         if (health == null || health.IsDead) { target = null; return; }
 
+        var weapon = equipment != null ? equipment.GetItemInSlot(EquipmentSlot.Weapon) : null;
+        bool ranged = weapon != null && weapon.weaponClass == WeaponClass.Ranged;
+
+        if (ranged && TryFireProjectile(victim))
+        {
+            equipment?.NotifyAttackPerformed();           // 무기 내구도는 발사 시점에 소모
+            return;                                       // 피해·OnHit 능력은 투사체 명중 시
+        }
+
+        // 근접 (원거리인데 투사체 프리팹 미설정이면 즉시 타격 폴백)
         health.TakeDamage(employee.Stats.attackPower);
         equipment?.NotifyAttackPerformed();               // 무기 내구도 소모
         equipment?.TriggerAbilities(AbilityTriggerType.OnHit);
 
         if (health.IsDead) target = null;
+    }
+
+    /// <summary>아군 투사체를 발사합니다. 프리팹/풀 미비 시 false (근접 폴백).</summary>
+    private bool TryFireProjectile(Xenops victim)
+    {
+        var cfg = Cfg;
+        var prefab = cfg != null ? cfg.allyProjectilePrefab : null;
+        if (prefab == null || PoolManager.instance == null) return false;
+
+        if (!projectilePoolReady)
+        {
+            PoolManager.instance.RegisterPool(prefab, prewarm: 8, maxSize: 64);
+            projectilePoolReady = true;
+        }
+
+        // 발밑 타일 콜라이더에 즉시 명중하지 않게 살짝 위에서 발사
+        Vector3 origin = transform.position + new Vector3(0f, 0.3f, 0f);
+        Vector2 dir = victim.transform.position - origin;
+
+        var proj = PoolManager.instance.Spawn<AllyProjectile>(prefab, origin);
+        if (proj == null) return false;
+
+        proj.Init(dir, cfg.allyProjectileSpeed, employee.Stats.attackPower, cfg.allyProjectileLifetime,
+            hit =>
+            {
+                if (this == null) return;                 // 발사자 사망/파괴 후 명중
+                equipment?.TriggerAbilities(AbilityTriggerType.OnHit);
+                if (hit == target)
+                {
+                    var h = hit != null ? hit.GetComponent<XenopsHealth>() : null;
+                    if (h == null || h.IsDead) target = null;
+                }
+            });
+        return true;
     }
 
     private void Approach(Vector3 pos)

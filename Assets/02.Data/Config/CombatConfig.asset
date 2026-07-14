@@ -19,5 +19,8 @@ MonoBehaviour:
   guardLeashRadius: 9
   kitingMinDistance: 3
   kitingPreferredDistance: 5
+  allyProjectilePrefab: {fileID: 8244049761570693232, guid: 0c6e13603d0e50d488bd64a33d7668d2, type: 3}
+  allyProjectileSpeed: 10
+  allyProjectileLifetime: 1.5
   defendReductionMultiplier: 1.5
   defendAggroWeight: 3
