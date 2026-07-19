@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d76e4ac7197bcff49ac7d618b5714882, type: 3}
+  m_Name: HuntingBowRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
+  recipeID: 5102
+  outputItem: {fileID: 11400000, guid: 4b42179b4ac9b534a928df6e3d1ad15b, type: 2}
+  outputAmount: 1
+  requiredMaterials:
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 3
+  craftingTime: 10
+  requiresResearch: 1
