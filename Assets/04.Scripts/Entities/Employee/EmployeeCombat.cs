@@ -332,4 +332,22 @@ public class EmployeeCombat : MonoBehaviour
     }
 
     #endregion
+
+    #region 저장/로드
+
+    /// <summary>EmployeeSaveData에 전투 태세를 기록합니다.</summary>
+    public void PopulateSaveData(EmployeeSaveData data)
+    {
+        data.combatStance = (int)stance;
+    }
+
+    /// <summary>EmployeeSaveData에서 전투 태세를 복원합니다 (범위 밖 값은 Guard).</summary>
+    public void RestoreFromSaveData(EmployeeSaveData data)
+    {
+        stance = System.Enum.IsDefined(typeof(CombatStance), data.combatStance)
+            ? (CombatStance)data.combatStance
+            : CombatStance.Guard;
+    }
+
+    #endregion
 }

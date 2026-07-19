@@ -179,6 +179,9 @@ public class EmployeeSaveData
     /// <summary>소집 상태 (로드 후 즉시 해제 권장이나 상태 보존용으로 저장)</summary>
     public bool isDrafted;
 
+    /// <summary>전투 태세 (CombatStance int 값). 구 세이브는 마이그레이션이 Guard로 보정</summary>
+    public int combatStance = (int)CombatStance.Guard;
+
     #endregion
 
     #region 구역 할당

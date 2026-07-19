@@ -119,6 +119,15 @@ public static class EventEffectApplier
                 SpawnXenopsInFogArea(effect.targetId);
                 break;
 
+            // ===== 침식/레이드 =====
+            case EffectType.StartRaid:
+                StartRaid(effect.targetId);
+                break;
+
+            case EffectType.StartPostRaidRecovery:
+                ErosionManager.instance?.StartPostRaidRecovery();
+                break;
+
             default:
                 Debug.LogWarning($"[EventEffectApplier] 알 수 없는 효과 타입: {effect.type}");
                 break;
@@ -377,6 +386,19 @@ public static class EventEffectApplier
         // UIManager에 알림 패널이 등록되어 있으면 표시, 없으면 콘솔 출력
         // (향후 Toast/Notification 전용 패널 추가 후 UIManager.ShowNotification() 호출로 교체)
         Debug.Log($"[이벤트 알림] {message}");
+    }
+
+    /// <summary>레이드 시작 — targetId = RaidData.raidId (0 이하면 랜덤 풀에서 선택).</summary>
+    private static void StartRaid(int raidId)
+    {
+        if (RaidManager.instance == null)
+        {
+            Debug.LogWarning("[EventEffectApplier] RaidManager가 없습니다 (씬 배치 필요).");
+            return;
+        }
+
+        if (raidId > 0) RaidManager.instance.StartRaid(raidId);
+        else            RaidManager.instance.StartRandomRaid();
     }
 
     private static void SpawnXenopsNearCamera(int xenopsDataId)

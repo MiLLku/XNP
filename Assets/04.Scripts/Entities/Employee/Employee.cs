@@ -621,6 +621,7 @@ public class Employee : MonoBehaviour
         erosionController?.PopulateSaveData(saveData);
         schedule?.PopulateSaveData(saveData);
         draft?.PopulateSaveData(saveData);
+        combat?.PopulateSaveData(saveData);
         zoneAssignment?.PopulateSaveData(saveData);
 
         // 무작위 생성 직원은 GameDatabase로 복원할 수 없으므로 생성 스냅샷을 함께 저장
@@ -662,6 +663,7 @@ public class Employee : MonoBehaviour
         erosionController?.RestoreFromSaveData(data);
         schedule?.RestoreFromSaveData(data);
         draft?.RestoreFromSaveData(data);
+        combat?.RestoreFromSaveData(data);
         zoneAssignment?.RestoreFromSaveData(data);
 
         UpdateVisualState();

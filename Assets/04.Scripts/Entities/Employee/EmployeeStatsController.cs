@@ -254,6 +254,16 @@ public class EmployeeStatsController : MonoBehaviour
         if (currentStats.health <= 0f)
         {
             employee.SetState(EmployeeState.Dead);
+
+            // 사망 레터 — Update가 Dead 상태에서 조기 반환하므로 1회만 발행된다
+            NotificationManager.instance?.PushLetter(new Letter
+            {
+                title = "직원 사망",
+                body = $"{employee.DisplayName}이(가) 사망했습니다.",
+                type = LetterType.Threat,
+                pauseUntilRead = true
+            });
+            TimeManager.instance?.ForcePause();
             return;
         }
 

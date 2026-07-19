@@ -215,6 +215,16 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         currentState = RaidState.InProgress;
         OnRaidStarted?.Invoke(raid);
 
+        // 위협 레터 + 강제 일시정지 (확인 시 NotificationManager가 재개)
+        NotificationManager.instance?.PushLetter(new Letter
+        {
+            title = "침공 발생",
+            body = $"{raid.raidName} — 적대 개체가 접근했습니다. 직원을 소집해 방어하세요.",
+            type = LetterType.Threat,
+            pauseUntilRead = true
+        });
+        TimeManager.instance?.ForcePause();
+
         // 웨이브 순차 스폰
         for (int i = 0; i < raid.waves.Count; i++)
         {
@@ -301,6 +311,17 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             Debug.Log($"[RaidManager] 레이드 완료: {activeRaid.raidName}");
 
         OnRaidCompleted?.Invoke(activeRaid);
+
+        // 격퇴 레터 (일반 — 정지 없음)
+        if (activeRaid != null)
+        {
+            NotificationManager.instance?.PushLetter(new Letter
+            {
+                title = "침공 격퇴",
+                body = $"{activeRaid.raidName}을(를) 격퇴했습니다.",
+                type = LetterType.Positive
+            });
+        }
 
         // 포스트 레이드 회복 시작
         ErosionManager.instance?.StartPostRaidRecovery();

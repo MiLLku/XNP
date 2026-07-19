@@ -7,7 +7,7 @@ using UnityEngine;
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 5;
+    public const int CURRENT_VERSION = 6;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -41,6 +41,9 @@ public static class SaveMigration
                     break;
                 case 4:
                     data = MigrateV4ToV5(data);
+                    break;
+                case 5:
+                    data = MigrateV5ToV6(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -200,6 +203,27 @@ public static class SaveMigration
         }
 
         data.saveVersion = 5;
+        return data;
+    }
+
+    /// <summary>
+    /// v5 → v6 마이그레이션
+    /// 전투 태세(combatStance) 추가: 구 세이브는 JsonUtility가 0(점거)으로 채우므로
+    /// 기본 태세인 경계(Guard)로 보정합니다.
+    /// </summary>
+    private static SaveData MigrateV5ToV6(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v5 → v6 마이그레이션 시작 (전투 태세)...");
+
+        if (data.employees != null)
+        {
+            foreach (var employee in data.employees)
+            {
+                employee.combatStance = (int)CombatStance.Guard;
+            }
+        }
+
+        data.saveVersion = 6;
         return data;
     }
 
