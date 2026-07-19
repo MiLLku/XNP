@@ -23,6 +23,7 @@ public class XenopsHealth : MonoBehaviour
 
     private Xenops _xenops;
     private bool _isDead = false;
+    private bool _initialized = false;
 
     #endregion
 
@@ -45,7 +46,10 @@ public class XenopsHealth : MonoBehaviour
 
     private void Start()
     {
-        // XenopsData가 초기화된 뒤 Start에서 스탯 읽기
+        // Xenops.Initialize가 이미 초기화했으면 유지 — 스폰 프레임에 받은 피해를 되돌리지 않는다
+        if (_initialized) return;
+
+        // XenopsData가 초기화된 뒤 Start에서 스탯 읽기 (프리팹 단독 배치 등 폴백 경로)
         if (_xenops?.Data != null && _xenops.Data.xenopsType == XenopsType.Hostile)
         {
             var stats = _xenops.Data.hostileStats;
@@ -66,6 +70,7 @@ public class XenopsHealth : MonoBehaviour
         currentHealth = hp;
         defense       = Mathf.Clamp01(def);
         _isDead       = false;
+        _initialized  = true;
     }
 
     #endregion

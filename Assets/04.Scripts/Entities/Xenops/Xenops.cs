@@ -105,7 +105,10 @@ public class Xenops : MonoBehaviour
         if (stunTimer <= 0f) return;
 
         stunTimer -= Time.deltaTime;
-        if (stunTimer <= 0f && currentState == XenopsState.Active)
+        // 무조건 재활성 — enabled는 스턴 여부만 추적한다 (상태별 행동 여부는
+        // Behavior가 OnActivated/OnDeactivated의 isActive 플래그로 스스로 게이트).
+        // 상태 조건을 걸면 스턴 중 상태가 바뀐 개체가 영구 정지하는 경로가 생긴다.
+        if (stunTimer <= 0f)
             SetBehaviorScriptEnabled(true);
     }
 
@@ -196,6 +199,15 @@ public class Xenops : MonoBehaviour
         if (behavior == null)
         {
             behavior = GetComponent<IXenopsBehavior>();
+        }
+
+        // 체력 즉시 초기화 — XenopsHealth.Start만 기다리면 스폰 프레임에 받은 피해가
+        // HP 0 기준으로 계산되어 즉사하는 경로가 있다 (AoE 능력 + 스폰 타이밍)
+        if (data.xenopsType == XenopsType.Hostile)
+        {
+            var health = GetComponent<XenopsHealth>();
+            if (health != null)
+                health.Initialize(data.hostileStats.maxHealth, data.hostileStats.defense);
         }
 
         // RuntimeIDRegistry 등록
