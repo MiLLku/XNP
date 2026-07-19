@@ -199,9 +199,13 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     public void SetMode(InteractMode mode)
     {
         if (_currentMode == mode) return;
-    
+
         ExitCurrentMode();
         _currentMode = mode;
+
+        // 작업 모드 진입 시 직원 선택 해제 (태세 바와 작업 모드 바 겹침 방지)
+        if (mode != InteractMode.Normal)
+            DeselectEmployee();
 
         if (mode == InteractMode.Build)
         {
@@ -363,6 +367,12 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         foreach (var result in results)
         {
             if (result.gameObject.GetComponent<UnityEngine.UI.Selectable>() != null)
+            {
+                return true;
+            }
+
+            // 버튼이 아닌 패널 배경도 UI 클릭으로 취급 (태세 바 등 — 월드 클릭 새는 것 방지)
+            if (result.gameObject.GetComponentInParent<UIClickBlocker>() != null)
             {
                 return true;
             }

@@ -83,9 +83,9 @@ public class CombatStanceBarUI : MonoBehaviour
 
     private void Update()
     {
-        if (selected == null)
+        // 파괴 또는 사망 → 선택 해제 (해제 이벤트가 바를 숨긴다)
+        if (selected == null || selected.State == EmployeeState.Dead)
         {
-            // 선택 직원이 파괴됨(사망 등) → 바 숨김
             if (content != null && content.activeSelf)
             {
                 content.SetActive(false);
@@ -94,7 +94,8 @@ public class CombatStanceBarUI : MonoBehaviour
             return;
         }
 
-        refreshTimer -= Time.deltaTime;
+        // unscaled — 일시정지 중에도 태세/장비 변화가 바에 반영되도록 (UI 폴링 관례)
+        refreshTimer -= Time.unscaledDeltaTime;
         if (refreshTimer <= 0f)
         {
             refreshTimer = REFRESH_INTERVAL;
