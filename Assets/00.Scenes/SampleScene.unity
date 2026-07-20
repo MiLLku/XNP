@@ -23391,6 +23391,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RaidManager
   availableRaids:
   - {fileID: 11400000, guid: 448f7ac6363b7fc47946fcdec1dd43e2, type: 2}
+  - {fileID: 11400000, guid: 2b2d8b4256bb2fa4d811440848a706d4, type: 2}
   defaultSpawnPoint: {fileID: 676058047}
   showDebugLogs: 1
 --- !u!1 &1625542559

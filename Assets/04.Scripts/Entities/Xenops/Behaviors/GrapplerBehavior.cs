@@ -165,10 +165,14 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
     #endregion
 
     // ─────────────────────────────────────────
-    #region Unity Update (UpdateBehavior 호출)
+    #region Unity Update
 
-    // Xenops.cs의 Update()에서 behavior.UpdateBehavior()를 호출하므로
-    // 이 컴포넌트의 Update()는 비워둡니다.
+    // 다른 Hostile Behavior들과 동일하게 스스로 구동한다.
+    // (스턴은 Xenops.Stun이 이 컴포넌트의 enabled를 꺼서 정지시킨다)
+    private void Update()
+    {
+        UpdateBehavior();
+    }
 
     #endregion
 }

@@ -204,4 +204,16 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
         => Mathf.Abs(emp.transform.position.x - transform.position.x);
 
     #endregion
+
+    // ─────────────────────────────────────────
+    #region Unity Update
+
+    // 다른 Hostile Behavior들과 동일하게 스스로 구동한다.
+    // (스턴은 Xenops.Stun이 이 컴포넌트의 enabled를 꺼서 정지시킨다)
+    private void Update()
+    {
+        UpdateBehavior();
+    }
+
+    #endregion
 }

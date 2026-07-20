@@ -54,6 +54,8 @@ MonoBehaviour:
   allRecipeData: []
   allXenopsData:
   - {fileID: 11400000, guid: 085925dc2a0b8564a8e33ec85c9f3b8b, type: 2}
+  - {fileID: 11400000, guid: 237e7e935c558ad48a5a1021c4e97292, type: 2}
+  - {fileID: 11400000, guid: 3ea78932acfc5ec4ca2ed1ef0a9c313a, type: 2}
   allEquipmentData:
   - {fileID: 11400000, guid: 0b3bf22c6fe1ea244a166eccec9a4064, type: 2}
   - {fileID: 11400000, guid: 5ae0d5e41379200459cf87c392b16169, type: 2}

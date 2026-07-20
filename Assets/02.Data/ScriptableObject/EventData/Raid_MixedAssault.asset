@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf027c06de43f0049828e478be5bfda7, type: 3}
+  m_Name: Raid_MixedAssault
+  m_EditorClassIdentifier: Assembly-CSharp::RaidData
+  raidId: 2
+  raidName: "\uD63C\uC131 \uC2B5\uACA9"
+  description: "\uADF8\uB798\uD50C\uB7EC \uC804\uC704\uC640 \uC6D0\uAC70\uB9AC \uC9C0\uC6D0\uC774
+    \uD568\uAED8 \uC811\uADFC\uD569\uB2C8\uB2E4."
+  difficulty: 1
+  waves:
+  - delayBeforeWave: 0
+    entries:
+    - xenopsDataId: 6101
+      count: 2
+      spawnInterval: 0.5
+      spawnRadius: 2
+  - delayBeforeWave: 6
+    entries:
+    - xenopsDataId: 6102
+      count: 2
+      spawnInterval: 0.5
+      spawnRadius: 2
+    - xenopsDataId: 6100
+      count: 1
+      spawnInterval: 0.5
+      spawnRadius: 2
+  minDayNumber: 0
+  minEmployeeCount: 0
+  spawnLocation: 0
+  baseMultiplier: 1
+  multiplierPerDay: 0
+  multiplierPerEmployee: 0.15
+  maxMultiplier: 3
+  approachDuration: 5
+  retreatDelay: 0
+  includeInRandomPool: 1
