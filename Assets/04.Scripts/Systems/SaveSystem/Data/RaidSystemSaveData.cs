@@ -23,6 +23,9 @@ public class RaidSystemSaveData
     /// <summary>이번 레이드에서 스폰된 제놉스 인스턴스 ID 목록</summary>
     public List<int> spawnedEntityIds = new List<int>();
 
+    /// <summary>이번 레이드의 스폰 수량 배수 (시작 시점 계산값 보존)</summary>
+    public float activeMultiplier = 1f;
+
     public RaidSystemSaveData()
     {
         activeRaidId = -1;

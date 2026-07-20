@@ -43,6 +43,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private float waveTimer;
     private bool waitingForNextWave;
 
+    /// <summary>이번 레이드의 스폰 수량 배수 (시작 시점 진행 상황으로 계산)</summary>
+    private float activeMultiplier = 1f;
+
     /// <summary>이번 레이드에서 스폰된 제놉스 목록</summary>
     private readonly List<Xenops> spawnedEntities = new List<Xenops>();
 
@@ -83,7 +86,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             raidState   = (int)currentState,
             activeRaidId = activeRaid != null ? activeRaid.raidId : -1,
             currentWaveIndex = currentWaveIndex,
-            waveTimer   = waveTimer
+            waveTimer   = waveTimer,
+            activeMultiplier = activeMultiplier
         };
 
         foreach (var xenops in spawnedEntities)
@@ -102,6 +106,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         currentState     = (RaidState)data.raidSystem.raidState;
         currentWaveIndex = data.raidSystem.currentWaveIndex;
         waveTimer        = data.raidSystem.waveTimer;
+        activeMultiplier = data.raidSystem.activeMultiplier > 0f ? data.raidSystem.activeMultiplier : 1f;
 
         int raidId = data.raidSystem.activeRaidId;
         if (raidId >= 0)
@@ -163,9 +168,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         activeRaid = raid;
         currentWaveIndex = 0;
         spawnedEntities.Clear();
+        activeMultiplier = ComputeMultiplier(raid);
 
         if (showDebugLogs)
-            Debug.Log($"[RaidManager] 레이드 시작: {raid.raidName}");
+            Debug.Log($"[RaidManager] 레이드 시작: {raid.raidName} (배수 {activeMultiplier:F2}, 위치 {raid.spawnLocation})");
 
         if (activeRaidCoroutine != null)
             StopCoroutine(activeRaidCoroutine);
@@ -250,7 +256,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     {
         foreach (var entry in wave.entries)
         {
-            for (int i = 0; i < entry.count; i++)
+            // 진행 상황 배수 적용 (최소 1마리)
+            int count = Mathf.Max(1, Mathf.RoundToInt(entry.count * activeMultiplier));
+
+            for (int i = 0; i < count; i++)
             {
                 SpawnRaidXenops(entry);
 
@@ -295,12 +304,38 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     private Vector3 GetSpawnPosition(RaidSpawnEntry entry)
     {
-        Vector3 basePos = defaultSpawnPoint != null
-            ? defaultSpawnPoint.position
-            : Vector3.zero;
+        // 레이드 설정 위치 유형(안개 지상/지하, 기지 내부)에서 후보 선정
+        Vector3 basePos;
+        if (activeRaid == null || !RaidSpawnPlacer.TryFindPosition(activeRaid.spawnLocation, out basePos))
+        {
+            // 후보 없음(맵 전부 밝혀짐 등) → 인스펙터 기준점 폴백
+            if (showDebugLogs && activeRaid != null)
+                Debug.Log($"[RaidManager] {activeRaid.spawnLocation} 스폰 후보 없음 → 기준점 폴백");
+
+            basePos = defaultSpawnPoint != null ? defaultSpawnPoint.position : Vector3.zero;
+        }
 
         Vector2 offset = UnityEngine.Random.insideUnitCircle * entry.spawnRadius;
         return basePos + new Vector3(offset.x, offset.y, 0f);
+    }
+
+    /// <summary>진행 상황 기반 스폰 배수: base + 일수·직원수 가산, 상한 클램프.</summary>
+    private float ComputeMultiplier(RaidData raid)
+    {
+        int day = DayCycle.instance != null ? DayCycle.instance.Day : 0;
+
+        int employees = 0;
+        if (EmployeeManager.instance != null)
+        {
+            foreach (var e in EmployeeManager.instance.AllEmployees)
+                if (e != null && e.State != EmployeeState.Dead) employees++;
+        }
+
+        float m = raid.baseMultiplier
+                + raid.multiplierPerDay * day
+                + raid.multiplierPerEmployee * employees;
+
+        return Mathf.Clamp(m, 0.1f, raid.maxMultiplier);
     }
 
     private void CompleteRaid()

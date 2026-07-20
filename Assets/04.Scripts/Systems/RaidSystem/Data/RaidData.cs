@@ -48,6 +48,34 @@ public class RaidData : ScriptableObject
 
     #endregion
 
+    #region 스폰 위치
+
+    [Header("스폰 위치")]
+    [Tooltip("스폰 위치 유형:\n" +
+             "• FogGround      — 안개 속 지상(하늘 열린 지면, 기본)\n" +
+             "• FogUnderground — 안개 속 지하(위가 막힌 공동)\n" +
+             "• BaseInterior   — 기지 내부/근처 (안개 무관 — 잠입·내부 발생형)")]
+    public RaidSpawnLocation spawnLocation = RaidSpawnLocation.FogGround;
+
+    #endregion
+
+    #region 배수 (진행 상황 스케일링)
+
+    [Header("배수 — 스폰 수량 = entry.count × 배수 (레이드 시작 시점에 계산)")]
+    [Tooltip("기본 배수")]
+    [Min(0.1f)] public float baseMultiplier = 1f;
+
+    [Tooltip("경과 1일당 가산 배수 (예: 0.1 = 10일 후 +1.0)")]
+    [Min(0)] public float multiplierPerDay = 0f;
+
+    [Tooltip("직원 1명당 가산 배수 (예: 0.2 = 직원 5명이면 +1.0)")]
+    [Min(0)] public float multiplierPerEmployee = 0f;
+
+    [Tooltip("배수 상한")]
+    [Min(0.1f)] public float maxMultiplier = 3f;
+
+    #endregion
+
     #region 레이드 설정
 
     [Header("레이드 설정")]
@@ -71,6 +99,21 @@ public class RaidData : ScriptableObject
             Debug.LogWarning($"[RaidData] '{raidName}': 웨이브가 없습니다.");
     }
 #endif
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// <summary>레이드 스폰 위치 유형.</summary>
+public enum RaidSpawnLocation
+{
+    /// <summary>안개 속 지상 — 하늘이 열린 지면 위 (기본)</summary>
+    FogGround = 0,
+
+    /// <summary>안개 속 지하 — 위가 막힌 공동</summary>
+    FogUnderground = 1,
+
+    /// <summary>기지 내부/근처 — 안개 무관 (잠입·내부 발생형)</summary>
+    BaseInterior = 2,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
