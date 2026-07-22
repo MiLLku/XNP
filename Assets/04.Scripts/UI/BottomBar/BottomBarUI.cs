@@ -9,7 +9,8 @@ using UnityEngine.UI;
 ///   └── ButtonContainer  [HorizontalLayoutGroup]
 ///       ├── WorkBtn        → WorkModeBar 토글
 ///       ├── ResearchBtn    → ResearchTreeUI 토글
-///       └── SpawnEventBtn  → XenopsAppearance 이벤트 강제 발동 (디버그/테스트용)
+///       ├── SpawnEventBtn  → XenopsAppearance 이벤트 강제 발동 (디버그/테스트용)
+///       └── RaidEventBtn   → Invasion 이벤트(침공) 강제 발동 (디버그/테스트용)
 /// </summary>
 public class BottomBarUI : MonoBehaviour
 {
@@ -27,6 +28,9 @@ public class BottomBarUI : MonoBehaviour
     [Tooltip("클릭 시 XenopsAppearance 카테고리 이벤트를 조건 무시하고 즉시 발동합니다.")]
     [SerializeField] private Button spawnEventButton;
 
+    [Tooltip("클릭 시 Invasion 카테고리 이벤트(침공)를 조건 무시하고 즉시 발동합니다.")]
+    [SerializeField] private Button raidEventButton;
+
     [Header("패널 참조")]
     [SerializeField] private WorkModeBarUI workModeBar;
 
@@ -37,6 +41,7 @@ public class BottomBarUI : MonoBehaviour
         scheduleButton?.onClick.AddListener(OnScheduleClicked);
         employeeButton?.onClick.AddListener(OnEmployeeClicked);
         spawnEventButton?.onClick.AddListener(OnSpawnEventClicked);
+        raidEventButton?.onClick.AddListener(OnRaidEventClicked);
     }
 
     private void OnEmployeeClicked()
@@ -71,5 +76,19 @@ public class BottomBarUI : MonoBehaviour
             return;
         }
         EventManager.instance.ForceSpawnXenopsEvent();
+    }
+
+    /// <summary>
+    /// Invasion 이벤트(침공)를 즉시 강제 발동합니다.
+    /// 등록된 Invasion 이벤트가 없으면 RaidManager 랜덤 레이드로 폴백합니다.
+    /// </summary>
+    private void OnRaidEventClicked()
+    {
+        if (EventManager.instance == null)
+        {
+            Debug.LogWarning("[BottomBarUI] EventManager가 없습니다.");
+            return;
+        }
+        EventManager.instance.ForceRaidEvent();
     }
 }

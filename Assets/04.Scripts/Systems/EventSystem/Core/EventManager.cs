@@ -647,6 +647,44 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
         Debug.Log($"[EventManager] 제노프스 등장 (폴백): {xenopsData.xenopsName}");
     }
 
+    /// <summary>
+    /// Invasion 카테고리 이벤트를 조건·쿨다운 무시하고 즉시 발동합니다.
+    /// BottomBar 침공 강제 발동 버튼(디버그) 전용. 해당 카테고리 이벤트가 없으면
+    /// RaidManager의 랜덤 레이드로 폴백합니다.
+    /// </summary>
+    public void ForceRaidEvent()
+    {
+        var invasionEvents = allEvents?
+            .Where(e => e != null && e.category == EventCategory.Invasion)
+            .ToList();
+
+        if (invasionEvents != null && invasionEvents.Count > 0)
+        {
+            int totalWeight = invasionEvents.Sum(e => e.weight);
+            int rand = UnityEngine.Random.Range(0, totalWeight);
+            int cumulative = 0;
+            foreach (var evt in invasionEvents)
+            {
+                cumulative += evt.weight;
+                if (rand < cumulative)
+                {
+                    TriggerEvent(evt);
+                    return;
+                }
+            }
+            TriggerEvent(invasionEvents.Last());
+        }
+        else if (RaidManager.instance != null)
+        {
+            Debug.Log("[EventManager] Invasion 이벤트 없음 → 랜덤 레이드 폴백");
+            RaidManager.instance.StartRandomRaid();
+        }
+        else
+        {
+            Debug.LogWarning("[EventManager] Invasion 이벤트도 RaidManager도 없습니다.");
+        }
+    }
+
     [ContextMenu("Trigger Random Event")]
     private void TestTriggerRandomEvent()
     {
