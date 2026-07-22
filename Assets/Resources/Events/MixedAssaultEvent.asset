@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2122bc14ba93d04f8b640712db0f102, type: 3}
   m_Name: MixedAssaultEvent
   m_EditorClassIdentifier: Assembly-CSharp::EventData
-  eventId: 6300
+  eventId: 6400
   title: "\uD63C\uC131 \uC2B5\uACA9 \uC811\uADFC"
   description: "\uC548\uAC1C \uB108\uBA38\uC5D0\uC11C \uB2E4\uC218\uC758 \uC801\uB300
     \uAC1C\uCCB4\uAC00 \uAE30\uC9C0\uB97C \uD5A5\uD574 \uC774\uB3D9\uD558\uACE0 \uC788\uB2E4.

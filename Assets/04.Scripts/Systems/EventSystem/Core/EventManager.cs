@@ -70,12 +70,22 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
         foreach (var evt in loaded)
         {
             if (evt == null) continue;
-            if (allEvents.Exists(e => e != null && e.eventId == evt.eventId)) continue;
+
+            // eventId 중복 시 건너뛴다 — 인스펙터 수동 등록과의 충돌 방지가 목적이지만,
+            // 서로 다른 에셋이 같은 ID를 쓰면 뒤쪽 에셋이 조용히 누락되므로 경고를 남긴다.
+            var dup = allEvents.Find(e => e != null && e.eventId == evt.eventId);
+            if (dup != null)
+            {
+                if (dup != evt)
+                    Debug.LogError($"[EventManager] eventId 중복! '{evt.name}'(ID {evt.eventId})가 " +
+                                   $"'{dup.name}'와 같은 ID라 로드되지 않았습니다. 고유 ID를 지정하세요.");
+                continue;
+            }
             allEvents.Add(evt);
         }
 
         if (showDebugLogs && loaded.Length > 0)
-            Debug.Log($"[EventManager] Resources/Events 에서 {loaded.Length}개 이벤트 자동 로드");
+            Debug.Log($"[EventManager] Resources/Events 에서 {loaded.Length}개 이벤트 자동 로드 (등록 {allEvents.Count}개)");
     }
 
     private void Update()
