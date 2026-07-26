@@ -113,7 +113,51 @@ public class EmployeeSkillState : MonoBehaviour
         if (GetAptitudeLevel(skill.category) < skill.requiredAptitudeLevel) return false;
         if (RemainingSkillPoints < skill.pointCost) return false;
 
+        foreach (var req in skill.requiredStats)
+        {
+            if (req == null) continue;
+            if (GetStatValue(req.stat, skill.category) < req.minValue) return false;
+        }
+
         return true;
+    }
+
+    /// <summary>
+    /// 스탯 요구 조건 검사에 쓰이는 현재 값을 반환합니다.
+    /// CategoryWorkSpeed는 스킬 카테고리에 대응하는 작업 속도를 봅니다.
+    /// </summary>
+    public float GetStatValue(SkillStatType stat, SkillCategory category)
+    {
+        var employee = GetComponent<Employee>();
+
+        switch (stat)
+        {
+            case SkillStatType.MaxHealth:
+                return employee != null ? employee.Stats.maxHealth : 0f;
+
+            case SkillStatType.MaxMental:
+                return employee != null ? employee.Stats.maxMental : 0f;
+
+            case SkillStatType.AttackPower:
+                return employee != null ? employee.Stats.attackPower : 0f;
+
+            case SkillStatType.CarryCapacity:
+                return _work != null ? _work.GetCarryCapacity() : 0f;
+
+            case SkillStatType.EmployeeLevel:
+                var growth = GetComponent<EmployeeGrowth>();
+                return growth != null ? growth.Level : 1f;
+
+            case SkillStatType.CategoryWorkSpeed:
+            {
+                WorkType? mapped = CategoryToWorkType(category);
+                if (!mapped.HasValue || _work == null) return 0f;
+                return _work.GetWorkSpeed(mapped.Value);
+            }
+
+            default:
+                return 0f;
+        }
     }
 
     #endregion
@@ -183,6 +227,14 @@ public class EmployeeSkillState : MonoBehaviour
 
         if (RemainingSkillPoints < skill.pointCost)
             return $"스킬 포인트 부족 ({skill.pointCost} 필요 / 남은 {RemainingSkillPoints})";
+
+        foreach (var req in skill.requiredStats)
+        {
+            if (req == null) continue;
+            float current = GetStatValue(req.stat, skill.category);
+            if (current < req.minValue)
+                return $"{req.DisplayName} {req.minValue:0.##} 필요 (현재 {current:0.##})";
+        }
 
         return null;
     }

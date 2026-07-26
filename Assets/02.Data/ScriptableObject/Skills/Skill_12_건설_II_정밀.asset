@@ -20,4 +20,10 @@ MonoBehaviour:
   category: 7
   treePosition: {x: 2, y: 5}
   prerequisiteSkillIds: 0b000000
+  requiredAptitudeLevel: 1
+  pointCost: 1
+  requiredStats:
+  - stat: 3
+    minValue: 1.1
   defaultUnlocked: 0
+  grantedTrait: {fileID: 0}

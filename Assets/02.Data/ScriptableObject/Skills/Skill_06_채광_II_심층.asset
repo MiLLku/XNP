@@ -22,5 +22,8 @@ MonoBehaviour:
   prerequisiteSkillIds: 05000000
   requiredAptitudeLevel: 3
   pointCost: 1
+  requiredStats:
+  - stat: 3
+    minValue: 1.1
   defaultUnlocked: 0
   grantedTrait: {fileID: 0}

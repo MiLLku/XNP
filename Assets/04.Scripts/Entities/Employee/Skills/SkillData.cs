@@ -46,6 +46,10 @@ public class SkillData : ScriptableObject
     [Min(0)]
     public int pointCost = 1;
 
+    [Tooltip("해금에 필요한 현재 스탯 조건. 모두 충족해야 합니다.\n" +
+             "모든 직원이 같은 트리를 갖지만, 무작위 생성된 결격·스탯 차이로 찍을 수 있는 스킬이 갈립니다.")]
+    public List<SkillStatRequirement> requiredStats = new List<SkillStatRequirement>();
+
     [Header("프리팹 기본값")]
     [Tooltip("true이면 직원 프리팹 생성/로드 시 자동으로 해제된 상태로 시작합니다")]
     public bool defaultUnlocked = false;
