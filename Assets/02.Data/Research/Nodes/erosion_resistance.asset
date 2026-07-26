@@ -14,13 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: erosion_resistance
   nodeName: "\uCE68\uC2DD \uC800\uD56D \uC5F0\uAD6C"
-  description: "\uC81C\uB178\uD504\uC2A4\uAC00 \uC720\uBC1C\uD558\uB294 \uCE68\uC2DD\uC5D0
-    \uC800\uD56D\uD558\uB294 \uCCB4\uACC4\uB97C \uC5F0\uAD6C\uD569\uB2C8\uB2E4. \uC9C1\uC6D0\uC758
-    \uCE68\uC2DD \uD53C\uD574\uAC00 \uD06C\uAC8C \uAC10\uC18C\uD569\uB2C8\uB2E4."
+  description: "\uC81C\uB189\uC2A4 \xB7 \uCE68\uC2DD \uC800\uD56D\uC744 \uD06C\uAC8C
+    \uAC15\uD654\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - xenops_ecology
-  resourceCosts: []
+  resourceCosts:
+  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
+    amount: 3
   researchPointCost: 150
   unlockEffects:
   - {fileID: 11400000, guid: eb84914ac72827f478592726805115d0, type: 2}

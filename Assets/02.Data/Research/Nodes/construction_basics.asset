@@ -13,14 +13,16 @@ MonoBehaviour:
   m_Name: construction_basics
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: construction_basics
-  nodeName: "\uAC74\uC124 \uAE30\uCD08"
-  description: "\uD6A8\uC728\uC801\uC778 \uAC74\uC124 \uACF5\uBC95\uC744 \uC5F0\uAD6C\uD569\uB2C8\uB2E4.
-    \uAC74\uC124 \uC18D\uB3C4\uAC00 \uD5A5\uC0C1\uB429\uB2C8\uB2E4."
+  nodeName: "\uAE30\uCD08 \uAC74\uCD95"
+  description: "\uC548\uC815\uC131 \xB7 \uAE30\uBCF8 \uAD6C\uC870\uBB3C \uAC74\uC124
+    \uAE30\uC220."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - research_basics
-  resourceCosts: []
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
+    amount: 20
   researchPointCost: 80
   unlockEffects:
   - {fileID: 11400000, guid: e396ff8e08d9f1346a340660821e3221, type: 2}
-  treePosition: {x: -1, y: -1}
+  treePosition: {x: -3, y: -1}

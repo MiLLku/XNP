@@ -14,13 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: survival_basics
   nodeName: "\uC0DD\uC874 \uAE30\uCD08"
-  description: "\uADF9\uD55C \uD658\uACBD\uC5D0\uC11C \uC9C1\uC6D0\uC774 \uC0DD\uC874\uD560
-    \uC218 \uC788\uB294 \uAE30\uCD08 \uC9C0\uC2DD\uC744 \uC5F0\uAD6C\uD569\uB2C8\uB2E4."
+  description: "\uC131\uC7A5 \xB7 \uC9C1\uC6D0 \uCD5C\uB300 \uCCB4\uB825 \uC99D\uAC00."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - research_basics
-  resourceCosts: []
+  resourceCosts:
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 15
   researchPointCost: 80
   unlockEffects:
   - {fileID: 11400000, guid: 4b3e098f658ec8e49a6bcba9adf96ed9, type: 2}
-  treePosition: {x: -4, y: -1}
+  treePosition: {x: 2, y: -1}

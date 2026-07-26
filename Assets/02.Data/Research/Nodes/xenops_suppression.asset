@@ -13,14 +13,15 @@ MonoBehaviour:
   m_Name: xenops_suppression
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: xenops_suppression
-  nodeName: "\uC81C\uB178\uD504\uC2A4 \uC5B5\uC81C"
-  description: "\uC81C\uB178\uD504\uC2A4\uB97C \uD6A8\uACFC\uC801\uC73C\uB85C \uC81C\uC555\uD558\uB294
-    \uAE30\uC220\uC744 \uC5F0\uAD6C\uD569\uB2C8\uB2E4. \uC9C1\uC6D0\uC758 \uC804\uD22C\uB825\uC774
+  nodeName: "\uC81C\uB189\uC2A4 \uC5B5\uC81C"
+  description: "\uC81C\uB189\uC2A4 \xB7 \uC81C\uC555 \uD6A8\uC728\uACFC \uC804\uD22C\uB825\uC774
     \uD5A5\uC0C1\uB429\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - xenops_ecology
-  resourceCosts: []
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+    amount: 5
   researchPointCost: 180
   unlockEffects:
   - {fileID: 11400000, guid: 719a96f4ba1d3714495a72a4e0f217b3, type: 2}

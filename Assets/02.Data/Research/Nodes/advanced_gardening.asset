@@ -13,15 +13,16 @@ MonoBehaviour:
   m_Name: advanced_gardening
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: advanced_gardening
-  nodeName: "\uACE0\uAE09 \uC6D0\uC608\uC220"
-  description: "\uC2DD\uBB3C \uC7AC\uBC30 \uD658\uACBD\uC744 \uCD5C\uC801\uD654\uD558\uB294
-    \uACE0\uAE09 \uAE30\uC220\uC744 \uC5F0\uAD6C\uD569\uB2C8\uB2E4. \uC218\uD655\uB7C9\uC774
-    \uD06C\uAC8C \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  nodeName: "\uACE0\uAE09 \uC6D0\uC608"
+  description: "\uD6A8\uC728 \xB7 \uBC8C\uBAA9\xB7\uC218\uD655 \uC18D\uB3C4 \uB300\uD3ED
+    \uD5A5\uC0C1."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - harvest_opt
-  resourceCosts: []
+  resourceCosts:
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 30
   researchPointCost: 150
   unlockEffects:
   - {fileID: 11400000, guid: 383dcbe4c0e761d40bb63f857fdda95f, type: 2}
-  treePosition: {x: -5, y: -3}
+  treePosition: {x: 0, y: -3}

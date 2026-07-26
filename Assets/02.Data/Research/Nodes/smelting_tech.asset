@@ -14,13 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: smelting_tech
   nodeName: "\uC81C\uB828 \uAE30\uC220"
-  description: "\uACE0\uC628 \uC81C\uB828 \uACF5\uC815\uC744 \uC5F0\uAD6C\uD569\uB2C8\uB2E4.
-    \uC81C\uC791 \uC18D\uB3C4 \uD5A5\uC0C1 \uBC0F \uACE0\uAE09 \uC81C\uB828 \uB808\uC2DC\uD53C\uAC00
-    \uD574\uAE08\uB429\uB2C8\uB2E4."
+  description: "\uD6A8\uC728 \xB7 \uC81C\uB828\uC18C\uC640 \uC8FC\uAD34 4\uC885 \uC81C\uC791\uBC95\uC744
+    \uD574\uAE08\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - crafting_basics
-  resourceCosts: []
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 3066b6303fe3824458224f0a49daf3c3, type: 2}
+    amount: 10
+  - item: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
+    amount: 5
   researchPointCost: 120
   unlockEffects:
   - {fileID: 11400000, guid: 07274a0b850bdcc43938071b778c22e5, type: 2}
@@ -28,4 +31,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 63aa9ab37715f374a9fa4f8b3e5b5515, type: 2}
   - {fileID: 11400000, guid: 4633d48867aa30a4d89a8a0d47f7cc37, type: 2}
   - {fileID: 11400000, guid: 0e26d8f27522d334092c9f310237c620, type: 2}
-  treePosition: {x: 1, y: -2}
+  treePosition: {x: -1, y: -2}

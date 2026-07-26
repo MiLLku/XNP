@@ -13,4 +13,4 @@ MonoBehaviour:
   m_Name: fx_maxhealth_1
   m_EditorClassIdentifier: Assembly-CSharp::ResearchStatBonusEffect
   statType: 4
-  bonusValue: 10
+  bonusValue: 0.1

@@ -10,21 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
-  m_Name: node_equipment_crafting
+  m_Name: combat_training
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
-  nodeId: equipment_crafting
-  nodeName: "\uC7A5\uBE44 \uC81C\uC791"
-  description: "\uC548\uC815\uC131 \xB7 \uBB34\uAE30\uC640 \uBC29\uC5B4\uAD6C \uC81C\uC791\uBC95\uC744
-    \uD574\uAE08\uD569\uB2C8\uB2E4."
+  nodeId: combat_training
+  nodeName: "\uC804\uD22C \uD6C8\uB828"
+  description: "\uC131\uC7A5 \xB7 \uC9C1\uC6D0 \uACF5\uACA9\uB825\uACFC \uCD5C\uB300
+    \uCCB4\uB825\uC774 \uD568\uAED8 \uC99D\uAC00\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
-  - construction_basics
+  - field_medicine
   resourceCosts:
   - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
     amount: 3
-  researchPointCost: 150
+  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
+    amount: 1
+  researchPointCost: 180
   unlockEffects:
-  - {fileID: 11400000, guid: e4137444605777448abed028b5c5d606, type: 2}
-  - {fileID: 11400000, guid: a42b1ffa3916b9d4c99df5a88e8f15f4, type: 2}
-  - {fileID: 11400000, guid: 6fc1c8aa81938fd4eab0f6fadb04db2f, type: 2}
-  treePosition: {x: -2, y: -2}
+  - {fileID: 11400000, guid: 30cf2a9b03a31e449a57a2f6b1b0f01a, type: 2}
+  - {fileID: 11400000, guid: d467983e3be4066448f42dc1f4836067, type: 2}
+  treePosition: {x: 2, y: -3}

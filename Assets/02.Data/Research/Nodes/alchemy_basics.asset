@@ -13,14 +13,18 @@ MonoBehaviour:
   m_Name: alchemy_basics
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: alchemy_basics
-  nodeName: "\uC5F0\uAE08\uC220 \uAE30\uCD08"
-  description: "\uC774\uC9C8\uC801\uC778 \uBB3C\uC9C8\uC758 \uD63C\uD569\uACFC \uBC18\uC751\uC744
-    \uC5F0\uAD6C\uD569\uB2C8\uB2E4. \uC5F0\uAE08\uC220 \uC791\uC5C5\uB300 \uB808\uC2DC\uD53C\uAC00
-    \uD574\uAE08\uB429\uB2C8\uB2E4."
+  nodeName: "\uC57D\uD559 \uAE30\uCD08"
+  description: "\uC131\uC7A5 \xB7 \uC57D\uBB3C \uC870\uC81C \uC9C0\uC2DD\uC73C\uB85C
+    \uCE68\uC2DD\uC5D0 \uC800\uD56D\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
-  - crafting_basics
-  resourceCosts: []
+  - survival_basics
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 0ddfcc2aed7aa6c46a16d83f43f46539, type: 2}
+    amount: 2
+  - item: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
+    amount: 5
   researchPointCost: 150
-  unlockEffects: []
+  unlockEffects:
+  - {fileID: 11400000, guid: 7232efc4c8f5df649807815f6c369ebc, type: 2}
   treePosition: {x: 3, y: -2}

@@ -43,7 +43,11 @@ public class MiningOrder : IWorkTarget
     public WorkType GetWorkType() => WorkType.Mining;
 
     /// <inheritdoc/>
-    public float GetWorkTime() => MINING_WORK_TIME;
+    /// <remarks>
+    /// 기본 시간 × 타일 경도. 깊은 층 광물일수록 오래 걸리며, 이것이 '깊이 게이트'의 본체다.
+    /// 상쇄 수단: 직원 채광 스킬(WorkAbilities.miningSpeed) + 연구 MiningSpeedBonus.
+    /// </remarks>
+    public float GetWorkTime() => MINING_WORK_TIME * TileHardness.Get(tileID);
 
     /// <inheritdoc/>
     public bool IsWorkAvailable() => !completed;

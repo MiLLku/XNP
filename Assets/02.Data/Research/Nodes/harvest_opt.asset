@@ -13,14 +13,15 @@ MonoBehaviour:
   m_Name: harvest_opt
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: harvest_opt
-  nodeName: "\uCC44\uC9D1 \uCD5C\uC801\uD654"
-  description: "\uC2DD\uBB3C \uCC44\uC9D1 \uD6A8\uC728\uC744 \uB192\uC774\uB294 \uAE30\uC220\uC744
-    \uC5F0\uAD6C\uD569\uB2C8\uB2E4. \uC218\uD655\uB7C9\uC774 \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  nodeName: "\uC218\uD655 \uCD5C\uC801\uD654"
+  description: "\uD6A8\uC728 \xB7 \uBC8C\uBAA9\xB7\uC218\uD655 \uC18D\uB3C4 \uD5A5\uC0C1."
   icon: {fileID: 0}
   prerequisiteNodeIds:
-  - survival_basics
-  resourceCosts: []
+  - crafting_basics
+  resourceCosts:
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 15
   researchPointCost: 120
   unlockEffects:
   - {fileID: 11400000, guid: 6037fa91073932743a4747dfa270a136, type: 2}
-  treePosition: {x: -5, y: -2}
+  treePosition: {x: 0, y: -2}

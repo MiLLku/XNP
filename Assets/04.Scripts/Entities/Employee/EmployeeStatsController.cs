@@ -299,6 +299,15 @@ public class EmployeeStatsController : MonoBehaviour
         cachedErosionIgnoreBonus       = 0f;
         cachedSkillGainRateModifier    = 1f;
 
+        // 연구 침식 저항 — 모든 침식 경로(오라·자연·피격)에 일괄 적용된다.
+        // '제놉스 관리' 연구 라인이 여기서 실효를 갖는다. 0.9 하한으로 완전 무효화는 막는다.
+        var researchTree = ResearchTreeManager.instance;
+        if (researchTree != null)
+        {
+            float resist = researchTree.GetStatBonus(ResearchStatType.ErosionResistanceBonus);
+            cachedErosionDamageMult *= Mathf.Clamp(1f - resist, 0.1f, 1f);
+        }
+
         // EmployeeData 내장 특성
         if (data?.traits != null)
         {
@@ -527,9 +536,15 @@ public class EmployeeStatsController : MonoBehaviour
         EmployeeData data = employee?.Data;
         if (data == null) return;
 
-        float baseMaxHealth = data.maxHealth * cachedHealthMult;
+        // 연구 전역 보너스(비율) — '직원 성장' 연구 라인이 여기서 실효를 갖는다
+        var rt = ResearchTreeManager.instance;
+        float researchHealthBonus = rt != null ? rt.GetStatBonus(ResearchStatType.EmployeeMaxHealthBonus) : 0f;
+        float researchAttackBonus = rt != null ? rt.GetStatBonus(ResearchStatType.EmployeeAttackPowerBonus) : 0f;
+
+        float baseMaxHealth = data.maxHealth * cachedHealthMult * (1f + researchHealthBonus);
         float baseMaxMental = data.maxMental * cachedMentalMult;
-        int baseAttack = Mathf.RoundToInt(data.attackPower * (1f + GetTraitAttackModifier(data)));
+        int baseAttack = Mathf.RoundToInt(
+            data.attackPower * (1f + GetTraitAttackModifier(data)) * (1f + researchAttackBonus));
 
         // 장비 절대값 보정 합산
         float equipHealthMod = 0f;

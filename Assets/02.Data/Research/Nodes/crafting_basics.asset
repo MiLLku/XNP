@@ -14,13 +14,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: crafting_basics
   nodeName: "\uC81C\uC791 \uAE30\uCD08"
-  description: "\uC81C\uC791 \uACF5\uC815\uC744 \uCD5C\uC801\uD654\uD558\uB294 \uAE30\uCD08
-    \uAE30\uC220\uC744 \uC5F0\uAD6C\uD569\uB2C8\uB2E4."
+  description: "\uD6A8\uC728 \xB7 \uC791\uC5C5\uB300 \uC81C\uC791 \uC18D\uB3C4 \uD5A5\uC0C1."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - research_basics
-  resourceCosts: []
+  resourceCosts:
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 20
   researchPointCost: 80
   unlockEffects:
   - {fileID: 11400000, guid: 82c17289fab5d674aaaa11a3485f37f6, type: 2}
-  treePosition: {x: 2, y: -1}
+  treePosition: {x: -1, y: -1}

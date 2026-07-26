@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
-  m_Name: node_equipment_crafting
+  m_Name: excavation_tech
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
-  nodeId: equipment_crafting
-  nodeName: "\uC7A5\uBE44 \uC81C\uC791"
-  description: "\uC548\uC815\uC131 \xB7 \uBB34\uAE30\uC640 \uBC29\uC5B4\uAD6C \uC81C\uC791\uBC95\uC744
-    \uD574\uAE08\uD569\uB2C8\uB2E4."
+  nodeId: excavation_tech
+  nodeName: "\uAD74\uC0AD \uAE30\uC220"
+  description: "\uD6A8\uC728 \xB7 \uCC44\uAD11 \uC18D\uB3C4 +25%. \uAE4A\uC740 \uCE35\uC758
+    \uB192\uC740 \uACBD\uB3C4\uB97C \uC0C1\uC1C4\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
-  - construction_basics
+  - smelting_tech
   resourceCosts:
   - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
-    amount: 3
-  researchPointCost: 150
+    amount: 5
+  - item: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
+    amount: 10
+  researchPointCost: 180
   unlockEffects:
-  - {fileID: 11400000, guid: e4137444605777448abed028b5c5d606, type: 2}
-  - {fileID: 11400000, guid: a42b1ffa3916b9d4c99df5a88e8f15f4, type: 2}
-  - {fileID: 11400000, guid: 6fc1c8aa81938fd4eab0f6fadb04db2f, type: 2}
-  treePosition: {x: -2, y: -2}
+  - {fileID: 11400000, guid: c3180de3b6f14ff48aeb2e7978b8b3a7, type: 2}
+  treePosition: {x: -1, y: -3}

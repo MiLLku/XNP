@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3aa5b54650c35d9409d5aadd9df1e899, type: 3}
   m_Name: fx_harvest_1
   m_EditorClassIdentifier: Assembly-CSharp::ResearchStatBonusEffect
-  statType: 3
-  bonusValue: 0.2
+  statType: 8
+  bonusValue: 0.15

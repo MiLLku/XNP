@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: research_basics
   nodeName: "\uC5F0\uAD6C \uBC29\uBC95\uB860 \uAE30\uCD08"
-  description: "\uC5F0\uAD6C\uC758 \uCCB4\uACC4\uC801 \uC811\uADFC\uBC95\uC744 \uC815\uB9BD\uD569\uB2C8\uB2E4.
-    \uBAA8\uB4E0 \uC5F0\uAD6C\uC758 \uC2DC\uC791\uC810."
+  description: "\uBAA8\uB4E0 \uC5F0\uAD6C\uC758 \uCD9C\uBC1C\uC810. \uC5F0\uAD6C
+    \uC18D\uB3C4\uAC00 \uD5A5\uC0C1\uB429\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds: []
   resourceCosts: []
   researchPointCost: 50
   unlockEffects:
   - {fileID: 11400000, guid: b719ace4648fc804ba50d48469b76554, type: 2}
-  treePosition: {x: 0, y: 0}
+  treePosition: {x: 1, y: 0}

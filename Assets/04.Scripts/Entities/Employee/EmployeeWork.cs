@@ -298,8 +298,34 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         float mentalModifier = mental != null ? mental.GetActiveSpeedModifier() : 1f;
         float erosionModifier = erosionController != null ? erosionController.WorkSpeedModifier : 1f;
         float funModifier = statsController != null ? statsController.GetFunWorkModifier() : 1f;
+        float researchModifier = 1f + GetResearchWorkSpeedBonus(type);
 
-        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * funModifier;
+        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * funModifier * researchModifier;
+    }
+
+    /// <summary>
+    /// 작업 종류에 해당하는 연구 속도 보너스(비율)를 반환합니다.
+    /// 연구 노드의 ResearchStatBonusEffect가 여기서 실제 효과를 갖습니다.
+    /// </summary>
+    private float GetResearchWorkSpeedBonus(WorkType type)
+    {
+        var rt = ResearchTreeManager.instance;
+        if (rt == null) return 0f;
+
+        switch (type)
+        {
+            case WorkType.Mining:
+                return rt.GetStatBonus(ResearchStatType.MiningSpeedBonus);
+            case WorkType.Building:
+                return rt.GetStatBonus(ResearchStatType.ConstructionSpeedBonus);
+            case WorkType.Crafting:
+                return rt.GetStatBonus(ResearchStatType.CraftingSpeedBonus);
+            case WorkType.Chopping:
+            case WorkType.Gardening:
+                return rt.GetStatBonus(ResearchStatType.HarvestSpeedBonus);
+            default:
+                return 0f;
+        }
     }
 
 /// <summary>

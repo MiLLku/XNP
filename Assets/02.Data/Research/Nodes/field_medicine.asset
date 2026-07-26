@@ -14,15 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: field_medicine
   nodeName: "\uC57C\uC804 \uC758\uD559"
-  description: "\uC804\uC7A5 \uD658\uACBD\uC5D0\uC11C \uC9C1\uC6D0\uC758 \uCCB4\uB825\uC744
-    \uC720\uC9C0\uD558\uB294 \uC758\uC220\uC744 \uC5F0\uAD6C\uD569\uB2C8\uB2E4. \uCD5C\uB300
-    \uCCB4\uB825 \uBC0F \uCE68\uC2DD \uC800\uD56D\uC774 \uD5A5\uC0C1\uB429\uB2C8\uB2E4."
+  description: "\uC131\uC7A5 \xB7 \uCD5C\uB300 \uCCB4\uB825 \uC99D\uAC00\uC640 \uCE68\uC2DD
+    \uC644\uD654."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - survival_basics
-  resourceCosts: []
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 0ddfcc2aed7aa6c46a16d83f43f46539, type: 2}
+    amount: 3
   researchPointCost: 100
   unlockEffects:
   - {fileID: 11400000, guid: fddc8ba5cab431c4eaf739c24fd37e25, type: 2}
   - {fileID: 11400000, guid: f6f038e72cf0c7e4ba8c49c21291cd25, type: 2}
-  treePosition: {x: -3, y: -2}
+  treePosition: {x: 2, y: -2}

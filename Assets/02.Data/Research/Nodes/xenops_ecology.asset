@@ -13,14 +13,15 @@ MonoBehaviour:
   m_Name: xenops_ecology
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: xenops_ecology
-  nodeName: "\uC81C\uB178\uD504\uC2A4 \uC0DD\uD0DC\uD559"
-  description: "\uC81C\uB178\uD504\uC2A4\uC758 \uC0DD\uD0DC\uC640 \uD2B9\uC131\uC744
-    \uCCB4\uACC4\uC801\uC73C\uB85C \uC5F0\uAD6C\uD569\uB2C8\uB2E4. \uCE68\uC2DD \uD53C\uD574\uC5D0
-    \uB300\uD55C \uAE30\uCD08 \uC800\uD56D\uB825\uC774 \uC0DD\uAE41\uB2C8\uB2E4."
+  nodeName: "\uC81C\uB189\uC2A4 \uC0DD\uD0DC\uD559"
+  description: "\uC81C\uB189\uC2A4 \xB7 \uC0DD\uD0DC \uC774\uD574\uB85C \uCE68\uC2DD
+    \uD53C\uD574\uB97C \uC904\uC785\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - research_basics
-  resourceCosts: []
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 3066b6303fe3824458224f0a49daf3c3, type: 2}
+    amount: 5
   researchPointCost: 120
   unlockEffects:
   - {fileID: 11400000, guid: fca2c6135a795a34ab8f971361c538ae, type: 2}
