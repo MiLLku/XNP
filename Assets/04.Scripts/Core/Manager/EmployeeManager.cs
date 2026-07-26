@@ -49,6 +49,9 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     [Tooltip("전투 태세 기준값. 미할당 시 코드 기본값으로 동작")]
     [SerializeField] private CombatConfig combatConfig;
 
+    [Tooltip("전 직원이 공유하는 스킬 트리 구성. 직원 스폰 시 EmployeeSkillState에 주입됩니다.")]
+    [SerializeField] private SkillTreeConfig skillTreeConfig;
+
     #endregion
 
     #region 이벤트
@@ -78,6 +81,9 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     /// <summary>전투 태세 기준값 (EmployeeCombat에서 참조, null 허용)</summary>
     public CombatConfig CombatConfig => combatConfig;
+
+    /// <summary>전 직원 공용 스킬 트리 구성</summary>
+    public SkillTreeConfig SkillTreeConfig => skillTreeConfig;
 
     #endregion
 

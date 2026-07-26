@@ -21,12 +21,17 @@ public class EmployeeSkillState : MonoBehaviour
     [Tooltip("현재 해제된 스킬 ID 목록. 인스펙터에서 편집하여 프리팹별 기본 스킬 지정")]
     [SerializeField] private List<int> unlockedSkillIds = new List<int>();
 
+    [Header("스킬 포인트")]
+    [Tooltip("이 직원이 기본으로 갖는 스킬 포인트(고정값). 전역 해금 보너스가 여기에 더해집니다.")]
+    [SerializeField] private int baseSkillPoints = 2;
+
     #endregion
 
     #region 내부 참조
 
     private EmployeeWork _work;
     private EmployeeStatsController _statsController;
+    private EmployeeGrowth _growth;
 
     #endregion
 
@@ -36,6 +41,16 @@ public class EmployeeSkillState : MonoBehaviour
     {
         _work = GetComponent<EmployeeWork>();
         _statsController = GetComponent<EmployeeStatsController>();
+        _growth = GetComponent<EmployeeGrowth>();
+
+        // 프리팹에 미할당이면 매니저의 공용 구성을 주입한다.
+        // (직원 프리팹에 컴포넌트를 일일이 붙이지 않아도 스킬 시스템이 동작하도록)
+        if (config == null && EmployeeManager.instance != null)
+            config = EmployeeManager.instance.SkillTreeConfig;
+
+        // Awake에서 즉시 적용한다. Start까지 미루면 스폰 직후 한 프레임 동안
+        // 기본 스킬이 없는 상태가 되어 채광 자격 판정이 틀린다.
+        ApplyDefaultUnlocks();
     }
 
     private void Start()
@@ -95,8 +110,48 @@ public class EmployeeSkillState : MonoBehaviour
             if (!IsUnlocked(prereqId)) return false;
         }
 
+        if (GetAptitudeLevel(skill.category) < skill.requiredAptitudeLevel) return false;
+        if (RemainingSkillPoints < skill.pointCost) return false;
+
         return true;
     }
+
+    #endregion
+
+    #region 적성 · 스킬 포인트
+
+    /// <summary>스킬 카테고리에 대응하는 작업 적성 레벨. General은 항상 최대치로 취급.</summary>
+    public int GetAptitudeLevel(SkillCategory category)
+    {
+        if (category == SkillCategory.General) return WorkAptitude.MAX_LEVEL;
+        WorkType? mapped = CategoryToWorkType(category);
+        if (!mapped.HasValue || _growth == null) return 1;
+        return _growth.GetAptitudeLevel(mapped.Value);
+    }
+
+    /// <summary>사용 가능한 총 스킬 포인트 = 직원 고정값 + 전역 해금 보너스.</summary>
+    public int TotalSkillPoints
+        => baseSkillPoints + (SkillPointManager.instance != null ? SkillPointManager.instance.GlobalBonusPoints : 0);
+
+    /// <summary>이미 사용한 스킬 포인트 (해제된 스킬들의 pointCost 합).</summary>
+    public int UsedSkillPoints
+    {
+        get
+        {
+            if (config == null) return 0;
+            int sum = 0;
+            foreach (int id in unlockedSkillIds)
+            {
+                var s = config.GetSkill(id);
+                // 기본 해제 스킬(defaultUnlocked)은 포인트를 소모하지 않는다
+                if (s != null && !s.defaultUnlocked) sum += s.pointCost;
+            }
+            return sum;
+        }
+    }
+
+    /// <summary>남은 스킬 포인트</summary>
+    public int RemainingSkillPoints => Mathf.Max(0, TotalSkillPoints - UsedSkillPoints);
 
     /// <summary>
     /// 해제를 막는 이유를 문자열로 반환합니다 (UI 툴팁용).
@@ -121,6 +176,13 @@ public class EmployeeSkillState : MonoBehaviour
                 }
             }
         }
+
+        int aptitude = GetAptitudeLevel(skill.category);
+        if (aptitude < skill.requiredAptitudeLevel)
+            return $"{skill.category} 적성 Lv.{skill.requiredAptitudeLevel} 필요 (현재 Lv.{aptitude})";
+
+        if (RemainingSkillPoints < skill.pointCost)
+            return $"스킬 포인트 부족 ({skill.pointCost} 필요 / 남은 {RemainingSkillPoints})";
 
         return null;
     }

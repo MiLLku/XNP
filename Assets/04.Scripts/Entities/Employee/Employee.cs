@@ -66,6 +66,7 @@ public class Employee : MonoBehaviour
     private EmployeeSchedule schedule;
     private EmployeeDraft draft;
     private EmployeeCombat combat;
+    private EmployeeSkillState skillState;
     private EmployeeZoneAssignment zoneAssignment;
     private SpriteRenderer spriteRenderer;
 
@@ -205,6 +206,9 @@ public class Employee : MonoBehaviour
         draft = GetComponent<EmployeeDraft>() ?? gameObject.AddComponent<EmployeeDraft>();
         combat = GetComponent<EmployeeCombat>() ?? gameObject.AddComponent<EmployeeCombat>();
         zoneAssignment = GetComponent<EmployeeZoneAssignment>() ?? gameObject.AddComponent<EmployeeZoneAssignment>();
+
+        // 스킬 상태 — 채광 자격 게이트가 이 컴포넌트를 참조하므로 항상 존재해야 한다
+        skillState = GetComponent<EmployeeSkillState>() ?? gameObject.AddComponent<EmployeeSkillState>();
     }
 
     void Start()
@@ -528,6 +532,9 @@ public class Employee : MonoBehaviour
 
     /// <summary>전투 컴포넌트 참조 (적 타겟 선정 어그로 등에서 사용)</summary>
     public EmployeeCombat Combat => combat;
+
+    /// <summary>스킬 상태 참조 (채광 자격 게이트 등에서 사용)</summary>
+    public EmployeeSkillState Skills => skillState;
 
     #endregion
 

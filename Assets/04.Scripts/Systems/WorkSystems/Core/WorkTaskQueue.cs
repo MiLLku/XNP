@@ -102,7 +102,7 @@ public class WorkTaskQueue
 
         // nextRetryTime이 지나지 않은 태스크는 재시도 대상에서 제외 (도달불가 타일 무한재시도 방지)
         // CanBeAssigned: IsValid(영구 무효 아님) + IsWorkAvailable(일시 조건 만족)
-        var validTasks = pendingTasks.Where(t => t.CanBeAssigned() && Time.time >= t.nextRetryTime).ToList();
+        var validTasks = pendingTasks.Where(t => t.CanBeAssignedTo(worker) && Time.time >= t.nextRetryTime).ToList();
 
         if (validTasks.Count == 0)
             return null;
@@ -138,7 +138,7 @@ public class WorkTaskQueue
         if (worker == null || pendingTasks.Count == 0)
             return null;
 
-        var validTasks = pendingTasks.Where(t => t.CanBeAssigned() && Time.time >= t.nextRetryTime).ToList();
+        var validTasks = pendingTasks.Where(t => t.CanBeAssignedTo(worker) && Time.time >= t.nextRetryTime).ToList();
 
         if (validTasks.Count == 0)
             return null;

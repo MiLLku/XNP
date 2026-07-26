@@ -478,6 +478,14 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     {
         Debug.Log($"[Interaction] OnBuildingClicked 호출됨: {building.gameObject.name}");
 
+        // 훈련소: 클릭 시 스킬 포인트 상한 확장 시도
+        var trainingHall = building.GetComponent<TrainingHall>();
+        if (trainingHall != null)
+        {
+            trainingHall.TryUpgrade();
+            return;
+        }
+
         // 직원 채용 건물 처리
         HiringOffice hiringOffice = building.GetComponent<HiringOffice>();
         if (hiringOffice != null)

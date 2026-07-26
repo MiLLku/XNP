@@ -247,6 +247,19 @@ public class WorkTask
     }
 
     /// <summary>
+    /// 특정 직원이 이 작업을 맡을 자격이 있는지 확인합니다.
+    /// 현재는 채광 스킬 게이트만 검사합니다 — 필요 스킬이 없는 직원은
+    /// 해당 광물 타일 작업을 배정받지 못하고, 자격 있는 다른 직원이 가져갑니다.
+    /// </summary>
+    public bool CanBeAssignedTo(Employee worker)
+    {
+        if (!CanBeAssigned()) return false;
+        if (target is MiningOrder mining)
+            return MiningSkillGate.CanMine(worker, mining.tileID);
+        return true;
+    }
+
+    /// <summary>
     /// 작업 위치를 반환합니다.
     /// </summary>
     /// <returns>작업 대상의 월드 좌표</returns>

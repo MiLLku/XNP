@@ -36,6 +36,16 @@ public class SkillData : ScriptableObject
     [Tooltip("이 스킬을 해제하기 위해 먼저 해제되어야 하는 스킬 ID 목록")]
     public List<int> prerequisiteSkillIds = new List<int>();
 
+    [Header("해금 조건")]
+    [Tooltip("필요한 작업 적성 레벨. category에 대응하는 작업을 그만큼 숙련해야 찍을 수 있습니다.\n" +
+             "1이면 조건 없음. General 카테고리는 적성 검사를 하지 않습니다.")]
+    [Range(1, WorkAptitude.MAX_LEVEL)]
+    public int requiredAptitudeLevel = 1;
+
+    [Tooltip("해제에 소모되는 스킬 포인트. 직원의 남은 포인트가 이 값 이상이어야 합니다.")]
+    [Min(0)]
+    public int pointCost = 1;
+
     [Header("프리팹 기본값")]
     [Tooltip("true이면 직원 프리팹 생성/로드 시 자동으로 해제된 상태로 시작합니다")]
     public bool defaultUnlocked = false;

@@ -7,7 +7,7 @@ using UnityEngine;
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 6;
+    public const int CURRENT_VERSION = 7;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -44,6 +44,9 @@ public static class SaveMigration
                     break;
                 case 5:
                     data = MigrateV5ToV6(data);
+                    break;
+                case 6:
+                    data = MigrateV6ToV7(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -224,6 +227,31 @@ public static class SaveMigration
         }
 
         data.saveVersion = 6;
+        return data;
+    }
+
+    /// <summary>
+    /// v6 → v7 마이그레이션
+    /// 작업 적성·스킬 포인트 추가. 구 세이브에는 적성 기록이 없으므로 빈 목록(전부 Lv.1)으로 두고,
+    /// 스킬 포인트 확장 단계도 0(미해금)에서 시작한다.
+    /// 이미 해제돼 있던 스킬은 그대로 유지되며 포인트를 소급 차감하지 않는다.
+    /// </summary>
+    private static SaveData MigrateV6ToV7(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v6 → v7 마이그레이션 시작 (작업 적성·스킬 포인트)...");
+
+        if (data.employees != null)
+        {
+            foreach (var employee in data.employees)
+            {
+                if (employee.workAptitudes == null)
+                    employee.workAptitudes = new System.Collections.Generic.List<WorkAptitude.Entry>();
+            }
+        }
+
+        data.skillPointTierCount = 0;
+
+        data.saveVersion = 7;
         return data;
     }
 

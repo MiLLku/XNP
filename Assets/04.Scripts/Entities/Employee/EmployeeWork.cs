@@ -1416,6 +1416,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             yield return null;
         }
 
+        // 작업 적성 경험치 — 해당 작업을 실제로 끝냈을 때만 지급된다(스킬 해금 조건).
+        // 오래 걸리는 작업일수록 많이 주도록 소요 시간에 비례시킨다.
+        growth?.GainWorkExperience(target.GetWorkType(), Mathf.Max(1, Mathf.RoundToInt(workTime)));
+
         // 주의: target.CompleteWork(부수효과)는 여기서 직접 호출하지 않는다.
         // CompleteWork() → WSM.OnWorkerCompletedTarget → order.CompleteTask → WorkTask.Complete가
         // 단일 호출 지점이다. (과거 직접 호출+체인 호출의 이중 실행으로 벌목 이중드롭·철거 자원

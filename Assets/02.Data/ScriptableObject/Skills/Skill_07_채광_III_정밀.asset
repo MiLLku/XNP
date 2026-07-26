@@ -14,10 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SkillData
   skillId: 7
   skillName: "\uCC44\uAD11 III: \uC815\uBC00"
-  description: "\uAD11\uC11D \uC218\uC728\uC744 \uCD5C\uB300\uD654\uD558\uB294 \uC815\uBC00
-    \uCC44\uAD11 \uAE30\uBC95."
+  description: "\uAE08\xB7\uC218\uC815 \uB4F1 \uC2EC\uCE35 \uAD11\uBB3C\uC744 \uCE98
+    \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uCC44\uAD11 \uC801\uC131 Lv.6 \uD544\uC694."
   icon: {fileID: 0}
   category: 1
   treePosition: {x: -6.5, y: 1}
   prerequisiteSkillIds: 06000000
+  requiredAptitudeLevel: 6
+  pointCost: 2
   defaultUnlocked: 0
+  grantedTrait: {fileID: 0}

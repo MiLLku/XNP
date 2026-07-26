@@ -29,6 +29,10 @@ public class EmployeeGrowth : MonoBehaviour
     [Tooltip("레벨업으로 누적된 운반 용량 보너스 (5레벨마다 +1)")]
     [SerializeField] private int carryCapacityBonus = 0;
 
+    [Header("작업 적성 (작업별 숙련)")]
+    [Tooltip("해당 작업을 수행해야만 오르는 작업별 레벨. 스킬 해금 조건으로 사용됩니다.")]
+    [SerializeField] private WorkAptitude aptitude = new WorkAptitude();
+
     /// <summary>코디네이터 참조</summary>
     private Employee employee;
 
@@ -44,6 +48,9 @@ public class EmployeeGrowth : MonoBehaviour
 
     public delegate void LevelUpDelegate(int newLevel);
     public event LevelUpDelegate OnLevelUp;
+
+    /// <summary>작업 적성이 레벨업했을 때 발생 (작업 종류, 새 레벨)</summary>
+    public event Action<WorkType, int> OnAptitudeLevelUp;
 
     #endregion
 
@@ -158,6 +165,7 @@ public void PopulateSaveData(EmployeeSaveData data)
         data.experience = experience;
         data.experienceToNextLevel = experienceToNextLevel;
         data.carryCapacityBonus = carryCapacityBonus;
+        data.workAptitudes = new System.Collections.Generic.List<WorkAptitude.Entry>(aptitude.Entries);
     }
 
     /// <summary>
@@ -170,6 +178,32 @@ public void RestoreFromSaveData(EmployeeSaveData data, bool isUnique)
         experience = data.experience;
         experienceToNextLevel = data.experienceToNextLevel;
         carryCapacityBonus = data.carryCapacityBonus;
+        aptitude.Restore(data.workAptitudes);
+    }
+
+    #endregion
+
+    #region 작업 적성
+
+    /// <summary>작업 적성 데이터 (읽기용)</summary>
+    public WorkAptitude Aptitude => aptitude;
+
+    /// <summary>해당 작업의 적성 레벨.</summary>
+    public int GetAptitudeLevel(WorkType type) => aptitude.GetLevel(type);
+
+    /// <summary>
+    /// 작업 적성 경험치를 획득합니다. 해당 작업을 실제로 수행할 때만 호출됩니다.
+    /// 통합 레벨(GainExperience)과 달리 성장 비활성 직원도 적성은 오릅니다 —
+    /// 적성은 스킬 해금 조건이라 모든 직원에게 필요합니다.
+    /// </summary>
+    public void GainWorkExperience(WorkType type, int amount)
+    {
+        int newLevel = aptitude.GainExperience(type, amount);
+        if (newLevel > 0)
+        {
+            Debug.Log($"[Growth] {employee?.DisplayName} {type} 적성 레벨업! Lv.{newLevel}");
+            OnAptitudeLevelUp?.Invoke(type, newLevel);
+        }
     }
 
     #endregion

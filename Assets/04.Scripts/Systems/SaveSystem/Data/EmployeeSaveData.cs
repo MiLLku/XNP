@@ -184,6 +184,13 @@ public class EmployeeSaveData
 
     #endregion
 
+    #region 작업 적성 · 스킬 포인트
+
+    /// <summary>작업 종류별 적성 레벨·경험치 (스킬 해금 조건)</summary>
+    public List<WorkAptitude.Entry> workAptitudes = new List<WorkAptitude.Entry>();
+
+    #endregion
+
     #region 구역 할당
 
     /// <summary>수면 구역 ID (-1 = 미할당)</summary>

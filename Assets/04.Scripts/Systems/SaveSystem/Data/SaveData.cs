@@ -72,6 +72,9 @@ public class SaveData
     /// <summary>연구 트리 전체 상태 (노드별 상태·진행 중 연구·진행도)</summary>
     public ResearchTreeSaveData researchTree;
 
+    /// <summary>스킬 포인트 상한 확장 해금 단계 수 (v7)</summary>
+    public int skillPointTierCount;
+
     /// <summary>다음 발급할 인스턴스 ID (로드 후 이어서 발급)</summary>
     public int nextInstanceId;
 
