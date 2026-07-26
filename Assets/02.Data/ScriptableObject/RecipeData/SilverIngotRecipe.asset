@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d76e4ac7197bcff49ac7d618b5714882, type: 3}
+  m_Name: SilverIngotRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
+  recipeID: 5105
+  outputItem: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
+  outputAmount: 1
+  requiredMaterials:
+  - item: {fileID: 11400000, guid: 09ce745046665d24b87c78a7fc2e7848, type: 2}
+    amount: 2
+  - item: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
+    amount: 1
+  craftingTime: 12
+  requiresResearch: 1

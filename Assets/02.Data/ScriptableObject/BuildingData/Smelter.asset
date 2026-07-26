@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: Smelter
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 3300
+  buildingName: "\uC81C\uB828\uC18C"
+  icon: {fileID: 0}
+  category: 1
+  description: "\uAD11\uC11D\uACFC \uC11D\uD0C4\uC744 \uB123\uC5B4 \uAE08\uC18D \uC8FC\uAD34\uB97C
+    \uC0DD\uC0B0\uD569\uB2C8\uB2E4."
+  buildingPrefab: {fileID: 7198917510150037189, guid: cdb2331342123d343a87dfc277f8f61b, type: 3}
+  size: {x: 2, y: 2}
+  pivot: {x: 0, y: 0}
+  constructionTime: 40
+  requiredResources:
+  - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
+    amount: 12
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 6
+  maxHealth: 120
+  blocksMovement: 1
+  requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
+  destructionDrops: []
+  paybackRatio: 0.5
+  powerConsumption: 0
+  allowOverlap: 0
