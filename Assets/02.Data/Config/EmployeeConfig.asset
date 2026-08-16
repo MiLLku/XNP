@@ -71,7 +71,11 @@ MonoBehaviour:
   - {r: 1, g: 0.9, b: 0.5, a: 1}
   - {r: 0.6, g: 0.6, b: 0.6, a: 1}
   - {r: 0.8, g: 0.1, b: 0.1, a: 1}
-  traitPool: []
+  traitPool:
+  - {fileID: 11400000, guid: af5c81abf6c4da949be3206a4571dfc6, type: 2}
+  - {fileID: 11400000, guid: ee3bb596ca675114abed6a6e75dfa0fa, type: 2}
+  - {fileID: 11400000, guid: aa0e7ae4cbcfb304096adf7eed5f547b, type: 2}
+  - {fileID: 11400000, guid: dbd3e76953c27c545aa9469afdbc4ccc, type: 2}
   traitCountMin: 0
   traitCountMax: 3
   baseMaxHealth: 100
