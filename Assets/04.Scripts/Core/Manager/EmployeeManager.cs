@@ -52,6 +52,13 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     [Tooltip("전 직원이 공유하는 스킬 트리 구성. 직원 스폰 시 EmployeeSkillState에 주입됩니다.")]
     [SerializeField] private SkillTreeConfig skillTreeConfig;
 
+    [Header("정신 이상 설정")]
+    [Tooltip("정신 이상 임계점·평균 발생 간격(MTB)·침식 계열 가중치. 미할당 시 코드 기본값으로 동작")]
+    [SerializeField] private MentalBreakConfig mentalBreakConfig;
+
+    [Tooltip("정신력 변동 기준값 — 굶주림·탈진 페널티 크기와 일시 효과 지속 시간. 미할당 시 코드 기본값으로 동작")]
+    [SerializeField] private MentalModifierConfig mentalModifierConfig;
+
     #endregion
 
     #region 이벤트
@@ -84,6 +91,12 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     /// <summary>전 직원 공용 스킬 트리 구성</summary>
     public SkillTreeConfig SkillTreeConfig => skillTreeConfig;
+
+    /// <summary>정신 이상 판정 기준값 (EmployeeMental에서 참조, null 허용)</summary>
+    public MentalBreakConfig MentalBreakConfig => mentalBreakConfig;
+
+    /// <summary>정신력 변동 기준값 (EmployeeStatsController에서 참조, null 허용)</summary>
+    public MentalModifierConfig MentalModifierConfig => mentalModifierConfig;
 
     #endregion
 

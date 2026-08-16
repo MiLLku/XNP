@@ -71,9 +71,12 @@ public class HostileErosionAura : MonoBehaviour
                               + (emp.StatsController?.CachedErosionIgnoreBonus ?? 0f);
             if (armorIgnore >= _aoeErosionPerSecond) continue;
 
-            // 침식 수치 누적 (SetErosion은 절댓값 세팅이므로 현재값을 읽어 더함)
-            float newErosion = emp.ErosionLevel + erosionThisTick;
-            emp.SetErosion(newErosion);
+            // 침식 누적 — 개체별로 내역을 구분해 "제놉스 A 오라침식 +7"처럼 보이게 한다
+            var xenops = GetComponent<Xenops>();
+            string sourceKey  = ErosionSource.AuraKey(xenops != null ? xenops.InstanceId : GetInstanceID());
+            string sourceName = $"{(xenops != null ? xenops.DisplayName : "제놉스")} 오라침식";
+
+            emp.ErosionController?.AddErosion(erosionThisTick, sourceKey, sourceName);
 
             // 회복 타이머 리셋: 이 프레임에 오라 노출됨을 알림
             emp.ErosionController?.MarkAuraExposure();

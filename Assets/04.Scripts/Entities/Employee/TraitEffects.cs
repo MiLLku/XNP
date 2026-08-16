@@ -44,6 +44,37 @@ public class TraitEffects
 
     #endregion
 
+    #region 전투 배율 (곱연산)
+
+    // 전투 능력치의 기본값은 '무기'가 갖는다. 특성은 그 값을 배율로 조정한다.
+
+    [Header("전투 배율 (1.0 = 변화 없음)")]
+    [Tooltip("근접 데미지 배율")]
+    public float meleeDamageMult = 1f;
+
+    [Tooltip("원거리 데미지 배율")]
+    public float rangedDamageMult = 1f;
+
+    [Tooltip("명중률 배율 (근접·원거리 공통)")]
+    public float accuracyMult = 1f;
+
+    [Tooltip("공격 간격 배율 — 낮을수록 빠르다 (0.8 = 20% 빠름)")]
+    public float attackIntervalMult = 1f;
+
+    #endregion
+
+    #region 전투 특수 (flat) — 아주 특수한 특성만 사용
+
+    [Header("전투 특수 (flat, 특수 특성 전용)")]
+    [Tooltip("무기 사거리 가감 (타일). 예: +2 = 더 멀리 공격")]
+    public float attackRangeBonus = 0f;
+
+    [Tooltip("방어 관통력 가산 (0~1). 무기 관통력에 더해집니다.")]
+    [Range(0f, 1f)]
+    public float penetrationBonus = 0f;
+
+    #endregion
+
     #region 가산·flat 보정 (기존 방식 유지)
 
     [Header("공격력 (가산 %)")]

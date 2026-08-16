@@ -15,6 +15,13 @@ MonoBehaviour:
   itemData: {fileID: 11400000, guid: 91c553b3ebf802d4cba14d69caa37fdd, type: 2}
   description: "\uAE30\uBCF8 \uCCA0\uC81C \uBB34\uAE30. \uACF5\uACA9\uB825 +5."
   slot: 2
+  weaponClass: 0
+  baseDamage: 12
+  accuracy: 0.9
+  penetration: 0.15
+  attackRange: 1.5
+  attackInterval: 1.2
+  isDefensiveGear: 0
   maxDurability: 100
   indestructible: 0
   workWearPerSecond: 0.02
@@ -22,7 +29,7 @@ MonoBehaviour:
   statModifier:
     maxHealthModifier: 0
     maxMentalModifier: 0
-    attackPowerModifier: 5
+    damageBonus: 0
     workSpeedModifier: 0
     hungerRateModifier: 0
     fatigueRateModifier: 0

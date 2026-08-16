@@ -33,6 +33,10 @@ public class EmployeeGrowth : MonoBehaviour
     [Tooltip("해당 작업을 수행해야만 오르는 작업별 레벨. 스킬 해금 조건으로 사용됩니다.")]
     [SerializeField] private WorkAptitude aptitude = new WorkAptitude();
 
+    [Header("전투 숙련 (근접/원거리)")]
+    [Tooltip("전투를 수행하거나 특수 아이템으로 오르는 숙련. 무기의 데미지·명중률·공격 간격을 조정합니다.")]
+    [SerializeField] private CombatAptitude combatAptitude = new CombatAptitude();
+
     /// <summary>코디네이터 참조</summary>
     private Employee employee;
 
@@ -51,6 +55,9 @@ public class EmployeeGrowth : MonoBehaviour
 
     /// <summary>작업 적성이 레벨업했을 때 발생 (작업 종류, 새 레벨)</summary>
     public event Action<WorkType, int> OnAptitudeLevelUp;
+
+    /// <summary>전투 숙련이 레벨업했을 때 발생 (숙련 종류, 새 레벨)</summary>
+    public event Action<CombatSkillType, int> OnCombatLevelUp;
 
     #endregion
 
@@ -89,6 +96,7 @@ public void Initialize(bool isUnique)
         experience = 0;
         experienceToNextLevel = INITIAL_EXP_REQUIRED;
         carryCapacityBonus = 0;
+        combatAptitude = new CombatAptitude();
     }
 
     #endregion
@@ -124,10 +132,9 @@ private void LevelUp()
 
         experienceToNextLevel = CalculateExperienceToNextLevel(level);
 
-        // 스탯 증가
+        // 스탯 증가 (공격력은 더 이상 직원 스탯이 아니다 — 전투력은 무기 + 전투 숙련이 결정)
         int healthGain = 5 + level;
         int mentalGain = 3 + level / 2;
-        int attackGain = level % 3 == 0 ? 1 : 0;
 
         // 운반 용량 증가 (5레벨마다 +1)
         int carryGain = level % 5 == 0 ? 1 : 0;
@@ -135,7 +142,7 @@ private void LevelUp()
 
         if (statsController != null)
         {
-            statsController.IncreaseMaxStats(healthGain, mentalGain, attackGain);
+            statsController.IncreaseMaxStats(healthGain, mentalGain);
         }
 
         string carryLog = carryGain > 0 ? $", Carry+{carryGain}(총 +{carryCapacityBonus})" : "";
@@ -166,6 +173,7 @@ public void PopulateSaveData(EmployeeSaveData data)
         data.experienceToNextLevel = experienceToNextLevel;
         data.carryCapacityBonus = carryCapacityBonus;
         data.workAptitudes = new System.Collections.Generic.List<WorkAptitude.Entry>(aptitude.Entries);
+        data.combatAptitudes = new System.Collections.Generic.List<CombatAptitude.Entry>(combatAptitude.Entries);
     }
 
     /// <summary>
@@ -179,6 +187,7 @@ public void RestoreFromSaveData(EmployeeSaveData data, bool isUnique)
         experienceToNextLevel = data.experienceToNextLevel;
         carryCapacityBonus = data.carryCapacityBonus;
         aptitude.Restore(data.workAptitudes);
+        combatAptitude.Restore(data.combatAptitudes);
     }
 
     #endregion
@@ -204,6 +213,53 @@ public void RestoreFromSaveData(EmployeeSaveData data, bool isUnique)
             Debug.Log($"[Growth] {employee?.DisplayName} {type} 적성 레벨업! Lv.{newLevel}");
             OnAptitudeLevelUp?.Invoke(type, newLevel);
         }
+    }
+
+    #endregion
+
+    #region 전투 숙련
+
+    /// <summary>전투 숙련 데이터 (읽기용)</summary>
+    public CombatAptitude Combat => combatAptitude;
+
+    /// <summary>해당 전투 숙련 레벨.</summary>
+    public int GetCombatLevel(CombatSkillType type) => combatAptitude.GetLevel(type);
+
+    /// <summary>
+    /// 전투 숙련 경험치를 획득합니다. 실제로 적을 공격했을 때만 호출됩니다.
+    /// 작업 적성과 마찬가지로 성장 비활성 직원(비유니크)도 전투 숙련은 오릅니다.
+    /// </summary>
+    public void GainCombatExperience(CombatSkillType type, int amount)
+    {
+        int newLevel = combatAptitude.GainExperience(type, amount);
+        if (newLevel > 0)
+        {
+            Debug.Log($"[Growth] {employee?.DisplayName} {type} 숙련 레벨업! Lv.{newLevel}");
+            OnCombatLevelUp?.Invoke(type, newLevel);
+        }
+    }
+
+    /// <summary>
+    /// 전투 숙련 레벨을 즉시 올립니다 (훈련 혈청 등 특수 아이템 전용).
+    /// </summary>
+    /// <returns>실제로 오른 레벨 수 (상한에 걸리면 0일 수 있음)</returns>
+    public int RaiseCombatLevel(CombatSkillType type, int levels)
+    {
+        int gained = combatAptitude.RaiseLevel(type, levels);
+        if (gained > 0)
+        {
+            int newLevel = combatAptitude.GetLevel(type);
+            Debug.Log($"[Growth] {employee?.DisplayName} {type} 숙련 상승 (특수 아이템): +{gained} → Lv.{newLevel}");
+            OnCombatLevelUp?.Invoke(type, newLevel);
+        }
+        return gained;
+    }
+
+    /// <summary>템플릿의 초기 숙련 레벨을 적용합니다.</summary>
+    public void ApplyInitialCombatLevels(int meleeLevel, int rangedLevel)
+    {
+        combatAptitude.SetLevel(CombatSkillType.Melee, meleeLevel);
+        combatAptitude.SetLevel(CombatSkillType.Ranged, rangedLevel);
     }
 
     #endregion

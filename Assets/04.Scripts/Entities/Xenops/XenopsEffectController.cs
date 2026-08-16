@@ -202,7 +202,7 @@ public class XenopsEffectController : MonoBehaviour
                 break;
 
             case XenopsEffectType.ModifyMental:
-                employee.ModifyMental(value * Time.deltaTime);
+                employee.ModifyMental(value * Time.deltaTime, MentalReason.XENOPS, "제놉스의 영향");
                 break;
 
             case XenopsEffectType.ModifyHungerRate:

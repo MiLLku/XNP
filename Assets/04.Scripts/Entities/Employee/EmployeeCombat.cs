@@ -10,7 +10,13 @@ using UnityEngine;
 ///   경계   — 경계 반경(Config 기본 + 특성 guardRangeBonus) 내 적 교전, leash 복귀 (기본)
 ///   카이팅 — 원거리 전용, 최소 거리 유지 후퇴 + 사격
 ///
-/// 공격 = XenopsHealth.TakeDamage(attackPower) + 무기 내구도 소모 + OnHit 능력 발동.
+/// 전투 능력치는 <b>전적으로 무기(EquipmentData)가 보유</b>하고, 직원의 근접/원거리 숙련과
+/// 전투 특성이 그 값을 조정한다 (직원 자체는 공격력을 갖지 않는다):
+///   데미지   = 무기.baseDamage(+장비 가산) × 숙련 × 특성 × 연구
+///   명중률   = 무기.accuracy × 숙련 × 특성   → 빗나가면 데미지 0
+///   공격간격 = 무기.attackInterval ÷ 숙련 × 특성
+///   사거리   = 무기.attackRange + 특성(특수)
+///   관통력   = 무기.penetration + 특성(특수)  → 대상 방어율에서 차감
 /// 제압/처치는 XenopsHealth 기존 경로 그대로 (동일 취급 — 사용자 확정).
 /// 기준값: EmployeeManager.CombatConfig(SO). 태세 저장은 Phase 5(세이브 v6)에서.
 /// </summary>
@@ -21,6 +27,8 @@ public class EmployeeCombat : MonoBehaviour
     private EmployeeDraft draft;
     private EmployeeMovement movement;
     private EmployeeEquipment equipment;
+    private EmployeeGrowth growth;
+    private EmployeeStatsController stats;
 
     [SerializeField] private CombatStance stance = CombatStance.Guard;
 
@@ -48,6 +56,8 @@ public class EmployeeCombat : MonoBehaviour
         draft     = GetComponent<EmployeeDraft>();
         movement  = GetComponent<EmployeeMovement>();
         equipment = GetComponent<EmployeeEquipment>();
+        growth    = GetComponent<EmployeeGrowth>();
+        stats     = GetComponent<EmployeeStatsController>();
 
         // Start가 아닌 Awake에서 구독 — 스폰 직후 같은 프레임에 소집되면 이벤트를 놓친다
         if (draft != null) draft.OnDraftChanged += OnDraftChanged;
@@ -215,19 +225,111 @@ public class EmployeeCombat : MonoBehaviour
         return bonus;
     }
 
-    private float GetAttackRange()
+    #region 전투 능력치 계산 — 기본값은 무기, 조정은 숙련·특성
+
+    /// <summary>현재 장착 무기 (없으면 null = 맨손).</summary>
+    private EquipmentData Weapon
+        => equipment != null ? equipment.GetItemInSlot(EquipmentSlot.Weapon) : null;
+
+    /// <summary>현재 무기에 대응하는 숙련 종류. 맨손은 근접.</summary>
+    private CombatSkillType CurrentSkill
     {
-        var weapon = equipment != null ? equipment.GetItemInSlot(EquipmentSlot.Weapon) : null;
-        if (weapon != null) return weapon.attackRange;
-        return Cfg != null ? Cfg.unarmedRange : 1.5f;
+        get
+        {
+            var w = Weapon;
+            return CombatAptitude.FromWeaponClass(w != null ? w.weaponClass : WeaponClass.Melee);
+        }
     }
 
+    /// <summary>현재 무기 숙련 레벨 (1~10).</summary>
+    private int CurrentSkillLevel
+        => growth != null ? growth.GetCombatLevel(CurrentSkill) : 1;
+
+    /// <summary>
+    /// 숙련 레벨을 배율로 환산합니다. Lv.1 = 1.0배, Lv.MAX = (1 + bonusAtMax)배.
+    /// 항목(데미지·명중률·공격속도)마다 다른 계수를 쓸 수 있습니다.
+    /// </summary>
+    private static float SkillFactor(int level, float bonusAtMax)
+    {
+        int max = CombatAptitude.MAX_LEVEL;
+        if (max <= 1) return 1f;
+
+        float t = Mathf.Clamp01((level - 1f) / (max - 1f));
+        return 1f + bonusAtMax * t;
+    }
+
+    /// <summary>공격 사거리 = 무기 사거리 + 특성 가감.</summary>
+    private float GetAttackRange()
+    {
+        var w = Weapon;
+        float baseRange = w != null ? w.attackRange : (Cfg != null ? Cfg.unarmedRange : 1.5f);
+        float traitBonus = stats != null ? stats.CachedAttackRangeBonus : 0f;
+        return Mathf.Max(0.5f, baseRange + traitBonus);
+    }
+
+    /// <summary>공격 간격 = 무기 간격 ÷ 숙련 배율 × 특성 배율. 짧을수록 빠름.</summary>
     private float GetAttackInterval()
     {
-        var weapon = equipment != null ? equipment.GetItemInSlot(EquipmentSlot.Weapon) : null;
-        if (weapon != null) return weapon.attackInterval;
-        return Cfg != null ? Cfg.unarmedInterval : 1.2f;
+        var w = Weapon;
+        float baseInterval = w != null ? w.attackInterval : (Cfg != null ? Cfg.unarmedInterval : 1.2f);
+
+        float speedFactor = SkillFactor(CurrentSkillLevel,
+            Cfg != null ? Cfg.attackSpeedBonusAtMaxLevel : 0.5f);
+        float traitMult = stats != null ? stats.CachedAttackIntervalMult : 1f;
+
+        return Mathf.Max(0.05f, baseInterval / Mathf.Max(0.01f, speedFactor) * traitMult);
     }
+
+    /// <summary>데미지 = 무기 데미지 × 숙련 배율 × 특성 배율 × (1 + 특성 가산%) × (1 + 연구 보너스).</summary>
+    private float GetAttackDamage()
+    {
+        var w = Weapon;
+        float baseDamage = w != null ? w.baseDamage : (Cfg != null ? Cfg.unarmedDamage : 3f);
+
+        // 무기가 아닌 장비(장갑·반지 등)의 데미지 가산
+        if (equipment != null) baseDamage += equipment.GetTotalDamageBonus();
+
+        float skillFactor = SkillFactor(CurrentSkillLevel,
+            Cfg != null ? Cfg.damageBonusAtMaxLevel : 0.5f);
+
+        float traitMult = 1f;
+        if (stats != null)
+        {
+            traitMult = CurrentSkill == CombatSkillType.Ranged
+                ? stats.CachedRangedDamageMult
+                : stats.CachedMeleeDamageMult;
+            traitMult *= 1f + stats.GetTraitDamageModifier();
+        }
+
+        var rt = ResearchTreeManager.instance;
+        float researchBonus = rt != null ? rt.GetStatBonus(ResearchStatType.EmployeeAttackPowerBonus) : 0f;
+
+        return Mathf.Max(0f, baseDamage * skillFactor * traitMult * (1f + researchBonus));
+    }
+
+    /// <summary>명중률 = 무기 명중률 × 숙련 배율 × 특성 배율 (0~1 클램프).</summary>
+    private float GetAccuracy()
+    {
+        var w = Weapon;
+        float baseAccuracy = w != null ? w.accuracy : (Cfg != null ? Cfg.unarmedAccuracy : 0.8f);
+
+        float skillFactor = SkillFactor(CurrentSkillLevel,
+            Cfg != null ? Cfg.accuracyBonusAtMaxLevel : 0.5f);
+        float traitMult = stats != null ? stats.CachedAccuracyMult : 1f;
+
+        return Mathf.Clamp01(baseAccuracy * skillFactor * traitMult);
+    }
+
+    /// <summary>관통력 = 무기 관통력 + 특성 가산 (0~1 클램프).</summary>
+    private float GetPenetration()
+    {
+        var w = Weapon;
+        float basePen = w != null ? w.penetration : 0f;
+        float traitBonus = stats != null ? stats.CachedPenetrationBonus : 0f;
+        return Mathf.Clamp01(basePen + traitBonus);
+    }
+
+    #endregion
 
     private Xenops FindNearestHostile(float radius)
     {
@@ -254,25 +356,54 @@ public class EmployeeCombat : MonoBehaviour
         var health = victim.GetComponent<XenopsHealth>();
         if (health == null || health.IsDead) { target = null; return; }
 
-        var weapon = equipment != null ? equipment.GetItemInSlot(EquipmentSlot.Weapon) : null;
+        // 명중 판정 — 빗나가면 데미지 0. 근접·원거리 동일하게 '헛친다'로 처리한다.
+        bool hitSuccess = Random.value <= GetAccuracy();
+        float damage = hitSuccess ? GetAttackDamage() : 0f;
+
+        GainCombatExp(hitSuccess);
+
+        var weapon = Weapon;
         bool ranged = weapon != null && weapon.weaponClass == WeaponClass.Ranged;
 
-        if (ranged && TryFireProjectile(victim))
+        if (ranged && TryFireProjectile(victim, damage, hitSuccess))
         {
             equipment?.NotifyAttackPerformed();           // 무기 내구도는 발사 시점에 소모
             return;                                       // 피해·OnHit 능력은 투사체 명중 시
         }
 
         // 근접 (원거리인데 투사체 프리팹 미설정이면 즉시 타격 폴백)
-        health.TakeDamage(employee.Stats.attackPower);
         equipment?.NotifyAttackPerformed();               // 무기 내구도 소모
+
+        if (!hitSuccess)
+        {
+            Debug.Log($"[Combat] {employee.DisplayName}: 공격이 빗나감");
+            return;
+        }
+
+        health.TakeDamage(damage, GetPenetration());
         equipment?.TriggerAbilities(AbilityTriggerType.OnHit);
 
         if (health.IsDead) target = null;
     }
 
-    /// <summary>아군 투사체를 발사합니다. 프리팹/풀 미비 시 false (근접 폴백).</summary>
-    private bool TryFireProjectile(Xenops victim)
+    /// <summary>공격 결과에 따라 전투 숙련 경험치를 지급합니다.</summary>
+    private void GainCombatExp(bool hitSuccess)
+    {
+        if (growth == null) return;
+
+        var cfg = Cfg;
+        int exp = hitSuccess
+            ? (cfg != null ? cfg.expPerHit : 3)
+            : (cfg != null ? cfg.expPerMiss : 1);
+
+        if (exp > 0) growth.GainCombatExperience(CurrentSkill, exp);
+    }
+
+    /// <summary>
+    /// 아군 투사체를 발사합니다. 프리팹/풀 미비 시 false (근접 폴백).
+    /// 빗나간 공격도 투사체는 정상적으로 날아가 충돌 시 사라지되 피해를 주지 않습니다.
+    /// </summary>
+    private bool TryFireProjectile(Xenops victim, float damage, bool hitSuccess)
     {
         var cfg = Cfg;
         var prefab = cfg != null ? cfg.allyProjectilePrefab : null;
@@ -291,10 +422,12 @@ public class EmployeeCombat : MonoBehaviour
         var proj = PoolManager.instance.Spawn<AllyProjectile>(prefab, origin);
         if (proj == null) return false;
 
-        proj.Init(dir, cfg.allyProjectileSpeed, employee.Stats.attackPower, cfg.allyProjectileLifetime,
+        proj.Init(dir, cfg.allyProjectileSpeed, damage, GetPenetration(), cfg.allyProjectileLifetime,
             hit =>
             {
                 if (this == null) return;                 // 발사자 사망/파괴 후 명중
+                if (!hitSuccess) return;                  // 빗나간 사격은 OnHit 능력도 발동하지 않는다
+
                 equipment?.TriggerAbilities(AbilityTriggerType.OnHit);
                 if (hit == target)
                 {

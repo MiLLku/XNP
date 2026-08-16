@@ -354,6 +354,20 @@ public class EmployeeEquipment : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 전체 장비의 무기 데미지 가산(damageBonus) 합산.
+    /// EmployeeCombat이 무기 기본 데미지에 더합니다 — 직원 공격력이 아니라 무기 쪽에 붙는 값입니다.
+    /// </summary>
+    public float GetTotalDamageBonus()
+    {
+        float total = 0f;
+        foreach (var kvp in itemSlots)
+        {
+            if (kvp.Value != null) total += kvp.Value.statModifier.damageBonus;
+        }
+        return total;
+    }
+
     /// <summary>전체 장비의 피해 감소 합산 (%)</summary>
     public float GetTotalDamageReduction()
     {

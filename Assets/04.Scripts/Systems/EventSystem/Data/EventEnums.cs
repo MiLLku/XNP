@@ -166,8 +166,12 @@ public enum EffectType
     StartRaid,
     /// <summary>대상 직원의 침식 수치 변경 (value = 변화량, 음수 = 감소)</summary>
     ModifyErosion,
-    /// <summary>포스트 레이드 가속 회복 즉시 시작</summary>
-    StartPostRaidRecovery,
+    /// <summary>
+    /// 침식 자연 회복 하한을 영구히 낮춘다 (value = 낮출 수치).
+    /// 게임 진행에 따라 침식 자립도가 올라가는 이벤트 축.
+    /// (구 StartPostRaidRecovery 자리 — 포스트 레이드 가속 회복은 v10에서 제거됨)
+    /// </summary>
+    ReduceErosionRecoveryFloor,
 
     // 적 스폰
     /// <summary>안개 속 랜덤 위치에 제노프스 등장 (targetId = XenopsData ID)</summary>

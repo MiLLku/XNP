@@ -9,10 +9,15 @@ using UnityEngine;
 /// 담당 기능:
 ///   - 침식 수치 → 단계 판정 및 이벤트 발행
 ///   - 단계별 작업/이동 속도 디버프 모디파이어 제공
-///   - 이상 행동 타이머 기반 확률 판정 및 실행
 ///   - 4단계(Critical) 침식 전파 오라
 ///   - 자연/휴식/포스트레이드 회복 처리
 ///   - 완전 침식(200) 시 ErosionManager.MutateEmployeeToXenops() 호출
+///
+/// <b>이상 행동은 더 이상 여기서 굴리지 않습니다 (2026-07-29 개편).</b>
+///   정신 이상 발생 판정은 EmployeeMental 한 곳으로 통합됐고, 침식 수치는
+///   "발생한 정신 이상이 침식 계열일 확률"만 높입니다. 침식 단계는 속도 디버프·
+///   전파 오라·변이에만 관여하며, 단계 판정도 실제 침식 수치를 그대로 씁니다.
+///   (재미·피로 계수는 EmployeeMental의 정신 이상 임계점 쪽으로 옮겨졌습니다.)
 ///
 /// 오라 노출 추적:
 ///   HostileErosionAura가 침식을 적용할 때 MarkAuraExposure()를 호출합니다.
@@ -23,7 +28,6 @@ public class EmployeeErosionController : MonoBehaviour
 {
     #region 상수
 
-    private const float PROPAGATION_CHECK_INTERVAL = 0.5f;
     private const float FULL_EROSION_THRESHOLD = 200f;
 
     #endregion
@@ -40,23 +44,14 @@ public class EmployeeErosionController : MonoBehaviour
     /// <summary>현재 침식 단계</summary>
     [SerializeField] private ErosionStage currentStage = ErosionStage.Normal;
 
-    /// <summary>이상 행동 판정 타이머</summary>
-    private float behaviorCheckTimer;
-
     /// <summary>마지막 오라 노출 후 경과 시간 (초)</summary>
     [SerializeField] private float timeSinceLastAuraExposure;
 
     /// <summary>현재 프레임에 오라 노출 여부 (HostileErosionAura에서 설정)</summary>
     private bool auraExposureThisFrame;
 
-    /// <summary>현재 실행 중인 이상 행동</summary>
-    private IAbnormalBehavior activeAbnormalBehavior;
-
-    /// <summary>이상 행동 남은 지속 시간</summary>
-    private float abnormalBehaviorRemainingTime;
-
-    /// <summary>이상 행동 실행 중 작업 배정 차단 여부</summary>
-    private bool isBlockingWorkAssignment;
+    /// <summary>출처별 침식 누적 내역 (UI 표시용)</summary>
+    [SerializeField] private List<ErosionSourceEntry> erosionSources = new List<ErosionSourceEntry>();
 
     /// <summary>전파 오라 타이머</summary>
     private float propagationTimer;
@@ -106,11 +101,8 @@ public class EmployeeErosionController : MonoBehaviour
     /// <summary>이동 속도에 곱해질 침식 디버프 배율 (1.0 = 정상)</summary>
     public float MoveSpeedModifier => cachedMoveSpeedModifier;
 
-    /// <summary>이상 행동 실행 중 여부</summary>
-    public bool IsPerformingAbnormalBehavior => activeAbnormalBehavior != null;
-
-    /// <summary>작업 배정이 차단된 상태인지 여부</summary>
-    public bool IsWorkBlocked => isBlockingWorkAssignment;
+    /// <summary>출처별 침식 누적 내역 (읽기 전용 — UI 표시용)</summary>
+    public IReadOnlyList<ErosionSourceEntry> ErosionSources => erosionSources;
 
     #endregion
 
@@ -151,7 +143,6 @@ public class EmployeeErosionController : MonoBehaviour
         float dt = Time.deltaTime;
 
         UpdateStage();
-        UpdateAbnormalBehaviorTimer(dt);
         UpdatePropagationAura(dt);
         UpdateRecovery(dt);
 
@@ -175,16 +166,10 @@ public class EmployeeErosionController : MonoBehaviour
 
         if (stageConfig == null) return;
 
-        // 이상행동 임계점 배율: 저항이 높을수록 유효 침식을 낮춰 단계 상승(=이상행동)을 늦춘다.
-        // 재미·피로(수면)가 낮으면 저항이 깎여 유효 침식이 높아진다 — 침식이 일정해도
-        // 욕구 관리 실패만으로 임계점이 낮아져 위험해지는 설계.
-        // (완전 침식/변이 판정은 실제 침식 그대로 — 위에서 처리)
-        float resist = statsController.CachedAbnormalResistMult
-                     * statsController.GetFunErosionFactor()
-                     * statsController.GetFatigueErosionFactor();
-        float effectiveErosion = resist > 0f ? erosion / resist : erosion;
-
-        var def = stageConfig.GetStageDefinition(effectiveErosion);
+        // 단계는 실제 침식 수치를 그대로 쓴다. 단계가 관여하는 것은 속도 디버프·전파 오라·변이뿐이며,
+        // 이상행동(정신 이상) 발생은 EmployeeMental이 정신 수치로 판정한다.
+        // 저항 배율(특성·재미·피로)은 그쪽 임계점 보정으로 옮겨졌다.
+        var def = stageConfig.GetStageDefinition(erosion);
         if (def == null) return;
 
         ErosionStage newStage = def.stage;
@@ -200,33 +185,6 @@ public class EmployeeErosionController : MonoBehaviour
     }
 
     /// <summary>
-    /// 이상 행동 타이머와 지속 시간을 처리합니다.
-    /// </summary>
-    private void UpdateAbnormalBehaviorTimer(float dt)
-    {
-        // 이상 행동 지속 시간 소모
-        if (activeAbnormalBehavior != null)
-        {
-            abnormalBehaviorRemainingTime -= dt;
-            if (abnormalBehaviorRemainingTime <= 0f)
-            {
-                EndCurrentAbnormalBehavior();
-            }
-            return; // 이상 행동 진행 중에는 새 판정 없음
-        }
-
-        if (cachedStageDef == null || cachedStageDef.behaviorCheckInterval <= 0f) return;
-        if (cachedStageDef.behaviorChance <= 0f) return;
-        if (cachedStageDef.availableBehaviors == null || cachedStageDef.availableBehaviors.Count == 0) return;
-
-        behaviorCheckTimer -= dt;
-        if (behaviorCheckTimer > 0f) return;
-
-        behaviorCheckTimer = cachedStageDef.behaviorCheckInterval;
-        RollAbnormalBehavior();
-    }
-
-    /// <summary>
     /// 4단계 침식 전파 오라를 주변 직원에게 적용합니다.
     /// </summary>
     private void UpdatePropagationAura(float dt)
@@ -234,12 +192,18 @@ public class EmployeeErosionController : MonoBehaviour
         if (cachedStageDef == null || !cachedStageDef.hasErosionAura) return;
         if (EmployeeManager.instance == null) return;
 
+        // 판정 주기는 Config에서 조절한다. 초당 전파량 × 주기로 한 번에 적용하므로
+        // 주기를 늘려도 시간당 총 전파량은 같고 판정 빈도만 줄어든다.
+        float interval = recoveryConfig != null ? recoveryConfig.propagationCheckInterval : 5f;
+
         propagationTimer -= dt;
         if (propagationTimer > 0f) return;
-        propagationTimer = PROPAGATION_CHECK_INTERVAL;
+        propagationTimer = interval;
 
-        float erosionThisTick = cachedStageDef.auraErosionPerSecond * PROPAGATION_CHECK_INTERVAL;
+        float erosionThisTick = cachedStageDef.auraErosionPerSecond * interval;
         Vector2 myPos = transform.position;
+        string sourceKey = ErosionSource.PropagationKey(employee.InstanceId);
+        string sourceName = $"{employee.DisplayName} 전파침식";
 
         foreach (var other in EmployeeManager.instance.AllEmployees)
         {
@@ -252,8 +216,7 @@ public class EmployeeErosionController : MonoBehaviour
             float armorIgnore = other.Equipment?.GetTotalErosionIgnore() ?? 0f;
             if (armorIgnore >= cachedStageDef.auraErosionPerSecond) continue;
 
-            float newErosion = other.ErosionLevel + erosionThisTick;
-            other.SetErosion(newErosion);
+            other.ErosionController?.AddErosion(erosionThisTick, sourceKey, sourceName);
             other.ErosionController?.MarkAuraExposure();
         }
     }
@@ -283,18 +246,15 @@ public class EmployeeErosionController : MonoBehaviour
         // 자연 회복 대기 시간 미충족
         if (timeSinceLastAuraExposure < recoveryConfig.outOfAuraDuration) return;
 
-        float recovery = recoveryConfig.naturalRecoveryPerSecond;
+        // 자연 회복은 하한까지만. 그 아래로 지우려면 세척 시설이 필요하다.
+        float floor = ErosionManager.instance != null
+            ? ErosionManager.instance.EffectiveRecoveryFloor
+            : recoveryConfig.naturalRecoveryFloor;
 
-        // 휴식 보너스
-        if (employee.State == EmployeeState.Resting)
-            recovery += recoveryConfig.restRecoveryPerSecond;
+        if (erosion <= floor) return;
 
-        // 포스트 레이드 보너스
-        if (ErosionManager.instance != null && ErosionManager.instance.IsPostRaidRecovery)
-            recovery += recoveryConfig.postRaidRecoveryPerSecond;
-
-        float newErosion = Mathf.Max(0f, erosion - recovery * dt);
-        statsController.SetErosion(newErosion);
+        float newErosion = Mathf.Max(floor, erosion - recoveryConfig.naturalRecoveryPerSecond * dt);
+        ReduceErosion(erosion - newErosion, "자연 회복");
 
         // 침식이 0으로 완전 회복되면 자연 침식 워터마크 초기화
         if (newErosion <= 0f && naturalErosionWatermark > 0f)
@@ -302,52 +262,6 @@ public class EmployeeErosionController : MonoBehaviour
             naturalErosionWatermark = 0f;
             Debug.Log($"[ErosionController] {employee.DisplayName}: 자연 침식 워터마크 초기화");
         }
-    }
-
-    #endregion
-
-    #region 이상 행동
-
-    /// <summary>
-    /// 이상 행동 발동 여부를 확률 판정 후 실행합니다.
-    /// </summary>
-    private void RollAbnormalBehavior()
-    {
-        if (UnityEngine.Random.value > cachedStageDef.behaviorChance) return;
-
-        var available = AbnormalBehaviorRegistry.FilterRegistered(cachedStageDef.availableBehaviors);
-        if (available.Count == 0) return;
-
-        var type = available[UnityEngine.Random.Range(0, available.Count)];
-        var behavior = AbnormalBehaviorRegistry.Get(type);
-
-        if (behavior == null || !behavior.CanExecute(employee)) return;
-
-        ExecuteAbnormalBehavior(behavior);
-    }
-
-    private void ExecuteAbnormalBehavior(IAbnormalBehavior behavior)
-    {
-        activeAbnormalBehavior = behavior;
-        float duration = behavior.Execute(employee);
-        abnormalBehaviorRemainingTime = duration;
-
-        // IgnoreCommand 계열 행동은 작업 배정을 차단
-        if (behavior.BehaviorType == AbnormalBehaviorType.IgnoreCommand ||
-            behavior.BehaviorType == AbnormalBehaviorType.IgnoreCommandEnhanced)
-        {
-            isBlockingWorkAssignment = true;
-        }
-    }
-
-    private void EndCurrentAbnormalBehavior()
-    {
-        if (activeAbnormalBehavior == null) return;
-
-        activeAbnormalBehavior.OnEnd(employee);
-        activeAbnormalBehavior = null;
-        abnormalBehaviorRemainingTime = 0f;
-        isBlockingWorkAssignment = false;
     }
 
     #endregion
@@ -386,6 +300,107 @@ public class EmployeeErosionController : MonoBehaviour
     }
 
     /// <summary>
+    /// 침식을 추가하는 <b>단일 진입점</b>입니다. 출처를 함께 기록해 내역을 남깁니다.
+    /// 받는 침식 배율(특성·스킬 erosionDamageMult)은 여기서 일괄 적용됩니다.
+    /// </summary>
+    /// <param name="rawAmount">배율 적용 전 침식량 (양수)</param>
+    /// <param name="sourceKey">출처 키 (ErosionSource 상수 사용)</param>
+    /// <param name="displayName">UI 표시용 출처 이름</param>
+    public void AddErosion(float rawAmount, string sourceKey, string displayName)
+    {
+        if (rawAmount <= 0f || statsController == null) return;
+
+        float amount = rawAmount * statsController.CachedErosionDamageMult;
+        if (amount <= 0f) return;
+
+        statsController.SetErosion(statsController.ErosionLevel + amount);
+        RecordSource(sourceKey, displayName, amount);
+    }
+
+    /// <summary>
+    /// 침식을 줄이고 내역에서도 비례 차감합니다 (자연 회복·세척·정화 약품).
+    /// 총량과 내역 합계가 어긋나지 않도록 모든 출처에서 같은 비율로 뺍니다.
+    /// </summary>
+    /// <param name="amount">줄일 침식량 (양수)</param>
+    /// <param name="reason">로그용 사유</param>
+    public void ReduceErosion(float amount, string reason)
+    {
+        if (amount <= 0f || statsController == null) return;
+
+        float before = statsController.ErosionLevel;
+        float after = Mathf.Max(0f, before - amount);
+        statsController.SetErosion(after);
+
+        ScaleSources(before > 0f ? after / before : 0f);
+    }
+
+    /// <summary>
+    /// 특정 출처가 기여한 침식만 되돌립니다.
+    /// 오염 구체처럼 "범위를 벗어나면 자기가 준 침식을 거둬가는" 효과에 사용합니다.
+    /// 다른 출처에서 얻은 침식은 건드리지 않습니다.
+    /// </summary>
+    public void RemoveErosionBySource(string sourceKey)
+    {
+        if (string.IsNullOrEmpty(sourceKey) || statsController == null) return;
+
+        for (int i = 0; i < erosionSources.Count; i++)
+        {
+            if (erosionSources[i].sourceKey != sourceKey) continue;
+
+            float amount = erosionSources[i].amount;
+            erosionSources.RemoveAt(i);
+            statsController.SetErosion(Mathf.Max(0f, statsController.ErosionLevel - amount));
+            return;
+        }
+    }
+
+    /// <summary>
+    /// 침식을 즉시 0으로 만들고 내역을 비웁니다 (세척 시설).
+    /// </summary>
+    public void ClearErosion()
+    {
+        if (statsController == null) return;
+
+        statsController.SetErosion(0f);
+        erosionSources.Clear();
+        naturalErosionWatermark = 0f;
+    }
+
+    /// <summary>출처별 내역에 누적합니다.</summary>
+    private void RecordSource(string sourceKey, string displayName, float amount)
+    {
+        if (string.IsNullOrEmpty(sourceKey)) sourceKey = ErosionSource.UNKNOWN;
+
+        for (int i = 0; i < erosionSources.Count; i++)
+        {
+            if (erosionSources[i].sourceKey != sourceKey) continue;
+
+            erosionSources[i].amount += amount;
+            if (!string.IsNullOrEmpty(displayName)) erosionSources[i].displayName = displayName;
+            return;
+        }
+
+        erosionSources.Add(new ErosionSourceEntry
+        {
+            sourceKey = sourceKey,
+            displayName = string.IsNullOrEmpty(displayName) ? "알 수 없음" : displayName,
+            amount = amount
+        });
+    }
+
+    /// <summary>회복 시 모든 출처를 같은 비율로 줄입니다.</summary>
+    private void ScaleSources(float ratio)
+    {
+        ratio = Mathf.Clamp01(ratio);
+
+        for (int i = erosionSources.Count - 1; i >= 0; i--)
+        {
+            erosionSources[i].amount *= ratio;
+            if (erosionSources[i].amount < 0.05f) erosionSources.RemoveAt(i);
+        }
+    }
+
+    /// <summary>
     /// 직원이 자연 침식 영향력이 있는 타일에 진입할 때 호출합니다.
     ///
     /// 워터마크 방식:
@@ -403,14 +418,10 @@ public class EmployeeErosionController : MonoBehaviour
         float rawDelta = tileIntensity - naturalErosionWatermark;
         naturalErosionWatermark = tileIntensity;
 
+        AddErosion(rawDelta, ErosionSource.NATURAL, "자연 침식");
+
         if (statsController != null)
-        {
-            // 받는 침식 피해 배율 적용 (특성·스킬, 0.8 = 침식 20% 덜 쌓임)
-            float delta = rawDelta * statsController.CachedErosionDamageMult;
-            float newErosion = statsController.ErosionLevel + delta;
-            statsController.SetErosion(newErosion);
-            Debug.Log($"[ErosionController] {employee.DisplayName}: 자연 침식 +{delta:F1} (수치={newErosion:F1}, 워터마크={naturalErosionWatermark:F1})");
-        }
+            Debug.Log($"[ErosionController] {employee.DisplayName}: 자연 침식 (수치={statsController.ErosionLevel:F1}, 워터마크={naturalErosionWatermark:F1})");
     }
 
     #endregion
@@ -432,9 +443,6 @@ public class EmployeeErosionController : MonoBehaviour
         {
             cachedWorkSpeedModifier = cachedStageDef.workSpeedModifier;
             cachedMoveSpeedModifier = cachedStageDef.moveSpeedModifier;
-
-            // 이상 행동 타이머 리셋
-            behaviorCheckTimer = cachedStageDef.behaviorCheckInterval;
         }
         else
         {
@@ -451,11 +459,20 @@ public class EmployeeErosionController : MonoBehaviour
     {
         data.erosionLevel = statsController != null ? statsController.ErosionLevel : 0f;
         data.timeSinceLastAuraExposure = timeSinceLastAuraExposure;
-        data.activeAbnormalBehavior = activeAbnormalBehavior != null
-            ? (int)activeAbnormalBehavior.BehaviorType
-            : 0;
-        data.abnormalBehaviorRemainingTime = abnormalBehaviorRemainingTime;
         data.naturalErosionWatermark = naturalErosionWatermark;
+
+        data.erosionSources = new List<ErosionSourceEntry>();
+        foreach (var s in erosionSources)
+        {
+            data.erosionSources.Add(new ErosionSourceEntry
+            {
+                sourceKey = s.sourceKey,
+                displayName = s.displayName,
+                amount = s.amount
+            });
+        }
+
+        // 이상 행동(침식 계열 정신 이상)은 v8부터 EmployeeMental이 activeMentalEvents에 저장합니다.
     }
 
     public void RestoreFromSaveData(EmployeeSaveData data)
@@ -466,15 +483,18 @@ public class EmployeeErosionController : MonoBehaviour
         if (statsController != null)
             statsController.SetErosion(data.erosionLevel);
 
-        // 이상 행동 복원
-        var behaviorType = (AbnormalBehaviorType)data.activeAbnormalBehavior;
-        if (behaviorType != AbnormalBehaviorType.None && data.abnormalBehaviorRemainingTime > 0f)
+        erosionSources.Clear();
+        if (data.erosionSources != null)
         {
-            var behavior = AbnormalBehaviorRegistry.Get(behaviorType);
-            if (behavior != null)
+            foreach (var s in data.erosionSources)
             {
-                activeAbnormalBehavior = behavior;
-                abnormalBehaviorRemainingTime = data.abnormalBehaviorRemainingTime;
+                if (s == null || string.IsNullOrEmpty(s.sourceKey)) continue;
+                erosionSources.Add(new ErosionSourceEntry
+                {
+                    sourceKey = s.sourceKey,
+                    displayName = s.displayName,
+                    amount = s.amount
+                });
             }
         }
 

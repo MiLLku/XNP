@@ -72,13 +72,26 @@ public class EmployeeSaveData
     /// <summary>현재 체력</summary>
     public int currentHealth;
 
-    /// <summary>최대 멘탈</summary>
+    /// <summary>최대 멘탈 (상한)</summary>
     public int maxMental;
 
-    /// <summary>현재 멘탈</summary>
+    /// <summary>
+    /// 현재 멘탈 — v9부터는 baseMental + 모디파이어에서 파생되는 <b>표시용 스냅샷</b>입니다.
+    /// 복원 시에는 이 값을 쓰지 않고 재계산합니다.
+    /// </summary>
     public int currentMental;
 
-    /// <summary>공격력</summary>
+    /// <summary>기본 정신력 — 모디파이어가 전부 사라졌을 때 수렴하는 값 (v9)</summary>
+    public float baseMental;
+
+    /// <summary>활성 정신력 모디파이어 목록 (v9)</summary>
+    public List<MentalModifierSaveData> mentalModifiers = new List<MentalModifierSaveData>();
+
+    /// <summary>
+    /// [구 필드 — v8 이하 전용] 공격력.
+    /// v9부터 전투력은 무기(EquipmentData)와 전투 숙련(combatAptitudes)이 결정합니다.
+    /// v8→v9 마이그레이션이 이 값을 읽어 초기 숙련으로 환산하므로 필드는 남겨둡니다.
+    /// </summary>
     public int attackPower;
 
     #endregion
@@ -130,10 +143,13 @@ public class EmployeeSaveData
 
     #endregion
 
-    #region 정신 이벤트
+    #region 정신 이상
 
-    /// <summary>활성 정신 이벤트 목록</summary>
+    /// <summary>활성 정신 이상 목록 (일반 계열 + 침식 계열 공용, v8부터 침식 계열 포함)</summary>
     public List<MentalEventSaveData> activeMentalEvents;
+
+    /// <summary>정신 이상 종료 후 재판정 유예 남은 시간 (초, v8)</summary>
+    public float mentalBreakGraceRemaining;
 
     #endregion
 
@@ -152,10 +168,14 @@ public class EmployeeSaveData
     /// <summary>마지막 오라 노출 이후 경과 시간 (초) — 회복 타이머용</summary>
     public float timeSinceLastAuraExposure;
 
-    /// <summary>현재 활성 이상 행동 타입 (AbnormalBehaviorType int 값, 0 = 없음)</summary>
+    /// <summary>
+    /// [구 필드 — v7 이하 전용] 침식 단계가 굴리던 이상 행동 타입 (AbnormalBehaviorType int 값, 0 = 없음).
+    /// v8부터 침식 계열 정신 이상은 activeMentalEvents가 관리합니다.
+    /// v7→v8 마이그레이션이 이 값을 읽어 이관하므로 필드 자체는 남겨둡니다.
+    /// </summary>
     public int activeAbnormalBehavior;
 
-    /// <summary>이상 행동 남은 지속 시간 (초)</summary>
+    /// <summary>[구 필드 — v7 이하 전용] 이상 행동 남은 지속 시간 (초)</summary>
     public float abnormalBehaviorRemainingTime;
 
     /// <summary>
@@ -164,6 +184,9 @@ public class EmployeeSaveData
     /// ErosionLevel이 0으로 완전 회복되면 함께 초기화됩니다.
     /// </summary>
     public float naturalErosionWatermark;
+
+    /// <summary>출처별 침식 누적 내역 (v10) — "자연 침식 +3 / 제놉스 A 오라침식 +7"</summary>
+    public List<ErosionSourceEntry> erosionSources = new List<ErosionSourceEntry>();
 
     #endregion
 
@@ -188,6 +211,9 @@ public class EmployeeSaveData
 
     /// <summary>작업 종류별 적성 레벨·경험치 (스킬 해금 조건)</summary>
     public List<WorkAptitude.Entry> workAptitudes = new List<WorkAptitude.Entry>();
+
+    /// <summary>근접·원거리 전투 숙련 레벨·경험치 (v9)</summary>
+    public List<CombatAptitude.Entry> combatAptitudes = new List<CombatAptitude.Entry>();
 
     #endregion
 
@@ -383,7 +409,12 @@ public class GeneratedEmployeeSaveData
     /// <summary>기본 스탯</summary>
     public int maxHealth;
     public int maxMental;
-    public int attackPower;
+    /// <summary>기본 정신력 (v9)</summary>
+    public int baseMental;
+
+    /// <summary>초기 전투 숙련 레벨 (v9 — 구 attackPower를 대체)</summary>
+    public int initialMeleeLevel = 1;
+    public int initialRangedLevel = 1;
     public float hungerDecayRate;
     public float fatigueIncreaseRate;
 

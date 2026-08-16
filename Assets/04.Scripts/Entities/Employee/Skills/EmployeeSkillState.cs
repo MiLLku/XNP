@@ -138,8 +138,11 @@ public class EmployeeSkillState : MonoBehaviour
             case SkillStatType.MaxMental:
                 return employee != null ? employee.Stats.maxMental : 0f;
 
-            case SkillStatType.AttackPower:
-                return employee != null ? employee.Stats.attackPower : 0f;
+            case SkillStatType.MeleeLevel:
+                return _growth != null ? _growth.GetCombatLevel(CombatSkillType.Melee) : 1f;
+
+            case SkillStatType.RangedLevel:
+                return _growth != null ? _growth.GetCombatLevel(CombatSkillType.Ranged) : 1f;
 
             case SkillStatType.CarryCapacity:
                 return _work != null ? _work.GetCarryCapacity() : 0f;

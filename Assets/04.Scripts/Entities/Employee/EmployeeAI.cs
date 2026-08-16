@@ -535,7 +535,9 @@ public class EmployeeAI : MonoBehaviour
                employee.Needs.fun < target)
         {
             employee.ModifyFun(facility.FunPerSecond * Time.deltaTime);
-            statsController?.ModifyMental(facility.MentalPerSecond * Time.deltaTime);
+            // 오락으로 오른 정신력은 영구적이지 않다 — 일정 시간 뒤 원래대로 돌아간다
+            statsController?.ModifyMental(facility.MentalPerSecond * Time.deltaTime,
+                MentalReason.RECREATION, "오락을 즐김");
             yield return null;
         }
 
@@ -625,7 +627,7 @@ public class EmployeeAI : MonoBehaviour
         CancelCurrentAction();
         MoveToFacility(ScheduleActivity.Wash, FacilityTag.WashStation, () =>
         {
-            employee.SetErosion(0f);
+            employee.ErosionController?.ClearErosion();
             employee.SetState(EmployeeState.Idle);
         });
     }

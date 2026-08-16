@@ -10,9 +10,15 @@ using UnityEngine;
 /// 욕구 흐름:
 ///   - 허기: 매 프레임 감소 (hungerDecayRate × 특성 보정)
 ///   - 피로: 작업 중 증가, 휴식 중 회복
-///   - 기아(허기 0): 체력/정신력 감소
-///   - 탈진(피로 0): 정신력 감소
+///   - 기아(허기 0): 체력 감소 + 정신력 페널티 모디파이어
+///   - 탈진(피로 0): 정신력 페널티 모디파이어
 ///   - 체력 0 → Dead, 정신력 0 → MentalBreak
+///
+/// <b>정신력은 직접 가감하는 값이 아니다 (2026-07-29 개편).</b>
+///   정신력 = clamp(기본값(EmployeeData.baseMental) + Σ활성 모디파이어, 0, 최대치)
+///   변동은 영구적이지 않고 반드시 원상복구된다 —
+///   상태형(굶주림·탈진)은 <b>상황을 해결하면</b>, 시간형(오락·감정 폭발)은 <b>효과가 끝나면</b> 사라진다.
+///   외부에서는 ModifyMental(일시형) / SetConditionalMental(상태형)으로만 건드린다.
 /// </summary>
 public class EmployeeStatsController : MonoBehaviour
 {
@@ -33,11 +39,14 @@ public class EmployeeStatsController : MonoBehaviour
     /// <summary>굶주림 시 체력 감소 속도 (포인트/초)</summary>
     private const float STARVATION_HEALTH_DECAY = 1f;
 
-    /// <summary>굶주림 시 정신력 감소 속도 (포인트/초)</summary>
-    private const float STARVATION_MENTAL_DECAY = 2f;
+    // ── 정신력 모디파이어 기본값 (MentalModifierConfig 미할당 시 사용) ──
+    private const float DEFAULT_STARVATION_PENALTY  = -25f;
+    private const float DEFAULT_EXHAUSTION_PENALTY  = -20f;
+    private const float DEFAULT_MODIFIER_DURATION   = 120f;
+    private const float DEFAULT_RECREATION_MAX      = 40f;
 
-    /// <summary>탈진 시 정신력 감소 속도 (포인트/초)</summary>
-    private const float EXHAUSTION_MENTAL_DECAY = 3f;
+    /// <summary>EmployeeData.baseMental이 0 이하일 때 쓰는 기본 정신력</summary>
+    private const float FALLBACK_BASE_MENTAL = 50f;
 
     #endregion
 
@@ -71,6 +80,25 @@ public class EmployeeStatsController : MonoBehaviour
     /// <summary>이동 속도 배율</summary>
     private float cachedMoveSpeedMult = 1f;
 
+    // ── 전투 배율 (전투 능력치의 기본값은 무기가 갖고, 이 배율이 조정한다) ──
+    /// <summary>근접 데미지 배율</summary>
+    private float cachedMeleeDamageMult = 1f;
+
+    /// <summary>원거리 데미지 배율</summary>
+    private float cachedRangedDamageMult = 1f;
+
+    /// <summary>명중률 배율</summary>
+    private float cachedAccuracyMult = 1f;
+
+    /// <summary>공격 간격 배율 (낮을수록 빠름)</summary>
+    private float cachedAttackIntervalMult = 1f;
+
+    /// <summary>무기 사거리 가감 (flat, 타일)</summary>
+    private float cachedAttackRangeBonus = 0f;
+
+    /// <summary>방어 관통력 가산 (flat, 0~1)</summary>
+    private float cachedPenetrationBonus = 0f;
+
     // ── 가산·flat 보정 (1.0 또는 0에서 누적) ──
     /// <summary>특성 효과: 전체 작업 속도 보정 (가산, 1.0 기준)</summary>
     private float cachedWorkSpeedModifier = 1f;
@@ -89,6 +117,12 @@ public class EmployeeStatsController : MonoBehaviour
 
     /// <summary>장비 스탯 보정 (슬롯별)</summary>
     private Dictionary<EquipmentSlot, EquipmentStatModifier> equipmentModifiers = new Dictionary<EquipmentSlot, EquipmentStatModifier>();
+
+    /// <summary>이 직원의 기본 정신력 (모든 모디파이어가 없을 때 수렴하는 값)</summary>
+    [SerializeField] private float baseMental = FALLBACK_BASE_MENTAL;
+
+    /// <summary>활성 정신력 모디파이어 목록</summary>
+    [SerializeField] private List<MentalModifier> mentalModifiers = new List<MentalModifier>();
 
     /// <summary>코디네이터 참조</summary>
     private Employee employee;
@@ -137,8 +171,36 @@ public class EmployeeStatsController : MonoBehaviour
     /// <summary>캐시된 이동 속도 배율 (1.0 = 정상)</summary>
     public float CachedMoveSpeedMult => cachedMoveSpeedMult;
 
+    /// <summary>캐시된 근접 데미지 배율</summary>
+    public float CachedMeleeDamageMult => cachedMeleeDamageMult;
+
+    /// <summary>캐시된 원거리 데미지 배율</summary>
+    public float CachedRangedDamageMult => cachedRangedDamageMult;
+
+    /// <summary>캐시된 명중률 배율</summary>
+    public float CachedAccuracyMult => cachedAccuracyMult;
+
+    /// <summary>캐시된 공격 간격 배율 (낮을수록 빠름)</summary>
+    public float CachedAttackIntervalMult => cachedAttackIntervalMult;
+
+    /// <summary>캐시된 무기 사거리 가감 (타일)</summary>
+    public float CachedAttackRangeBonus => cachedAttackRangeBonus;
+
+    /// <summary>캐시된 방어 관통력 가산 (0~1)</summary>
+    public float CachedPenetrationBonus => cachedPenetrationBonus;
+
     /// <summary>캐시된 기술 상승 속도 보정 (1.0 = 정상)</summary>
     public float CachedSkillGainRateModifier => cachedSkillGainRateModifier;
+
+    /// <summary>이 직원의 기본 정신력 (모디파이어가 전부 사라지면 여기로 돌아온다)</summary>
+    public float BaseMental => baseMental;
+
+    /// <summary>활성 정신력 모디파이어 목록 (UI 표시용, 읽기 전용)</summary>
+    public IReadOnlyList<MentalModifier> MentalModifiers => mentalModifiers;
+
+    /// <summary>정신력 모디파이어 기준값 (미할당이면 null → 코드 기본값)</summary>
+    private static MentalModifierConfig MentalCfg
+        => EmployeeManager.instance != null ? EmployeeManager.instance.MentalModifierConfig : null;
 
     #endregion
 
@@ -158,13 +220,17 @@ public class EmployeeStatsController : MonoBehaviour
     {
         CalculateTraitModifiers(data);
 
+        // 기본 정신력 — 모디파이어가 전부 없을 때 수렴하는 값. 최대 정신력은 상한 역할.
+        baseMental = data.baseMental > 0f
+            ? data.baseMental * cachedMentalMult
+            : FALLBACK_BASE_MENTAL * cachedMentalMult;
+        mentalModifiers.Clear();
+
         currentStats = new EmployeeStats
         {
             health = Mathf.RoundToInt(data.maxHealth * cachedHealthMult),
             maxHealth = Mathf.RoundToInt(data.maxHealth * cachedHealthMult),
-            mental = Mathf.RoundToInt(data.maxMental * cachedMentalMult),
-            maxMental = Mathf.RoundToInt(data.maxMental * cachedMentalMult),
-            attackPower = Mathf.RoundToInt(data.attackPower * (1f + GetTraitAttackModifier(data)))
+            maxMental = Mathf.RoundToInt(data.maxMental * cachedMentalMult)
         };
 
         currentNeeds = new EmployeeNeeds
@@ -173,6 +239,8 @@ public class EmployeeStatsController : MonoBehaviour
             fatigue = INITIAL_NEEDS_VALUE,
             fun = INITIAL_NEEDS_VALUE
         };
+
+        RecalculateMental();
     }
 
     #endregion
@@ -213,37 +281,45 @@ public class EmployeeStatsController : MonoBehaviour
             currentNeeds.fatigue = Mathf.Clamp(currentNeeds.fatigue, 0f, 100f);
         }
 
-        // 재미: 자연 감소 (작업 중이면 더 빠르게) — 기준값은 FunConfig(SO)
+        // 재미: 오락으로만 차오르고, 그 외에는 항상 일정하게 감소한다.
+        // (기준점 50은 수렴 지점이 아니라 정신 이상 임계점 계산의 기준일 뿐이다)
         FunConfig funCfg = EmployeeManager.instance?.FunConfig;
         if (funCfg != null)
         {
-            float funDecay = funCfg.decayPerSecond;
-            if (employee.State == EmployeeState.Working)
-                funDecay += funCfg.workingExtraDecayPerSecond;
-
-            currentNeeds.fun -= funDecay * deltaTime;
+            currentNeeds.fun -= funCfg.decayPerSecond * deltaTime;
             currentNeeds.fun = Mathf.Clamp(currentNeeds.fun, 0f, 100f);
         }
 
-        // 기아: 체력/정신력 감소 (정신 감소는 특성 배율 적용)
+        // 기아: 체력은 지속 감소(생존 위협), 정신력은 상태형 모디파이어 — 먹이면 즉시 원상복구된다
         if (currentNeeds.hunger <= 0f)
         {
             currentStats.health -= STARVATION_HEALTH_DECAY * deltaTime;
-            currentStats.mental -= STARVATION_MENTAL_DECAY * cachedMentalDecayMult * deltaTime;
         }
+        UpdateNeedPenalty(MentalReason.STARVATION, "굶주림",
+            StarvationPenalty, currentNeeds.hunger <= 0f);
 
-        // 탈진: 정신력 감소 (특성 배율 적용)
-        if (currentNeeds.fatigue <= 0f)
-        {
-            currentStats.mental -= EXHAUSTION_MENTAL_DECAY * cachedMentalDecayMult * deltaTime;
-        }
+        // 탈진: 정신력 상태형 모디파이어 — 재우면 즉시 원상복구된다
+        UpdateNeedPenalty(MentalReason.EXHAUSTION, "탈진",
+            ExhaustionPenalty, currentNeeds.fatigue <= 0f);
 
-        // 클램프
+        // 시간형 모디파이어 소멸 처리
+        TickMentalModifiers(deltaTime);
+
+        // 클램프 (정신력은 RecalculateMental이 담당)
         currentStats.health = Mathf.Clamp(currentStats.health, 0f, currentStats.maxHealth);
-        currentStats.mental = Mathf.Clamp(currentStats.mental, 0f, currentStats.maxMental);
+        RecalculateMental();
 
         OnNeedsChanged?.Invoke(currentNeeds);
         OnStatsChanged?.Invoke(currentStats);
+    }
+
+    /// <summary>
+    /// 욕구 바닥 상태에 따른 상태형 정신력 페널티를 갱신합니다.
+    /// 페널티 크기에는 특성의 정신력 감소 배율(mentalDecayMult)이 곱해집니다.
+    /// </summary>
+    private void UpdateNeedPenalty(string key, string displayName, float basePenalty, bool active)
+    {
+        SetConditionalMental(key, displayName, basePenalty * cachedMentalDecayMult, active);
     }
 
     /// <summary>
@@ -292,6 +368,12 @@ public class EmployeeStatsController : MonoBehaviour
         cachedMentalDecayMult      = 1f;
         cachedAbnormalResistMult   = 1f;
         cachedMoveSpeedMult        = 1f;
+        cachedMeleeDamageMult      = 1f;
+        cachedRangedDamageMult     = 1f;
+        cachedAccuracyMult         = 1f;
+        cachedAttackIntervalMult   = 1f;
+        cachedAttackRangeBonus     = 0f;
+        cachedPenetrationBonus     = 0f;
         // 가산·flat (1.0 또는 0 기준)
         cachedWorkSpeedModifier        = 1f;
         cachedHungerRateModifier       = 1f;
@@ -344,8 +426,14 @@ public class EmployeeStatsController : MonoBehaviour
         cachedMentalDecayMult    *= fx.mentalDecayMult;
         cachedAbnormalResistMult *= fx.abnormalResistMult;
         cachedMoveSpeedMult      *= fx.moveSpeedMult;
+        cachedMeleeDamageMult    *= fx.meleeDamageMult;
+        cachedRangedDamageMult   *= fx.rangedDamageMult;
+        cachedAccuracyMult       *= fx.accuracyMult;
+        cachedAttackIntervalMult *= fx.attackIntervalMult;
 
         // 가산·flat: 기존 방식 유지
+        cachedAttackRangeBonus   += fx.attackRangeBonus;
+        cachedPenetrationBonus   += fx.penetrationBonus;
         cachedWorkSpeedModifier     += fx.globalWorkSpeedModifier / 100f;
         cachedHungerRateModifier    += fx.hungerRateModifier / 100f;
         cachedFatigueRateModifier   += fx.fatigueRateModifier / 100f;
@@ -354,11 +442,13 @@ public class EmployeeStatsController : MonoBehaviour
     }
 
     /// <summary>
-    /// 특성에 의한 공격력 보정 계수를 반환합니다.
+    /// 특성에 의한 데미지 보정 계수를 반환합니다 (가산 %, 근접·원거리 공통).
+    /// 무기 데미지에 곱해집니다 — 직원 자체가 공격력을 갖지는 않습니다.
     /// </summary>
-    private float GetTraitAttackModifier(EmployeeData data)
+    public float GetTraitDamageModifier()
     {
         float modifier = 0f;
+        EmployeeData data = employee?.Data;
         if (data?.traits == null) return modifier;
 
         foreach (var trait in data.traits)
@@ -393,12 +483,167 @@ public class EmployeeStatsController : MonoBehaviour
         OnStatsChanged?.Invoke(currentStats);
     }
 
-    /// <summary>정신력 수정</summary>
-    public void ModifyMental(float amount)
+    /// <summary>
+    /// 정신력을 일시적으로 변동시킵니다 (시간형 모디파이어).
+    /// 같은 reasonKey로 반복 호출하면 값이 누산되고 지속 시간이 갱신됩니다 —
+    /// 오락 시설처럼 매 프레임 조금씩 올리는 경우를 자연스럽게 처리하기 위함입니다.
+    /// 지속 시간이 지나면 <b>원래 정신력으로 돌아옵니다.</b>
+    /// </summary>
+    /// <param name="amount">가감량 (양수 = 기분 좋아짐)</param>
+    /// <param name="reasonKey">중복 방지 키 (MentalReason 상수 권장)</param>
+    /// <param name="displayName">UI 표시용 이름</param>
+    /// <param name="duration">지속 시간(초). 0 이하면 Config의 키별 기본값 사용</param>
+    public void ModifyMental(float amount, string reasonKey = MentalReason.GENERIC,
+                             string displayName = "일시적인 기분", float duration = 0f)
     {
-        currentStats.mental += amount;
-        currentStats.mental = Mathf.Clamp(currentStats.mental, 0f, currentStats.maxMental);
+        if (Mathf.Approximately(amount, 0f)) return;
+
+        var cfg = MentalCfg;
+        float dur = duration > 0f
+            ? duration
+            : (cfg != null ? cfg.GetDuration(reasonKey) : DEFAULT_MODIFIER_DURATION);
+
+        var existing = FindModifier(reasonKey);
+        if (existing != null)
+        {
+            existing.value += amount;
+            existing.remainingTime = dur;
+            existing.displayName = displayName;
+        }
+        else
+        {
+            mentalModifiers.Add(new MentalModifier
+            {
+                reasonKey = reasonKey,
+                displayName = displayName,
+                value = amount,
+                remainingTime = dur
+            });
+            existing = mentalModifiers[mentalModifiers.Count - 1];
+        }
+
+        // 오락 보너스는 무한 누적되지 않도록 상한을 건다
+        if (reasonKey == MentalReason.RECREATION)
+        {
+            float cap = cfg != null ? cfg.recreationMaxBonus : DEFAULT_RECREATION_MAX;
+            existing.value = Mathf.Min(existing.value, cap);
+        }
+
+        RecalculateMental();
         OnStatsChanged?.Invoke(currentStats);
+    }
+
+    /// <summary>
+    /// 조건이 참인 동안만 유지되는 상태형 정신력 모디파이어를 설정합니다.
+    /// active가 false가 되면 즉시 제거되어 <b>정신력이 원상복구</b>됩니다.
+    /// 굶주림·탈진처럼 "상황을 해결하면 회복되는" 페널티에 사용합니다.
+    /// </summary>
+    public void SetConditionalMental(string reasonKey, string displayName, float value, bool active)
+    {
+        var existing = FindModifier(reasonKey);
+
+        if (!active)
+        {
+            if (existing != null)
+            {
+                mentalModifiers.Remove(existing);
+                RecalculateMental();
+                OnStatsChanged?.Invoke(currentStats);
+            }
+            return;
+        }
+
+        if (existing == null)
+        {
+            mentalModifiers.Add(new MentalModifier
+            {
+                reasonKey = reasonKey,
+                displayName = displayName,
+                value = value,
+                remainingTime = -1f      // 음수 = 상태형
+            });
+        }
+        else if (!Mathf.Approximately(existing.value, value))
+        {
+            existing.value = value;
+            existing.remainingTime = -1f;
+        }
+        else
+        {
+            return; // 변화 없음
+        }
+
+        RecalculateMental();
+        OnStatsChanged?.Invoke(currentStats);
+    }
+
+    /// <summary>특정 정신력 모디파이어를 즉시 제거합니다.</summary>
+    public void RemoveMentalModifier(string reasonKey)
+    {
+        var existing = FindModifier(reasonKey);
+        if (existing == null) return;
+
+        mentalModifiers.Remove(existing);
+        RecalculateMental();
+        OnStatsChanged?.Invoke(currentStats);
+    }
+
+    /// <summary>
+    /// 현재 정신력을 재계산합니다: clamp(기본값 + Σ모디파이어, 0, 최대치).
+    /// </summary>
+    private void RecalculateMental()
+    {
+        float sum = 0f;
+        for (int i = 0; i < mentalModifiers.Count; i++)
+            sum += mentalModifiers[i].value;
+
+        currentStats.mental = Mathf.Clamp(baseMental + sum, 0f, currentStats.maxMental);
+    }
+
+    /// <summary>시간형 모디파이어의 남은 시간을 줄이고 만료된 것을 제거합니다.</summary>
+    private void TickMentalModifiers(float deltaTime)
+    {
+        bool changed = false;
+
+        for (int i = mentalModifiers.Count - 1; i >= 0; i--)
+        {
+            var m = mentalModifiers[i];
+            if (m.IsConditional) continue;   // 상태형은 시간으로 사라지지 않는다
+
+            m.remainingTime -= deltaTime;
+            if (m.remainingTime <= 0f)
+            {
+                mentalModifiers.RemoveAt(i);
+                changed = true;
+            }
+        }
+
+        if (changed) RecalculateMental();
+    }
+
+    private MentalModifier FindModifier(string reasonKey)
+    {
+        for (int i = 0; i < mentalModifiers.Count; i++)
+            if (mentalModifiers[i].reasonKey == reasonKey) return mentalModifiers[i];
+        return null;
+    }
+
+    private static float StarvationPenalty
+    {
+        get
+        {
+            var cfg = MentalCfg;
+            return cfg != null ? cfg.starvationPenalty : DEFAULT_STARVATION_PENALTY;
+        }
+    }
+
+    private static float ExhaustionPenalty
+    {
+        get
+        {
+            var cfg = MentalCfg;
+            return cfg != null ? cfg.exhaustionPenalty : DEFAULT_EXHAUSTION_PENALTY;
+        }
     }
 
     /// <summary>배고픔 수정</summary>
@@ -447,36 +692,27 @@ public class EmployeeStatsController : MonoBehaviour
     }
 
     /// <summary>
-    /// 재미에 따른 작업 속도 배율을 반환합니다 (구간형, 피로와 동일 스타일).
-    /// 재미가 높으면(기본 70 이상) 보너스, 그 외 1.0. 기준값은 FunConfig(SO).
-    /// </summary>
-    public float GetFunWorkModifier()
-    {
-        FunConfig cfg = EmployeeManager.instance?.FunConfig;
-        if (cfg == null) return 1f;
-
-        return currentNeeds.fun >= cfg.workBonusThreshold ? cfg.workBonusMultiplier : 1f;
-    }
-
-    /// <summary>
-    /// 재미에 따른 침식 저항 배율을 반환합니다 (구간형).
-    /// 재미가 낮으면 1.0 미만 → 이상행동 유효 침식이 높아져 단계에 더 빨리 도달(취약).
-    /// EmployeeErosionController.UpdateStage에서 abnormalResistMult에 곱해집니다.
+    /// 재미에 따른 정신 이상 저항 배율을 반환합니다 (구간형).
+    /// 재미가 낮으면 1.0 미만 → 정신 이상 임계점이 올라가 더 일찍 터진다(취약).
+    /// EmployeeMental.GetBreakResistance에서 abnormalResistMult에 곱해집니다.
+    ///
+    /// 재미는 이 역할만 갖는다 — 작업 속도에는 관여하지 않는다.
     /// </summary>
     public float GetFunErosionFactor()
     {
         FunConfig cfg = EmployeeManager.instance?.FunConfig;
         if (cfg == null) return 1f;
 
-        if (currentNeeds.fun < cfg.severeVulnerableThreshold) return cfg.severeVulnerableFactor;
-        if (currentNeeds.fun < cfg.vulnerableThreshold) return cfg.vulnerableFactor;
-        return 1f;
+        // 연속형 — 기준점(50)에서 멀어진 만큼 선형으로 반영된다.
+        // 기준점 위면 1.0 초과(잘 버팀), 아래면 1.0 미만(취약).
+        float factor = 1f + (currentNeeds.fun - cfg.baseline) * cfg.resistPerFunPoint;
+        return Mathf.Clamp(factor, cfg.minResistFactor, cfg.maxResistFactor);
     }
 
     /// <summary>
-    /// 피로(수면 부족)에 따른 침식 저항 배율을 반환합니다 (구간형).
-    /// 수면 관리가 무너져도 침식 임계점이 낮아진다 — 재미(GetFunErosionFactor)와 곱연산으로 누적.
-    /// 침식이 일정해도 욕구 관리 실패만으로 이상행동 위험이 생기는 설계.
+    /// 피로(수면 부족)에 따른 정신 이상 저항 배율을 반환합니다 (구간형).
+    /// 수면 관리가 무너져도 임계점이 올라간다 — 재미(GetFunErosionFactor)와 곱연산으로 누적.
+    /// 정신력이 같아도 욕구 관리 실패만으로 정신 이상 위험이 생기는 설계.
     /// </summary>
     public float GetFatigueErosionFactor()
     {
@@ -491,13 +727,16 @@ public class EmployeeStatsController : MonoBehaviour
     /// <summary>
     /// 최대 스탯을 직접 증가시킵니다 (레벨업용).
     /// </summary>
-    public void IncreaseMaxStats(int healthGain, int mentalGain, int attackGain)
+    public void IncreaseMaxStats(int healthGain, int mentalGain)
     {
         currentStats.maxHealth += healthGain;
         currentStats.health = currentStats.maxHealth; // 레벨업 시 체력 회복
         currentStats.maxMental += mentalGain;
-        currentStats.mental = currentStats.maxMental; // 레벨업 시 정신력 회복
-        currentStats.attackPower += attackGain;
+
+        // 정신력은 만점으로 채우지 않는다 — 기본값 + 모디파이어 결과가 곧 현재 정신력이므로,
+        // 최대치가 올라간 만큼 기본값도 함께 올려 상대적 위치를 유지한다.
+        baseMental += mentalGain;
+        RecalculateMental();
 
         OnStatsChanged?.Invoke(currentStats);
     }
@@ -539,17 +778,14 @@ public class EmployeeStatsController : MonoBehaviour
         // 연구 전역 보너스(비율) — '직원 성장' 연구 라인이 여기서 실효를 갖는다
         var rt = ResearchTreeManager.instance;
         float researchHealthBonus = rt != null ? rt.GetStatBonus(ResearchStatType.EmployeeMaxHealthBonus) : 0f;
-        float researchAttackBonus = rt != null ? rt.GetStatBonus(ResearchStatType.EmployeeAttackPowerBonus) : 0f;
 
         float baseMaxHealth = data.maxHealth * cachedHealthMult * (1f + researchHealthBonus);
         float baseMaxMental = data.maxMental * cachedMentalMult;
-        int baseAttack = Mathf.RoundToInt(
-            data.attackPower * (1f + GetTraitAttackModifier(data)) * (1f + researchAttackBonus));
 
-        // 장비 절대값 보정 합산
+        // 장비 절대값 보정 합산 (공격력은 더 이상 직원 스탯이 아니므로 여기서 다루지 않는다 —
+        // 장비의 damageBonus는 EmployeeCombat이 무기 데미지에 직접 더한다)
         float equipHealthMod = 0f;
         float equipMentalMod = 0f;
-        int equipAttackMod = 0;
         float equipWorkSpeedMod = 0f;
         float equipHungerRateMod = 0f;
         float equipFatigueRateMod = 0f;
@@ -558,23 +794,18 @@ public class EmployeeStatsController : MonoBehaviour
         {
             equipHealthMod += kvp.Value.maxHealthModifier;
             equipMentalMod += kvp.Value.maxMentalModifier;
-            equipAttackMod += kvp.Value.attackPowerModifier;
             equipWorkSpeedMod += kvp.Value.workSpeedModifier;
             equipHungerRateMod += kvp.Value.hungerRateModifier;
             equipFatigueRateMod += kvp.Value.fatigueRateModifier;
         }
 
         // 최대치 갱신 (체력/정신력은 절대값 가감)
-        float oldMaxHealth = currentStats.maxHealth;
-        float oldMaxMental = currentStats.maxMental;
-
         currentStats.maxHealth = Mathf.Max(1, baseMaxHealth + equipHealthMod);
         currentStats.maxMental = Mathf.Max(1, baseMaxMental + equipMentalMod);
-        currentStats.attackPower = Mathf.Max(0, baseAttack + equipAttackMod);
 
-        // 현재 체력/정신력이 새 최대치를 초과하지 않도록 클램프
+        // 현재 체력이 새 최대치를 초과하지 않도록 클램프 (정신력은 RecalculateMental이 담당)
         currentStats.health = Mathf.Clamp(currentStats.health, 0f, currentStats.maxHealth);
-        currentStats.mental = Mathf.Clamp(currentStats.mental, 0f, currentStats.maxMental);
+        RecalculateMental();
 
         // 퍼센트 보정 — 특성/스킬 전부 재계산 후 장비 보정 합산
         CalculateTraitModifiers(data);
@@ -599,11 +830,24 @@ public class EmployeeStatsController : MonoBehaviour
         data.currentHealth = (int)currentStats.health;
         data.maxMental = (int)currentStats.maxMental;
         data.currentMental = (int)currentStats.mental;
-        data.attackPower = currentStats.attackPower;
 
         data.hunger = currentNeeds.hunger;
         data.fatigue = currentNeeds.fatigue;
         data.fun = currentNeeds.fun;
+
+        // 정신력은 파생값이므로 기본값 + 모디파이어를 저장한다 (currentMental은 표시용 스냅샷)
+        data.baseMental = baseMental;
+        data.mentalModifiers = new List<MentalModifierSaveData>();
+        foreach (var m in mentalModifiers)
+        {
+            data.mentalModifiers.Add(new MentalModifierSaveData
+            {
+                reasonKey = m.reasonKey,
+                displayName = m.displayName,
+                value = m.value,
+                remainingTime = m.remainingTime
+            });
+        }
     }
 
     /// <summary>
@@ -616,8 +860,7 @@ public class EmployeeStatsController : MonoBehaviour
             maxHealth = data.maxHealth,
             health = data.currentHealth,
             maxMental = data.maxMental,
-            mental = data.currentMental,
-            attackPower = data.attackPower
+            mental = data.currentMental
         };
 
         currentNeeds = new EmployeeNeeds
@@ -633,6 +876,31 @@ public class EmployeeStatsController : MonoBehaviour
         {
             CalculateTraitModifiers(emp.Data);
         }
+
+        // 정신력 복원 — 기본값 + 모디파이어에서 재계산한다 (currentMental은 신뢰하지 않음)
+        baseMental = data.baseMental > 0f
+            ? data.baseMental
+            : (emp?.Data != null && emp.Data.baseMental > 0f
+                ? emp.Data.baseMental * cachedMentalMult
+                : FALLBACK_BASE_MENTAL * cachedMentalMult);
+
+        mentalModifiers.Clear();
+        if (data.mentalModifiers != null)
+        {
+            foreach (var m in data.mentalModifiers)
+            {
+                if (m == null || string.IsNullOrEmpty(m.reasonKey)) continue;
+                mentalModifiers.Add(new MentalModifier
+                {
+                    reasonKey = m.reasonKey,
+                    displayName = m.displayName,
+                    value = m.value,
+                    remainingTime = m.remainingTime
+                });
+            }
+        }
+
+        RecalculateMental();
     }
 
     #endregion

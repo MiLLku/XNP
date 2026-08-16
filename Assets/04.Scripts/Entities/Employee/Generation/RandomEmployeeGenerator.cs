@@ -47,7 +47,9 @@ public static class RandomEmployeeGenerator
         // 기본 스탯 고정
         data.maxHealth           = config.baseMaxHealth;
         data.maxMental           = config.baseMaxMental;
-        data.attackPower         = config.baseAttackPower;
+        data.baseMental          = config.baseMentalValue;
+        data.initialMeleeLevel   = config.baseMeleeLevel;
+        data.initialRangedLevel  = config.baseRangedLevel;
         data.hungerDecayRate     = config.baseHungerDecayRate;
         data.fatigueIncreaseRate = config.baseFatigueIncreaseRate;
 
@@ -100,7 +102,9 @@ public static class RandomEmployeeGenerator
             employeeName        = data.employeeName,
             maxHealth           = data.maxHealth,
             maxMental           = data.maxMental,
-            attackPower         = data.attackPower,
+            baseMental          = data.baseMental,
+            initialMeleeLevel   = data.initialMeleeLevel,
+            initialRangedLevel  = data.initialRangedLevel,
             hungerDecayRate     = data.hungerDecayRate,
             fatigueIncreaseRate = data.fatigueIncreaseRate,
         };
@@ -156,7 +160,9 @@ public static class RandomEmployeeGenerator
         data.isUnique            = true;
         data.maxHealth           = snap.maxHealth;
         data.maxMental           = snap.maxMental;
-        data.attackPower         = snap.attackPower;
+        data.baseMental          = snap.baseMental > 0 ? snap.baseMental : 50;
+        data.initialMeleeLevel   = Mathf.Max(1, snap.initialMeleeLevel);
+        data.initialRangedLevel  = Mathf.Max(1, snap.initialRangedLevel);
         data.hungerDecayRate     = snap.hungerDecayRate;
         data.fatigueIncreaseRate = snap.fatigueIncreaseRate;
 

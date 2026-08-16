@@ -13,8 +13,7 @@ MonoBehaviour:
   m_Name: ErosionRecoveryConfig
   m_EditorClassIdentifier: Assembly-CSharp::ErosionRecoveryConfig
   outOfAuraDuration: 20
-  naturalRecoveryPerSecond: 3
+  naturalRecoveryPerSecond: 0.1
+  naturalRecoveryFloor: 50
   purificationItemAmount: 80
-  postRaidRecoveryPerSecond: 10
-  postRaidRecoveryDuration: 120
-  restRecoveryPerSecond: 5
+  propagationCheckInterval: 5

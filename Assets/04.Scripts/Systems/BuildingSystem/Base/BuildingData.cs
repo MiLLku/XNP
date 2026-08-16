@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// 건물 데이터 (ScriptableObject).
@@ -48,8 +49,12 @@ public class BuildingData : ScriptableObject
     #region 건설 비용
 
     [Header("건설 비용")]
-    [Tooltip("건설에 걸리는 시간(초)")]
-    public float constructionTime = 5f;
+    [Tooltip("건설에 필요한 총 작업량.\n" +
+             "직원이 초당 투입하는 작업량(작업 속도)만큼 깎여 나가며, 0이 되면 완성됩니다.\n" +
+             "작업 속도 1인 직원 기준으로는 이 값이 곧 초 단위 소요 시간과 같습니다.\n" +
+             "진행도는 건설 현장에 누적되므로 직원이 떠나도 사라지지 않습니다.")]
+    [FormerlySerializedAs("constructionTime")]
+    public float workAmount = 5f;
 
     [Tooltip("건설에 필요한 자원 목록")]
     public List<ResourceCost> requiredResources;

@@ -31,7 +31,11 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
 
     [Header("상태")]
     [SerializeField] private ConstructionState state = ConstructionState.Blueprint;
+    [Tooltip("진행 비율 (0~1). accumulatedWork에서 파생되는 표시용 값")]
     [SerializeField] private float constructionProgress = 0f;
+
+    [Tooltip("누적된 작업량. 직원이 떠나도 남으며 다른 직원이 이어받는다")]
+    [SerializeField] private float accumulatedWork = 0f;
 
     [Header("시각 설정")]
     [SerializeField] private Color blueprintColor = new Color(0.5f, 0.8f, 1f, 0.5f);
@@ -141,6 +145,7 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
         gridPosition = gridPos;
         state = ConstructionState.Blueprint;
         constructionProgress = 0f;
+        accumulatedWork = 0f;
 
         gameObject.name = $"ConstructionSite_{data.buildingName}_{gridPos.x}_{gridPos.y}";
 
@@ -374,6 +379,26 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
         Debug.Log($"[ConstructionSite] 건설 시작: {buildingData.buildingName}");
     }
 
+    /// <summary>완료에 필요한 총 작업량 (BuildingData.workAmount).</summary>
+    public float WorkAmount => buildingData != null ? Mathf.Max(0.01f, buildingData.workAmount) : 5f;
+
+    /// <summary>지금까지 누적된 작업량.</summary>
+    public float AccumulatedWork => accumulatedWork;
+
+    /// <summary>
+    /// 작업량을 투입합니다. 직원이 초당 작업 속도만큼 넣습니다.
+    ///
+    /// 진행도는 <b>이 현장에 남습니다</b> — 직원이 밥을 먹으러 가거나 소집되어 떠나도
+    /// 지금까지 한 작업은 사라지지 않고, 다른 직원이 이어받을 수 있습니다.
+    /// </summary>
+    public void AddWork(float amount)
+    {
+        if (amount <= 0f || state == ConstructionState.Completed) return;
+
+        accumulatedWork = Mathf.Min(WorkAmount, accumulatedWork + amount);
+        constructionProgress = Mathf.Clamp01(accumulatedWork / WorkAmount);
+    }
+
     /// <summary>
     /// 건설이 완료될 때 호출됩니다.
     /// 자재는 직원이 운반 시 InventoryManager에서 이미 차감되었으므로
@@ -385,6 +410,7 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
 
         state = ConstructionState.Completed;
         constructionProgress = 1f;
+        accumulatedWork = WorkAmount;
 
         Debug.Log($"[ConstructionSite] 건설 완료, 실제 건물 생성: {buildingData.buildingName}");
 
@@ -674,6 +700,8 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
         gridPosition = new Vector3Int(saveData.gridX, saveData.gridY, 0);
         state = (ConstructionState)saveData.state;
         constructionProgress = saveData.progress;
+        // 진행 비율에서 누적 작업량을 되살린다 (직원이 이어서 지을 수 있도록)
+        accumulatedWork = Mathf.Clamp01(saveData.progress) * WorkAmount;
         reservationId = saveData.reservationId;
         _instanceId = saveData.instanceId;
 

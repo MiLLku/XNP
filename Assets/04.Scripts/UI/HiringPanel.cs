@@ -149,7 +149,8 @@ public class HiringPanel : BasePanel
         {
             TextMeshProUGUI lbl = statsTf.GetComponent<TextMeshProUGUI>();
             if (lbl != null)
-                lbl.text = $"HP: {data.maxHealth}\n정신력: {data.maxMental}\n공격력: {data.attackPower}";
+                lbl.text = $"HP: {data.maxHealth}\n정신력: {data.baseMental}/{data.maxMental}\n" +
+                           $"근접 Lv.{data.initialMeleeLevel}  원거리 Lv.{data.initialRangedLevel}";
         }
 
         // 선택 하이라이트 초기화

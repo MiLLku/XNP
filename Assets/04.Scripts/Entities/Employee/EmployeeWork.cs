@@ -284,7 +284,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
     /// <summary>
     /// 특정 작업 타입의 작업 속도를 반환합니다.
-    /// 기본속도 × 특성보정 × 피로보정 × 글로벌보정 × 정신이벤트보정 × 침식보정 × 재미보정
+    /// 기본속도 × 특성보정 × 피로보정 × 글로벌보정 × 정신이상보정 × 침식보정 × 연구보정
+    ///
+    /// 재미는 여기에 관여하지 않는다 — 재미의 역할은 정신 이상 임계점 조절뿐이다.
     /// </summary>
     public float GetWorkSpeed(WorkType type)
     {
@@ -297,10 +299,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         float globalModifier = statsController != null ? statsController.CachedWorkSpeedModifier : 1f;
         float mentalModifier = mental != null ? mental.GetActiveSpeedModifier() : 1f;
         float erosionModifier = erosionController != null ? erosionController.WorkSpeedModifier : 1f;
-        float funModifier = statsController != null ? statsController.GetFunWorkModifier() : 1f;
         float researchModifier = 1f + GetResearchWorkSpeedBonus(type);
 
-        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * funModifier * researchModifier;
+        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier;
     }
 
     /// <summary>
@@ -1388,9 +1389,59 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             CancelWork();
             return;
         }
-        float workTime = target.GetWorkTime() / speed;
 
+        // 진행도가 대상에 누적되는 작업(건설·철거)은 전용 루프를 탄다 —
+        // 중단해도 진행이 남고 다른 직원이 이어받을 수 있다.
+        if (target is IProgressiveWork progressive)
+        {
+            currentWorkCoroutine = StartCoroutine(PerformProgressiveWork(target, progressive));
+            return;
+        }
+
+        float workTime = target.GetWorkTime() / speed;
         currentWorkCoroutine = StartCoroutine(PerformWork(target, workTime));
+    }
+
+    /// <summary>
+    /// 작업량 누적형 작업 루프 (건설·철거).
+    ///
+    /// 매 프레임 직원의 현재 작업 속도만큼 작업량을 대상에 넣는다. 속도는 특성·피로·정신 이상·
+    /// 침식·연구가 곱해진 값이라 유능한 직원일수록 같은 시간에 더 많이 진행시킨다.
+    /// 중단 시 지금까지 넣은 작업량은 대상에 그대로 남는다.
+    /// </summary>
+    private IEnumerator PerformProgressiveWork(IWorkTarget target, IProgressiveWork progressive)
+    {
+        float total = Mathf.Max(0.01f, progressive.GetWorkAmount());
+        workProgress = Mathf.Clamp01(progressive.GetAccumulatedWork() / total);
+
+        while (progressive.GetAccumulatedWork() < total)
+        {
+            if (employee.State != EmployeeState.Working || !target.IsWorkAvailable())
+            {
+                Debug.Log($"[Work] {employee.DisplayName}: {target.GetWorkType()} 중단 — " +
+                          $"진행도 {progressive.GetAccumulatedWork():F1}/{total:F1}는 대상에 보존됨");
+                CancelWork();
+                yield break;
+            }
+
+            float speed = GetWorkSpeed(currentWork);
+            if (speed <= 0f)
+            {
+                Debug.LogWarning($"[Work] {employee.DisplayName}: 작업 속도 0 이하, 작업 취소");
+                CancelWork();
+                yield break;
+            }
+
+            progressive.AddWork(speed * Time.deltaTime);
+            workProgress = Mathf.Clamp01(progressive.GetAccumulatedWork() / total);
+
+            yield return null;
+        }
+
+        // 작업 적성 경험치 — 총 작업량에 비례
+        growth?.GainWorkExperience(target.GetWorkType(), Mathf.Max(1, Mathf.RoundToInt(total)));
+
+        CompleteWork();
     }
 
     private IEnumerator PerformWork(IWorkTarget target, float workTime)

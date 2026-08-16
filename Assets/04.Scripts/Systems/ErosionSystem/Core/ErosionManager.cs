@@ -37,8 +37,11 @@ public class ErosionManager : DestroySingleton<ErosionManager>, ISaveModule
 
     #region 상태
 
-    private bool isPostRaidRecoveryActive;
-    private float postRaidRecoveryTimer;
+    /// <summary>
+    /// 자연 회복 하한을 낮추는 런타임 감소량 (연구 외 경로 — 이벤트·건물 등).
+    /// 게임 진행에 따라 하한이 내려가도록 하는 축의 하나이며, 세이브에 저장된다.
+    /// </summary>
+    [SerializeField] private float runtimeFloorReduction;
 
     #endregion
 
@@ -54,8 +57,29 @@ public class ErosionManager : DestroySingleton<ErosionManager>, ISaveModule
     public ErosionStageConfig StageConfig => stageConfig;
     public ErosionRecoveryConfig RecoveryConfig => recoveryConfig;
 
-    /// <summary>포스트 레이드 가속 회복이 활성화 중인지 여부</summary>
-    public bool IsPostRaidRecovery => isPostRaidRecoveryActive;
+    /// <summary>런타임 하한 감소량 (읽기용)</summary>
+    public float RuntimeFloorReduction => runtimeFloorReduction;
+
+    /// <summary>
+    /// 현재 유효한 자연 회복 하한.
+    /// <code>max(0, 기본하한 - 연구 감소 - 런타임 감소)</code>
+    /// 게임 초반에는 하한이 높아 세척 시설이 필수지만, 연구가 진행될수록 낮아져 자립도가 올라간다.
+    /// </summary>
+    public float EffectiveRecoveryFloor
+    {
+        get
+        {
+            if (recoveryConfig == null) return 0f;
+
+            float researchReduction = 0f;
+            var rt = ResearchTreeManager.instance;
+            if (rt != null)
+                researchReduction = rt.GetStatBonus(ResearchStatType.ErosionRecoveryFloorReduction);
+
+            return Mathf.Max(0f,
+                recoveryConfig.naturalRecoveryFloor - researchReduction - runtimeFloorReduction);
+        }
+    }
 
     #endregion
 
@@ -68,8 +92,7 @@ public class ErosionManager : DestroySingleton<ErosionManager>, ISaveModule
     {
         data.erosionSystem = new ErosionSystemSaveData
         {
-            isPostRaidRecoveryActive = isPostRaidRecoveryActive,
-            postRaidRecoveryTimer = postRaidRecoveryTimer
+            runtimeFloorReduction = runtimeFloorReduction
         };
     }
 
@@ -77,8 +100,7 @@ public class ErosionManager : DestroySingleton<ErosionManager>, ISaveModule
     {
         if (data.erosionSystem == null) return;
 
-        isPostRaidRecoveryActive = data.erosionSystem.isPostRaidRecoveryActive;
-        postRaidRecoveryTimer = data.erosionSystem.postRaidRecoveryTimer;
+        runtimeFloorReduction = data.erosionSystem.runtimeFloorReduction;
     }
 
     public void PostRestore(SaveData data) { }
@@ -93,20 +115,23 @@ public class ErosionManager : DestroySingleton<ErosionManager>, ISaveModule
         AbnormalBehaviorRegistry.Initialize();
     }
 
-    private void Update()
+    #endregion
+
+    #region 공개 API — 회복 하한
+
+    /// <summary>
+    /// 자연 회복 하한을 영구적으로 낮춥니다 (이벤트·건물 완공 등).
+    /// 연구로 인한 감소와는 별도로 누적됩니다.
+    /// </summary>
+    /// <param name="amount">낮출 수치 (양수)</param>
+    public void ReduceRecoveryFloor(float amount)
     {
-        if (!isPostRaidRecoveryActive) return;
-        if (recoveryConfig == null) return;
+        if (amount <= 0f) return;
 
-        postRaidRecoveryTimer -= Time.deltaTime;
-        if (postRaidRecoveryTimer <= 0f)
-        {
-            isPostRaidRecoveryActive = false;
-            postRaidRecoveryTimer = 0f;
+        runtimeFloorReduction += amount;
 
-            if (showDebugLogs)
-                Debug.Log("[ErosionManager] 포스트 레이드 가속 회복 종료.");
-        }
+        if (showDebugLogs)
+            Debug.Log($"[ErosionManager] 자연 회복 하한 감소 +{amount} → 현재 유효 하한 {EffectiveRecoveryFloor:F1}");
     }
 
     #endregion
@@ -157,45 +182,23 @@ public class ErosionManager : DestroySingleton<ErosionManager>, ISaveModule
     {
         if (employee == null || recoveryConfig == null) return;
 
-        float newErosion = Mathf.Max(0f, employee.ErosionLevel - recoveryConfig.purificationItemAmount);
-        employee.SetErosion(newErosion);
+        float before = employee.ErosionLevel;
+        employee.ErosionController?.ReduceErosion(recoveryConfig.purificationItemAmount, "정화 약품");
 
         if (showDebugLogs)
-            Debug.Log($"[ErosionManager] {employee.DisplayName} 정화 약품 사용: 침식 {employee.ErosionLevel + recoveryConfig.purificationItemAmount:F1} → {newErosion:F1}");
-    }
-
-    #endregion
-
-    #region 공개 API — 포스트 레이드 회복
-
-    /// <summary>
-    /// 포스트 레이드 가속 회복을 시작합니다.
-    /// RaidManager.CompleteRaid()에서 호출됩니다.
-    /// </summary>
-    public void StartPostRaidRecovery()
-    {
-        if (recoveryConfig == null) return;
-
-        isPostRaidRecoveryActive = true;
-        postRaidRecoveryTimer = recoveryConfig.postRaidRecoveryDuration;
-
-        if (showDebugLogs)
-            Debug.Log($"[ErosionManager] 포스트 레이드 가속 회복 시작 ({recoveryConfig.postRaidRecoveryDuration}초)");
+            Debug.Log($"[ErosionManager] {employee.DisplayName} 정화 약품 사용: 침식 {before:F1} → {employee.ErosionLevel:F1}");
     }
 
     #endregion
 
     #region 컨텍스트 메뉴 (디버그)
 
-    [ContextMenu("포스트 레이드 회복 시작 (테스트)")]
-    private void DebugStartPostRaid() => StartPostRaidRecovery();
-
     [ContextMenu("모든 직원 침식 초기화 (테스트)")]
     private void DebugResetAllErosion()
     {
         if (EmployeeManager.instance == null) return;
         foreach (var emp in EmployeeManager.instance.AllEmployees)
-            emp?.SetErosion(0f);
+            emp?.ErosionController?.ClearErosion();
         Debug.Log("[ErosionManager] 모든 직원 침식 초기화 완료");
     }
 

@@ -29,9 +29,23 @@ public class EmployeeData : ScriptableObject
     [Range(50, 200)]
     public int maxHealth = 100;
     [Range(50, 200)]
+    [Tooltip("정신력 상한. 긍정적 요소로 기본값보다 올라갈 수 있는 여유를 결정합니다.")]
     public int maxMental = 100;
-    [Range(1, 50)]
-    public int attackPower = 10;
+
+    [Range(0, 200)]
+    [Tooltip("기본 정신력 — 아무 모디파이어도 없을 때 수렴하는 값.\n" +
+             "긍정적 요소는 이 위로, 굶주림·탈진 등은 이 아래로 정신력을 움직이며,\n" +
+             "원인이 사라지면 다시 이 값으로 돌아옵니다. 0이면 코드 기본값(50)을 씁니다.")]
+    public int baseMental = 50;
+
+    [Header("초기 전투 숙련")]
+    [Tooltip("근접 숙련 시작 레벨. 데미지·명중률·공격 간격의 기본값은 무기가 갖고, 이 숙련이 그것을 조정합니다.")]
+    [Range(1, CombatAptitude.MAX_LEVEL)]
+    public int initialMeleeLevel = 1;
+
+    [Tooltip("원거리 숙련 시작 레벨")]
+    [Range(1, CombatAptitude.MAX_LEVEL)]
+    public int initialRangedLevel = 1;
 
     #endregion
 

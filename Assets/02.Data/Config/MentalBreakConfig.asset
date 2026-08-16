@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c81152f7bb45ac44bba63b5f0fdfff54, type: 3}
+  m_Name: MentalBreakConfig
+  m_EditorClassIdentifier: Assembly-CSharp::MentalBreakConfig
+  checkIntervalSeconds: 2.5
+  breakGraceSeconds: 30
+  minorThreshold: 0.5
+  majorThreshold: 0.3
+  extremeThreshold: 0.15
+  minorMtbDays: 0.75
+  majorMtbDays: 0.35
+  extremeMtbDays: 0.15
+  depthMtbFactor: 1
+  erosionFullLevel: 200
+  erosionWeightMultiplier: 1
+  erosionEventCooldown: 45

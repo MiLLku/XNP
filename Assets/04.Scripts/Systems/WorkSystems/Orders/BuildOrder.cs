@@ -3,10 +3,12 @@ using UnityEngine;
 /// <summary>
 /// 건설 작업 명령.
 /// 건설 현장(ConstructionSite)에서 건물을 완성하는 작업.
-/// IWorkTarget을 구현하여 WorkTask 시스템과 연동됩니다.
+///
+/// <b>작업량 누적 방식</b>(IProgressiveWork) — 직원이 초당 작업 속도만큼 작업량을 넣고,
+/// 진행도는 건설 현장에 쌓인다. 직원이 떠나도 사라지지 않으며 다른 직원이 이어받는다.
 /// </summary>
 [System.Serializable]
-public class BuildOrder : IWorkTarget
+public class BuildOrder : IWorkTarget, IProgressiveWork
 {
     #region 필드
 
@@ -38,8 +40,27 @@ public class BuildOrder : IWorkTarget
     /// <summary>작업 타입을 반환합니다.</summary>
     public WorkType GetWorkType() => WorkType.Building;
 
-    /// <summary>건설에 소요되는 시간을 반환합니다 (초).</summary>
-    public float GetWorkTime() => buildingData != null ? buildingData.constructionTime : 5f;
+    /// <summary>
+    /// 총 작업량을 반환합니다.
+    /// (누적 방식이라 실제 진행은 IProgressiveWork 경로를 타지만, 인터페이스 호환을 위해 유지)
+    /// </summary>
+    public float GetWorkTime() => GetWorkAmount();
+
+    #endregion
+
+    #region IProgressiveWork 구현 — 진행도는 건설 현장에 누적된다
+
+    /// <inheritdoc/>
+    public float GetWorkAmount()
+        => constructionSite != null ? constructionSite.WorkAmount
+                                    : (buildingData != null ? buildingData.workAmount : 5f);
+
+    /// <inheritdoc/>
+    public float GetAccumulatedWork()
+        => constructionSite != null ? constructionSite.AccumulatedWork : 0f;
+
+    /// <inheritdoc/>
+    public void AddWork(float amount) => constructionSite?.AddWork(amount);
 
     /// <summary>
     /// 작업 가능 여부.

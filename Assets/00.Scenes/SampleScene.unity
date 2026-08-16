@@ -14291,6 +14291,11 @@ MonoBehaviour:
   erosionConfig: {fileID: 11400000, guid: 4e427f3c98b18d6418998c85717f02f2, type: 2}
   foodConfig: {fileID: 11400000, guid: 225d936d9ddcc3547915159ae6a6ae73, type: 2}
   funAlertConfig: {fileID: 11400000, guid: c07488ff09ccfa040afc82153bec99c5, type: 2}
+  washStationConfig:
+    enabled: 1
+    pushLetter: 1
+    letterRepeatInterval: 0
+    pauseUntilRead: 0
   maxLetters: 8
 --- !u!1 &1005961325
 GameObject:
@@ -25225,6 +25230,8 @@ MonoBehaviour:
   funConfig: {fileID: 11400000, guid: 6cee1892eb6af8f48b5c4258ce9765fb, type: 2}
   combatConfig: {fileID: 11400000, guid: 737b3aa5499ea954bbbc41ca9b27d6c1, type: 2}
   skillTreeConfig: {fileID: 11400000, guid: 7daa6ce102741b649bcf5431b74982f3, type: 2}
+  mentalBreakConfig: {fileID: 11400000, guid: b1c862c10364e90459f7beae508f547f, type: 2}
+  mentalModifierConfig: {fileID: 11400000, guid: 7d62d86ad48b4e344b7d02747f5b0665, type: 2}
 --- !u!1 &1682204058
 GameObject:
   m_ObjectHideFlags: 0
@@ -26443,6 +26450,7 @@ MonoBehaviour:
   recoveryConfig: {fileID: 11400000, guid: 36cc49acc36fddf418452a97d345a195, type: 2}
   corrodedXenopsDataId: 6100
   showDebugLogs: 0
+  runtimeFloorReduction: 0
 --- !u!1 &1788568269
 GameObject:
   m_ObjectHideFlags: 0

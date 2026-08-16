@@ -15,6 +15,7 @@ using UnityEngine.Tilemaps;
 public class AllyProjectile : MonoBehaviour, IPoolable
 {
     private float _damage;
+    private float _penetration;
     private float _lifetime;
     private bool  _isReturned;
     private System.Action<Xenops> _onHit;
@@ -39,13 +40,16 @@ public class AllyProjectile : MonoBehaviour, IPoolable
     }
 
     // ─── 초기화 (풀에서 꺼낼 때마다 호출) ────────
-    public void Init(Vector2 direction, float speed, float damage, float lifetime,
+    /// <param name="damage">피해량. 0이면 빗나간 사격이라 명중해도 피해를 주지 않고 사라집니다.</param>
+    /// <param name="penetration">방어 관통력 (0~1)</param>
+    public void Init(Vector2 direction, float speed, float damage, float penetration, float lifetime,
                      System.Action<Xenops> onHit)
     {
-        _damage     = damage;
-        _lifetime   = lifetime;
-        _onHit      = onHit;
-        _isReturned = false;
+        _damage      = damage;
+        _penetration = penetration;
+        _lifetime    = lifetime;
+        _onHit       = onHit;
+        _isReturned  = false;
 
         _rb.linearVelocity = direction.normalized * speed;
     }
@@ -72,8 +76,14 @@ public class AllyProjectile : MonoBehaviour, IPoolable
             var health = xenops.GetComponent<XenopsHealth>();
             if (health == null || health.IsDead) return;
 
-            health.TakeDamage(_damage);
-            Debug.Log($"[AllyProjectile] {xenops.DisplayName} 명중 -{_damage} (남은 HP {health.CurrentHealth})");
+            // 빗나간 사격(_damage = 0)도 명중한 것처럼 투사체는 사라지되 피해는 없다
+            health.TakeDamage(_damage, _penetration);
+
+            if (_damage > 0f)
+                Debug.Log($"[AllyProjectile] {xenops.DisplayName} 명중 -{_damage:F1} (남은 HP {health.CurrentHealth:F0})");
+            else
+                Debug.Log($"[AllyProjectile] {xenops.DisplayName} 빗나감");
+
             _onHit?.Invoke(xenops);
             ReturnToPool();
             return;

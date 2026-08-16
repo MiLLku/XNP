@@ -79,13 +79,17 @@ public class XenopsHealth : MonoBehaviour
 
     /// <summary>
     /// 피해를 적용합니다.
-    /// rawDamage → 방어력 적용(감소) → HP 차감 → 0 이하 시 사망.
+    /// rawDamage → 방어력(관통력만큼 차감) 적용 → HP 차감 → 0 이하 시 사망.
     /// </summary>
-    public void TakeDamage(float rawDamage)
+    /// <param name="rawDamage">방어 적용 전 피해량. 0이면 빗나간 공격이므로 아무 일도 하지 않습니다.</param>
+    /// <param name="penetration">방어 관통력 (0~1). 대상 방어율에서 이만큼 차감합니다.</param>
+    public void TakeDamage(float rawDamage, float penetration = 0f)
     {
         if (_isDead) return;
+        if (rawDamage <= 0f) return;   // 빗나감
 
-        float actual = rawDamage * (1f - defense);
+        float effectiveDefense = Mathf.Clamp01(defense - Mathf.Clamp01(penetration));
+        float actual = rawDamage * (1f - effectiveDefense);
         currentHealth -= actual;
 
         if (currentHealth <= 0f)

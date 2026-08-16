@@ -79,7 +79,8 @@ public class ErosionProjectile : MonoBehaviour, IPoolable
                 employee.ModifyHealth(-_healthDamage);
 
             if (_erosionAmount > 0f)
-                employee.SetErosion(employee.ErosionLevel + _erosionAmount);
+                employee.ErosionController?.AddErosion(
+                    _erosionAmount, ErosionSource.PROJECTILE, "침식 투사체 피격");
 
             ReturnToPool();
             return;

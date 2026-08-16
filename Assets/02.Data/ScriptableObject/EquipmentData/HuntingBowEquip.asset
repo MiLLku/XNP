@@ -17,6 +17,9 @@ MonoBehaviour:
     7, \uACF5\uACA9\uB825 +3. \uCE74\uC774\uD305 \uD0DC\uC138 \uC0AC\uC6A9 \uAC00\uB2A5."
   slot: 2
   weaponClass: 1
+  baseDamage: 7
+  accuracy: 0.75
+  penetration: 0
   attackRange: 7
   attackInterval: 1.6
   isDefensiveGear: 0
@@ -27,7 +30,7 @@ MonoBehaviour:
   statModifier:
     maxHealthModifier: 0
     maxMentalModifier: 0
-    attackPowerModifier: 3
+    damageBonus: 0
     workSpeedModifier: 0
     hungerRateModifier: 0
     fatigueRateModifier: 0

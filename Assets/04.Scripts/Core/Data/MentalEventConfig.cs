@@ -28,18 +28,28 @@ public class MentalEventConfig
 
 /// <summary>
 /// 활성 정신 이벤트 데이터 (런타임).
+///
+/// 정신 이상은 두 계열이 있고 한 항목은 둘 중 하나만 채웁니다:
+///   • 일반 계열 — type에 값이 있고 abnormalType은 None
+///   • 침식 계열 — abnormalType에 값이 있고 type은 None (AbnormalBehaviorRegistry 구현체가 실행)
 /// </summary>
 [Serializable]
 public class ActiveMentalEvent
 {
-    /// <summary>이벤트 타입</summary>
+    /// <summary>일반 계열 이벤트 타입 (침식 계열이면 None)</summary>
     public MentalEventType type;
+
+    /// <summary>침식 계열 이상 행동 타입 (일반 계열이면 None)</summary>
+    public AbnormalBehaviorType abnormalType;
 
     /// <summary>남은 지속 시간</summary>
     public float remainingTime;
 
     /// <summary>쿨다운 남은 시간</summary>
     public float cooldownRemaining;
+
+    /// <summary>침식 계열 정신 이상인지 여부</summary>
+    public bool IsErosionKind => abnormalType != AbnormalBehaviorType.None;
 }
 
 /// <summary>
@@ -48,8 +58,11 @@ public class ActiveMentalEvent
 [Serializable]
 public class MentalEventSaveData
 {
-    /// <summary>이벤트 타입 (MentalEventType as int)</summary>
+    /// <summary>일반 계열 이벤트 타입 (MentalEventType as int)</summary>
     public int eventType;
+
+    /// <summary>침식 계열 이상 행동 타입 (AbnormalBehaviorType as int, v8 추가)</summary>
+    public int abnormalType;
 
     /// <summary>남은 지속 시간</summary>
     public float remainingTime;

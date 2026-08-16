@@ -18,4 +18,11 @@ public enum ResearchStatType
 
     /// <summary>수확·벌목 속도</summary>
     HarvestSpeedBonus,
+
+    /// <summary>
+    /// 침식 자연 회복 하한 감소 (비율이 아니라 <b>침식 수치 그대로</b>).
+    /// 기본 하한 50에서 이만큼 빼서 유효 하한을 구한다 — 게임 진행에 따라 자립도가 올라가는 축.
+    /// 소비 지점: ErosionManager.EffectiveRecoveryFloor
+    /// </summary>
+    ErosionRecoveryFloorReduction,
 }

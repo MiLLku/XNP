@@ -256,18 +256,19 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
         {
             if (!_affectedEmployees.Contains(emp))
             {
-                emp.SetErosion(EROSION_AMOUNT);
+                emp.ErosionController?.AddErosion(
+                    EROSION_AMOUNT, ErosionSource.CONTAMINATION, "오염 구체");
                 Debug.Log($"[오염 구체] {emp.DisplayName} 침식 부여: {EROSION_AMOUNT}");
             }
         }
 
-        // 범위를 벗어난 직원 → 침식 회복
+        // 범위를 벗어난 직원 → 이 구체가 준 침식만 거둬간다 (다른 출처의 침식은 유지)
         foreach (var emp in _affectedEmployees)
         {
             if (emp == null) continue;
             if (!currentInRange.Contains(emp))
             {
-                emp.SetErosion(0f);
+                emp.ErosionController?.RemoveErosionBySource(ErosionSource.CONTAMINATION);
                 Debug.Log($"[오염 구체] {emp.DisplayName} 침식 회복");
             }
         }
@@ -285,7 +286,7 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
         {
             if (emp != null)
             {
-                emp.SetErosion(0f);
+                emp.ErosionController?.RemoveErosionBySource(ErosionSource.CONTAMINATION);
             }
         }
         _affectedEmployees.Clear();

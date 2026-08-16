@@ -14,8 +14,31 @@ public class CombatConfig : ScriptableObject
     [Tooltip("무기 없음(맨손) 공격 간격 (초)")]
     public float unarmedInterval = 1.2f;
 
+    [Tooltip("무기 없음(맨손) 데미지")]
+    [Min(0f)] public float unarmedDamage = 3f;
+
+    [Tooltip("무기 없음(맨손) 명중률 (0~1)")]
+    [Range(0f, 1f)] public float unarmedAccuracy = 0.8f;
+
     [Tooltip("적 탐지 재평가 주기 (초)")]
     public float targetScanInterval = 0.5f;
+
+    [Header("전투 숙련 보정 (Lv.1 → Lv.10)")]
+    [Tooltip("숙련이 최대일 때의 데미지 보너스. 0.5 = Lv.10에서 데미지 1.5배")]
+    [Range(0f, 3f)] public float damageBonusAtMaxLevel = 0.5f;
+
+    [Tooltip("숙련이 최대일 때의 명중률 보너스. 0.5 = Lv.10에서 명중률 1.5배 (1.0 상한)")]
+    [Range(0f, 3f)] public float accuracyBonusAtMaxLevel = 0.5f;
+
+    [Tooltip("숙련이 최대일 때의 공격 속도 보너스. 0.5 = Lv.10에서 공격 간격이 1/1.5로 단축")]
+    [Range(0f, 3f)] public float attackSpeedBonusAtMaxLevel = 0.5f;
+
+    [Header("전투 숙련 상승")]
+    [Tooltip("공격이 명중할 때마다 얻는 숙련 경험치")]
+    [Min(0)] public int expPerHit = 3;
+
+    [Tooltip("빗나갔을 때 얻는 숙련 경험치 (맞아야 배운다 — 낮게 두는 것을 권장)")]
+    [Min(0)] public int expPerMiss = 1;
 
     [Header("경계 (Guard)")]
     [Tooltip("경계 반경 기본값 (타일). 직원 특성 guardRangeBonus가 가감된다")]

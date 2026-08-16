@@ -71,13 +71,22 @@ public class EmployeeGenerationConfig : ScriptableObject
     [Range(50, 200)]
     public int baseMaxHealth = 100;
 
-    [Tooltip("모든 무작위 생성 직원의 기본 최대 정신력")]
+    [Tooltip("모든 무작위 생성 직원의 기본 최대 정신력 (상한)")]
     [Range(50, 200)]
     public int baseMaxMental = 100;
 
-    [Tooltip("모든 무작위 생성 직원의 기본 공격력")]
-    [Range(1, 50)]
-    public int baseAttackPower = 10;
+    [Tooltip("모든 무작위 생성 직원의 기본 정신력 — 모디파이어가 없을 때 수렴하는 값.\n" +
+             "긍정 요소는 이 위로, 굶주림·탈진은 이 아래로 움직이며 원인이 사라지면 여기로 돌아옵니다.")]
+    [Range(0, 200)]
+    public int baseMentalValue = 50;
+
+    [Tooltip("무작위 생성 직원의 근접 숙련 시작 레벨. 전투 능력치 자체는 무기가 갖고, 숙련은 그것을 조정합니다.")]
+    [Range(1, CombatAptitude.MAX_LEVEL)]
+    public int baseMeleeLevel = 1;
+
+    [Tooltip("무작위 생성 직원의 원거리 숙련 시작 레벨")]
+    [Range(1, CombatAptitude.MAX_LEVEL)]
+    public int baseRangedLevel = 1;
 
     [Header("욕구 기본값")]
     [Range(0.1f, 5f)]

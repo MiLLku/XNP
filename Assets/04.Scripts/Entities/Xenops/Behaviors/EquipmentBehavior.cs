@@ -188,7 +188,7 @@ public class EquipmentBehavior : MonoBehaviour, IXenopsBehavior
                         modifier.fatigueRateModifier += value;
                         break;
                     case XenopsEffectType.ModifyAttackPower:
-                        modifier.attackPowerModifier += (int)value;
+                        modifier.damageBonus += (int)value;
                         break;
                 }
             }

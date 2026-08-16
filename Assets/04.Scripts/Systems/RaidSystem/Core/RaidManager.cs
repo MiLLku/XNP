@@ -10,7 +10,7 @@ using UnityEngine;
 /// 담당 기능:
 ///   - RaidData 기반 웨이브 스폰 관리
 ///   - 레이드 전멸/철수 감지 및 완료 처리
-///   - 레이드 완료 시 ErosionManager.StartPostRaidRecovery() 호출
+///   - 레이드 완료 시 격퇴 레터 발행 (포스트 레이드 침식 회복은 v10에서 제거)
 ///   - RaidSystemSaveData 저장/복원
 ///
 /// 확장 방법:
@@ -358,8 +358,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             });
         }
 
-        // 포스트 레이드 회복 시작
-        ErosionManager.instance?.StartPostRaidRecovery();
+        // 레이드 종료 후 가속 회복은 v10에서 제거됐다 —
+        // 침식 회복 경로는 자연 회복(하한까지)·세척 시설·무작위 이벤트 셋뿐이다.
 
         // 상태 리셋
         activeRaid = null;

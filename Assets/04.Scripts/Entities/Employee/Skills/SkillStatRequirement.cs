@@ -15,8 +15,11 @@ public enum SkillStatType
     /// <summary>최대 정신력</summary>
     MaxMental,
 
-    /// <summary>공격력</summary>
-    AttackPower,
+    /// <summary>근접 전투 숙련 레벨</summary>
+    MeleeLevel,
+
+    /// <summary>원거리 전투 숙련 레벨</summary>
+    RangedLevel,
 
     /// <summary>스킬 카테고리에 대응하는 작업 속도 (채광 스킬이면 채광 속도)</summary>
     CategoryWorkSpeed,
@@ -45,7 +48,8 @@ public class SkillStatRequirement
     {
         SkillStatType.MaxHealth         => "최대 체력",
         SkillStatType.MaxMental         => "최대 정신력",
-        SkillStatType.AttackPower       => "공격력",
+        SkillStatType.MeleeLevel        => "근접 숙련",
+        SkillStatType.RangedLevel       => "원거리 숙련",
         SkillStatType.CategoryWorkSpeed => "해당 작업 속도",
         SkillStatType.CarryCapacity     => "운반 용량",
         SkillStatType.EmployeeLevel     => "직원 레벨",

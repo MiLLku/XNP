@@ -124,8 +124,20 @@ public static class EventEffectApplier
                 StartRaid(effect.targetId);
                 break;
 
-            case EffectType.StartPostRaidRecovery:
-                ErosionManager.instance?.StartPostRaidRecovery();
+            case EffectType.ModifyErosion:
+                // 무작위 이벤트로 인한 침식 증감 — 회복 경로 셋 중 하나
+                ModifyEmployeeStat(effect.target, effect.value, (e, v) =>
+                {
+                    var ec = e.ErosionController;
+                    if (ec == null) return;
+
+                    if (v < 0f) ec.ReduceErosion(-v, "이벤트");
+                    else        ec.AddErosion(v, ErosionSource.UNKNOWN, "이벤트");
+                }, effect.value);
+                break;
+
+            case EffectType.ReduceErosionRecoveryFloor:
+                ErosionManager.instance?.ReduceRecoveryFloor(effect.value);
                 break;
 
             default:

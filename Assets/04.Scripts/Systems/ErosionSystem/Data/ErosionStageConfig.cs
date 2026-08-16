@@ -4,7 +4,12 @@ using UnityEngine;
 
 /// <summary>
 /// 침식 단계별 설정 ScriptableObject.
-/// 인스펙터에서 5단계(Normal~FullErosion)의 임계값, 디버프, 이상행동 파라미터를 설정합니다.
+/// 인스펙터에서 5단계(Normal~FullErosion)의 임계값, 속도 디버프, 전파 오라를 설정합니다.
+///
+/// <b>이상행동 파라미터는 2026-07-29 개편으로 제거됐습니다.</b>
+/// 정신 이상 발생 판정은 EmployeeMental이 정신 수치로 하며(기준값은 MentalBreakConfig),
+/// 침식 수치는 "발생한 정신 이상이 침식 계열일 확률"만 결정합니다.
+/// 침식 단계가 관여하는 것은 속도 디버프·전파 오라·변이뿐입니다.
 ///
 /// 생성: Create > StampSystem > Erosion Stage Config
 /// </summary>
@@ -73,16 +78,6 @@ public class ErosionStageDefinition
 
     [Tooltip("이동 속도 배율. 1.0 = 정상, 0.7 = -30%")]
     [Range(0f, 1f)] public float moveSpeedModifier = 1f;
-
-    [Header("이상 행동")]
-    [Tooltip("이상 행동 판정 간격 (초). 0이면 이상 행동 없음.")]
-    [Min(0)] public float behaviorCheckInterval = 0f;
-
-    [Tooltip("이상 행동 발동 확률 (0 ~ 1). 0이면 발동 없음.")]
-    [Range(0f, 1f)] public float behaviorChance = 0f;
-
-    [Tooltip("이 단계에서 발동 가능한 이상 행동 목록")]
-    public List<AbnormalBehaviorType> availableBehaviors = new List<AbnormalBehaviorType>();
 
     [Header("침식 전파 오라 (4단계 전용)")]
     [Tooltip("이 직원에서 인근 직원에게 침식 오라를 전파할지 여부")]

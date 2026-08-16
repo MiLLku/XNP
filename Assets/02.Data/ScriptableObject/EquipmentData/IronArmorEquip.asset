@@ -17,6 +17,9 @@ MonoBehaviour:
     20% \uAC10\uC18C."
   slot: 0
   weaponClass: 0
+  baseDamage: 0
+  accuracy: 0
+  penetration: 0
   attackRange: 1.5
   attackInterval: 1.2
   isDefensiveGear: 1
@@ -27,7 +30,7 @@ MonoBehaviour:
   statModifier:
     maxHealthModifier: 0
     maxMentalModifier: 0
-    attackPowerModifier: 0
+    damageBonus: 0
     workSpeedModifier: 0
     hungerRateModifier: 0
     fatigueRateModifier: 0

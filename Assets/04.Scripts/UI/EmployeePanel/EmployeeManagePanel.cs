@@ -151,13 +151,59 @@ public class EmployeeManagePanel : BasePanel
 
             statsText.text =
                 $"체력  {stats.health:F0} / {stats.maxHealth:F0}\n" +
+                $"정신  {stats.mental:F0} / {stats.maxMental:F0}{BuildMentalDetail()}\n" +
                 $"침식  {selected.ErosionLevel:F0} / 200  ({stage})\n" +
+                BuildErosionDetail(erosionCtrl) +
                 $"재미  {needs.fun:F0} / 100\n" +
                 $"수면(피로)  {needs.fatigue:F0} / 100";
         }
 
         RefreshSlotLabels();
         RefreshCarryLabels();
+    }
+
+    /// <summary>
+    /// 침식이 어디서 얼마나 쌓였는지를 출처별로 펼칩니다.
+    /// 예: "  자연 침식 +3.0" / "  제놉스 A 오라침식 +7.0"
+    /// </summary>
+    private string BuildErosionDetail(EmployeeErosionController erosionCtrl)
+    {
+        if (erosionCtrl == null) return string.Empty;
+
+        var sources = erosionCtrl.ErosionSources;
+        if (sources == null || sources.Count == 0) return string.Empty;
+
+        var sb = new System.Text.StringBuilder();
+        foreach (var s in sources)
+        {
+            if (s == null || s.amount < 0.05f) continue;
+            sb.Append($"    {s.displayName}  +{s.amount:F1}\n");
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// 정신력이 기본값에서 얼마나, 왜 벗어나 있는지를 보여줍니다.
+    /// 예: " (기본 50 · 굶주림 -25)"
+    /// </summary>
+    private string BuildMentalDetail()
+    {
+        var statsCtrl = selected != null ? selected.StatsController : null;
+        if (statsCtrl == null) return string.Empty;
+
+        var mods = statsCtrl.MentalModifiers;
+        if (mods == null || mods.Count == 0)
+            return $"  (기본 {statsCtrl.BaseMental:F0})";
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"  (기본 {statsCtrl.BaseMental:F0}");
+        foreach (var m in mods)
+        {
+            if (m == null) continue;
+            sb.Append($" · {m.displayName} {m.value:+0.#;-0.#}");
+        }
+        sb.Append(')');
+        return sb.ToString();
     }
 
     private void RefreshSlotLabels()

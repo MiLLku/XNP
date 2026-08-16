@@ -269,6 +269,7 @@ public class Employee : MonoBehaviour
         statsController.Initialize(data);
         work.Initialize(data);
         growth.Initialize(isUnique);
+        growth.ApplyInitialCombatLevels(data.initialMeleeLevel, data.initialRangedLevel);
         erosionController.Initialize(
             ErosionManager.instance?.StageConfig,
             ErosionManager.instance?.RecoveryConfig);
@@ -445,8 +446,18 @@ public class Employee : MonoBehaviour
         statsController?.ModifyHealth(-amount * mult);
     }
 
-    /// <summary>정신력 수정</summary>
-    public void ModifyMental(float amount) => statsController?.ModifyMental(amount);
+    /// <summary>
+    /// 정신력을 일시적으로 변동시킵니다 (시간형 모디파이어).
+    /// 정신력은 기본값 기준으로 오르내리며, 지속 시간이 지나면 원래대로 돌아옵니다.
+    /// 굶주림처럼 "상황이 해결되면 사라지는" 페널티는 SetConditionalMental을 쓰세요.
+    /// </summary>
+    public void ModifyMental(float amount, string reasonKey = MentalReason.GENERIC,
+                             string displayName = "일시적인 기분", float duration = 0f)
+        => statsController?.ModifyMental(amount, reasonKey, displayName, duration);
+
+    /// <summary>조건이 참인 동안만 유지되는 정신력 모디파이어를 설정합니다.</summary>
+    public void SetConditionalMental(string reasonKey, string displayName, float value, bool active)
+        => statsController?.SetConditionalMental(reasonKey, displayName, value, active);
 
     /// <summary>배고픔 수정</summary>
     public void ModifyHunger(float amount) => statsController?.ModifyHunger(amount);

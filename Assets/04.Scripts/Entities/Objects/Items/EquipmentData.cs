@@ -27,8 +27,19 @@ public class EquipmentData : ScriptableObject
     public EquipmentSlot slot;
 
     [Header("전투 (무기/방어구)")]
-    [Tooltip("무기 분류 — 가용 전투 태세 결정 (근접: 점거/방어/경계, 원거리: 점거/경계/카이팅)")]
+    [Tooltip("무기 분류 — 가용 전투 태세와 적용될 숙련(근접/원거리)을 결정")]
     public WeaponClass weaponClass = WeaponClass.Melee;
+
+    // ── 전투 능력치는 전적으로 무기가 보유한다. 직원의 근접/원거리 숙련은 이 값들을 '조정'할 뿐이다. ──
+
+    [Tooltip("기본 데미지. 직원 숙련과 전투 특성이 여기에 배율로 곱해집니다.")]
+    [Min(0f)] public float baseDamage = 10f;
+
+    [Tooltip("기본 명중률 (0~1). 빗나가면 데미지 0으로 처리됩니다.")]
+    [Range(0f, 1f)] public float accuracy = 0.9f;
+
+    [Tooltip("방어 관통력 (0~1). 대상의 방어율에서 이만큼 차감합니다. 0.3이면 방어 30%p 무시.")]
+    [Range(0f, 1f)] public float penetration = 0f;
 
     [Tooltip("공격 사거리 (타일). 근접 ~1.5, 원거리 6~8")]
     [Min(0.5f)] public float attackRange = 1.5f;
@@ -78,8 +89,9 @@ public struct EquipmentStatModifier
     [Tooltip("최대 정신력 변경 (절대값)")]
     public float maxMentalModifier;
 
-    [Tooltip("공격력 변경 (절대값)")]
-    public int attackPowerModifier;
+    [Tooltip("무기 데미지 가산 (절대값). 직원 공격력이 아니라 '무기 데미지'에 더해집니다.\n" +
+             "장갑·반지처럼 무기가 아닌 장비가 공격을 보조할 때 사용하세요.")]
+    public int damageBonus;
 
     [Tooltip("전체 작업 속도 보정 (%)")]
     public float workSpeedModifier;
@@ -95,7 +107,7 @@ public struct EquipmentStatModifier
 
     /// <summary>모든 값이 0인지 확인</summary>
     public bool IsEmpty =>
-        maxHealthModifier == 0f && maxMentalModifier == 0f && attackPowerModifier == 0 &&
+        maxHealthModifier == 0f && maxMentalModifier == 0f && damageBonus == 0 &&
         workSpeedModifier == 0f && hungerRateModifier == 0f && fatigueRateModifier == 0f &&
         moveSpeedModifier == 0f;
 }
