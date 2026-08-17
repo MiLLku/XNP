@@ -24,13 +24,17 @@ public static class AbnormalBehaviorRegistry
         _behaviors = new Dictionary<AbnormalBehaviorType, IAbnormalBehavior>();
         _initialized = true;
 
-        // ── 기본 제공 이상 행동 등록 ─────────────────────────────
+        // ── 단발형 이상 행동 ─────────────────────────────────────
         Register(new AbnormalBehaviorIgnoreCommand());
         Register(new AbnormalBehaviorRandomMove());
 
-        // TODO: 아래에 새 이상 행동을 등록하세요
+        // ── 지속형 이상 행동 (Tick 구동) ──────────────────────────
+        Register(new AbnormalBehaviorErosionOutburst());  // 제자리 + 주변 침식
+        Register(new AbnormalBehaviorAttackBuilding());   // 주변 건물 파괴
+        Register(new AbnormalBehaviorFriendlyAttack());   // 동료 추적 공격
+
+        // 미구현 — 열거형 값만 있고 구현체가 없다. 만들면 여기에 등록할 것.
         // Register(new AbnormalBehaviorWorkStop());
-        // Register(new AbnormalBehaviorFriendlyAttack());
         // Register(new AbnormalBehaviorIgnoreCommandEnhanced());
         // Register(new AbnormalBehaviorMoveTowardEnemy());
         // Register(new AbnormalBehaviorFriendlyAttackEnhanced());

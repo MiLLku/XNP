@@ -82,12 +82,15 @@ public class EmployeeMental : MonoBehaviour
 
         { MentalSeverity.Medium, new List<AbnormalBehaviorType>
             { AbnormalBehaviorType.RandomMove, AbnormalBehaviorType.WorkStop,
-              AbnormalBehaviorType.FriendlyAttack, AbnormalBehaviorType.IgnoreCommandEnhanced } },
+              AbnormalBehaviorType.FriendlyAttack, AbnormalBehaviorType.IgnoreCommandEnhanced,
+              AbnormalBehaviorType.AttackBuilding } },
 
         { MentalSeverity.High, new List<AbnormalBehaviorType>
             { AbnormalBehaviorType.IgnoreCommandEnhanced, AbnormalBehaviorType.MoveTowardEnemy,
               AbnormalBehaviorType.FriendlyAttackEnhanced, AbnormalBehaviorType.Flee,
-              AbnormalBehaviorType.ErosionTrailExplosion } },
+              AbnormalBehaviorType.ErosionTrailExplosion,
+              AbnormalBehaviorType.ErosionOutburst, AbnormalBehaviorType.AttackBuilding,
+              AbnormalBehaviorType.FriendlyAttack } },
     };
 
     /// <summary>일반 계열 지속 시간 (초)</summary>
@@ -526,7 +529,16 @@ public class EmployeeMental : MonoBehaviour
         for (int i = activeMentalEvents.Count - 1; i >= 0; i--)
         {
             activeMentalEvents[i].remainingTime -= deltaTime;
-            if (activeMentalEvents[i].remainingTime > 0f) continue;
+
+            if (activeMentalEvents[i].remainingTime > 0f)
+            {
+                // 지속형 침식 이상 행동(제자리 침식·건물 공격·동료 공격)을 구동한다.
+                // 단발형 구현체는 Tick이 비어 있으므로 그냥 지나간다.
+                if (activeMentalEvents[i].IsErosionKind)
+                    AbnormalBehaviorRegistry.Get(activeMentalEvents[i].abnormalType)?.Tick(employee, deltaTime);
+
+                continue;
+            }
 
             RemoveMentalEventEffect(activeMentalEvents[i]);
             activeMentalEvents.RemoveAt(i);

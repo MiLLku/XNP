@@ -259,7 +259,8 @@ public class EmployeeCombat : MonoBehaviour
     }
 
     /// <summary>공격 사거리 = 무기 사거리 + 특성 가감.</summary>
-    private float GetAttackRange()
+    /// <remarks>침식 이상 행동(건물·동료 공격)도 같은 수치를 쓰도록 공개되어 있다.</remarks>
+    public float GetAttackRange()
     {
         var w = Weapon;
         float baseRange = w != null ? w.attackRange : (Cfg != null ? Cfg.unarmedRange : 1.5f);
@@ -268,7 +269,8 @@ public class EmployeeCombat : MonoBehaviour
     }
 
     /// <summary>공격 간격 = 무기 간격 ÷ 숙련 배율 × 특성 배율. 짧을수록 빠름.</summary>
-    private float GetAttackInterval()
+    /// <remarks>침식 이상 행동(건물·동료 공격)도 같은 수치를 쓰도록 공개되어 있다.</remarks>
+    public float GetAttackInterval()
     {
         var w = Weapon;
         float baseInterval = w != null ? w.attackInterval : (Cfg != null ? Cfg.unarmedInterval : 1.2f);
@@ -281,7 +283,8 @@ public class EmployeeCombat : MonoBehaviour
     }
 
     /// <summary>데미지 = 무기 데미지 × 숙련 배율 × 특성 배율 × (1 + 특성 가산%) × (1 + 연구 보너스).</summary>
-    private float GetAttackDamage()
+    /// <remarks>침식 이상 행동(건물·동료 공격)도 같은 수치를 쓰도록 공개되어 있다.</remarks>
+    public float GetAttackDamage()
     {
         var w = Weapon;
         float baseDamage = w != null ? w.baseDamage : (Cfg != null ? Cfg.unarmedDamage : 3f);

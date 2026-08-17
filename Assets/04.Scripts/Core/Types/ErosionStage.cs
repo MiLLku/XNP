@@ -59,5 +59,15 @@ public enum AbnormalBehaviorType
     Flee = 8,
 
     /// <summary>침식 흔적 폭발 — 이동 흔적 타일에서 오라 침식 순간 발생</summary>
-    ErosionTrailExplosion = 9
+    ErosionTrailExplosion = 9,
+
+    // ── 지속형 이상 행동 (Tick 구동) ─────────────────────
+    // 아래 3종은 Execute 한 번으로 끝나지 않고 지속 시간 동안 매 프레임 Tick으로 동작한다.
+    // 세이브에 int로 직렬화되므로 기존 값을 바꾸지 말고 항상 뒤에 추가할 것.
+
+    /// <summary>침식 폭주 — 발생 위치에 멈춰 서서 주변에 침식을 흩뿌린다 (소집·조작 불가)</summary>
+    ErosionOutburst = 10,
+
+    /// <summary>건물 파괴 충동 — 주변의 내구도 있는 건설물을 공격한다 (벽·바닥 등 기반시설 제외)</summary>
+    AttackBuilding = 11
 }

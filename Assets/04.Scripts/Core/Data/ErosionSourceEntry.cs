@@ -41,6 +41,9 @@ public static class ErosionSource
     /// <summary>침식 직원의 전파 오라 (4단계)</summary>
     public const string PROPAGATION_PREFIX = "propagation_";
 
+    /// <summary>침식 폭주 이상 행동 (직원별 구분 — OutburstKey 사용)</summary>
+    public const string OUTBURST_PREFIX = "outburst_";
+
     /// <summary>원거리 피격 (스피터·침식 투사체)</summary>
     public const string PROJECTILE = "projectile";
 
@@ -55,4 +58,7 @@ public static class ErosionSource
 
     /// <summary>직원 전파 오라 키를 만듭니다.</summary>
     public static string PropagationKey(int instanceId) => PROPAGATION_PREFIX + instanceId;
+
+    /// <summary>침식 폭주 직원별 키를 만듭니다.</summary>
+    public static string OutburstKey(int instanceId) => OUTBURST_PREFIX + instanceId;
 }
