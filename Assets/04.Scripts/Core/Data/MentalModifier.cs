@@ -67,4 +67,10 @@ public static class MentalReason
 
     /// <summary>이벤트 등 출처가 특정되지 않은 일시적 기분 (시간형)</summary>
     public const string GENERIC = "mood";
+
+    /// <summary>
+    /// 정신차림 (시간형) — 정신 이상을 한 차례 겪고 난 뒤 붙는 큰 폭의 안정 버프.
+    /// 이게 붙어 있는 동안은 정신 비율이 임계점 위로 올라가 다시 터지지 않는다.
+    /// </summary>
+    public const string COMPOSURE = "composure";
 }

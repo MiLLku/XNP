@@ -12,7 +12,7 @@ using UnityEngine;
 ///
 /// 판정 흐름 (림월드식):
 ///   1. checkIntervalSeconds(기본 2.5초)마다 한 번만 검사한다.
-///   2. 정신 비율이 실효 임계점 아래면 해당 심각도가 후보가 된다 (가장 심각한 단계 우선).
+///   2. 정신 비율이 실효 임계점 아래면 후보가 된다.
 ///      실효 임계점 = 기본 임계점 / 저항배율.
 ///      저항배율 = abnormalResistMult(특성·스킬) × 재미계수 × 피로계수.
 ///      → 저항이 높으면 임계점이 낮아져 더 낮은 정신까지 버티고,
@@ -25,6 +25,16 @@ using UnityEngine;
 ///
 /// 침식 계열 정신 이상은 AbnormalBehaviorRegistry의 구현체를 그대로 실행합니다
 /// (구 EmployeeErosionController의 단계별 이상행동 롤을 이쪽으로 통합 — 판정은 이제 여기 한 곳뿐).
+///
+/// <b>분류는 계열 2가지가 전부다.</b> 경미·중간·심각 같은 심각도 등급은 두지 않는다 —
+/// "얼마나 심한가"는 침식 수치가 계열 확률로 이미 표현하고 있고, 등급을 겹쳐 두면
+/// 같은 축을 두 번 재는 셈이라 임계점·MTB·후보 풀이 전부 3벌로 늘어나기만 한다.
+/// 정신이 낮을수록 자주 터지는 기울기는 depthMtbFactor 하나가 담당한다.
+///
+/// <b>정신차림</b> — 정신 이상이 끝나면 큰 폭의 정신력 버프(시간형 모디파이어)가 붙어
+/// 한동안 다시 터지지 않는다. 짧은 재판정 유예(breakGraceSeconds)가 "숨 돌릴 틈"이라면
+/// 이쪽은 "당분간 안전한 구간"이다. 이 구간을 노리고 <b>침식 위험 작업 직전에 일부러
+/// 일반 계열 정신 이상을 터뜨리는</b> 운영이 성립한다 — 상세는 ApplyComposure 주석.
 /// </summary>
 public class EmployeeMental : MonoBehaviour
 {
@@ -32,13 +42,11 @@ public class EmployeeMental : MonoBehaviour
 
     private const float DEFAULT_CHECK_INTERVAL   = 2.5f;
     private const float DEFAULT_BREAK_GRACE      = 30f;
-    private const float DEFAULT_MINOR_THRESHOLD  = 0.50f;
-    private const float DEFAULT_MAJOR_THRESHOLD  = 0.30f;
-    private const float DEFAULT_EXTREME_THRESHOLD = 0.15f;
-    private const float DEFAULT_MINOR_MTB_DAYS   = 0.75f;
-    private const float DEFAULT_MAJOR_MTB_DAYS   = 0.35f;
-    private const float DEFAULT_EXTREME_MTB_DAYS = 0.15f;
-    private const float DEFAULT_DEPTH_MTB_FACTOR = 1f;
+    private const float DEFAULT_BREAK_THRESHOLD  = 0.50f;
+    private const float DEFAULT_MTB_DAYS         = 0.75f;
+    private const float DEFAULT_DEPTH_MTB_FACTOR = 4f;
+    private const float DEFAULT_COMPOSURE_BONUS  = 40f;
+    private const float DEFAULT_COMPOSURE_TIME   = 180f;
     private const float DEFAULT_EROSION_FULL     = 200f;
     private const float DEFAULT_EROSION_WEIGHT   = 1f;
     private const float DEFAULT_EROSION_COOLDOWN = 45f;
@@ -56,18 +64,16 @@ public class EmployeeMental : MonoBehaviour
 
     #region 정신 이상 풀
 
-    /// <summary>심각도가 높은 순서 (판정은 가장 심각한 단계부터 매칭)</summary>
-    private static readonly MentalSeverity[] SEVERITIES_DESC =
+    /// <summary>
+    /// 일반 계열 — 침식과 무관하게 정신력만으로 발생한다.
+    /// 태업 수준의 시간 손실이라 기지가 부서지거나 동료가 다치지는 않는다.
+    /// </summary>
+    private static readonly MentalEventType[] NORMAL_POOL =
     {
-        MentalSeverity.High, MentalSeverity.Medium, MentalSeverity.Low
-    };
-
-    /// <summary>일반 계열 — 침식과 무관하게 정신력만으로 발생하는 정신 이상</summary>
-    private static readonly Dictionary<MentalSeverity, MentalEventType[]> NORMAL_POOLS = new Dictionary<MentalSeverity, MentalEventType[]>
-    {
-        { MentalSeverity.Low,    new[] { MentalEventType.WorkSlowdown } },
-        { MentalSeverity.Medium, new[] { MentalEventType.WorkSlowdown, MentalEventType.RefuseWork, MentalEventType.Wander } },
-        { MentalSeverity.High,   new[] { MentalEventType.RefuseWork, MentalEventType.Wander, MentalEventType.EmotionalOutburst } },
+        MentalEventType.WorkSlowdown,
+        MentalEventType.RefuseWork,
+        MentalEventType.Wander,
+        MentalEventType.EmotionalOutburst,
     };
 
     /// <summary>
@@ -75,22 +81,21 @@ public class EmployeeMental : MonoBehaviour
     /// AbnormalBehaviorRegistry에 실제 등록된 구현체만 후보가 되므로(FilterRegistered),
     /// 미구현 타입을 여기 적어두어도 안전합니다.
     /// </summary>
-    private static readonly Dictionary<MentalSeverity, List<AbnormalBehaviorType>> EROSION_POOLS = new Dictionary<MentalSeverity, List<AbnormalBehaviorType>>
+    private static readonly List<AbnormalBehaviorType> EROSION_POOL = new List<AbnormalBehaviorType>
     {
-        { MentalSeverity.Low, new List<AbnormalBehaviorType>
-            { AbnormalBehaviorType.IgnoreCommand, AbnormalBehaviorType.RandomMove } },
+        AbnormalBehaviorType.IgnoreCommand,
+        AbnormalBehaviorType.RandomMove,
+        AbnormalBehaviorType.WorkStop,
+        AbnormalBehaviorType.FriendlyAttack,
+        AbnormalBehaviorType.ErosionOutburst,
+        AbnormalBehaviorType.AttackBuilding,
 
-        { MentalSeverity.Medium, new List<AbnormalBehaviorType>
-            { AbnormalBehaviorType.RandomMove, AbnormalBehaviorType.WorkStop,
-              AbnormalBehaviorType.FriendlyAttack, AbnormalBehaviorType.IgnoreCommandEnhanced,
-              AbnormalBehaviorType.AttackBuilding } },
-
-        { MentalSeverity.High, new List<AbnormalBehaviorType>
-            { AbnormalBehaviorType.IgnoreCommandEnhanced, AbnormalBehaviorType.MoveTowardEnemy,
-              AbnormalBehaviorType.FriendlyAttackEnhanced, AbnormalBehaviorType.Flee,
-              AbnormalBehaviorType.ErosionTrailExplosion,
-              AbnormalBehaviorType.ErosionOutburst, AbnormalBehaviorType.AttackBuilding,
-              AbnormalBehaviorType.FriendlyAttack } },
+        // 미구현 — 클래스를 만들어 레지스트리에 등록하면 자동으로 후보가 된다
+        AbnormalBehaviorType.IgnoreCommandEnhanced,
+        AbnormalBehaviorType.MoveTowardEnemy,
+        AbnormalBehaviorType.FriendlyAttackEnhanced,
+        AbnormalBehaviorType.Flee,
+        AbnormalBehaviorType.ErosionTrailExplosion,
     };
 
     /// <summary>일반 계열 지속 시간 (초)</summary>
@@ -225,38 +230,24 @@ public class EmployeeMental : MonoBehaviour
 
         float mentalRatio = stats.mental / stats.maxMental;
 
-        // 1) 심각도 결정 — 가장 심각한 단계부터 매칭
-        float resist = GetBreakResistance();
-        MentalSeverity severity = MentalSeverity.Normal;
-        float matchedThreshold = 0f;
-
-        foreach (var candidate in SEVERITIES_DESC)
-        {
-            float threshold = GetEffectiveThreshold(candidate, resist);
-            if (mentalRatio < threshold)
-            {
-                severity = candidate;
-                matchedThreshold = threshold;
-                break;
-            }
-        }
-
-        if (severity == MentalSeverity.Normal) return;
+        // 1) 임계점 판정 — 정신 비율이 실효 임계점 아래일 때만 후보가 된다
+        float threshold = GetEffectiveThreshold();
+        if (mentalRatio >= threshold) return;
 
         // 2) 발생 확률 — MTB(평균 발생 간격)를 확률로 환산
-        if (!RollMentalBreak(severity, mentalRatio, matchedThreshold, interval)) return;
+        if (!RollMentalBreak(mentalRatio, threshold, interval)) return;
 
         // 3) 계열 결정 — 침식 수치가 높을수록 침식 계열이 뽑힌다
-        TriggerMentalBreak(severity);
+        TriggerMentalBreak();
     }
 
     /// <summary>
     /// 평균 발생 간격(MTB)을 이번 판정 구간의 확률로 환산해 굴립니다.
     /// p = 1 - exp(-Δt / MTB) — 지수 분포라 판정 주기를 바꿔도 장기 발생 빈도는 유지됩니다.
     /// </summary>
-    private bool RollMentalBreak(MentalSeverity severity, float mentalRatio, float threshold, float interval)
+    private bool RollMentalBreak(float mentalRatio, float threshold, float interval)
     {
-        float mtbDays = GetMtbDays(severity);
+        float mtbDays = MtbDays;
         if (mtbDays <= 0f) return false;
 
         // 임계점 아래로 얼마나 깊이 내려갔는지 (0 = 임계점 바로 아래, 1 = 정신 0)
@@ -271,20 +262,20 @@ public class EmployeeMental : MonoBehaviour
     /// <summary>
     /// 발생이 확정된 정신 이상의 계열과 종류를 고르고 적용합니다.
     /// </summary>
-    private void TriggerMentalBreak(MentalSeverity severity)
+    private void TriggerMentalBreak()
     {
         bool preferErosion = Random.value < GetErosionKindChance();
 
         // 선택한 계열에 후보가 없으면 반대 계열로 폴백한다
         if (preferErosion)
         {
-            if (TryApplyErosionBreak(severity)) return;
-            TryApplyNormalBreak(severity);
+            if (TryApplyErosionBreak()) return;
+            TryApplyNormalBreak();
         }
         else
         {
-            if (TryApplyNormalBreak(severity)) return;
-            TryApplyErosionBreak(severity);
+            if (TryApplyNormalBreak()) return;
+            TryApplyErosionBreak();
         }
     }
 
@@ -327,35 +318,23 @@ public class EmployeeMental : MonoBehaviour
     /// 이 직원의 실효 임계점(정신 비율)을 반환합니다.
     /// 저항이 높을수록 임계점이 낮아져 더 낮은 정신까지 버팁니다.
     /// </summary>
-    public float GetEffectiveThreshold(MentalSeverity severity)
-        => GetEffectiveThreshold(severity, GetBreakResistance());
-
-    private float GetEffectiveThreshold(MentalSeverity severity, float resist)
+    public float GetEffectiveThreshold()
     {
         var cfg = Cfg;
-        float baseThreshold = cfg != null ? cfg.GetThreshold(severity) : severity switch
-        {
-            MentalSeverity.Low    => DEFAULT_MINOR_THRESHOLD,
-            MentalSeverity.Medium => DEFAULT_MAJOR_THRESHOLD,
-            MentalSeverity.High   => DEFAULT_EXTREME_THRESHOLD,
-            _                     => 0f,
-        };
+        float baseThreshold = cfg != null ? cfg.breakThreshold : DEFAULT_BREAK_THRESHOLD;
+        float resist = GetBreakResistance();
 
         return resist > 0f ? Mathf.Clamp01(baseThreshold / resist) : baseThreshold;
     }
 
-    private float GetMtbDays(MentalSeverity severity)
+    /// <summary>평균 발생 간격(게임일). 심각도 등급 없이 하나만 쓰고, 기울기는 depthMtbFactor가 만든다.</summary>
+    private static float MtbDays
     {
-        var cfg = Cfg;
-        if (cfg != null) return cfg.GetMtbDays(severity);
-
-        return severity switch
+        get
         {
-            MentalSeverity.Low    => DEFAULT_MINOR_MTB_DAYS,
-            MentalSeverity.Medium => DEFAULT_MAJOR_MTB_DAYS,
-            MentalSeverity.High   => DEFAULT_EXTREME_MTB_DAYS,
-            _                     => float.MaxValue,
-        };
+            var cfg = Cfg;
+            return cfg != null ? Mathf.Max(0.01f, cfg.mtbDays) : DEFAULT_MTB_DAYS;
+        }
     }
 
     private static float CheckInterval
@@ -394,6 +373,56 @@ public class EmployeeMental : MonoBehaviour
         }
     }
 
+    private static float ComposureBonus
+    {
+        get
+        {
+            var cfg = Cfg;
+            return cfg != null ? cfg.composureBonus : DEFAULT_COMPOSURE_BONUS;
+        }
+    }
+
+    private static float ComposureDuration
+    {
+        get
+        {
+            var cfg = Cfg;
+            return cfg != null ? cfg.composureDurationSeconds : DEFAULT_COMPOSURE_TIME;
+        }
+    }
+
+    /// <summary>
+    /// 정신 이상이 끝난 직원에게 '정신차림' 버프를 겁니다.
+    ///
+    /// 재판정 유예(breakGraceSeconds)가 몇십 초짜리 "숨 돌릴 틈"이라면, 이 버프는
+    /// 정신력 자체를 크게 끌어올려 <b>한동안 임계점 근처에도 가지 않게</b> 만드는 안전 구간이다.
+    /// 시간형 모디파이어라 지속 시간이 지나면 원래 정신력으로 돌아온다.
+    ///
+    /// <b>의도한 운영 — 위험 작업 전에 일부러 터뜨리기</b>
+    ///   침식 계열이 뽑힐 확률은 그 시점의 침식 수치가 정한다(침식 ÷ 200). 그래서
+    ///   <b>침식이 낮을 때</b> 정신 이상을 맞으면 거의 확실히 일반 계열(태업 수준)로 끝나고,
+    ///   그 대가로 정신차림 버프를 얻는다. 플레이어는 이걸 역이용할 수 있다:
+    ///     ① 깊은 채광·제놉스 취급처럼 침식이 크게 오를 작업을 앞두고
+    ///     ② 침식이 아직 깨끗한 상태에서 정신력을 일부러 떨어뜨려(오락·수면 방치) 일반 계열을 유도한 뒤
+    ///     ③ 정신차림이 붙은 구간에 위험 작업을 몰아넣는다
+    ///   버프가 없으면 침식이 오른 뒤에 정신이 꺾여 <b>침식 계열</b>(건물 파괴·동료 공격·침식 폭주)이
+    ///   터질 수 있다. 즉 "안전할 때 미리 한 번 무너뜨려 두는" 선택이 성립한다.
+    ///   이것이 정신 이상을 순수한 페널티가 아니라 <b>관리 가능한 자원</b>으로 만드는 지점이다.
+    /// </summary>
+    private void ApplyComposure()
+    {
+        if (employee == null || statsController == null) return;
+
+        float bonus = ComposureBonus;
+        if (bonus <= 0f) return;
+
+        // 누산이 아니라 재설정 — 연속으로 터져도 버프가 겹쳐 쌓이지 않게 한다
+        statsController.RemoveMentalModifier(MentalReason.COMPOSURE);
+        statsController.ModifyMental(bonus, MentalReason.COMPOSURE, "정신을 차림", ComposureDuration);
+
+        Debug.Log($"[Mental] {employee.DisplayName}: 정신차림 +{bonus:F0} ({ComposureDuration:F0}초)");
+    }
+
     private static float DayLengthSeconds
         => DayCycle.instance != null ? DayCycle.instance.DayLengthInSeconds : FALLBACK_DAY_LENGTH;
 
@@ -404,11 +433,9 @@ public class EmployeeMental : MonoBehaviour
     /// <summary>
     /// 일반 계열 정신 이상을 하나 골라 적용합니다. 후보가 없으면 false.
     /// </summary>
-    private bool TryApplyNormalBreak(MentalSeverity severity)
+    private bool TryApplyNormalBreak()
     {
-        if (!NORMAL_POOLS.TryGetValue(severity, out var pool)) return false;
-
-        var available = pool.Where(e => !IsOnCooldown(e)).ToArray();
+        var available = NORMAL_POOL.Where(e => !IsOnCooldown(e)).ToArray();
         if (available.Length == 0) return false;
 
         ApplyNormalEvent(available[Random.Range(0, available.Length)]);
@@ -467,11 +494,9 @@ public class EmployeeMental : MonoBehaviour
     /// 침식 계열 정신 이상을 하나 골라 적용합니다. 후보가 없으면 false.
     /// AbnormalBehaviorRegistry에 실제 등록된 구현체만 후보가 됩니다.
     /// </summary>
-    private bool TryApplyErosionBreak(MentalSeverity severity)
+    private bool TryApplyErosionBreak()
     {
-        if (!EROSION_POOLS.TryGetValue(severity, out var pool)) return false;
-
-        var registered = AbnormalBehaviorRegistry.FilterRegistered(pool);
+        var registered = AbnormalBehaviorRegistry.FilterRegistered(EROSION_POOL);
         if (registered.Count == 0) return false;
 
         // 쿨다운 중이 아니고 실행 가능한 것만
@@ -550,9 +575,12 @@ public class EmployeeMental : MonoBehaviour
             anyEnded = true;
         }
 
-        // 마지막 정신 이상이 끝나면 재판정 유예를 건다
+        // 마지막 정신 이상이 끝나면 재판정 유예 + '정신차림' 버프를 건다
         if (anyEnded && activeMentalEvents.Count == 0)
+        {
             graceTimer = BreakGrace;
+            ApplyComposure();
+        }
     }
 
     /// <summary>

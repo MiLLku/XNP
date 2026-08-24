@@ -22,22 +22,3 @@ public enum MentalEventType
     /// <summary>정신 붕괴 (정신력 0에서만)</summary>
     MentalBreak
 }
-
-/// <summary>
-/// 정신 이벤트 심각도 등급.
-/// 정신력 비율에 따라 결정됩니다.
-/// </summary>
-public enum MentalSeverity
-{
-    /// <summary>정상 (이벤트 없음)</summary>
-    Normal,
-
-    /// <summary>경미 (mental < 50%)</summary>
-    Low,
-
-    /// <summary>중간 (mental < 30%)</summary>
-    Medium,
-
-    /// <summary>심각 (mental < 15%)</summary>
-    High
-}

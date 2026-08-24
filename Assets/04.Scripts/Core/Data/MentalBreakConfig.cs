@@ -37,40 +37,35 @@ public class MentalBreakConfig : ScriptableObject
     #region 임계점 (정신 비율)
 
     [Header("정신 이상 임계점 (정신력 비율)")]
-    [Tooltip("경미 단계 임계점. 정신 비율이 이 값 미만이면 경미한 정신 이상이 발생할 수 있습니다.")]
+    [Tooltip("정신 비율이 이 값 미만이면 정신 이상이 발생할 수 있습니다. 심각도 등급은 두지 않습니다 — 얼마나 위험한 이상이 나오는지는 침식 수치가 계열 확률로 정합니다.")]
     [Range(0f, 1f)]
-    public float minorThreshold = 0.50f;
-
-    [Tooltip("중간 단계 임계점")]
-    [Range(0f, 1f)]
-    public float majorThreshold = 0.30f;
-
-    [Tooltip("심각 단계 임계점")]
-    [Range(0f, 1f)]
-    public float extremeThreshold = 0.15f;
+    public float breakThreshold = 0.50f;
 
     #endregion
 
     #region 평균 발생 간격 (MTB)
 
     [Header("평균 발생 간격 (게임일)")]
-    [Tooltip("경미 단계에서 정신 이상이 평균 몇 게임일에 한 번 발생하는지.\n" +
-             "게임 1일 = DayCycle.DayLengthInSeconds(기본 600초) 기준으로 환산됩니다.")]
+    [Tooltip("임계점 바로 아래에서 정신 이상이 평균 몇 게임일에 한 번 발생하는지. 게임 1일 = DayCycle.DayLengthInSeconds(기본 600초) 기준으로 환산됩니다.")]
     [Min(0.01f)]
-    public float minorMtbDays = 0.75f;
+    public float mtbDays = 0.75f;
 
-    [Tooltip("중간 단계 평균 발생 간격 (게임일)")]
-    [Min(0.01f)]
-    public float majorMtbDays = 0.35f;
+    [Tooltip("임계점 아래로 얼마나 깊이 내려갔는지에 따른 MTB 단축 계수. 정신이 0에 닿았을 때 MTB가 1/(1+계수)로 줄어듭니다. 심각도 등급을 없앤 뒤로는 이 값이 '정신이 낮을수록 자주 터진다'를 혼자 담당합니다.")]
+    [Range(0f, 8f)]
+    public float depthMtbFactor = 4f;
 
-    [Tooltip("심각 단계 평균 발생 간격 (게임일)")]
-    [Min(0.01f)]
-    public float extremeMtbDays = 0.15f;
+    #endregion
 
-    [Tooltip("임계점 아래로 얼마나 깊이 내려갔는지에 따른 MTB 단축 계수.\n" +
-             "정신이 0에 닿았을 때 MTB가 1/(1+계수)로 줄어듭니다. 0이면 단계 안에서는 균일한 확률.")]
-    [Range(0f, 3f)]
-    public float depthMtbFactor = 1f;
+    #region 정신차림 (회복 버프)
+
+    [Header("정신차림")]
+    [Tooltip("정신 이상이 끝난 뒤 붙는 정신력 보너스. 정신력을 임계점 위로 밀어올려 한동안 다시 터지지 않게 만듭니다.")]
+    [Min(0f)]
+    public float composureBonus = 40f;
+
+    [Tooltip("정신차림 버프 지속 시간(초). 지나면 원래 정신력으로 돌아옵니다.")]
+    [Min(0f)]
+    public float composureDurationSeconds = 180f;
 
     #endregion
 
@@ -92,25 +87,4 @@ public class MentalBreakConfig : ScriptableObject
 
     #endregion
 
-    #region 조회
-
-    /// <summary>심각도에 대응하는 임계점(정신 비율)을 반환합니다.</summary>
-    public float GetThreshold(MentalSeverity severity) => severity switch
-    {
-        MentalSeverity.Low    => minorThreshold,
-        MentalSeverity.Medium => majorThreshold,
-        MentalSeverity.High   => extremeThreshold,
-        _                     => 0f,
-    };
-
-    /// <summary>심각도에 대응하는 평균 발생 간격(게임일)을 반환합니다.</summary>
-    public float GetMtbDays(MentalSeverity severity) => severity switch
-    {
-        MentalSeverity.Low    => minorMtbDays,
-        MentalSeverity.Medium => majorMtbDays,
-        MentalSeverity.High   => extremeMtbDays,
-        _                     => float.MaxValue,
-    };
-
-    #endregion
 }
