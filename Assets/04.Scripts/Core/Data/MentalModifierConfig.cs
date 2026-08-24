@@ -29,11 +29,11 @@ public class MentalModifierConfig : ScriptableObject
     [Header("시간형 — 지속 시간이 지나면 사라진다")]
     [Tooltip("출처를 지정하지 않은 정신력 변동(이벤트 등)의 기본 지속 시간(초).")]
     [Min(1f)]
-    public float defaultDuration = 120f;
+    public float defaultDuration = 200f;
 
     [Tooltip("오락을 즐겼을 때 붙는 보너스의 지속 시간(초).")]
     [Min(1f)]
-    public float recreationDuration = 180f;
+    public float recreationDuration = 300f;
 
     [Tooltip("오락 보너스가 누적될 수 있는 상한. 오락 시설에 오래 있어도 이 이상은 오르지 않습니다.")]
     [Min(0f)]
@@ -41,7 +41,7 @@ public class MentalModifierConfig : ScriptableObject
 
     [Tooltip("동료의 감정 폭발을 목격했을 때 붙는 페널티의 지속 시간(초).")]
     [Min(1f)]
-    public float outburstDuration = 90f;
+    public float outburstDuration = 150f;
 
     #endregion
 

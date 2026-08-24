@@ -19,7 +19,7 @@ public class AbnormalBehaviorErosionOutburst : AbnormalBehaviorBase
     #region 수치 (밸런스 조정 지점)
 
     /// <summary>지속 시간 (초)</summary>
-    private const float DURATION = 20f;
+    private const float DURATION = 35f;
 
     /// <summary>침식을 퍼뜨리는 반경 (타일)</summary>
     private const float RADIUS = 4f;

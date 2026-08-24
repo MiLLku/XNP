@@ -30,7 +30,7 @@ public class MentalBreakConfig : ScriptableObject
     [Tooltip("정신 이상이 끝난 뒤 다음 판정까지의 유예 시간(초).\n" +
              "이게 없으면 정신이 바닥인 직원이 연속으로 터져 손쓸 틈이 없습니다.")]
     [Min(0f)]
-    public float breakGraceSeconds = 30f;
+    public float breakGraceSeconds = 40f;
 
     #endregion
 
@@ -65,7 +65,7 @@ public class MentalBreakConfig : ScriptableObject
 
     [Tooltip("정신차림 버프 지속 시간(초). 300초 = 12 게임시간 = 0.5 게임일(1일 600초 기준). 오락 버프(180초)보다 길고 평균 발생 간격(450초)보다는 짧게 두어, 한 번 터뜨렸다고 무한히 안전해지지는 않게 합니다.")]
     [Min(0f)]
-    public float composureDurationSeconds = 300f;
+    public float composureDurationSeconds = 1000f;
 
     #endregion
 
@@ -83,7 +83,7 @@ public class MentalBreakConfig : ScriptableObject
 
     [Tooltip("침식 계열 정신 이상의 재발생 대기 시간(초). 같은 종류가 연속으로 나오는 것을 막습니다.")]
     [Min(0f)]
-    public float erosionEventCooldown = 45f;
+    public float erosionEventCooldown = 75f;
 
     #endregion
 

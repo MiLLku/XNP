@@ -6,7 +6,7 @@ using UnityEngine;
 /// TimeManager의 timeScale 영향을 받아 시간이 흐릅니다.
 ///
 /// 시간 단위:
-///   1일 = dayLengthInSeconds (현실 초, 기본 600초 = 10분)
+///   1일 = dayLengthInSeconds (현실 초, 기본 1000초 = 16분 40초 — 림월드 60,000틱 기준)
 ///   1시간 = dayLengthInSeconds / 24
 ///   시각 0 = 자정, 12 = 정오
 ///
@@ -20,7 +20,7 @@ public class DayCycle : DestroySingleton<DayCycle>, ISaveModule
 
     [Header("시간 설정")]
     [Tooltip("현실 시간(초) 기준 하루 길이. 600 = 현실 10분이 게임 1일")]
-    [SerializeField] private float dayLengthInSeconds = 600f;
+    [SerializeField] private float dayLengthInSeconds = 1000f;
 
     [Tooltip("게임 시작 시 초기 시각 (0~23). 기본 6 = 오전 6시")]
     [SerializeField] private int startHour = 6;

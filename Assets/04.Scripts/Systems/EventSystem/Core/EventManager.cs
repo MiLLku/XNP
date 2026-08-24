@@ -15,10 +15,10 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
 
     [Header("타이밍 설정")]
     [Tooltip("이벤트 발생 최소 간격 (초)")]
-    public float minInterval = 300f;  // 5분
+    public float minInterval = 500f;  // 0.5 게임일
 
     [Tooltip("이벤트 발생 최대 간격 (초)")]
-    public float maxInterval = 600f;  // 10분
+    public float maxInterval = 1000f; // 1 게임일
 
     [Header("제어")]
     public bool enableRandomEvents = true;

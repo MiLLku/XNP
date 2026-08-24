@@ -15,7 +15,7 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
     #region 수치 (밸런스 조정 지점)
 
     /// <summary>지속 시간 (초)</summary>
-    private const float DURATION = 15f;
+    private const float DURATION = 25f;
 
     /// <summary>대상을 찾는 반경 (타일). 이 밖의 동료는 무시한다.</summary>
     private const float SEARCH_RADIUS = 12f;

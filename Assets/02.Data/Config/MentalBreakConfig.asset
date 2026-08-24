@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: MentalBreakConfig
   m_EditorClassIdentifier: Assembly-CSharp::MentalBreakConfig
   checkIntervalSeconds: 2.5
-  breakGraceSeconds: 30
+  breakGraceSeconds: 40
   breakThreshold: 0.5
   mtbDays: 0.75
   depthMtbFactor: 4
   composureBonus: 50
-  composureDurationSeconds: 300
+  composureDurationSeconds: 1000
   erosionFullLevel: 200
   erosionWeightMultiplier: 1
-  erosionEventCooldown: 45
+  erosionEventCooldown: 75

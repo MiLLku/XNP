@@ -90,10 +90,10 @@ public class EmployeeGenerationConfig : ScriptableObject
 
     [Header("욕구 기본값")]
     [Range(0.1f, 5f)]
-    public float baseHungerDecayRate = 1f;
+    public float baseHungerDecayRate = 0.09f;
 
     [Range(0.1f, 5f)]
-    public float baseFatigueIncreaseRate = 0.5f;
+    public float baseFatigueIncreaseRate = 0.2f;
 
     #endregion
 

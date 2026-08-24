@@ -41,15 +41,15 @@ public class EmployeeMental : MonoBehaviour
     #region 상수 (Config 미할당 시 사용하는 기본값)
 
     private const float DEFAULT_CHECK_INTERVAL   = 2.5f;
-    private const float DEFAULT_BREAK_GRACE      = 30f;
+    private const float DEFAULT_BREAK_GRACE      = 40f;
     private const float DEFAULT_BREAK_THRESHOLD  = 0.50f;
     private const float DEFAULT_MTB_DAYS         = 0.75f;
     private const float DEFAULT_DEPTH_MTB_FACTOR = 4f;
     private const float DEFAULT_COMPOSURE_BONUS  = 50f;
-    private const float DEFAULT_COMPOSURE_TIME   = 300f;   // 12 게임시간 (게임 1일 600초 기준)
+    private const float DEFAULT_COMPOSURE_TIME   = 1000f;  // 1 게임일 (림월드 '카타르시스'와 동일)
     private const float DEFAULT_EROSION_FULL     = 200f;
     private const float DEFAULT_EROSION_WEIGHT   = 1f;
-    private const float DEFAULT_EROSION_COOLDOWN = 45f;
+    private const float DEFAULT_EROSION_COOLDOWN = 75f;
 
     /// <summary>DayCycle이 없을 때 사용할 게임 1일 길이 (초)</summary>
     private const float FALLBACK_DAY_LENGTH = 600f;
@@ -101,19 +101,19 @@ public class EmployeeMental : MonoBehaviour
     /// <summary>일반 계열 지속 시간 (초)</summary>
     private static readonly Dictionary<MentalEventType, float> EVENT_DURATIONS = new Dictionary<MentalEventType, float>
     {
-        { MentalEventType.WorkSlowdown,     30f },
-        { MentalEventType.RefuseWork,       20f },
-        { MentalEventType.Wander,           15f },
-        { MentalEventType.EmotionalOutburst, 5f },
+        { MentalEventType.WorkSlowdown,     50f },
+        { MentalEventType.RefuseWork,       35f },
+        { MentalEventType.Wander,           25f },
+        { MentalEventType.EmotionalOutburst, 10f },
     };
 
     /// <summary>일반 계열 재발생 대기 시간 (초)</summary>
     private static readonly Dictionary<MentalEventType, float> EVENT_COOLDOWNS = new Dictionary<MentalEventType, float>
     {
-        { MentalEventType.WorkSlowdown,      60f },
-        { MentalEventType.RefuseWork,        45f },
-        { MentalEventType.Wander,            40f },
-        { MentalEventType.EmotionalOutburst, 90f },
+        { MentalEventType.WorkSlowdown,     100f },
+        { MentalEventType.RefuseWork,        75f },
+        { MentalEventType.Wander,            65f },
+        { MentalEventType.EmotionalOutburst, 150f },
     };
 
     #endregion

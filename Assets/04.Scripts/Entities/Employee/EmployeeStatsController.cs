@@ -34,7 +34,7 @@ public class EmployeeStatsController : MonoBehaviour
     private const float MODERATE_FATIGUE_SPEED = 0.75f;
 
     /// <summary>휴식 중 피로 회복 속도 (포인트/초)</summary>
-    private const float REST_FATIGUE_RECOVERY = 10f;
+    private const float REST_FATIGUE_RECOVERY = 0.35f;
 
     /// <summary>굶주림 시 체력 감소 속도 (포인트/초)</summary>
     private const float STARVATION_HEALTH_DECAY = 1f;

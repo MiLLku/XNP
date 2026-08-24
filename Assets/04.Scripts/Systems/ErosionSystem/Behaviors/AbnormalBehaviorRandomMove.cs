@@ -19,7 +19,7 @@ public class AbnormalBehaviorRandomMove : AbnormalBehaviorBase
         if (movement == null || MapGenerator.instance == null)
         {
             Debug.Log($"[AbnormalBehavior] {employee.DisplayName}: 무작위 이동 발동 (컴포넌트 없음)");
-            return 5f;
+            return 8f;
         }
 
         var gameMap = MapGenerator.instance.GameMapInstance;

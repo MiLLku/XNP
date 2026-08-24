@@ -12,7 +12,7 @@ using UnityEngine;
 public class AbnormalBehaviorIgnoreCommand : AbnormalBehaviorBase
 {
     /// <summary>명령 무시 지속 시간 (초)</summary>
-    protected virtual float Duration => 10f;
+    protected virtual float Duration => 15f;
 
     public override AbnormalBehaviorType BehaviorType => AbnormalBehaviorType.IgnoreCommand;
 

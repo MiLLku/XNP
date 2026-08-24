@@ -20,7 +20,7 @@ public class AbnormalBehaviorWorkStop : AbnormalBehaviorBase
     #region 수치 (밸런스 조정 지점)
 
     /// <summary>지속 시간 (초). 이 동안 새 작업이 배정되지 않는다.</summary>
-    private const float DURATION = 5f;
+    private const float DURATION = 10f;
 
     /// <summary>깎아내는 누적 진행도 비율 (총 작업량 기준)</summary>
     private const float PROGRESS_LOSS_RATIO = 0.3f;

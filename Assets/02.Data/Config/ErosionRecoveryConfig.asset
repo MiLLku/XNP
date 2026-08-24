@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29c722836c9561d47b779257a7b6b741, type: 3}
   m_Name: ErosionRecoveryConfig
   m_EditorClassIdentifier: Assembly-CSharp::ErosionRecoveryConfig
-  outOfAuraDuration: 20
-  naturalRecoveryPerSecond: 0.1
+  outOfAuraDuration: 33
+  naturalRecoveryPerSecond: 0.06
   naturalRecoveryFloor: 50
   purificationItemAmount: 80
-  propagationCheckInterval: 5
+  propagationCheckInterval: 8

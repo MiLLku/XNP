@@ -6303,7 +6303,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ddd11e2893b41c141862a0f9415697bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DayCycle
-  dayLengthInSeconds: 600
+  dayLengthInSeconds: 1000
   startHour: 6
   showDebugLogs: 0
 --- !u!1 &441113754
@@ -11366,8 +11366,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   allEvents:
   - {fileID: 11400000, guid: 4e2da0dcdfc29a141a118a17bbc1b999, type: 2}
-  minInterval: 300
-  maxInterval: 600
+  minInterval: 500
+  maxInterval: 1000
   enableRandomEvents: 1
   showDebugLogs: 1
 --- !u!1 &858274659

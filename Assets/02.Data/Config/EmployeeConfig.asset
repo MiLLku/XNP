@@ -81,8 +81,8 @@ MonoBehaviour:
   baseMaxHealth: 100
   baseMaxMental: 100
   baseAttackPower: 10
-  baseHungerDecayRate: 1
-  baseFatigueIncreaseRate: 0.5
+  baseHungerDecayRate: 0.09
+  baseFatigueIncreaseRate: 0.2
   defaultCanMine: 1
   defaultCanChop: 1
   defaultCanHaul: 1

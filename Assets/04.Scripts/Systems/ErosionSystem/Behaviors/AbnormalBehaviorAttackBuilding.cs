@@ -17,7 +17,7 @@ public class AbnormalBehaviorAttackBuilding : AbnormalBehaviorBase
     #region 수치 (밸런스 조정 지점)
 
     /// <summary>지속 시간 (초)</summary>
-    private const float DURATION = 25f;
+    private const float DURATION = 40f;
 
     /// <summary>대상 건물을 찾는 반경 (타일)</summary>
     private const int SEARCH_RADIUS = 8;
