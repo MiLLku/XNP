@@ -71,6 +71,13 @@ public class DemolishOrder : IWorkTarget, IProgressiveWork
     }
 
     /// <inheritdoc/>
+    public void ReduceWork(float amount)
+    {
+        if (amount <= 0f || completed) return;
+        accumulatedWork = Mathf.Max(0f, accumulatedWork - amount);
+    }
+
+    /// <inheritdoc/>
     public void CompleteWork(Employee worker)
     {
         if (completed) return; // 이중 호출 방지 (자원 이중 반환 차단 — 형제 오더와 동일 패턴)

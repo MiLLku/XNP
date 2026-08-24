@@ -400,6 +400,18 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
     }
 
     /// <summary>
+    /// 누적 작업량을 되돌립니다 (침식 이상 행동 '작업 중단' 등).
+    /// 완료된 현장은 영향을 받지 않으며 0 미만으로 내려가지 않습니다.
+    /// </summary>
+    public void ReduceWork(float amount)
+    {
+        if (amount <= 0f || state == ConstructionState.Completed) return;
+
+        accumulatedWork = Mathf.Max(0f, accumulatedWork - amount);
+        constructionProgress = WorkAmount > 0f ? Mathf.Clamp01(accumulatedWork / WorkAmount) : 0f;
+    }
+
+    /// <summary>
     /// 건설이 완료될 때 호출됩니다.
     /// 자재는 직원이 운반 시 InventoryManager에서 이미 차감되었으므로
     /// 예약은 ConsumeReservation이 아닌 CancelReservation으로 해제합니다.

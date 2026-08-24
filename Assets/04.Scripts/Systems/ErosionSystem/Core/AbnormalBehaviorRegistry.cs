@@ -27,6 +27,7 @@ public static class AbnormalBehaviorRegistry
         // ── 단발형 이상 행동 ─────────────────────────────────────
         Register(new AbnormalBehaviorIgnoreCommand());
         Register(new AbnormalBehaviorRandomMove());
+        Register(new AbnormalBehaviorWorkStop());       // 작업 중단 + 진행도 손실
 
         // ── 지속형 이상 행동 (Tick 구동) ──────────────────────────
         Register(new AbnormalBehaviorErosionOutburst());  // 제자리 + 주변 침식
@@ -34,7 +35,6 @@ public static class AbnormalBehaviorRegistry
         Register(new AbnormalBehaviorFriendlyAttack());   // 동료 추적 공격
 
         // 미구현 — 열거형 값만 있고 구현체가 없다. 만들면 여기에 등록할 것.
-        // Register(new AbnormalBehaviorWorkStop());
         // Register(new AbnormalBehaviorIgnoreCommandEnhanced());
         // Register(new AbnormalBehaviorMoveTowardEnemy());
         // Register(new AbnormalBehaviorFriendlyAttackEnhanced());

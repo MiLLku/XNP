@@ -511,9 +511,14 @@ public class EmployeeMental : MonoBehaviour
         Debug.Log($"[Mental] {employee.DisplayName}: 침식 계열 정신 이상 — {behavior.BehaviorType} ({duration:F0}초)");
     }
 
+    /// <summary>
+    /// 지속되는 동안 새 작업 배정을 막아야 하는 이상 행동인지.
+    /// 종료 처리와 세이브 복원도 이 판정을 함께 쓴다.
+    /// </summary>
     private static bool IsCommandIgnoreKind(AbnormalBehaviorType type)
         => type == AbnormalBehaviorType.IgnoreCommand ||
-           type == AbnormalBehaviorType.IgnoreCommandEnhanced;
+           type == AbnormalBehaviorType.IgnoreCommandEnhanced ||
+           type == AbnormalBehaviorType.WorkStop;
 
     #endregion
 

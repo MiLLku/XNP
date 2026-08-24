@@ -25,4 +25,10 @@ public interface IProgressiveWork
 
     /// <summary>작업량을 투입합니다. (직원 초당 작업량 × deltaTime)</summary>
     void AddWork(float amount);
+
+    /// <summary>
+    /// 누적된 작업량을 되돌립니다. 0 미만으로는 내려가지 않습니다.
+    /// 침식 이상 행동 '작업 중단'처럼 이미 해놓은 작업을 망가뜨리는 경우에 쓰입니다.
+    /// </summary>
+    void ReduceWork(float amount);
 }

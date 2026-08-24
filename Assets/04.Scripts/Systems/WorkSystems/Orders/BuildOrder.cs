@@ -62,6 +62,9 @@ public class BuildOrder : IWorkTarget, IProgressiveWork
     /// <inheritdoc/>
     public void AddWork(float amount) => constructionSite?.AddWork(amount);
 
+    /// <inheritdoc/>
+    public void ReduceWork(float amount) => constructionSite?.ReduceWork(amount);
+
     /// <summary>
     /// 작업 가능 여부.
     /// 자재가 모두 도착해야 직원이 실제 건설 작업을 시작할 수 있습니다.
