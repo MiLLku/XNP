@@ -17,8 +17,8 @@ MonoBehaviour:
   breakThreshold: 0.5
   mtbDays: 0.75
   depthMtbFactor: 4
-  composureBonus: 40
-  composureDurationSeconds: 180
+  composureBonus: 50
+  composureDurationSeconds: 300
   erosionFullLevel: 200
   erosionWeightMultiplier: 1
   erosionEventCooldown: 45

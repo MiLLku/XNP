@@ -45,8 +45,8 @@ public class EmployeeMental : MonoBehaviour
     private const float DEFAULT_BREAK_THRESHOLD  = 0.50f;
     private const float DEFAULT_MTB_DAYS         = 0.75f;
     private const float DEFAULT_DEPTH_MTB_FACTOR = 4f;
-    private const float DEFAULT_COMPOSURE_BONUS  = 40f;
-    private const float DEFAULT_COMPOSURE_TIME   = 180f;
+    private const float DEFAULT_COMPOSURE_BONUS  = 50f;
+    private const float DEFAULT_COMPOSURE_TIME   = 300f;   // 12 게임시간 (게임 1일 600초 기준)
     private const float DEFAULT_EROSION_FULL     = 200f;
     private const float DEFAULT_EROSION_WEIGHT   = 1f;
     private const float DEFAULT_EROSION_COOLDOWN = 45f;
@@ -408,6 +408,17 @@ public class EmployeeMental : MonoBehaviour
     ///   버프가 없으면 침식이 오른 뒤에 정신이 꺾여 <b>침식 계열</b>(건물 파괴·동료 공격·침식 폭주)이
     ///   터질 수 있다. 즉 "안전할 때 미리 한 번 무너뜨려 두는" 선택이 성립한다.
     ///   이것이 정신 이상을 순수한 페널티가 아니라 <b>관리 가능한 자원</b>으로 만드는 지점이다.
+    ///
+    /// <b>지속 시간을 300초로 잡은 근거</b> (게임 1일 = 600초, 1시간 = 25초)
+    ///   • 기본 스케줄의 작업 블록은 오전 7~11시·오후 13~17시로 각각 5 게임시간(125초)이다.
+    ///     300초면 근무 블록 하나를 이동 시간까지 포함해 통째로 덮고도 남는다 —
+    ///     "위험 작업 한 탕"에 맞는 길이다.
+    ///   • 오락 버프(180초)보다 길다. 정신 이상을 한 번 겪는 대가를 치른 만큼
+    ///     시설로 얻는 안정보다는 나아야 한다.
+    ///   • 평균 발생 간격(450초)보다는 짧다. 버프가 MTB보다 길면 한 번 터뜨린 뒤
+    ///     영구히 안전해져 판정 자체가 무의미해진다.
+    ///   모든 타이머는 Time.deltaTime 기반이라 배속(1~3x)에 그대로 비례한다 —
+    ///   3배속에서는 현실 100초다.
     /// </summary>
     private void ApplyComposure()
     {

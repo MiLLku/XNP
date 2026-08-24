@@ -59,13 +59,13 @@ public class MentalBreakConfig : ScriptableObject
     #region 정신차림 (회복 버프)
 
     [Header("정신차림")]
-    [Tooltip("정신 이상이 끝난 뒤 붙는 정신력 보너스. 정신력을 임계점 위로 밀어올려 한동안 다시 터지지 않게 만듭니다.")]
+    [Tooltip("정신 이상이 끝난 뒤 붙는 정신력 보너스. 기본값 50에 더해 상한(100)에 닿으므로, 욕구가 정상인 직원은 이 구간 동안 사실상 완전히 안전합니다. 굶주림(-25)·탈진(-20)이 붙어 있으면 그만큼 깎여 안전이 보장되지 않습니다.")]
     [Min(0f)]
-    public float composureBonus = 40f;
+    public float composureBonus = 50f;
 
-    [Tooltip("정신차림 버프 지속 시간(초). 지나면 원래 정신력으로 돌아옵니다.")]
+    [Tooltip("정신차림 버프 지속 시간(초). 300초 = 12 게임시간 = 0.5 게임일(1일 600초 기준). 오락 버프(180초)보다 길고 평균 발생 간격(450초)보다는 짧게 두어, 한 번 터뜨렸다고 무한히 안전해지지는 않게 합니다.")]
     [Min(0f)]
-    public float composureDurationSeconds = 180f;
+    public float composureDurationSeconds = 300f;
 
     #endregion
 
