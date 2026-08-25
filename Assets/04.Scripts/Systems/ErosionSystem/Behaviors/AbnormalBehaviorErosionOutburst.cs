@@ -124,7 +124,7 @@ public class AbnormalBehaviorErosionOutburst : AbnormalBehaviorBase
         if (EmployeeManager.instance == null) return;
 
         float erosionThisTick = EROSION_PER_SECOND * TICK_INTERVAL;
-        string sourceKey  = ErosionSource.OutburstKey(employee.GetInstanceID());
+        string sourceKey  = ErosionSource.OutburstKey(employee.InstanceId);
         string sourceName = $"{employee.DisplayName} 침식 폭주";
 
         foreach (var other in EmployeeManager.instance.AllEmployees)

@@ -73,7 +73,7 @@ public class HostileErosionAura : MonoBehaviour
 
             // 침식 누적 — 개체별로 내역을 구분해 "제놉스 A 오라침식 +7"처럼 보이게 한다
             var xenops = GetComponent<Xenops>();
-            string sourceKey  = ErosionSource.AuraKey(xenops != null ? xenops.InstanceId : GetInstanceID());
+            string sourceKey  = ErosionSource.AuraKey(xenops != null ? xenops.InstanceId : GetEntityId().GetHashCode());
             string sourceName = $"{(xenops != null ? xenops.DisplayName : "제놉스")} 오라침식";
 
             emp.ErosionController?.AddErosion(erosionThisTick, sourceKey, sourceName);

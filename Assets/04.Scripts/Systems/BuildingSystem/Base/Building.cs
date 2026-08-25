@@ -168,7 +168,7 @@ public class Building : MonoBehaviour
         buildingData = data;
         _currentHealth = data.maxHealth;
         _isFunctional = true;
-        this.name = $"{data.buildingName} ({this.gameObject.GetInstanceID()})";
+        this.name = $"{data.buildingName} ({this.gameObject.GetEntityId()})";
 
         // ── 콜라이더 트리거 설정 ───────────────────────────────────────────────
         // 통행 가능 건물(바닥 타일, 사다리, 다리 등)은 트리거 콜라이더를 사용합니다.
