@@ -74,9 +74,9 @@ public class PowerManager : DestroySingleton<PowerManager>
 
     private void CollectExistingNodes()
     {
-        foreach (var p in FindObjectsByType<PowerProducer>(FindObjectsSortMode.None)) RegisterProducer(p);
-        foreach (var b in FindObjectsByType<PowerBattery>(FindObjectsSortMode.None)) RegisterBattery(b);
-        foreach (var c in FindObjectsByType<PowerConsumer>(FindObjectsSortMode.None)) RegisterConsumer(c);
+        foreach (var p in FindObjectsByType<PowerProducer>()) RegisterProducer(p);
+        foreach (var b in FindObjectsByType<PowerBattery>()) RegisterBattery(b);
+        foreach (var c in FindObjectsByType<PowerConsumer>()) RegisterConsumer(c);
     }
 
     private void RebuildNetworks()

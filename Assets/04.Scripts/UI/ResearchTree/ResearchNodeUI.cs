@@ -95,7 +95,7 @@ public class ResearchNodeUI : MonoBehaviour, IPointerClickHandler, IPointerEnter
         _nameText.alignment = TextAlignmentOptions.Center;
         _nameText.color = new Color(0.9f, 0.9f, 0.9f);
         _nameText.raycastTarget = false;
-        _nameText.enableWordWrapping = false;
+        _nameText.textWrappingMode = TextWrappingModes.NoWrap;
         _nameText.overflowMode = TextOverflowModes.Ellipsis;
 
         // 잠금 오버레이

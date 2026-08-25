@@ -96,7 +96,7 @@ public static class RaidSpawnPlacer
     {
         var anchors = new List<Vector2>();
 
-        var buildings = UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None);
+        var buildings = UnityEngine.Object.FindObjectsByType<Building>();
         foreach (var b in buildings)
         {
             if (b != null) anchors.Add(b.transform.position);

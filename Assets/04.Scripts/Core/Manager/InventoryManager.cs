@@ -19,7 +19,12 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
 {
     #region 필드 및 설정
 
-    /// <summary>글로벌 인벤토리 (Key: 아이템 데이터, Value: 보유 수량)</summary>
+    /// <summary>
+    /// 글로벌 인벤토리 (Key: 아이템 데이터, Value: 보유 수량).
+    /// Dictionary는 Unity가 직렬화하지 못하므로 인스펙터 노출 대상이 아니다 —
+    /// 저장은 ISaveModule 경로(Capture/Restore)가 담당한다.
+    /// </summary>
+    [System.NonSerialized]
     public Dictionary<ItemData, int> globalInventory = new Dictionary<ItemData, int>();
 
     /// <summary>아이템별 총 예약 수량</summary>

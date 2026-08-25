@@ -749,7 +749,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
     {
         // 완성된 건물 캡처
         data.buildings.Clear();
-        var buildings = FindObjectsByType<Building>(FindObjectsSortMode.None);
+        var buildings = FindObjectsByType<Building>();
         foreach (var building in buildings)
         {
             if (building.buildingData != null)

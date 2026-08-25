@@ -269,7 +269,7 @@ public static class EventEffectApplier
 
     private static void DamageRandomBuilding(int damage)
     {
-        var buildings = UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None);
+        var buildings = UnityEngine.Object.FindObjectsByType<Building>();
         if (buildings.Length == 0) return;
 
         var target = buildings[Random.Range(0, buildings.Length)];
@@ -279,7 +279,7 @@ public static class EventEffectApplier
 
     private static void DestroyRandomBuilding(int count)
     {
-        var buildings = UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None)
+        var buildings = UnityEngine.Object.FindObjectsByType<Building>()
             .OrderBy(_ => Random.value)
             .Take(count)
             .ToList();
@@ -490,7 +490,7 @@ public static class EventEffectApplier
         // "기지 근처" = 플레이어의 건설물·직원이 모여 있는 영역.
         var anchors = new List<Vector2>();
 
-        var buildings = UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None);
+        var buildings = UnityEngine.Object.FindObjectsByType<Building>();
         foreach (var b in buildings)
         {
             if (b != null) anchors.Add(b.transform.position);

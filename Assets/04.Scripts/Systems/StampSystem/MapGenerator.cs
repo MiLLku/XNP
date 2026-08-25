@@ -724,7 +724,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         var entities = new List<MapEntitySaveData>();
 
         // 나무 (ChoppableTree) — variantId=0
-        var trees = FindObjectsByType<ChoppableTree>(FindObjectsSortMode.None);
+        var trees = FindObjectsByType<ChoppableTree>();
         foreach (var tree in trees)
         {
             entities.Add(new MapEntitySaveData
@@ -738,7 +738,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         }
 
         // 침식 식물 (ErosionPlantEntity) — variantId=2(ToxicFern), 3(CorruptedMushroom)
-        var erosionPlants = FindObjectsByType<ErosionPlantEntity>(FindObjectsSortMode.None);
+        var erosionPlants = FindObjectsByType<ErosionPlantEntity>();
         foreach (var ep in erosionPlants)
         {
             int variant = (ep.entityId == (int)EntityType.ToxicFern) ? 2 : 3;
@@ -760,10 +760,10 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         if (entities == null || _stamper == null) return;
 
         // 1. 기존 자연물 제거
-        var existingTrees = FindObjectsByType<ChoppableTree>(FindObjectsSortMode.None);
+        var existingTrees = FindObjectsByType<ChoppableTree>();
         foreach (var tree in existingTrees) Destroy(tree.gameObject);
 
-        var existingErosionPlants = FindObjectsByType<ErosionPlantEntity>(FindObjectsSortMode.None);
+        var existingErosionPlants = FindObjectsByType<ErosionPlantEntity>();
         foreach (var ep in existingErosionPlants) Destroy(ep.gameObject);
 
         // 2. _gameMap.Entities 클리어 — GenerateWorld()에서 쌓인 항목 제거
@@ -809,7 +809,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     /// </summary>
     private void ApplyTreeGrowthStates(List<MapEntitySaveData> entities)
     {
-        var spawnedTrees = FindObjectsByType<ChoppableTree>(FindObjectsSortMode.None);
+        var spawnedTrees = FindObjectsByType<ChoppableTree>();
 
         foreach (var saved in entities)
         {

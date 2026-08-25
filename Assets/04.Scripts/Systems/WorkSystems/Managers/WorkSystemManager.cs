@@ -1373,7 +1373,7 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     private IHarvestable FindHarvestableAtPosition(int x, int y)
     {
         // 씬 내 모든 IHarvestable 검색
-        var allHarvestables = UnityEngine.Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
+        var allHarvestables = UnityEngine.Object.FindObjectsByType<MonoBehaviour>();
         foreach (var mb in allHarvestables)
         {
             if (!(mb is IHarvestable harvestable)) continue;

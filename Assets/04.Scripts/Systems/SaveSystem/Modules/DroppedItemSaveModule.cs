@@ -17,7 +17,7 @@ public class DroppedItemSaveModule : MonoBehaviour, ISaveModule
         data.droppedItems = new List<DroppedItemSaveData>();
 
         // DroppedItem (채광/수확 드롭, 직원 운반 대상)
-        var droppedItems = FindObjectsByType<DroppedItem>(FindObjectsSortMode.None);
+        var droppedItems = FindObjectsByType<DroppedItem>();
         foreach (var item in droppedItems)
         {
             if (item.itemData == null) continue;
@@ -32,7 +32,7 @@ public class DroppedItemSaveModule : MonoBehaviour, ISaveModule
         }
 
         // ClickableItem (플레이어 클릭 픽업 아이템)
-        var clickableItems = FindObjectsByType<ClickableItem>(FindObjectsSortMode.None);
+        var clickableItems = FindObjectsByType<ClickableItem>();
         foreach (var item in clickableItems)
         {
             ItemData itemData = item.GetItemData();
@@ -53,12 +53,12 @@ public class DroppedItemSaveModule : MonoBehaviour, ISaveModule
     public void Restore(SaveData data)
     {
         // 기존 DroppedItem 제거 (ClickableItem은 건드리지 않음)
-        var existingDropped = FindObjectsByType<DroppedItem>(FindObjectsSortMode.None);
+        var existingDropped = FindObjectsByType<DroppedItem>();
         foreach (var item in existingDropped)
             Destroy(item.gameObject);
 
         // 기존 ClickableItem 제거
-        var existingClickable = FindObjectsByType<ClickableItem>(FindObjectsSortMode.None);
+        var existingClickable = FindObjectsByType<ClickableItem>();
         foreach (var item in existingClickable)
             Destroy(item.gameObject);
 

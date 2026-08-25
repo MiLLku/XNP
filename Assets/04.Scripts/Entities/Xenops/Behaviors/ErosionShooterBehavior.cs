@@ -377,7 +377,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         }
         if ((trackingTargets & TrackTargetType.Building) != 0)
         {
-            var buildings = UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None);
+            var buildings = UnityEngine.Object.FindObjectsByType<Building>();
             foreach (var b in buildings)
             {
                 if (b == null) continue;

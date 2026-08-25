@@ -393,41 +393,41 @@ public class SaveManager : DontDestroySingleton<SaveManager>
         }
 
         // 건물 제거
-        var buildings = FindObjectsByType<Building>(FindObjectsSortMode.None);
+        var buildings = FindObjectsByType<Building>();
         foreach (var building in buildings)
         {
             Destroy(building.gameObject);
         }
 
         // 건설 현장 제거
-        var sites = FindObjectsByType<ConstructionSite>(FindObjectsSortMode.None);
+        var sites = FindObjectsByType<ConstructionSite>();
         foreach (var site in sites)
         {
             Destroy(site.gameObject);
         }
 
         // 자연물 제거
-        var trees = FindObjectsByType<ChoppableTree>(FindObjectsSortMode.None);
+        var trees = FindObjectsByType<ChoppableTree>();
         foreach (var tree in trees)
         {
             Destroy(tree.gameObject);
         }
 
-        var plants = FindObjectsByType<HarvestablePlant>(FindObjectsSortMode.None);
+        var plants = FindObjectsByType<HarvestablePlant>();
         foreach (var plant in plants)
         {
             Destroy(plant.gameObject);
         }
 
         // 침식 식물 제거
-        var erosionPlants = FindObjectsByType<ErosionPlantEntity>(FindObjectsSortMode.None);
+        var erosionPlants = FindObjectsByType<ErosionPlantEntity>();
         foreach (var ep in erosionPlants)
         {
             Destroy(ep.gameObject);
         }
 
         // 드롭 아이템 제거
-        var droppedItems = FindObjectsByType<ClickableItem>(FindObjectsSortMode.None);
+        var droppedItems = FindObjectsByType<ClickableItem>();
         foreach (var item in droppedItems)
         {
             Destroy(item.gameObject);
@@ -460,7 +460,7 @@ public class SaveManager : DontDestroySingleton<SaveManager>
     /// </summary>
     private List<ISaveModule> GetSaveModules()
     {
-        var modules = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
+        var modules = FindObjectsByType<MonoBehaviour>()
             .OfType<ISaveModule>()
             .OrderBy(m => m.SaveOrder)
             .ToList();
