@@ -200,7 +200,12 @@ public class EmployeeManagePanel : BasePanel
         foreach (var m in mods)
         {
             if (m == null) continue;
-            sb.Append($" · {m.displayName} {m.value:+0.#;-0.#}");
+            // 시간형은 남은 시간을 함께 보여준다 — '정신차림'이 언제 풀리는지가
+            // 위험 작업 타이밍을 잡는 근거이므로 숫자로 보이는 편이 낫다.
+            if (m.IsConditional)
+                sb.Append($" · {m.displayName} {m.value:+0.#;-0.#}");
+            else
+                sb.Append($" · {m.displayName} {m.value:+0.#;-0.#} ({m.remainingTime:F0}초)");
         }
         sb.Append(')');
         return sb.ToString();

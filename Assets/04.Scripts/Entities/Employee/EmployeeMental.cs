@@ -431,6 +431,10 @@ public class EmployeeMental : MonoBehaviour
         statsController.RemoveMentalModifier(MentalReason.COMPOSURE);
         statsController.ModifyMental(bonus, MentalReason.COMPOSURE, "정신을 차림", ComposureDuration);
 
+        PushBreakLetter("정신차림",
+                        $"{employee.DisplayName}이(가) 정신을 차렸습니다. 약 {ComposureDuration:F0}초 동안은 다시 무너지지 않습니다 — 침식 위험 작업을 몰아넣기 좋은 구간입니다.",
+                        LetterType.Positive, false);
+
         Debug.Log($"[Mental] {employee.DisplayName}: 정신차림 +{bonus:F0} ({ComposureDuration:F0}초)");
     }
 
@@ -495,6 +499,8 @@ public class EmployeeMental : MonoBehaviour
         });
 
         normalCooldowns[type] = cooldown;
+
+        PushBreakLetter(BreakLabel(type), NormalBreakBody(type, duration), LetterType.Neutral, false);
     }
 
     #endregion
@@ -544,6 +550,11 @@ public class EmployeeMental : MonoBehaviour
 
         erosionCooldowns[behavior.BehaviorType] = cooldown;
 
+        bool destructive = IsDestructiveKind(behavior.BehaviorType);
+        PushBreakLetter(BreakLabel(behavior.BehaviorType),
+                        ErosionBreakBody(behavior.BehaviorType, duration),
+                        LetterType.Threat, destructive);
+
         Debug.Log($"[Mental] {employee.DisplayName}: 침식 계열 정신 이상 — {behavior.BehaviorType} ({duration:F0}초)");
     }
 
@@ -555,6 +566,78 @@ public class EmployeeMental : MonoBehaviour
         => type == AbnormalBehaviorType.IgnoreCommand ||
            type == AbnormalBehaviorType.IgnoreCommandEnhanced ||
            type == AbnormalBehaviorType.WorkStop;
+
+    #endregion
+
+    #region 플레이어 알림
+
+    /// <summary>
+    /// 정신 이상 발생·종료를 레터로 알립니다.
+    ///
+    /// 그동안 정신 이상은 콘솔 로그로만 남아서, 기지가 부서지거나 동료가 맞고 있어도
+    /// 플레이어가 알아채지 못했다. 손실이 큰 침식 계열 3종(침식 폭주·건물 파괴·동료 공격)은
+    /// 침공과 같은 등급으로 취급해 <b>확인할 때까지 일시정지</b>한다.
+    /// </summary>
+    private void PushBreakLetter(string label, string body, LetterType type, bool pause)
+    {
+        if (employee == null) return;
+
+        NotificationManager.instance?.PushLetter(new Letter
+        {
+            title = $"{label} — {employee.DisplayName}",
+            body = body,
+            type = type,
+            pauseUntilRead = pause
+        });
+
+        if (pause) TimeManager.instance?.ForcePause();
+    }
+
+    /// <summary>손실이 커서 플레이어가 즉시 개입해야 하는 침식 계열인지.</summary>
+    private static bool IsDestructiveKind(AbnormalBehaviorType type)
+        => type == AbnormalBehaviorType.ErosionOutburst
+        || type == AbnormalBehaviorType.AttackBuilding
+        || type == AbnormalBehaviorType.FriendlyAttack;
+
+    private static string BreakLabel(MentalEventType type) => type switch
+    {
+        MentalEventType.WorkSlowdown      => "작업 둔화",
+        MentalEventType.RefuseWork        => "작업 거부",
+        MentalEventType.Wander            => "방황",
+        MentalEventType.EmotionalOutburst => "감정 폭발",
+        _                                 => "정신 이상",
+    };
+
+    private static string BreakLabel(AbnormalBehaviorType type) => type switch
+    {
+        AbnormalBehaviorType.IgnoreCommand   => "명령 무시",
+        AbnormalBehaviorType.RandomMove      => "무작위 이동",
+        AbnormalBehaviorType.WorkStop        => "작업 중단",
+        AbnormalBehaviorType.FriendlyAttack  => "동료 공격",
+        AbnormalBehaviorType.ErosionOutburst => "침식 폭주",
+        AbnormalBehaviorType.AttackBuilding  => "건물 파괴 충동",
+        _                                    => "침식 이상 행동",
+    };
+
+    private string NormalBreakBody(MentalEventType type, float duration) => type switch
+    {
+        MentalEventType.WorkSlowdown      => $"{employee.DisplayName}의 작업 속도가 절반으로 떨어졌습니다. ({duration:F0}초)",
+        MentalEventType.RefuseWork        => $"{employee.DisplayName}이(가) 일을 놓고 새 작업도 받지 않습니다. ({duration:F0}초)",
+        MentalEventType.Wander            => $"{employee.DisplayName}이(가) 일을 멈추고 정처 없이 돌아다닙니다. ({duration:F0}초)",
+        MentalEventType.EmotionalOutburst => $"{employee.DisplayName}이(가) 감정을 터뜨려 주변 동료의 정신력이 깎였습니다.",
+        _                                 => $"{employee.DisplayName}의 정신이 흔들리고 있습니다. ({duration:F0}초)",
+    };
+
+    private string ErosionBreakBody(AbnormalBehaviorType type, float duration) => type switch
+    {
+        AbnormalBehaviorType.ErosionOutburst => $"{employee.DisplayName}이(가) 그 자리에 멈춰 주변에 침식을 흩뿌립니다. 소집도 되지 않습니다 — 동료를 물리세요. ({duration:F0}초)",
+        AbnormalBehaviorType.AttackBuilding  => $"{employee.DisplayName}이(가) 주변 건물을 부수기 시작했습니다. ({duration:F0}초)",
+        AbnormalBehaviorType.FriendlyAttack  => $"{employee.DisplayName}이(가) 동료를 공격합니다. ({duration:F0}초)",
+        AbnormalBehaviorType.WorkStop        => $"{employee.DisplayName}이(가) 하던 작업을 망가뜨리고 손을 놓았습니다 — 진행도가 깎였습니다. ({duration:F0}초)",
+        AbnormalBehaviorType.IgnoreCommand   => $"{employee.DisplayName}이(가) 명령을 듣지 않습니다. ({duration:F0}초)",
+        AbnormalBehaviorType.RandomMove      => $"{employee.DisplayName}이(가) 제멋대로 움직입니다. ({duration:F0}초)",
+        _                                    => $"{employee.DisplayName}에게 침식 계열 이상 행동이 나타났습니다. ({duration:F0}초)",
+    };
 
     #endregion
 
