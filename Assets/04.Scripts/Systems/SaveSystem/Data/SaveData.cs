@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 /// <summary>
@@ -92,6 +92,9 @@ public class SaveData
 
     /// <summary>전쟁의 안개 탐색 상태</summary>
     public FogSaveData fog;
+
+    /// <summary>방 환경 상태 (온도·침식). 방 구조 자체는 지형에서 재계산됩니다.</summary>
+    public RoomSystemSaveData roomSystem;
 
     #endregion
 

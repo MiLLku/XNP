@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -54,4 +54,10 @@ public class DoorManager : DestroySingleton<DoorManager>
     /// 타일 좌표에 문이 존재하는지 여부를 반환합니다.
     /// </summary>
     public bool IsDoorAt(Vector2Int tile) => _doors.ContainsKey(tile);
+
+    /// <summary>
+    /// 등록된 모든 문 타일. 문 하나가 하단·상단 두 칸으로 들어 있습니다.
+    /// RoomManager가 문이 잇는 두 방을 찾을 때 사용합니다.
+    /// </summary>
+    public IReadOnlyDictionary<Vector2Int, Door> AllDoors => _doors;
 }
