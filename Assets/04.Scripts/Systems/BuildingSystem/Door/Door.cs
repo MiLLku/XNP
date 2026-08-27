@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// 문 컴포넌트 — Building 컴포넌트와 함께 같은 GameObject에 추가합니다 (IBuildingFunction 구현).
@@ -249,8 +249,13 @@ public class Door : MonoBehaviour, IBuildingFunction
 
     private void SetState(DoorState newState)
     {
+        DoorState previous = _state;
+
         _state      = newState;
         _stateTimer = 0f;
+
+        // 여닫힘이 '완료'되는 순간에만 좌우 공기를 섞는다 (Start의 초기 Closed는 전이가 아니라 제외됨)
+        if (previous != newState) ExchangeHeat(newState);
 
         switch (newState)
         {
@@ -279,11 +284,39 @@ public class Door : MonoBehaviour, IBuildingFunction
     /// <summary>문을 강제로 열린 상태에 고정합니다 (파손 시 호출).</summary>
     private void ForceOpen()
     {
+        DoorState previous = _state;
+
         _pendingRequests  = 0;
         _closeDelayTimer  = 0f;
         _state            = DoorState.Open;
         _stateTimer       = 0f;
         ApplyVisual(isOpen: true);
+
+        if (previous != DoorState.Open) ExchangeHeat(DoorState.Open);
+    }
+
+    /// <summary>
+    /// 문이 여닫히는 순간 좌우 공간의 공기를 섞습니다.
+    ///
+    /// 문은 <b>항상 방의 경계</b>이며 열려 있는 동안 계속 열을 통과시키지는 않습니다.
+    /// 여닫는 그 순간에만 한 번 섞이므로, 사람이 자주 드나드는 방일수록 온도가 흔들립니다.
+    /// (이중문을 만들면 중간 방이 완충 역할을 해 손실이 줄어듭니다)
+    /// </summary>
+    private void ExchangeHeat(DoorState newState)
+    {
+        if (newState != DoorState.Open && newState != DoorState.Closed) return;
+
+        var temperature = TemperatureManager.instance;
+        var roomManager = RoomManager.instance;
+        if (temperature == null || roomManager == null) return;
+
+        if (!roomManager.TryGetDoorLink(_bottomTile, out int roomA, out int roomB)) return;
+
+        float rate = _doorData != null && _doorData.heatExchangeRate > 0f
+            ? _doorData.heatExchangeRate
+            : (temperature.Config != null ? temperature.Config.defaultDoorExchangeRate : 0.05f);
+
+        temperature.MixThroughDoor(roomA, roomB, rate);
     }
 
     /// <summary>

@@ -21,7 +21,7 @@ MonoBehaviour:
   buildingPrefab: {fileID: 4022647625918866853, guid: dd476adb8a470854ab9322e45acc85a9, type: 3}
   size: {x: 2, y: 2}
   pivot: {x: 0, y: 0}
-  constructionTime: 40
+  workAmount: 40
   requiredResources:
   - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
     amount: 10
@@ -34,5 +34,7 @@ MonoBehaviour:
   allowsVerticalMovement: 0
   destructionDrops: []
   paybackRatio: 0.5
+  heatOutput: 25
+  heatConductivity: 0.8
   powerConsumption: 0
   allowOverlap: 0

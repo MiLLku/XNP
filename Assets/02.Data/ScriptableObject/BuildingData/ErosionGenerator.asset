@@ -21,12 +21,16 @@ MonoBehaviour:
   buildingPrefab: {fileID: 1000, guid: 0a0114d3ff13a4c4d83392db94fd8c71, type: 3}
   size: {x: 2, y: 2}
   pivot: {x: 0, y: 0}
-  constructionTime: 15
+  workAmount: 15
   requiredResources: []
   maxHealth: 350
   blocksMovement: 1
   requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
   destructionDrops: []
   paybackRatio: 0.5
+  heatOutput: 15
+  heatConductivity: 0.8
   powerConsumption: 0
   allowOverlap: 0

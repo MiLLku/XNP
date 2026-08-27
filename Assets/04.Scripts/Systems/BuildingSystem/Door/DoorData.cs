@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// 문 건물 데이터 (ScriptableObject).
@@ -26,6 +26,11 @@ public class DoorData : BuildingData
 
     [Tooltip("마지막 통과 요청 이후 자동으로 닫히기까지의 대기 시간(초)")]
     public float closeDelay = 2f;
+
+    [Header("온도")]
+    [Tooltip("문을 한 번 여닫을 때 좌우 공간의 공기가 섞이는 비율(0~1). 0이면 TemperatureConfig의 기본값을 씁니다. 작은 방일수록 크게 흔들립니다.")]
+    [Range(0f, 1f)]
+    public float heatExchangeRate = 0f;
 
     [Header("문 스프라이트 (선택)")]
     [Tooltip("열린 상태 스프라이트. 없으면 알파값으로 폴백 처리됩니다.")]

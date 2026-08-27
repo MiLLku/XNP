@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -102,6 +102,14 @@ public class BuildingData : ScriptableObject
     #endregion
 
     #region 전력
+
+    [Header("온도")]
+
+    [Tooltip("초당 열 출력. 0이면 열원이 아닙니다. 양수=난방, 음수=냉방. 평형 온도는 주변온도 + 출력/누출계수이므로 잘 막힌 방일수록 더 뜨거워집니다.")]
+    public float heatOutput = 0f;
+
+    [Tooltip("이 건물이 방의 벽일 때의 열 전도율. 낮을수록 단열재입니다. (돌=1.0 기준)")]
+    public float heatConductivity = 0.8f;
 
     [Header("전력")]
     [Tooltip("이 건물이 가동에 필요로 하는 전력(W). 0이면 전력을 소비하지 않습니다.\n" +

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
@@ -19,7 +19,7 @@ using System.Linq;
 ///               DestroyBuilding() → 오브젝트 제거
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer), typeof(Collider2D))]
-public class Building : MonoBehaviour
+public class Building : MonoBehaviour, IHeatSource
 {
     #region 상수
 
@@ -179,7 +179,10 @@ public class Building : MonoBehaviour
         if (_collider != null)
             _collider.isTrigger = !data.blocksMovement;
 
+        _powerConsumer = GetComponent<PowerConsumer>();
+
         RegisterToGameMap();
+        RegisterHeatSource();
     }
 
     void Start()
@@ -315,6 +318,9 @@ public class Building : MonoBehaviour
     public void TakeDamage(int amount)
     {
         if (!_isFunctional || amount <= 0) return;
+
+        // 디버그: 무적
+        if (DebugManager.IsBlocked(DebugFlag.Damage)) return;
         if (buildingData == null) return; // 초기화 전 또는 데이터 미연결 시 피해 무시
 
         _currentHealth -= amount;
@@ -526,6 +532,56 @@ private void ReturnPartialResources()
         UnregisterFromGameMap();
     }
 
+    #region IHeatSource
+
+    /// <summary>열원 위치 — 건물 좌하단 칸</summary>
+    public Vector2Int HeatTilePosition => new Vector2Int(
+        Mathf.FloorToInt(transform.position.x),
+        Mathf.FloorToInt(transform.position.y));
+
+    /// <summary>건물이 차지하는 칸 수</summary>
+    public Vector2Int HeatFootprint => buildingData != null ? buildingData.size : Vector2Int.one;
+
+    /// <summary>초당 열 출력 (BuildingData 설정값)</summary>
+    public float HeatOutput => buildingData != null ? buildingData.heatOutput : 0f;
+
+    /// <summary>
+    /// 지금 열을 내고 있는지.
+    /// 고장났거나 <b>전력이 끊기면</b> 멈춥니다 — 냉난방기는 정전되는 순간 방이 식기(또는 데워지기) 시작합니다.
+    /// </summary>
+    public bool IsHeatActive
+    {
+        get
+        {
+            if (!_isFunctional || buildingData == null || buildingData.heatOutput == 0f) return false;
+
+            // 전력을 쓰는 건물이면 공급이 끊긴 동안 가동하지 않는다
+            if (_powerConsumer != null && !_powerConsumer.IsPowered) return false;
+
+            return true;
+        }
+    }
+
+    /// <summary>전력 소비 컴포넌트 캐시 (없으면 null — 전력이 필요 없는 건물)</summary>
+    private PowerConsumer _powerConsumer;
+
+    /// <summary>
+    /// 열 출력이 있는 건물이면 온도 시스템에 등록합니다.
+    /// 프리팹마다 컴포넌트를 붙일 필요 없이 BuildingData에 값만 넣으면 동작합니다.
+    /// </summary>
+    private void RegisterHeatSource()
+    {
+        if (buildingData == null || buildingData.heatOutput == 0f) return;
+        TemperatureManager.instance?.RegisterSource(this);
+    }
+
+    private void UnregisterHeatSource()
+    {
+        TemperatureManager.instance?.UnregisterSource(this);
+    }
+
+    #endregion
+
     // ── 위치별 건물 조회 (이동속도·수직이동 일반화) ───────────────────────
 
     /// <summary>해당 칸을 점유한 건물을 반환합니다 (없으면 null).</summary>
@@ -566,6 +622,7 @@ private void ReturnPartialResources()
             RuntimeIDRegistry.instance.Unregister(_instanceId);
         }
         ReleaseOccupiedTiles();
+        UnregisterHeatSource();
     }
 
     #endregion
