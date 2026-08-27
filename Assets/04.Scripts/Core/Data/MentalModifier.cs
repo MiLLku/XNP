@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 /// <summary>
 /// 정신력 변동 하나를 나타내는 항목.
@@ -55,6 +55,12 @@ public static class MentalReason
 
     /// <summary>탈진 (상태형 — 자고 나면 사라짐)</summary>
     public const string EXHAUSTION = "exhaustion";
+
+    /// <summary>추위 (상태형 — 따뜻한 곳으로 가거나 방한 장비를 갖추면 사라짐)</summary>
+    public const string COLD = "cold";
+
+    /// <summary>더위 (상태형 — 시원한 곳으로 가거나 방열 장비를 갖추면 사라짐)</summary>
+    public const string HEAT = "heat";
 
     /// <summary>오락을 즐김 (시간형)</summary>
     public const string RECREATION = "recreation";

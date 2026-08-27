@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -63,6 +63,7 @@ public class Employee : MonoBehaviour
     private EmployeeAI aiController;
     private EmployeeEquipment equipment;
     private EmployeeErosionController erosionController;
+    private EmployeeTemperature temperature;
     private EmployeeSchedule schedule;
     private EmployeeDraft draft;
     private EmployeeCombat combat;
@@ -202,6 +203,7 @@ public class Employee : MonoBehaviour
         aiController = GetComponent<EmployeeAI>() ?? gameObject.AddComponent<EmployeeAI>();
         equipment = GetComponent<EmployeeEquipment>() ?? gameObject.AddComponent<EmployeeEquipment>();
         erosionController = GetComponent<EmployeeErosionController>() ?? gameObject.AddComponent<EmployeeErosionController>();
+        temperature = GetComponent<EmployeeTemperature>() ?? gameObject.AddComponent<EmployeeTemperature>();
         schedule = GetComponent<EmployeeSchedule>() ?? gameObject.AddComponent<EmployeeSchedule>();
         draft = GetComponent<EmployeeDraft>() ?? gameObject.AddComponent<EmployeeDraft>();
         combat = GetComponent<EmployeeCombat>() ?? gameObject.AddComponent<EmployeeCombat>();
@@ -428,6 +430,9 @@ public class Employee : MonoBehaviour
     {
         if (amount <= 0f) return;
 
+        // 디버그: 무적
+        if (DebugManager.IsBlocked(DebugFlag.Damage)) return;
+
         // 장비 피해 감소(%) + 방어구 내구도 소모
         if (equipment != null)
         {
@@ -473,6 +478,9 @@ public class Employee : MonoBehaviour
 
     /// <summary>침식 컨트롤러 참조</summary>
     public EmployeeErosionController ErosionController => erosionController;
+
+    /// <summary>온도 컨디션 판정 컴포넌트</summary>
+    public EmployeeTemperature Temperature => temperature;
 
     #endregion
 

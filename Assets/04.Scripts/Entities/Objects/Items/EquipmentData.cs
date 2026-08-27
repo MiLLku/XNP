@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -49,6 +49,13 @@ public class EquipmentData : ScriptableObject
 
     [Tooltip("방어형 장비 — 보유 시 '방어' 태세 활성 (감쇄 증폭 + 어그로)")]
     public bool isDefensiveGear = false;
+
+    [Header("환경 보호")]
+    [Tooltip("방한 레벨. 레벨 1당 견디는 하한이 TemperatureConfig.degreesPerProtectionLevel 만큼 내려갑니다.")]
+    [Min(0)] public int coldProtectionLevel = 0;
+
+    [Tooltip("방열 레벨. 레벨 1당 견디는 상한이 그만큼 올라갑니다.")]
+    [Min(0)] public int heatProtectionLevel = 0;
 
     [Header("내구도")]
     [Tooltip("최대 내구도. 작업 마모·전투 소모로 감소하며 0이 되면 파괴됩니다.")]

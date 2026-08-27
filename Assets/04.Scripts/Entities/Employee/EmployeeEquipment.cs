@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -391,6 +391,31 @@ public class EmployeeEquipment : MonoBehaviour
         {
             if (kvp.Value.passiveEffects != null)
                 total += kvp.Value.passiveEffects.erosionIgnoreValue;
+        }
+        return total;
+    }
+
+    /// <summary>
+    /// 착용 장비의 방한 레벨 합.
+    /// 슈트가 주력이지만 슬롯을 가리지 않고 더하므로 헬멧·다용도구로도 보탤 수 있습니다.
+    /// </summary>
+    public int GetTotalColdProtection()
+    {
+        int total = 0;
+        foreach (var kvp in itemSlots)
+        {
+            if (kvp.Value != null) total += kvp.Value.coldProtectionLevel;
+        }
+        return total;
+    }
+
+    /// <summary>착용 장비의 방열 레벨 합</summary>
+    public int GetTotalHeatProtection()
+    {
+        int total = 0;
+        foreach (var kvp in itemSlots)
+        {
+            if (kvp.Value != null) total += kvp.Value.heatProtectionLevel;
         }
         return total;
     }
