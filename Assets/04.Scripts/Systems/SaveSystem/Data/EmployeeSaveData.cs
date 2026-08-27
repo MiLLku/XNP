@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 /// <summary>
@@ -183,6 +183,7 @@ public class EmployeeSaveData
     /// ApplyNaturalErosion에서 이 값 이하의 수치는 무시됩니다.
     /// ErosionLevel이 0으로 완전 회복되면 함께 초기화됩니다.
     /// </summary>
+    /// <summary>[v11 폐기] 구 워터마크 방식 잔재. 읽기만 하고 쓰지 않습니다.</summary>
     public float naturalErosionWatermark;
 
     /// <summary>출처별 침식 누적 내역 (v10) — "자연 침식 +3 / 제놉스 A 오라침식 +7"</summary>

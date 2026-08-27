@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
@@ -40,6 +40,13 @@ public class AlertBannerItem : MonoBehaviour
 
     private void OnClicked()
     {
+        // 장소가 문제인 경고(침식이 심한 방 등)는 좌표를 직접 들고 온다
+        if (_report.focusPosition.HasValue)
+        {
+            CameraController.Instance?.FocusOn(_report.focusPosition.Value);
+            return;
+        }
+
         if (_report.culprits == null || _report.culprits.Count == 0) return;
 
         var target = _report.culprits[0];

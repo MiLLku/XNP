@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 /// <summary>
 /// 침식이 어디서 얼마나 쌓였는지를 기록하는 내역 항목.
@@ -34,6 +34,12 @@ public static class ErosionSource
 {
     /// <summary>자연 침식 타일</summary>
     public const string NATURAL = "natural";
+
+    /// <summary>위험 작업(발원지 제거·세척 등) — 작업 종류별로 구분됩니다</summary>
+    public const string HAZARD_PREFIX = "hazard_";
+
+    /// <summary>위험 작업의 출처 키를 만듭니다. 작업 이름이 다르면 내역도 따로 잡힙니다.</summary>
+    public static string HazardKey(string hazardName) => HAZARD_PREFIX + hazardName;
 
     /// <summary>제놉스 오라 (개체별 구분 — AuraKey 사용)</summary>
     public const string AURA_PREFIX = "aura_";

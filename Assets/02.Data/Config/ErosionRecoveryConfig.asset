@@ -15,5 +15,8 @@ MonoBehaviour:
   outOfAuraDuration: 33
   naturalRecoveryPerSecond: 0.06
   naturalRecoveryFloor: 50
+  outdoorErosionBase: 5
+  exposurePerErosionPoint: 0.01
+  exposureCheckInterval: 1
   purificationItemAmount: 80
   propagationCheckInterval: 8

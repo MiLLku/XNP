@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// 수확 작업 명령 (나무, 식물 등).
@@ -50,6 +50,15 @@ public class HarvestOrder : IWorkTarget
     public void CompleteWork(Employee worker)
     {
         if (completed) return; // 이중 호출 방지 (MiningOrder, BuildOrder와 동일 패턴)
+
+        // 위험 작업이면 작업자가 침식을 뒤집어쓴다 — Harvest()가 대상을 파괴하기 전에 읽어둔다
+        if (target is IErosionHazardWork hazard && hazard.WorkerErosionCost > 0f && worker != null)
+        {
+            worker.ErosionController?.AddErosion(
+                hazard.WorkerErosionCost,
+                ErosionSource.HazardKey(hazard.HazardDisplayName),
+                hazard.HazardDisplayName);
+        }
 
         if (target != null)
         {

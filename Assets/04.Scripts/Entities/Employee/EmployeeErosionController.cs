@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -24,7 +24,7 @@ using UnityEngine;
 ///   이 플래그를 통해 "오라 밖에서 20초 경과" 회복 조건을 관리합니다.
 /// </summary>
 [RequireComponent(typeof(Employee))]
-public class EmployeeErosionController : MonoBehaviour
+public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource
 {
     #region 상수
 
@@ -64,7 +64,17 @@ public class EmployeeErosionController : MonoBehaviour
     /// 이 값 이하의 자연 침식 수치는 무시됩니다 (증분만 적용).
     /// ErosionLevel이 0으로 완전 회복되면 0으로 초기화됩니다.
     /// </summary>
-    private float naturalErosionWatermark;
+    /// <summary>환경 노출 판정 누적 시간</summary>
+    private float exposureTimer;
+
+    /// <summary>지금 침식을 걸어둔 개체 발원지 키 (범위를 벗어나면 돌려준다)</summary>
+    private readonly HashSet<string> appliedEntitySourceKeys = new HashSet<string>();
+
+    /// <summary>이번 판정에서 범위 안이었던 키 (작업 버퍼)</summary>
+    private readonly HashSet<string> activeEntitySourceKeys = new HashSet<string>();
+
+    /// <summary>이번 판정에서 벗어난 키 (작업 버퍼)</summary>
+    private readonly List<string> expiredEntitySourceKeys = new List<string>();
 
     #endregion
 
@@ -126,7 +136,7 @@ public class EmployeeErosionController : MonoBehaviour
         timeSinceLastAuraExposure = 0f;
         auraExposureThisFrame = false;
         hasMutated = false;
-        naturalErosionWatermark = 0f;
+        exposureTimer = 0f;
 
         RefreshStageCache(ErosionStage.Normal);
     }
@@ -134,6 +144,17 @@ public class EmployeeErosionController : MonoBehaviour
     #endregion
 
     #region 업데이트
+
+    private void OnEnable()
+    {
+        // IsEmitting이 단계를 보고 판단하므로 항상 등록해 두어도 안전하다
+        EntityErosionField.instance?.RegisterSource(this);
+    }
+
+    private void OnDisable()
+    {
+        EntityErosionField.instance?.UnregisterSource(this);
+    }
 
     private void Update()
     {
@@ -143,7 +164,7 @@ public class EmployeeErosionController : MonoBehaviour
         float dt = Time.deltaTime;
 
         UpdateStage();
-        UpdatePropagationAura(dt);
+        UpdateEnvironmentExposure(dt);
         UpdateRecovery(dt);
 
         // 프레임 오라 노출 플래그 리셋
@@ -184,42 +205,42 @@ public class EmployeeErosionController : MonoBehaviour
         Debug.Log($"[ErosionController] {employee.DisplayName}: 침식 단계 변경 {prevStage} → {newStage} (침식: {erosion:F1})");
     }
 
+    #region 전파 오라 (IEntityErosionSource)
+
     /// <summary>
-    /// 4단계 침식 전파 오라를 주변 직원에게 적용합니다.
+    /// 4단계 침식 직원은 <b>자기 주변 타일을 오염시킵니다</b>.
+    ///
+    /// 예전에는 주변 직원을 직접 찾아 침식을 꽂았지만, 지금은 제놉스 오라와 같은 방식으로
+    /// 타일 레이어에 깔아두기만 하고 그 위에 선 직원이 스스로 받습니다.
+    /// 오염이 사람이 아니라 <b>장소</b>에 생기므로 "저 통로는 지나가면 안 된다"가 성립합니다.
+    ///
+    /// 방 침식에는 기여하지 않습니다 — 개체가 떠나면 사라지는 오염입니다.
     /// </summary>
-    private void UpdatePropagationAura(float dt)
-    {
-        if (cachedStageDef == null || !cachedStageDef.hasErosionAura) return;
-        if (EmployeeManager.instance == null) return;
+    public Vector2 EmitPosition => transform.position;
 
-        // 판정 주기는 Config에서 조절한다. 초당 전파량 × 주기로 한 번에 적용하므로
-        // 주기를 늘려도 시간당 총 전파량은 같고 판정 빈도만 줄어든다.
-        float interval = recoveryConfig != null ? recoveryConfig.propagationCheckInterval : 5f;
+    public float EmitRadius => cachedStageDef != null ? cachedStageDef.auraRange : 0f;
 
-        propagationTimer -= dt;
-        if (propagationTimer > 0f) return;
-        propagationTimer = interval;
+    /// <summary>범위 안 동료에게 붙는 고정량. 벗어나면 돌아갑니다.</summary>
+    public float FixedErosionAmount => cachedStageDef != null ? cachedStageDef.auraErosionPerSecond : 0f;
 
-        float erosionThisTick = cachedStageDef.auraErosionPerSecond * interval;
-        Vector2 myPos = transform.position;
-        string sourceKey = ErosionSource.PropagationKey(employee.InstanceId);
-        string sourceName = $"{employee.DisplayName} 전파침식";
+    public bool HorizontalOnly => false;
 
-        foreach (var other in EmployeeManager.instance.AllEmployees)
-        {
-            if (other == null || other == employee) continue;
-            if (other.State == EmployeeState.Dead) continue;
+    public bool Covers(Vector2 worldPosition)
+        => cachedStageDef != null
+        && Vector2.Distance(EmitPosition, worldPosition) <= cachedStageDef.auraRange;
 
-            float dist = Vector2.Distance(myPos, other.transform.position);
-            if (dist > cachedStageDef.auraRange) continue;
+    public bool IsEmitting
+        => isActiveAndEnabled
+        && employee != null && employee.State != EmployeeState.Dead
+        && cachedStageDef != null && cachedStageDef.hasErosionAura
+        && cachedStageDef.auraErosionPerSecond > 0f
+        && cachedStageDef.auraRange > 0f;
 
-            float armorIgnore = other.Equipment?.GetTotalErosionIgnore() ?? 0f;
-            if (armorIgnore >= cachedStageDef.auraErosionPerSecond) continue;
+    public string ErosionSourceKey => ErosionSource.PropagationKey(employee != null ? employee.InstanceId : GetEntityId().GetHashCode());
 
-            other.ErosionController?.AddErosion(erosionThisTick, sourceKey, sourceName);
-            other.ErosionController?.MarkAuraExposure();
-        }
-    }
+    public string ErosionSourceName => $"{(employee != null ? employee.DisplayName : "직원")} 전파침식";
+
+    #endregion
 
     /// <summary>
     /// 침식 회복을 처리합니다.
@@ -255,13 +276,6 @@ public class EmployeeErosionController : MonoBehaviour
 
         float newErosion = Mathf.Max(floor, erosion - recoveryConfig.naturalRecoveryPerSecond * dt);
         ReduceErosion(erosion - newErosion, "자연 회복");
-
-        // 침식이 0으로 완전 회복되면 자연 침식 워터마크 초기화
-        if (newErosion <= 0f && naturalErosionWatermark > 0f)
-        {
-            naturalErosionWatermark = 0f;
-            Debug.Log($"[ErosionController] {employee.DisplayName}: 자연 침식 워터마크 초기화");
-        }
     }
 
     #endregion
@@ -309,6 +323,9 @@ public class EmployeeErosionController : MonoBehaviour
     public void AddErosion(float rawAmount, string sourceKey, string displayName)
     {
         if (rawAmount <= 0f || statsController == null) return;
+
+        // 디버그: 침식 축적 차단 (회복 경로는 그대로 둔다)
+        if (DebugManager.IsBlocked(DebugFlag.ErosionGain)) return;
 
         float amount = rawAmount * statsController.CachedErosionDamageMult;
         if (amount <= 0f) return;
@@ -363,7 +380,7 @@ public class EmployeeErosionController : MonoBehaviour
 
         statsController.SetErosion(0f);
         erosionSources.Clear();
-        naturalErosionWatermark = 0f;
+        exposureTimer = 0f;
     }
 
     /// <summary>출처별 내역에 누적합니다.</summary>
@@ -401,27 +418,124 @@ public class EmployeeErosionController : MonoBehaviour
     }
 
     /// <summary>
-    /// 직원이 자연 침식 영향력이 있는 타일에 진입할 때 호출합니다.
+    /// 환경 침식을 갱신합니다. 두 갈래가 성격이 다릅니다.
     ///
-    /// 워터마크 방식:
-    ///   - 이전 최대치(naturalErosionWatermark)를 초과하는 경우에만 차이값을 침식에 추가
-    ///   - 예) 워터마크=5 → intensity=10 진입: +5 적용, 워터마크=10으로 갱신
-    ///   - 예) 이후 intensity=7 진입: 7 < 10이므로 무시
-    ///   - 침식이 0으로 완전 회복되면 워터마크도 0으로 초기화됨 (UpdateRecovery에서 처리)
+    /// <b>지형 발원지 → 방 침식(농도)</b>: 머무는 동안 <b>계속 누적</b>됩니다.
+    ///   침식 = 방 침식 × 노출계수 × 시간. 오래 있을수록 위험해집니다.
+    ///
+    /// <b>개체 발원지</b>: 범위에 들어오면 <b>고정량이 붙고</b>, 벗어나면 <b>그대로 돌아갑니다</b>.
+    ///   시간이 지나도 늘지 않으므로 "지나가면 안 되는 구역"으로 동작합니다.
     /// </summary>
-    /// <param name="tileIntensity">진입한 타일의 자연 침식 수치</param>
-    public void ApplyNaturalErosion(float tileIntensity)
+    private void UpdateEnvironmentExposure(float dt)
     {
-        if (tileIntensity <= 0f) return;
-        if (tileIntensity <= naturalErosionWatermark) return;
+        if (recoveryConfig == null) return;
 
-        float rawDelta = tileIntensity - naturalErosionWatermark;
-        naturalErosionWatermark = tileIntensity;
+        float interval = Mathf.Max(0.1f, recoveryConfig.exposureCheckInterval);
 
-        AddErosion(rawDelta, ErosionSource.NATURAL, "자연 침식");
+        exposureTimer += dt;
+        if (exposureTimer < interval) return;
 
-        if (statsController != null)
-            Debug.Log($"[ErosionController] {employee.DisplayName}: 자연 침식 (수치={statsController.ErosionLevel:F1}, 워터마크={naturalErosionWatermark:F1})");
+        float elapsed = exposureTimer;
+        exposureTimer = 0f;
+
+        UpdateEntitySourceErosion();
+        UpdateAmbientErosion(elapsed);
+    }
+
+    /// <summary>
+    /// 개체 발원지의 고정 침식을 붙이거나 돌려줍니다.
+    /// 범위 안이면 그 발원지의 고정량이 정확히 걸려 있고, 밖이면 0이 됩니다.
+    /// </summary>
+    private void UpdateEntitySourceErosion()
+    {
+        var field = EntityErosionField.instance;
+        if (field == null) return;
+
+        Vector2 myPos = transform.position;
+        bool coveredByAny = false;
+
+        // 이번 판정에서 마주친 발원지 키를 모아, 예전에 걸려 있었지만 이제 벗어난 것을 걷어낸다
+        activeEntitySourceKeys.Clear();
+
+        foreach (var source in field.Sources)
+        {
+            if (source == null || !source.IsEmitting) continue;
+            if (!source.Covers(myPos)) continue;
+
+            // 장비·특성의 침식 무시가 고정량 이상이면 완전히 막는다 (기존 오라 규칙과 동일)
+            float ignore = (employee.Equipment?.GetTotalErosionIgnore() ?? 0f)
+                         + (statsController != null ? statsController.CachedErosionIgnoreBonus : 0f);
+            if (ignore >= source.FixedErosionAmount) continue;
+
+            coveredByAny = true;
+            activeEntitySourceKeys.Add(source.ErosionSourceKey);
+
+            SetConditionalErosion(source.ErosionSourceKey, source.ErosionSourceName, source.FixedErosionAmount);
+        }
+
+        // 범위를 벗어난 개체 발원지의 침식을 돌려준다
+        if (appliedEntitySourceKeys.Count > 0)
+        {
+            expiredEntitySourceKeys.Clear();
+            foreach (string key in appliedEntitySourceKeys)
+                if (!activeEntitySourceKeys.Contains(key)) expiredEntitySourceKeys.Add(key);
+
+            foreach (string key in expiredEntitySourceKeys)
+            {
+                RemoveErosionBySource(key);
+                appliedEntitySourceKeys.Remove(key);
+            }
+        }
+
+        if (coveredByAny) MarkAuraExposure();
+    }
+
+    /// <summary>
+    /// 개체 발원지 하나의 침식이 정확히 <paramref name="amount"/>만큼 걸려 있게 맞춥니다.
+    /// 이미 그만큼 걸려 있으면 아무것도 하지 않습니다 — 시간이 지나도 늘지 않는 이유입니다.
+    /// </summary>
+    private void SetConditionalErosion(string sourceKey, string displayName, float amount)
+    {
+        float current = GetErosionFromSource(sourceKey);
+        if (current >= amount)
+        {
+            appliedEntitySourceKeys.Add(sourceKey);
+            return;
+        }
+
+        AddErosion(amount - current, sourceKey, displayName);
+        appliedEntitySourceKeys.Add(sourceKey);
+    }
+
+    /// <summary>특정 출처가 지금까지 기여한 침식량</summary>
+    private float GetErosionFromSource(string sourceKey)
+    {
+        foreach (var entry in erosionSources)
+            if (entry.sourceKey == sourceKey) return entry.amount;
+        return 0f;
+    }
+
+    /// <summary>
+    /// 방 침식(농도)에 비례한 누적 노출. 이쪽은 머무는 동안 계속 오릅니다.
+    /// </summary>
+    private void UpdateAmbientErosion(float elapsed)
+    {
+        Vector2Int cell = new Vector2Int(
+            Mathf.FloorToInt(transform.position.x),
+            Mathf.FloorToInt(transform.position.y));
+
+        float ambient = TerrainErosionManager.instance != null
+            ? TerrainErosionManager.instance.GetRoomErosionAt(cell)
+            : 0f;
+
+        if (ambient <= 0f) return;
+
+        float ignore = employee.Equipment != null ? employee.Equipment.GetTotalErosionIgnore() : 0f;
+        float perSecond = ambient * recoveryConfig.exposurePerErosionPoint - ignore;
+        if (perSecond <= 0f) return;
+
+        MarkAuraExposure();
+        AddErosion(perSecond * elapsed, ErosionSource.NATURAL, "환경 침식");
     }
 
     #endregion
@@ -459,7 +573,6 @@ public class EmployeeErosionController : MonoBehaviour
     {
         data.erosionLevel = statsController != null ? statsController.ErosionLevel : 0f;
         data.timeSinceLastAuraExposure = timeSinceLastAuraExposure;
-        data.naturalErosionWatermark = naturalErosionWatermark;
 
         data.erosionSources = new List<ErosionSourceEntry>();
         foreach (var s in erosionSources)
@@ -478,7 +591,6 @@ public class EmployeeErosionController : MonoBehaviour
     public void RestoreFromSaveData(EmployeeSaveData data)
     {
         timeSinceLastAuraExposure = data.timeSinceLastAuraExposure;
-        naturalErosionWatermark   = data.naturalErosionWatermark;
 
         if (statsController != null)
             statsController.SetErosion(data.erosionLevel);

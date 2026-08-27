@@ -37,7 +37,7 @@ MonoBehaviour:
     attackDamage: 4
     attackRange: 6
     size: 1
-    aoeErosionPerSecond: 2
+    aoeErosionPerSecond: 15
     aoeErosionRange: 3
     subdueDropItemId: 0
     subdueDropAmount: 1

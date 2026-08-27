@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 
@@ -157,6 +157,7 @@ public class WorkOrder
             case WorkType.Gardening:
             case WorkType.Hauling:
             case WorkType.Demolish:
+            case WorkType.Cleaning:
                 return true;
 
             case WorkType.Crafting:

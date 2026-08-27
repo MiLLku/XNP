@@ -1,4 +1,4 @@
-/// <summary>
+﻿/// <summary>
 /// 작업 타입 카테고리 헬퍼.
 /// 작업 할당 방식을 결정합니다.
 ///
@@ -22,6 +22,7 @@ public static class WorkTypeCategory
             case WorkType.Chopping:
             case WorkType.Building:
             case WorkType.Demolish:
+            case WorkType.Cleaning:
             case WorkType.Hauling:
             case WorkType.Gardening:
                 return true;
@@ -69,6 +70,7 @@ public static class WorkTypeCategory
             case WorkType.Hauling:   return "운반";
             case WorkType.Building:  return "건설";
             case WorkType.Demolish:  return "철거";
+            case WorkType.Cleaning:  return "세척";
             case WorkType.Resting:   return "휴식";
             case WorkType.Eating:    return "식사";
             default:                 return type.ToString();

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -14,8 +14,35 @@ using UnityEngine;
 /// 범위 판정 기준: |target.x - xenops.x| <= HORIZONTAL_RANGE
 /// </summary>
 [RequireComponent(typeof(Collider2D))]
-public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarvestable
+public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarvestable, IEntityErosionSource
 {
+    #region IEntityErosionSource
+
+    /// <summary>
+    /// 오염 구체는 <b>개체 발원지</b>입니다 — 좌우 범위에 들어오면 고정량이 붙고 벗어나면 돌아갑니다.
+    /// 이 규칙은 제놉스 오라·침식 폭주와 동일하며, 판정은 EntityErosionField에 등록된 뒤
+    /// 직원 쪽에서 일괄 처리됩니다(개체마다 직원을 훑던 코드는 제거되었습니다).
+    /// </summary>
+    public Vector2 EmitPosition => transform.position;
+
+    public float EmitRadius => HORIZONTAL_RANGE;
+
+    public float FixedErosionAmount => EROSION_AMOUNT;
+
+    /// <summary>좌우 거리만 본다 — 세로로는 제한이 없다.</summary>
+    public bool HorizontalOnly => true;
+
+    public bool Covers(Vector2 worldPosition)
+        => Mathf.Abs(worldPosition.x - transform.position.x) <= HORIZONTAL_RANGE;
+
+    public bool IsEmitting => isActive && isActiveAndEnabled;
+
+    public string ErosionSourceKey => ErosionSource.CONTAMINATION;
+
+    public string ErosionSourceName => "오염 구체";
+
+    #endregion
+
     #region 상수
 
     /// <summary>좌우 영향 범위 (타일 수)</summary>
@@ -26,9 +53,6 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
 
     /// <summary>작업 속도 보너스 (1.0 = +100%, 0.05 = +5%)</summary>
     public const float WORK_SPEED_BONUS = 0.05f;
-
-    /// <summary>범위 체크 간격 (초)</summary>
-    private const float CHECK_INTERVAL = 0.5f;
 
     #endregion
 
@@ -102,10 +126,6 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
     private bool isActive = false;
 
     /// <summary>현재 이 오염 구체가 침식을 부여 중인 직원 목록</summary>
-    private readonly HashSet<Employee> _affectedEmployees = new HashSet<Employee>();
-
-    private float _checkTimer = 0f;
-
     // 채광 상태
     private bool _isMined = false;
     private bool _hasMiningOrder = false;
@@ -121,7 +141,7 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
     {
         isActive = true;
         _activeInstances.Add(this);
-        _checkTimer = 0f;
+        EntityErosionField.instance?.RegisterSource(this);
         Debug.Log($"[오염 구체] {xenops?.DisplayName} 활성화 — 침식 범위 ON");
     }
 
@@ -129,7 +149,7 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
     {
         isActive = false;
         _activeInstances.Remove(this);
-        RemoveAllErosion();
+        EntityErosionField.instance?.UnregisterSource(this);
         Debug.Log($"[오염 구체] {xenops?.DisplayName} 비활성화 — 침식 제거");
     }
 
@@ -137,12 +157,8 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
     {
         if (!isActive) return;
 
-        _checkTimer -= Time.deltaTime;
-        if (_checkTimer <= 0f)
-        {
-            _checkTimer = CHECK_INTERVAL;
-            UpdateErosionEffects();
-        }
+        // 침식 부여·회수는 EntityErosionField에 등록된 개체 발원지로서 직원 쪽에서 처리된다.
+        // 여기서 직접 직원을 훑지 않는다.
     }
 
     #endregion
@@ -186,7 +202,7 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
     void OnDestroy()
     {
         _activeInstances.Remove(this);
-        RemoveAllErosion();
+        EntityErosionField.instance?.UnregisterSource(this);
     }
 
     void Update()
@@ -230,67 +246,6 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
     #endregion
 
     #region 침식 효과 관리
-
-    /// <summary>
-    /// 매 CHECK_INTERVAL마다 범위 내 직원을 갱신하여 침식 부여/회복을 처리합니다.
-    /// </summary>
-    private void UpdateErosionEffects()
-    {
-        if (EmployeeManager.instance == null) return;
-
-        float myX = transform.position.x;
-        var currentInRange = new HashSet<Employee>();
-
-        // 범위 내 직원 수집
-        foreach (var emp in EmployeeManager.instance.AllEmployees)
-        {
-            if (emp == null || emp.State == EmployeeState.Dead) continue;
-            if (Mathf.Abs(emp.transform.position.x - myX) <= HORIZONTAL_RANGE)
-            {
-                currentInRange.Add(emp);
-            }
-        }
-
-        // 새로 범위에 들어온 직원 → 침식 부여
-        foreach (var emp in currentInRange)
-        {
-            if (!_affectedEmployees.Contains(emp))
-            {
-                emp.ErosionController?.AddErosion(
-                    EROSION_AMOUNT, ErosionSource.CONTAMINATION, "오염 구체");
-                Debug.Log($"[오염 구체] {emp.DisplayName} 침식 부여: {EROSION_AMOUNT}");
-            }
-        }
-
-        // 범위를 벗어난 직원 → 이 구체가 준 침식만 거둬간다 (다른 출처의 침식은 유지)
-        foreach (var emp in _affectedEmployees)
-        {
-            if (emp == null) continue;
-            if (!currentInRange.Contains(emp))
-            {
-                emp.ErosionController?.RemoveErosionBySource(ErosionSource.CONTAMINATION);
-                Debug.Log($"[오염 구체] {emp.DisplayName} 침식 회복");
-            }
-        }
-
-        // 목록 갱신
-        _affectedEmployees.Clear();
-        foreach (var emp in currentInRange)
-            _affectedEmployees.Add(emp);
-    }
-
-    /// <summary>비활성화/파괴 시 모든 영향받은 직원의 침식 수치를 제거합니다.</summary>
-    private void RemoveAllErosion()
-    {
-        foreach (var emp in _affectedEmployees)
-        {
-            if (emp != null)
-            {
-                emp.ErosionController?.RemoveErosionBySource(ErosionSource.CONTAMINATION);
-            }
-        }
-        _affectedEmployees.Clear();
-    }
 
     #endregion
 

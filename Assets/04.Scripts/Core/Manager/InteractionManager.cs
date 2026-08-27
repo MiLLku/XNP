@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using UnityEngine.EventSystems;
@@ -23,7 +23,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         Mine,
         Harvest,
         Build,
-        Demolish
+        Demolish,
+        Clean
     }
 
     [Header("필수 연결 (씬)")]
@@ -157,6 +158,9 @@ public class InteractionManager : DestroySingleton<InteractionManager>
                 break;
             case InteractMode.Demolish:
                 HandleDemolishMode();
+                break;
+            case InteractMode.Clean:
+                HandleCleanMode();
                 break;
         }
         
@@ -875,6 +879,49 @@ public class InteractionManager : DestroySingleton<InteractionManager>
 
     #region 철거 모드
     
+    /// <summary>
+    /// 세척 모드 — 칸을 클릭하면 <b>그 칸이 속한 방</b>에 세척 작업을 겁니다.
+    ///
+    /// 범위를 끄는 대신 클릭 하나로 방 전체를 지정합니다. 침식은 방 단위 값이라
+    /// 어느 칸을 찍든 결과가 같기 때문입니다. 실외는 침식이 고이지 않으므로 거부합니다.
+    /// </summary>
+    private void HandleCleanMode()
+    {
+        if (Input.GetMouseButtonDown(1)) { SetMode(InteractMode.Normal); return; }
+        if (!Input.GetMouseButtonDown(0)) return;
+        if (IsPointerOverInteractiveUI()) return;
+
+        Vector3 world = _cameraController.GetMouseWorldPosition();
+        Vector2Int cell = new Vector2Int(Mathf.FloorToInt(world.x), Mathf.FloorToInt(world.y));
+
+        Room room = RoomManager.instance != null ? RoomManager.instance.GetRoom(cell) : null;
+        if (room == null)
+        {
+            Debug.Log("[Interaction] 세척: 밀폐된 공간이 아닙니다 (실외에는 침식이 고이지 않습니다).");
+            return;
+        }
+
+        if (room.Erosion <= 0f)
+        {
+            Debug.Log($"[Interaction] 세척: 방#{room.Id}은 이미 깨끗합니다.");
+            return;
+        }
+
+        if (_workSystemManager == null) return;
+
+        WorkOrder workOrder = _workSystemManager.CreateWorkOrder(
+            $"세척: 방#{room.Id}", WorkType.Cleaning, 1, 5);
+
+        workOrder.AddTarget(new CleanOrder
+        {
+            targetCell = cell,
+            position = new Vector3(cell.x + 0.5f, cell.y, 0f),
+            priority = 5
+        });
+
+        Debug.Log($"[Interaction] 세척 작업 생성: 방#{room.Id} (침식 {room.Erosion:F1})");
+    }
+
     private void HandleDemolishMode()
     {
         if (Input.GetMouseButtonDown(0))

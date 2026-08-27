@@ -15,9 +15,12 @@ MonoBehaviour:
   employeeID: 1
   employeeName: "\uB514\uBC84\uAE45\uC6A9 \uB9CC\uB2A5\uC9C1\uC6D0"
   portrait: {fileID: 0}
+  isUnique: 1
   maxHealth: 100
   maxMental: 100
-  attackPower: 10
+  baseMental: 50
+  initialMeleeLevel: 1
+  initialRangedLevel: 1
   abilities:
     canMine: 1
     canChop: 1
@@ -27,6 +30,8 @@ MonoBehaviour:
     canBuild: 1
     canHaul: 1
     canDemolish: 1
+    canClean: 1
+    baseCarryCapacity: 5
     miningSpeed: 1
     choppingSpeed: 1
     researchSpeed: 1
@@ -35,6 +40,11 @@ MonoBehaviour:
     buildingSpeed: 1
     haulingSpeed: 1
     demolishSpeed: 1
+    cleaningSpeed: 1
   traits: []
+  appearance:
+    hairSprite: {fileID: 0}
+    hairColor: {r: 0, g: 0, b: 0, a: 1}
+  initialDisqualifications: 
   hungerDecayRate: 1
   fatigueIncreaseRate: 0.5

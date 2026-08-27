@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -732,13 +732,8 @@ public class EmployeeMovement : MonoBehaviour
             _hasSightCenter  = true;
         }
 
-        // 자연 침식 영향력 적용 (워터마크 방식)
-        if (NaturalErosionManager.instance != null && erosionController != null)
-        {
-            float influence = NaturalErosionManager.instance.GetInfluenceAt(targetTile);
-            if (influence > 0f)
-                erosionController.ApplyNaturalErosion(influence);
-        }
+        // 환경 침식은 더 이상 타일 진입 시점에 적용하지 않습니다.
+        // EmployeeErosionController가 머무는 동안 주기적으로 '방 침식 + 발밑 타일 침식'을 읽어 적용합니다.
 
         if (showDebugLogs)
         {

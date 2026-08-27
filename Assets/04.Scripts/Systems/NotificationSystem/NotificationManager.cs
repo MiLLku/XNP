@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -23,6 +23,7 @@ public class NotificationManager : DestroySingleton<NotificationManager>
 
     [Tooltip("세척 시설 부재 경고 — 침식을 완전히 제거할 수단이 없음을 알린다")]
     [SerializeField] private WashStationAlertConfig washStationConfig = new WashStationAlertConfig();
+    [SerializeField] private RoomErosionAlertConfig roomErosionConfig = new RoomErosionAlertConfig();
 
     [Header("레터")]
     [Tooltip("메시지 로그에 유지할 최대 레터 수(초과 시 가장 오래된 일반 레터부터 제거).")]
@@ -87,6 +88,7 @@ public class NotificationManager : DestroySingleton<NotificationManager>
         if (foodConfig != null)     _evaluators.Add(new FoodShortageAlertEvaluator(foodConfig));
         if (funAlertConfig != null) _evaluators.Add(new FunAlertEvaluator(funAlertConfig));
         if (washStationConfig != null) _evaluators.Add(new WashStationAlertEvaluator(washStationConfig));
+        if (roomErosionConfig != null) _evaluators.Add(new RoomErosionAlertEvaluator(roomErosionConfig));
     }
 
     private void RefreshAlerts()

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// 침식 회복 파라미터 ScriptableObject.
@@ -35,6 +35,17 @@ public class ErosionRecoveryConfig : ScriptableObject
     #endregion
 
     #region 아이템 즉시 회복
+
+    [Header("실외 기본 침식")]
+    [Tooltip("바깥 세상의 기본 침식 수치. 평상시에는 고정이며 이벤트로만 바뀝니다. 밀폐된 방은 여기서 출발하고, 그 뒤로는 실외와 완전히 분리됩니다(전도 없음).")]
+    [Min(0f)] public float outdoorErosionBase = 10f;
+
+    [Header("환경 노출 (방 침식 + 타일 침식)")]
+    [Tooltip("유효 침식 1당 초당 받는 침식량. 예: 0.01이면 침식 50인 방에서 초당 0.5씩 오릅니다.")]
+    [Min(0f)] public float exposurePerErosionPoint = 0.01f;
+
+    [Tooltip("환경 노출 판정 주기(초). 짧을수록 즉각적이지만 총량은 같습니다.")]
+    [Min(0.1f)] public float exposureCheckInterval = 1f;
 
     [Header("아이템 즉시 회복")]
     [Tooltip("정화 약품 사용 시 즉시 회복되는 침식 수치 (아이템 미구현 — 향후 소모품 경로용)")]

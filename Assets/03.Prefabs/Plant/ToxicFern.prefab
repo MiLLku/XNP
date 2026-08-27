@@ -36,7 +36,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &6002096206607052238
 SpriteRenderer:
-  serializedVersion: 2
+  serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -93,6 +93,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
   m_SpriteSortPoint: 0
+  m_BlendShapeWeights: []
 --- !u!114 &6887130839339785892
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -105,9 +106,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 254f1ff96ba78f7418148f5a6cf4050c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NaturalErosionEmitter
-  maxIntensity: 15
-  decayPerTile: 0.75
-  ignoresBarriers: 0
+  erosionPerSecond: 0.25
+  saturationLevel: 35
+  displayName: "\uB3C5\uC131 \uACE0\uC0AC\uB9AC"
 --- !u!114 &4489974331146864778
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -121,3 +122,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ErosionPlantEntity
   entityId: 20
+  removalTime: 8
+  workerErosionCost: 12
+  displayName: "\uCE68\uC2DD \uBC1C\uC6D0\uC9C0"

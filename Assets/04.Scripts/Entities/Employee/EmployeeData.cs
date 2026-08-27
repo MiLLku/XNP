@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
@@ -113,6 +113,7 @@ public class WorkAbilities
     public bool canBuild = false;
     public bool canHaul = false;
     public bool canDemolish = false;
+    public bool canClean = false;
 
     #endregion
 
@@ -144,6 +145,7 @@ public class WorkAbilities
     public float haulingSpeed = 1f;
     [Range(0.5f, 2f)]
     public float demolishSpeed = 1f;
+    public float cleaningSpeed = 1f;
 
     #endregion
 
@@ -166,6 +168,7 @@ public class WorkAbilities
             case WorkType.Building: return canBuild;
             case WorkType.Hauling: return canHaul;
             case WorkType.Demolish: return canDemolish;
+            case WorkType.Cleaning: return canClean;
             case WorkType.Resting: return true;
             case WorkType.Eating: return true;
             default: return false;
@@ -190,6 +193,7 @@ public class WorkAbilities
             case WorkType.Building: return canBuild ? buildingSpeed : 0f;
             case WorkType.Hauling: return canHaul ? haulingSpeed : 0f;
             case WorkType.Demolish: return canDemolish ? demolishSpeed : 0f;
+            case WorkType.Cleaning: return canClean ? cleaningSpeed : 0f;
             case WorkType.Resting: return 1f;
             case WorkType.Eating: return 1f;
             default: return 0f;

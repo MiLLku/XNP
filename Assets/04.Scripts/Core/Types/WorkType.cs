@@ -1,4 +1,4 @@
-/// <summary>
+﻿/// <summary>
 /// 작업 종류 열거형.
 /// 직원의 작업 할당, 우선순위 설정, 작업 능력 판단에 사용됩니다.
 /// </summary>
@@ -22,6 +22,8 @@ public enum WorkType
     Building,
     /// <summary>철거</summary>
     Demolish,
+    /// <summary>세척 (방에 고인 침식 제거)</summary>
+    Cleaning,
     /// <summary>휴식</summary>
     Resting,
     /// <summary>식사</summary>
@@ -48,6 +50,7 @@ public static class WorkTypeDefaults
         WorkType.Crafting,
         WorkType.Research,
         WorkType.Gardening,
+        WorkType.Cleaning,
         WorkType.Hauling,
         WorkType.Building,
         WorkType.Demolish,

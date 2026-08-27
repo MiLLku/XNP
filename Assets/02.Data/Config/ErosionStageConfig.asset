@@ -17,9 +17,6 @@ MonoBehaviour:
     minErosionLevel: 0
     workSpeedModifier: 1
     moveSpeedModifier: 1
-    behaviorCheckInterval: 0
-    behaviorChance: 0
-    availableBehaviors: 
     hasErosionAura: 0
     auraErosionPerSecond: 0
     auraRange: 0
@@ -27,9 +24,6 @@ MonoBehaviour:
     minErosionLevel: 50
     workSpeedModifier: 0.9
     moveSpeedModifier: 0.95
-    behaviorCheckInterval: 0
-    behaviorChance: 0
-    availableBehaviors: 
     hasErosionAura: 0
     auraErosionPerSecond: 0
     auraRange: 0
@@ -37,9 +31,6 @@ MonoBehaviour:
     minErosionLevel: 100
     workSpeedModifier: 0.75
     moveSpeedModifier: 0.85
-    behaviorCheckInterval: 10
-    behaviorChance: 0.15
-    availableBehaviors: 0100000002000000
     hasErosionAura: 0
     auraErosionPerSecond: 0
     auraRange: 0
@@ -47,19 +38,13 @@ MonoBehaviour:
     minErosionLevel: 150
     workSpeedModifier: 0.5
     moveSpeedModifier: 0.7
-    behaviorCheckInterval: 6
-    behaviorChance: 0.35
-    availableBehaviors: 0100000002000000
     hasErosionAura: 1
-    auraErosionPerSecond: 2
+    auraErosionPerSecond: 15
     auraRange: 3
   - stage: 4
     minErosionLevel: 200
     workSpeedModifier: 0.3
     moveSpeedModifier: 0.5
-    behaviorCheckInterval: 0
-    behaviorChance: 0
-    availableBehaviors: 
     hasErosionAura: 0
     auraErosionPerSecond: 0
     auraRange: 0

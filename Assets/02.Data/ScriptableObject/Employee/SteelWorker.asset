@@ -18,7 +18,9 @@ MonoBehaviour:
   isUnique: 1
   maxHealth: 100
   maxMental: 100
-  attackPower: 10
+  baseMental: 50
+  initialMeleeLevel: 1
+  initialRangedLevel: 1
   abilities:
     canMine: 1
     canChop: 0
@@ -28,6 +30,8 @@ MonoBehaviour:
     canBuild: 1
     canHaul: 1
     canDemolish: 1
+    canClean: 1
+    baseCarryCapacity: 5
     miningSpeed: 1.2
     choppingSpeed: 0.5
     researchSpeed: 0.5
@@ -36,6 +40,11 @@ MonoBehaviour:
     buildingSpeed: 1.8
     haulingSpeed: 1.2
     demolishSpeed: 1.5
+    cleaningSpeed: 1
   traits: []
+  appearance:
+    hairSprite: {fileID: 0}
+    hairColor: {r: 0, g: 0, b: 0, a: 1}
+  initialDisqualifications: 
   hungerDecayRate: 1.2
   fatigueIncreaseRate: 0.6
