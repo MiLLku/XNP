@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2122bc14ba93d04f8b640712db0f102, type: 3}
+  m_Name: ColdSnap
+  m_EditorClassIdentifier: Assembly-CSharp::EventData
+  eventId: 5101
+  title: "\uD55C\uD30C"
+  description: "\uBC14\uAE65 \uAE30\uC628\uC774 \uAE09\uACA9\uD788 \uB5A8\uC5B4\uC84C\uC2B5\uB2C8\uB2E4.
+    \uC2E4\uB0B4\uB294 \uBCBD\uC744 \uD1B5\uD574 \uC11C\uC11C\uD788 \uC2DD\uC5B4\uAC11\uB2C8\uB2E4
+    \u2014 \uB09C\uBC29\uACFC \uBC29\uD55C \uC7A5\uBE44\uB97C \uC810\uAC80\uD558\uC138\uC694."
+  icon: {fileID: 0}
+  category: 0
+  weight: 8
+  maxOccurrences: 0
+  cooldown: 2000
+  isPersistent: 1
+  minDuration: 400
+  maxDuration: 900
+  conditions: []
+  effects:
+  - type: 22
+    target: 0
+    value: -22
+    targetId: 5101
+    description: "\uD55C\uD30C"
+  persistentEffects: []
+  endEffects:
+  - type: 22
+    target: 0
+    value: 0
+    targetId: 5101
+    description: "\uD55C\uD30C \uC885\uB8CC"
+  choices: []

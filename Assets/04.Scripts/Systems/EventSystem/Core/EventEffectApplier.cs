@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -140,11 +140,84 @@ public static class EventEffectApplier
                 ErosionManager.instance?.ReduceRecoveryFloor(effect.value);
                 break;
 
+            // ===== 환경 =====
+            case EffectType.ModifyOutdoorTemperature:
+                ApplyOutdoorTemperature(effect);
+                break;
+
+            case EffectType.ModifyOutdoorErosion:
+                ApplyOutdoorErosion(effect);
+                break;
+
             default:
                 Debug.LogWarning($"[EventEffectApplier] 알 수 없는 효과 타입: {effect.type}");
                 break;
         }
     }
+
+    #region 환경 (실외 온도·침식)
+
+    /// <summary>
+    /// 실외 온도를 바꿉니다. 한파는 음수, 폭염은 양수.
+    ///
+    /// <b>targetId가 모디파이어 슬롯</b>입니다 — 같은 targetId로 다시 걸면 덮어쓰고,
+    /// <b>value를 0으로 주면 해제</b>됩니다. 지속형 이벤트는 endEffects에 value 0짜리를 넣어 되돌리세요.
+    ///
+    /// 실외만 바뀌고 실내는 벽을 통해 서서히 끌려갑니다 — 잘 막고 난방한 방일수록 덜 흔들립니다.
+    /// </summary>
+    private static void ApplyOutdoorTemperature(EventEffect effect)
+    {
+        var manager = TemperatureManager.instance;
+        if (manager == null)
+        {
+            Debug.LogWarning("[EventEffectApplier] TemperatureManager가 없습니다.");
+            return;
+        }
+
+        string key = $"event_temp_{effect.targetId}";
+
+        if (Mathf.Approximately(effect.value, 0f))
+        {
+            manager.RemoveOutdoorModifier(key);
+            return;
+        }
+
+        string label = string.IsNullOrEmpty(effect.description)
+            ? (effect.value < 0f ? "한파" : "폭염")
+            : effect.description;
+
+        manager.SetOutdoorModifier(key, label, effect.value);
+    }
+
+    /// <summary>
+    /// 실외 기본 침식을 바꿉니다. 규칙은 온도와 같습니다(targetId = 슬롯, value 0 = 해제).
+    /// 밀폐된 방은 영향받지 않습니다 — 침식에는 전도가 없습니다.
+    /// </summary>
+    private static void ApplyOutdoorErosion(EventEffect effect)
+    {
+        var manager = TerrainErosionManager.instance;
+        if (manager == null)
+        {
+            Debug.LogWarning("[EventEffectApplier] TerrainErosionManager가 없습니다.");
+            return;
+        }
+
+        string key = $"event_erosion_{effect.targetId}";
+
+        if (Mathf.Approximately(effect.value, 0f))
+        {
+            manager.RemoveOutdoorErosionModifier(key);
+            return;
+        }
+
+        string label = string.IsNullOrEmpty(effect.description)
+            ? (effect.value < 0f ? "정화" : "오염 확산")
+            : effect.description;
+
+        manager.SetOutdoorErosionModifier(key, label, effect.value);
+    }
+
+    #endregion
 
     #region 직원 스탯 수정
 

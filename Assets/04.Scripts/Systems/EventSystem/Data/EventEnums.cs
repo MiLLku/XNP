@@ -1,4 +1,4 @@
-/// <summary>
+﻿/// <summary>
 /// 이벤트 카테고리 열거형.
 /// </summary>
 public enum EventCategory
@@ -175,7 +175,21 @@ public enum EffectType
 
     // 적 스폰
     /// <summary>안개 속 랜덤 위치에 제노프스 등장 (targetId = XenopsData ID)</summary>
-    SpawnXenopsInFog
+    SpawnXenopsInFog,
+
+    // 환경 (온도·침식)
+    /// <summary>
+    /// 실외 온도를 바꾼다 (value = 변화량℃, 음수 = 한파).
+    /// <b>실외만</b> 바뀌고 실내는 벽을 통해 서서히 끌려간다 — 잘 막고 난방한 방일수록 덜 흔들린다.
+    /// 지속형 이벤트에 붙이면 그 기간 동안 유지되고 끝나면 원래대로 돌아온다.
+    /// </summary>
+    ModifyOutdoorTemperature,
+
+    /// <summary>
+    /// 실외 기본 침식을 바꾼다 (value = 변화량, 음수 = 정화).
+    /// 밀폐된 방은 영향을 받지 않는다 — 침식에는 전도가 없어 벽으로 완전히 차단된다.
+    /// </summary>
+    ModifyOutdoorErosion
 }
 
 /// <summary>

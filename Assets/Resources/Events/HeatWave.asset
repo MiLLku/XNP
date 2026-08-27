@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2122bc14ba93d04f8b640712db0f102, type: 3}
+  m_Name: HeatWave
+  m_EditorClassIdentifier: Assembly-CSharp::EventData
+  eventId: 5102
+  title: "\uD3ED\uC5FC"
+  description: "\uC228 \uB9C9\uD788\uB294 \uC5F4\uAE30\uAC00 \uBC00\uB824\uC635\uB2C8\uB2E4.
+    \uB0C9\uBC29\uC774 \uC5C6\uB294 \uACF5\uAC04\uC740 \uACE7 \uC0AC\uB78C\uC774
+    \uBC84\uD2F8 \uC218 \uC5C6\uAC8C \uB429\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  category: 0
+  weight: 8
+  maxOccurrences: 0
+  cooldown: 2000
+  isPersistent: 1
+  minDuration: 400
+  maxDuration: 900
+  conditions: []
+  effects:
+  - type: 22
+    target: 0
+    value: 20
+    targetId: 5102
+    description: "\uD3ED\uC5FC"
+  persistentEffects: []
+  endEffects:
+  - type: 22
+    target: 0
+    value: 0
+    targetId: 5102
+    description: "\uD3ED\uC5FC \uC885\uB8CC"
+  choices: []
