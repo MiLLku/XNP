@@ -1,3 +1,4 @@
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -72,6 +73,68 @@ public class GameMap
 
     #endregion
 
+    #region 변경 통지
+
+    /// <summary>
+    /// 타일 한 칸의 상태가 실제로 바뀌었을 때 발행됩니다. (지형·배경벽·건물 점유·발판)
+    ///
+    /// 맵을 바꾸는 진입점이 이 클래스에 모여 있으므로, 이 이벤트 하나로
+    /// 채광·건설·철거·이벤트 효과·제놉스 투사체까지 전부 통지됩니다.
+    /// 구독자는 <b>같은 칸이 연달아 통지될 수 있다</b>고 가정하고 중복을 제거하세요.
+    ///
+    /// 대량 변경(맵 생성·세이브 복원) 중에는 발행되지 않고,
+    /// 끝날 때 <see cref="OnBulkChanged"/>가 한 번만 발행됩니다.
+    /// </summary>
+    public event Action<int, int> OnCellChanged;
+
+    /// <summary>
+    /// 대량 변경이 끝났을 때 한 번 발행됩니다. (맵 생성 완료·세이브 복원 완료)
+    /// 구독자는 파생 데이터를 전체 재계산해야 합니다.
+    /// </summary>
+    public event Action OnBulkChanged;
+
+    /// <summary>대량 변경 중첩 깊이. 0보다 크면 칸 단위 통지를 멈춥니다.</summary>
+    private int bulkDepth = 0;
+
+    /// <summary>대량 변경이 진행 중인지 여부</summary>
+    public bool IsBulkChanging => bulkDepth > 0;
+
+    /// <summary>
+    /// 대량 변경 구간을 시작합니다. 칸 단위 통지가 멈춥니다.
+    /// 맵 생성이나 세이브 복원처럼 수만 칸을 한 번에 쓰는 경우에만 사용하세요.
+    /// </summary>
+    public void BeginBulkChange()
+    {
+        bulkDepth++;
+    }
+
+    /// <summary>
+    /// 대량 변경 구간을 끝냅니다. 중첩이 모두 풀리면 <see cref="OnBulkChanged"/>를 발행합니다.
+    /// </summary>
+    public void EndBulkChange()
+    {
+        if (bulkDepth == 0)
+        {
+            Debug.LogWarning("[GameMap] EndBulkChange가 BeginBulkChange 없이 호출되었습니다.");
+            return;
+        }
+
+        bulkDepth--;
+        if (bulkDepth > 0) return;
+
+        NavVersion++;
+        OnBulkChanged?.Invoke();
+    }
+
+    /// <summary>칸 변경을 구독자에게 알립니다. 대량 변경 중에는 무시됩니다.</summary>
+    private void NotifyCellChanged(int x, int y)
+    {
+        if (bulkDepth > 0) return;
+        OnCellChanged?.Invoke(x, y);
+    }
+
+    #endregion
+
     #region 초기화
 
     public GameMap()
@@ -102,11 +165,12 @@ public class GameMap
     /// </summary>
     public void SetTile(int x, int y, int tileId)
     {
-        if (IsInBounds(x, y))
-        {
-            TileGrid[x, y] = tileId;
-            NavVersion++;
-        }
+        if (!IsInBounds(x, y)) return;
+
+        bool changed = TileGrid[x, y] != tileId;
+        TileGrid[x, y] = tileId;
+        NavVersion++;
+        if (changed) NotifyCellChanged(x, y);
     }
 
     /// <summary>
@@ -114,7 +178,11 @@ public class GameMap
     /// </summary>
     public void SetWall(int x, int y, int wallId)
     {
-        if (IsInBounds(x, y)) WallGrid[x, y] = wallId;
+        if (!IsInBounds(x, y)) return;
+
+        bool changed = WallGrid[x, y] != wallId;
+        WallGrid[x, y] = wallId;
+        if (changed) NotifyCellChanged(x, y);
     }
 
     /// <summary>
@@ -204,12 +272,13 @@ public class GameMap
     /// <param name="blocksMovement">이동을 차단하는지 여부</param>
     public void MarkTileOccupied(int x, int y, bool blocksMovement = true)
     {
-        if (IsInBounds(x, y))
-        {
-            OccupiedGrid[x, y] = true;
-            BlocksMovementGrid[x, y] = blocksMovement;
-            NavVersion++;
-        }
+        if (!IsInBounds(x, y)) return;
+
+        bool changed = !OccupiedGrid[x, y] || BlocksMovementGrid[x, y] != blocksMovement;
+        OccupiedGrid[x, y] = true;
+        BlocksMovementGrid[x, y] = blocksMovement;
+        NavVersion++;
+        if (changed) NotifyCellChanged(x, y);
     }
 
     /// <summary>
@@ -218,13 +287,14 @@ public class GameMap
     /// </summary>
     public void UnmarkTileOccupied(int x, int y)
     {
-        if (IsInBounds(x, y))
-        {
-            OccupiedGrid[x, y] = false;
-            BlocksMovementGrid[x, y] = false;
-            FloorSupportGrid[x, y] = false;
-            NavVersion++;
-        }
+        if (!IsInBounds(x, y)) return;
+
+        bool changed = OccupiedGrid[x, y] || BlocksMovementGrid[x, y] || FloorSupportGrid[x, y];
+        OccupiedGrid[x, y] = false;
+        BlocksMovementGrid[x, y] = false;
+        FloorSupportGrid[x, y] = false;
+        NavVersion++;
+        if (changed) NotifyCellChanged(x, y);
     }
 
     /// <summary>
@@ -233,8 +303,11 @@ public class GameMap
     /// </summary>
     public void MarkFloorSupport(int x, int y, bool isSupport)
     {
-        if (IsInBounds(x, y))
-            FloorSupportGrid[x, y] = isSupport;
+        if (!IsInBounds(x, y)) return;
+
+        bool changed = FloorSupportGrid[x, y] != isSupport;
+        FloorSupportGrid[x, y] = isSupport;
+        if (changed) NotifyCellChanged(x, y);
     }
 
     /// <summary>

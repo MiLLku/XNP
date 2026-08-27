@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -164,13 +164,23 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     private void GenerateWorld()
     {
         Debug.Log("맵 데이터 생성을 시작합니다...");
-        int[] groundHeightMap = GenerateBaseTerrainAndOres();
-        ConvertSurfaceDirtToGrass(groundHeightMap);
-        PlaceMineralClusters(groundHeightMap);          // 광물 군집화 (2~6타일)
-        PlaceStartingRoom(groundHeightMap);              // 스타팅 룸 배치
-        PlaceErosionPlants();                            // 침식 식물 배치
-        PlaceTrees(groundHeightMap);
-        PlaceBerryBushes(groundHeightMap);               // 베리 덤불(식량원) 배치
+
+        // 4만 칸을 한 번에 쓰므로 칸 단위 통지를 멈추고, 끝난 뒤 OnBulkChanged 한 번으로 알린다
+        _gameMap.BeginBulkChange();
+        try
+        {
+            int[] groundHeightMap = GenerateBaseTerrainAndOres();
+            ConvertSurfaceDirtToGrass(groundHeightMap);
+            PlaceMineralClusters(groundHeightMap);          // 광물 군집화 (2~6타일)
+            PlaceStartingRoom(groundHeightMap);              // 스타팅 룸 배치
+            PlaceErosionPlants();                            // 침식 식물 배치
+            PlaceTrees(groundHeightMap);
+            PlaceBerryBushes(groundHeightMap);               // 베리 덤불(식량원) 배치
+        }
+        finally
+        {
+            _gameMap.EndBulkChange();
+        }
     }
 
     #region 지형 및 광물 (Terrain & Ores)
@@ -701,20 +711,29 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
 
         var mapData = data.map;
 
-        for (int y = 0; y < mapData.height; y++)
+        // 복원도 대량 변경 — 끝난 뒤 OnBulkChanged로 파생 데이터를 전체 재계산시킨다
+        _gameMap.BeginBulkChange();
+        try
         {
-            for (int x = 0; x < mapData.width; x++)
+            for (int y = 0; y < mapData.height; y++)
             {
-                int index = y * mapData.width + x;
-                _gameMap.TileGrid[x, y] = mapData.tileGrid[index];
-                _gameMap.WallGrid[x, y] = mapData.wallGrid[index];
+                for (int x = 0; x < mapData.width; x++)
+                {
+                    int index = y * mapData.width + x;
+                    _gameMap.TileGrid[x, y] = mapData.tileGrid[index];
+                    _gameMap.WallGrid[x, y] = mapData.wallGrid[index];
+                }
             }
+
+            MapRendererInstance?.RefreshAllTiles();
+
+            // 자연물 복원
+            RestoreMapEntities(mapData.entities);
         }
-
-        MapRendererInstance?.RefreshAllTiles();
-
-        // 자연물 복원
-        RestoreMapEntities(mapData.entities);
+        finally
+        {
+            _gameMap.EndBulkChange();
+        }
     }
 
     public void PostRestore(SaveData data) { }
