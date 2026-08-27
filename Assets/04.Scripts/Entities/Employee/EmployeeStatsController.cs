@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -263,13 +263,19 @@ public class EmployeeStatsController : MonoBehaviour
         EmployeeData data = employee.Data;
         if (data == null) return;
 
+        // 디버그: 욕구 감소 정지 — 감소분만 막고 수면·오락 회복은 그대로 둔다
+        bool needsFrozen = DebugManager.IsBlocked(DebugFlag.NeedsDecay);
+
         // 허기 감소
-        float hungerDecay = data.hungerDecayRate * cachedHungerRateModifier;
-        currentNeeds.hunger -= hungerDecay * deltaTime;
-        currentNeeds.hunger = Mathf.Clamp(currentNeeds.hunger, 0f, 100f);
+        if (!needsFrozen)
+        {
+            float hungerDecay = data.hungerDecayRate * cachedHungerRateModifier;
+            currentNeeds.hunger -= hungerDecay * deltaTime;
+            currentNeeds.hunger = Mathf.Clamp(currentNeeds.hunger, 0f, 100f);
+        }
 
         // 피로: 작업 중 증가, 휴식 중 회복
-        if (employee.State == EmployeeState.Working)
+        if (employee.State == EmployeeState.Working && !needsFrozen)
         {
             float fatigueIncrease = data.fatigueIncreaseRate * cachedFatigueRateModifier;
             currentNeeds.fatigue -= fatigueIncrease * deltaTime;
@@ -284,7 +290,7 @@ public class EmployeeStatsController : MonoBehaviour
         // 재미: 오락으로만 차오르고, 그 외에는 항상 일정하게 감소한다.
         // (기준점 50은 수렴 지점이 아니라 정신 이상 임계점 계산의 기준일 뿐이다)
         FunConfig funCfg = EmployeeManager.instance?.FunConfig;
-        if (funCfg != null)
+        if (funCfg != null && !needsFrozen)
         {
             currentNeeds.fun -= funCfg.decayPerSecond * deltaTime;
             currentNeeds.fun = Mathf.Clamp(currentNeeds.fun, 0f, 100f);

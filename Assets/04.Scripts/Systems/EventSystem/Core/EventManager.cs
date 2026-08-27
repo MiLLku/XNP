@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -91,7 +91,12 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
     private void Update()
     {
         // 랜덤 이벤트 스케줄링
-        if (enableRandomEvents && Time.time >= _nextEventTime)
+        if (DebugManager.IsBlocked(DebugFlag.RandomEvent))
+        {
+            // 디버그 차단 중에는 타이머를 계속 뒤로 민다 (해제 직후 몰아서 터지는 것 방지)
+            _nextEventTime = Time.time + minInterval;
+        }
+        else if (enableRandomEvents && Time.time >= _nextEventTime)
         {
             TriggerRandomEvent();
             ScheduleNextEvent();

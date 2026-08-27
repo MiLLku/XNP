@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -158,6 +158,13 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     public void StartRaid(RaidData raid)
     {
         if (raid == null) return;
+
+        // 디버그: 외부 침략 차단 — StartRaid(int)/StartRandomRaid/이벤트 효과가 모두 이 지점을 거친다
+        if (DebugManager.IsBlocked(DebugFlag.Raid))
+        {
+            Debug.Log("[RaidManager] 디버그 차단으로 레이드를 시작하지 않습니다.");
+            return;
+        }
 
         if (IsRaidActive)
         {

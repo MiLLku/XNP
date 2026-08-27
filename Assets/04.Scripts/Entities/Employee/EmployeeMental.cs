@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -222,6 +222,9 @@ public class EmployeeMental : MonoBehaviour
     {
         if (statsController == null) return;
 
+        // 디버그: 정신 이상 차단
+        if (DebugManager.IsBlocked(DebugFlag.MentalBreak)) return;
+
         // 이미 정신 이상이 진행 중이면 새로 굴리지 않는다
         if (activeMentalEvents.Count > 0) return;
 
@@ -264,7 +267,9 @@ public class EmployeeMental : MonoBehaviour
     /// </summary>
     private void TriggerMentalBreak()
     {
-        bool preferErosion = Random.value < GetErosionKindChance();
+        // 디버그: 침식 계열 차단 시 계열 추첨을 건너뛰고 일반 계열만 사용한다
+        bool blockErosionKind = DebugManager.IsBlocked(DebugFlag.ErosionKind);
+        bool preferErosion = !blockErosionKind && Random.value < GetErosionKindChance();
 
         // 선택한 계열에 후보가 없으면 반대 계열로 폴백한다
         if (preferErosion)
@@ -275,7 +280,7 @@ public class EmployeeMental : MonoBehaviour
         else
         {
             if (TryApplyNormalBreak()) return;
-            TryApplyErosionBreak();
+            if (!blockErosionKind) TryApplyErosionBreak();
         }
     }
 

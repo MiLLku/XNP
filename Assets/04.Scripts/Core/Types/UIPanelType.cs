@@ -1,4 +1,4 @@
-/// <summary>
+﻿/// <summary>
 /// UI 패널 종류 열거형.
 /// UIManager에서 패널을 식별하고 토글하는 데 사용됩니다.
 /// </summary>
@@ -38,4 +38,7 @@ public enum UIPanelType
 
     /// <summary>직원 관리 패널 (상태·장비·필수 소지)</summary>
     EmployeeUI,
+
+    /// <summary>개발용 디버그 패널 (차단 스위치·즉시 실행·자원 지급)</summary>
+    DebugUI,
 }

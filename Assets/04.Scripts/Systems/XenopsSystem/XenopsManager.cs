@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -106,6 +106,9 @@ public class XenopsManager : DestroySingleton<XenopsManager>, ISaveModule
             Debug.LogError("[XenopsManager] XenopsData 또는 프리팹이 null입니다.");
             return null;
         }
+
+        // 디버그: 제놉스 등장 차단 — 이벤트·레이드·직접 스폰이 모두 이 지점을 거친다
+        if (DebugManager.IsBlocked(DebugFlag.XenopsSpawn)) return null;
 
         var go = Instantiate(xenopsData.prefab, position, Quaternion.identity);
         var xenops = go.GetComponent<Xenops>();
