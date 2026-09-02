@@ -24,7 +24,9 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         Harvest,
         Build,
         Demolish,
-        Clean
+        Clean,
+        /// <summary>구역 칠하기 — 좌드래그로 지정, 우드래그로 해제</summary>
+        Zone
     }
 
     [Header("필수 연결 (씬)")]
@@ -39,6 +41,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     [SerializeField] private Color miningSelectionColor = new Color(1, 1, 0, 0.3f);
     [SerializeField] private Color harvestSelectionColor = new Color(0, 1, 0, 0.3f);
     [SerializeField] private Color demolishSelectionColor = new Color(1, 0, 0, 0.3f);
+    [SerializeField] private Color zoneSelectionColor = new Color(0.3f, 0.8f, 1f, 0.3f);
     
     [Header("작업 설정")]
     [SerializeField] private int defaultMiningWorkers = 3;
@@ -85,6 +88,26 @@ public class InteractionManager : DestroySingleton<InteractionManager>
 
     /// <summary>직원 선택/해제 시 발생 (null = 해제)</summary>
     public event System.Action<Employee> OnEmployeeSelected;
+
+    // 구역 편집 — '어떤 구역을 지금 편집 중인가'
+    private int _editingZoneId = -1;
+
+    /// <summary>편집 대상 구역이 바뀌면 발생 (-1 = 없음)</summary>
+    public event System.Action<int> OnEditingZoneChanged;
+
+    /// <summary>구역 모드에서 지금 편집 중인 구역 ID (-1 = 없음)</summary>
+    public int EditingZoneId => _editingZoneId;
+
+    /// <summary>
+    /// 편집할 구역을 지정합니다. 이후 좌드래그는 이 구역을 확장하고, 우드래그는 축소합니다.
+    /// </summary>
+    public void SetEditingZone(int zoneId)
+    {
+        if (_editingZoneId == zoneId) return;
+        _editingZoneId = zoneId;
+        OnEditingZoneChanged?.Invoke(zoneId);
+        UpdateSelectionBoxColor();
+    }
 
     /// <summary>현재 선택된 직원 (없으면 null)</summary>
     public Employee SelectedEmployee => _selectedEmployee;
@@ -162,9 +185,13 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             case InteractMode.Clean:
                 HandleCleanMode();
                 break;
+            case InteractMode.Zone:
+                HandleZoneMode();
+                break;
         }
         
-        if (_isDragging && _selectionBox != null && _currentMode != InteractMode.Mine)
+        if (_isDragging && _selectionBox != null &&
+            _currentMode != InteractMode.Mine && _currentMode != InteractMode.Zone)
         {
             UpdateSelectionBox();
         }
@@ -230,6 +257,9 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     {
         CancelDrag();
 
+        if (_currentMode == InteractMode.Zone)
+            SetEditingZone(-1);
+
         if (_currentMode == InteractMode.Build)
         {
             // 배치 모드가 활성화되어 있으면 종료
@@ -257,6 +287,15 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             case InteractMode.Mine: sr.color = miningSelectionColor; break;
             case InteractMode.Harvest: sr.color = harvestSelectionColor; break;
             case InteractMode.Demolish: sr.color = demolishSelectionColor; break;
+            case InteractMode.Zone:
+            {
+                // 편집 중인 구역의 색을 옅게 써서 무엇을 고치는지 바로 보이게 한다
+                Zone editing = ZoneManager.instance != null
+                    ? ZoneManager.instance.GetZone(_editingZoneId) : null;
+                Color zc = editing != null ? editing.displayColor : zoneSelectionColor;
+                sr.color = new Color(zc.r, zc.g, zc.b, zoneSelectionColor.a);
+                break;
+            }
             default: sr.color = new Color(1, 1, 1, 0.3f); break;
         }
     }
@@ -885,6 +924,81 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     /// 범위를 끄는 대신 클릭 하나로 방 전체를 지정합니다. 침식은 방 단위 값이라
     /// 어느 칸을 찍든 결과가 같기 때문입니다. 실외는 침식이 고이지 않으므로 거부합니다.
     /// </summary>
+    /// <summary>
+    /// 구역 편집 모드 — SetEditingZone으로 지정한 구역 하나를 고칩니다.
+    ///   좌드래그 — 그 구역을 확장
+    ///   우드래그 — 그 구역을 축소 (다른 구역은 건드리지 않음)
+    /// 드래그 조작은 채광 모드와 동일한 패턴입니다.
+    /// </summary>
+    private void HandleZoneMode()
+    {
+        if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
+        {
+            if (IsPointerOverInteractiveUI()) return;
+            _dragStartPos = _cameraController.GetMouseWorldPosition();
+            _isDragging = true;
+        }
+
+        if (_isDragging)
+        {
+            _dragEndPos = _cameraController.GetMouseWorldPosition();
+            UpdateSelectionBox();
+        }
+
+        if ((Input.GetMouseButtonUp(0) || Input.GetMouseButtonUp(1)) && _isDragging)
+        {
+            bool isPainting = Input.GetMouseButtonUp(0);
+            ApplyZoneDragArea(isPainting);
+
+            _isDragging = false;
+            if (_selectionBox != null) _selectionBox.SetActive(false);
+        }
+    }
+
+    /// <summary>드래그 영역으로 편집 중인 구역을 확장하거나 축소합니다.</summary>
+    private void ApplyZoneDragArea(bool isPainting)
+    {
+        if (ZoneManager.instance == null)
+        {
+            Debug.LogWarning("[Interaction] ZoneManager가 씬에 없습니다.");
+            return;
+        }
+
+        if (_editingZoneId < 0 || ZoneManager.instance.GetZone(_editingZoneId) == null)
+        {
+            Debug.Log("[Interaction] 편집 중인 구역이 없습니다 — '생성' 또는 '조정'으로 대상을 먼저 고르세요.");
+            return;
+        }
+
+        Vector3Int startCell = groundTilemap.WorldToCell(_dragStartPos);
+        Vector3Int endCell   = groundTilemap.WorldToCell(_dragEndPos);
+
+        int minX = Mathf.Max(0, Mathf.Min(startCell.x, endCell.x));
+        int maxX = Mathf.Min(GameMap.MAP_WIDTH  - 1, Mathf.Max(startCell.x, endCell.x));
+        int minY = Mathf.Max(0, Mathf.Min(startCell.y, endCell.y));
+        int maxY = Mathf.Min(GameMap.MAP_HEIGHT - 1, Mathf.Max(startCell.y, endCell.y));
+
+        var tiles = new List<Vector2Int>();
+        for (int x = minX; x <= maxX; x++)
+            for (int y = minY; y <= maxY; y++)
+                tiles.Add(new Vector2Int(x, y));
+
+        if (tiles.Count == 0) return;
+
+        string zoneName = ZoneManager.instance.GetZone(_editingZoneId).zoneName;
+
+        if (isPainting)
+        {
+            ZoneManager.instance.PaintTiles(_editingZoneId, tiles);
+            Debug.Log($"[Interaction] '{zoneName}' 확장: {tiles.Count}칸");
+        }
+        else
+        {
+            int removed = ZoneManager.instance.EraseTilesFromZone(_editingZoneId, tiles);
+            Debug.Log($"[Interaction] '{zoneName}' 축소: {removed}칸");
+        }
+    }
+
     private void HandleCleanMode()
     {
         if (Input.GetMouseButtonDown(1)) { SetMode(InteractMode.Normal); return; }

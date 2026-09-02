@@ -8,6 +8,7 @@ using UnityEngine.UI;
 ///   BottomBar
 ///   └── ButtonContainer  [HorizontalLayoutGroup]
 ///       ├── WorkBtn        → WorkModeBar 토글
+///       ├── ZoneBtn        → ZoneModeBar 토글 (구역 칠하기)
 ///       ├── ResearchBtn    → ResearchTreeUI 토글
 ///       ├── SpawnEventBtn  → XenopsAppearance 이벤트 강제 발동 (디버그/테스트용)
 ///       └── RaidEventBtn   → Invasion 이벤트(침공) 강제 발동 (디버그/테스트용)
@@ -24,6 +25,9 @@ public class BottomBarUI : MonoBehaviour
     [Tooltip("직원 관리 패널(상태·장비·필수 소지) 토글 버튼")]
     [SerializeField] private Button employeeButton;
 
+    [Tooltip("구역 조작 바(취침/오락/세척/작업/저장/제한 구역 칠하기) 토글 버튼")]
+    [SerializeField] private Button zoneButton;
+
     [Header("이벤트 강제 발동 버튼 (테스트용)")]
     [Tooltip("클릭 시 XenopsAppearance 카테고리 이벤트를 조건 무시하고 즉시 발동합니다.")]
     [SerializeField] private Button spawnEventButton;
@@ -33,6 +37,7 @@ public class BottomBarUI : MonoBehaviour
 
     [Header("패널 참조")]
     [SerializeField] private WorkModeBarUI workModeBar;
+    [SerializeField] private ZoneModeBarUI zoneModeBar;
 
     private void Awake()
     {
@@ -40,6 +45,7 @@ public class BottomBarUI : MonoBehaviour
         workButton?.onClick.AddListener(OnWorkClicked);
         scheduleButton?.onClick.AddListener(OnScheduleClicked);
         employeeButton?.onClick.AddListener(OnEmployeeClicked);
+        zoneButton?.onClick.AddListener(OnZoneClicked);
         spawnEventButton?.onClick.AddListener(OnSpawnEventClicked);
         raidEventButton?.onClick.AddListener(OnRaidEventClicked);
     }
@@ -62,6 +68,12 @@ public class BottomBarUI : MonoBehaviour
     private void OnWorkClicked()
     {
         workModeBar?.Toggle();
+    }
+
+    /// <summary>구역 조작 바를 토글합니다.</summary>
+    private void OnZoneClicked()
+    {
+        zoneModeBar?.Toggle();
     }
 
     /// <summary>

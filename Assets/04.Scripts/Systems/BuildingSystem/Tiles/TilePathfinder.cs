@@ -410,6 +410,15 @@ public class TilePathfinder
 
     public bool IsValidPosition(Vector2Int pos) => CanStandAt(pos.x, pos.y);
 
+    /// <summary>
+    /// pos에서 한 걸음에 갈 수 있는 이웃 타일들 (순수 지형 기준 — 구역 정책 미적용).
+    ///
+    /// ReachabilityMap이 연결 성분을 만들 때 A*와 <b>완전히 동일한</b> 이동 규칙을 쓰도록 공개합니다.
+    /// 두 규칙이 어긋나면 실제로 갈 수 있는 곳을 도달 불가로 오판하게 되므로,
+    /// 이동 규칙을 바꿀 때는 반드시 GetNeighbors 하나만 고치세요.
+    /// </summary>
+    public List<Vector2Int> GetMovementNeighbors(Vector2Int pos) => GetNeighbors(pos);
+
     private float GetMovementCost(Vector2Int from, Vector2Int to, PathOptions options = null)
     {
         float baseCost = 1f;
@@ -430,25 +439,13 @@ public class TilePathfinder
         int heightDifference = Mathf.Abs(to.y - from.y);
         if (heightDifference > 0) baseCost += heightDifference * 1f;
 
-        if (options != null && ZoneManager.instance != null)
+        // 허용 구역 외 타일 완전 차단
+        // toZoneId == -1 (구역 미지정 = 중립 타일)은 항상 통과 허용
+        if (options != null && options.allowedZoneIds != null && ZoneManager.instance != null)
         {
-            int  toZoneId = ZoneManager.instance.GetZoneIdAt(to);
-            Zone toZone   = ZoneManager.instance.GetZone(toZoneId);
-
-            // Restricted 구역 완전 차단
-            if (options.blockRestrictedZones &&
-                toZone != null && toZone.zoneType == ZoneType.Restricted)
-            {
+            int toZoneId = ZoneManager.instance.GetZoneIdAt(to);
+            if (toZoneId >= 0 && !options.allowedZoneIds.Contains(toZoneId))
                 return float.MaxValue;
-            }
-
-            // 허용 구역 외 타일 완전 차단
-            // toZoneId == -1 (구역 미지정 = 중립 타일)은 항상 통과 허용
-            if (options.allowedZoneIds != null && toZoneId >= 0 &&
-                !options.allowedZoneIds.Contains(toZoneId))
-            {
-                return float.MaxValue;
-            }
         }
 
         return baseCost;

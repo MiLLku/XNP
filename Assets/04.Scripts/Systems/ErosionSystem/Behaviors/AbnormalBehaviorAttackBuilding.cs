@@ -146,7 +146,7 @@ public class AbnormalBehaviorAttackBuilding : AbnormalBehaviorBase
 
         state.repathTimer = REPATH_INTERVAL;
         state.approaching = true;
-        movement.MoveTo(targetPos);
+        MoveIgnoringRestrictions(movement, targetPos);
     }
 
     /// <summary>

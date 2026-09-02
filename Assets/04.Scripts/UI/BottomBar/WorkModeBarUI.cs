@@ -28,7 +28,11 @@ public class WorkModeBarUI : MonoBehaviour
         demolishButton?.onClick.AddListener(() => EnterMode(InteractionManager.InteractMode.Demolish));
         cleanButton?.onClick.AddListener(()    => EnterMode(InteractionManager.InteractMode.Clean));
         cancelButton?.onClick.AddListener(Hide);
-        gameObject.SetActive(false);
+
+        // 여기서 자신을 끄면 안 된다.
+        // 씬에 비활성으로 저장되어 있으므로 Awake는 '첫 활성화 시점'에 실행되는데,
+        // 그때 다시 꺼버리면 첫 클릭이 통째로 무시되어 두 번 눌러야 열렸다.
+        // 시작 시 닫힌 상태는 씬에 비활성으로 저장해 두는 것으로 보장한다.
     }
 
     private void OnEnable()

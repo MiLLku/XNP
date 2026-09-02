@@ -44,8 +44,9 @@ public class AbnormalBehaviorRandomMove : AbnormalBehaviorBase
             if (gameMap.DoesTileBlockMovement(rx, ry)) continue; // 건물이 막고 있으면 제외
             if (!gameMap.IsSolidGround(rx, ry - 1))   continue; // 발 아래 발판 있어야 함
 
+            // 제한구역 안도 후보로 남긴다 — 통제 불능 상태이므로 방침을 무시한다.
             Vector3 destination = new Vector3(rx + 0.5f, ry, 0f);
-            movement.MoveTo(destination);
+            MoveIgnoringRestrictions(employee, destination);
 
             Debug.Log($"[AbnormalBehavior] {employee.DisplayName}: 무작위 이동 → ({rx}, {ry})");
             return 5f;

@@ -6,8 +6,10 @@ using UnityEngine;
 /// 하나의 구역을 나타내는 데이터 클래스.
 /// 플레이어가 타일을 "칠하기" 방식으로 구역을 생성합니다.
 ///
-/// 구역은 타일 좌표 집합으로 정의되며,
-/// 직원에게 할당하여 스케줄 활동의 목적지로 사용됩니다.
+/// 구역 자체에는 용도가 없습니다 — 그냥 이름 붙은 영역입니다.
+/// 의미는 <b>직원에게 배정할 때</b> 생깁니다: 배정된 직원은 작업·취침·오락·세척을
+/// 모두 그 구역 안에서 해결합니다(구역 안에 시설이 없으면 전체 탐색으로 폴백).
+/// 여러 직원에게 같은 구역을 배정해 함께 묶을 수 있습니다.
 /// </summary>
 [System.Serializable]
 public class Zone
@@ -19,9 +21,6 @@ public class Zone
 
     /// <summary>구역 이름 (플레이어가 지정, UI 표시용)</summary>
     public string zoneName;
-
-    /// <summary>구역 용도</summary>
-    public ZoneType zoneType;
 
     /// <summary>구역 오버레이 색상 (맵에 표시)</summary>
     public Color displayColor = Color.white;

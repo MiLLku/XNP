@@ -218,18 +218,19 @@ public class EmployeeSaveData
 
     #endregion
 
-    #region 구역 할당
+    #region 구역 배정
 
-    /// <summary>수면 구역 ID (-1 = 미할당)</summary>
+    /// <summary>
+    /// 배정된 구역 ID (-1 = '일반' = 맵 전체).
+    /// v11에서 활동별 4개 필드(수면/오락/세척/작업)를 이 하나로 통합했습니다.
+    /// </summary>
+    public int assignedZoneId = -1;
+
+    // ── 구 버전 필드 (v10 이하 읽기 전용) ────────────────────────────────
+    // 마이그레이션에서만 참조합니다. 새로 쓰지 마세요.
     public int sleepZoneId = -1;
-
-    /// <summary>오락 구역 ID (-1 = 미할당)</summary>
     public int recreationZoneId = -1;
-
-    /// <summary>세척 구역 ID (-1 = 미할당)</summary>
     public int washZoneId = -1;
-
-    /// <summary>작업 구역 ID (-1 = 미할당)</summary>
     public int workZoneId = -1;
 
     #endregion
@@ -255,6 +256,7 @@ public class EmployeeSaveData
         level = 1;
         experience = 0;
         experienceToNextLevel = 100;
+        assignedZoneId = -1;
         sleepZoneId = -1;
         recreationZoneId = -1;
         washZoneId = -1;

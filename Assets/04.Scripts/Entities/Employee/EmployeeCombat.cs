@@ -445,6 +445,7 @@ public class EmployeeCombat : MonoBehaviour
     {
         if (movement == null || movingToTarget) return;
         movingToTarget = true;
+        // 소집 중 교전 이동 — 플레이어 통제하에 있으므로 배정 구역을 적용하지 않는다.
         movement.MoveTo(pos,
             onComplete: () => movingToTarget = false,
             onFailed:   () => movingToTarget = false);

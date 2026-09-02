@@ -250,15 +250,20 @@ public class MiningTaskSelector
     
     private bool IsTaskReachable(Vector2Int taskTile, WorkerContext context)
     {
-        // ReachabilityMap이 있으면 사용
-        if (reachabilityMap != null)
+        // ── 1단계: 연결 성분 선판정 (O(1)) ──────────────────────────────
+        // 성분이 다르면 경로가 존재할 수 없으므로 A* 없이 즉시 배제한다.
+        // 성분이 같다고 해서 경로가 보장되는 것은 아니므로, 통과하면 2단계로 확인한다.
+        var reachability = reachabilityMap ?? ReachabilityMap.Current;
+        if (reachability != null)
         {
-            // 작업 가능한 위치가 도달 가능한지 확인
             var workPositions = GetPotentialWorkPositions(taskTile, context);
-            return workPositions.Any(pos => reachabilityMap.IsReachable(context.footTile, pos));
+            bool anyPossible = workPositions.Any(
+                pos => reachability.IsReachable(context.footTile, pos, PathOptions.Default));
+
+            if (!anyPossible) return false;
         }
 
-        // 없으면 직접 경로 탐색
+        // ── 2단계: 실제 경로 탐색 ────────────────────────────────────────
         if (context.pathfinder == null)
             return true;
 
@@ -278,7 +283,7 @@ public class MiningTaskSelector
             if (pos == context.footTile)
                 return true;
 
-            var path = context.pathfinder.FindPath(context.footTile, pos);
+            var path = context.pathfinder.FindPath(context.footTile, pos, PathOptions.Default);
             if (path != null && path.Count > 0)
                 return true;
         }
@@ -438,7 +443,7 @@ public class MiningTaskSelector
                     break;
                 }
                 
-                var path = context.pathfinder.FindPath(context.footTile, pos);
+                var path = context.pathfinder.FindPath(context.footTile, pos, PathOptions.Default);
                 if (path != null && path.Count > 0)
                 {
                     float directDist = Vector2Int.Distance(context.footTile, pos);

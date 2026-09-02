@@ -560,14 +560,13 @@ public class Employee : MonoBehaviour
     #region 파사드 — 구역 할당 (ZoneAssignment 위임)
 
     /// <summary>특정 활동 타입에 구역 할당 (UI에서 호출)</summary>
-    public void AssignZone(ZoneType type, int zoneId) => zoneAssignment?.AssignZone(type, zoneId);
+    public void AssignZone(int zoneId) => zoneAssignment?.AssignZone(zoneId);
 
     /// <summary>특정 활동 타입의 구역 할당 해제</summary>
-    public void ClearZone(ZoneType type) => zoneAssignment?.ClearZone(type);
+    public void ClearZone() => zoneAssignment?.ClearZone();
 
     /// <summary>특정 활동 타입에 할당된 구역 ID (-1 = 미할당)</summary>
-    public int GetAssignedZoneId(ZoneType type)
-        => zoneAssignment != null ? zoneAssignment.GetAssignedZoneId(type) : -1;
+    public int AssignedZoneId => zoneAssignment != null ? zoneAssignment.AssignedZoneId : -1;
 
     /// <summary>구역 할당 컴포넌트 참조</summary>
     public EmployeeZoneAssignment ZoneAssignment => zoneAssignment;

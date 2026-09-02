@@ -7,7 +7,10 @@ using TMPro;
 /// 직원 관리 패널. 좌측 직원 목록 + 우측 상세:
 ///   - 현재 상태 (체력/침식/재미/피로)
 ///   - 장비 슬롯 (무기/방어구 — 클릭 → 보관소 보유 장비 리스트 → 클릭 장착 지시)
+///   - 구역 배정 (클릭 → 구역 리스트 → 클릭 배정. 기본값은 일반 = 맵 전체)
 ///   - 필수 소지 설정 (식량/약물 개수 — AI 선제 확보가 이 값을 따름)
+///
+/// 하단의 선택 리스트는 장비와 구역이 공용으로 씁니다 (PoolMode로 구분).
 ///
 /// 장착 지시 시 직원이 하던 일을 중단하고 장비 보관소로 이동해 교체합니다.
 /// 열기: BottomBar '직원' 버튼 → UIManager.TogglePanel(UIPanelType.EmployeeUI).
@@ -36,16 +39,23 @@ public class EmployeeManagePanel : BasePanel
     [SerializeField] private Button drugPlusButton;
     [SerializeField] private TMP_Text drugCountText;
 
-    [Header("장비 선택 리스트")]
+    [Header("구역 배정")]
+    [Tooltip("클릭 시 아래 선택 리스트에 구역 목록이 뜹니다")]
+    [SerializeField] private Button zoneButton;
+
+    [Header("선택 리스트 (장비/구역 공용)")]
     [SerializeField] private TMP_Text poolTitleText;
-    [Tooltip("장비 선택 행 템플릿 (비활성)")]
+    [Tooltip("선택 행 템플릿 (비활성)")]
     [SerializeField] private Button poolItemTemplate;
 
     private const float REFRESH_INTERVAL = 0.5f;
 
+    /// <summary>선택 리스트가 지금 무엇을 고르는 중인지</summary>
+    private enum PoolMode { None, Equipment, Zone }
+
     private Employee selected;
     private EquipmentSlot activeSlot;
-    private bool poolOpen;
+    private PoolMode poolMode = PoolMode.None;
     private float refreshTimer;
 
     private readonly List<GameObject> listItems = new List<GameObject>();
@@ -63,6 +73,8 @@ public class EmployeeManagePanel : BasePanel
                 slotButtons[i]?.onClick.AddListener(() => OpenPool(displaySlots[idx]));
             }
         }
+
+        zoneButton?.onClick.AddListener(OpenZonePool);
 
         foodMinusButton?.onClick.AddListener(() => AdjustCarry(isFood: true, delta: -1));
         foodPlusButton?.onClick.AddListener(() => AdjustCarry(isFood: true, delta: +1));
@@ -95,7 +107,13 @@ public class EmployeeManagePanel : BasePanel
 
     private void RebuildList()
     {
-        foreach (var go in listItems) if (go != null) Destroy(go);
+        // 목록 행도 같은 이유로 즉시 비활성화 후 파괴 (ClearPoolRows 주석 참고)
+        foreach (var go in listItems)
+        {
+            if (go == null) continue;
+            go.SetActive(false);
+            Destroy(go);
+        }
         listItems.Clear();
 
         if (listItemTemplate == null || EmployeeManager.instance == null) return;
@@ -159,6 +177,7 @@ public class EmployeeManagePanel : BasePanel
         }
 
         RefreshSlotLabels();
+        RefreshZoneLabels();
         RefreshCarryLabels();
     }
 
@@ -238,6 +257,25 @@ public class EmployeeManagePanel : BasePanel
         }
     }
 
+    /// <summary>
+    /// 구역 버튼에 현재 배정 상태를 씁니다.
+    /// 예: "활동 구역: 구역 2 (48칸)" / "활동 구역: 일반 (맵 전체)"
+    /// </summary>
+    private void RefreshZoneLabels()
+    {
+        var label = zoneButton != null ? zoneButton.GetComponentInChildren<TMP_Text>() : null;
+        if (label == null || selected == null) return;
+
+        var assignment = selected.GetComponent<EmployeeZoneAssignment>();
+
+        // AssignedZone은 삭제된 구역을 자동으로 일반으로 되돌리므로 별도 정리가 필요 없다
+        Zone zone = assignment != null ? assignment.AssignedZone : null;
+
+        label.text = zone == null
+            ? $"활동 구역: {EmployeeZoneAssignment.GENERAL_ZONE_NAME}"
+            : $"활동 구역: {zone.zoneName} ({zone.TileCount}칸)";
+    }
+
     private void RefreshCarryLabels()
     {
         var work = selected != null ? selected.GetComponent<EmployeeWork>() : null;
@@ -271,31 +309,114 @@ public class EmployeeManagePanel : BasePanel
 
     #endregion
 
-    #region 장비 선택 리스트
+    #region 선택 리스트 (장비/구역 공용)
 
     private void OpenPool(EquipmentSlot slot)
     {
         if (selected == null) return;
         activeSlot = slot;
-        poolOpen = true;
+        poolMode = PoolMode.Equipment;
+        RebuildPool();
+    }
+
+    /// <summary>구역 버튼 클릭 — 선택 리스트에 배정 가능한 구역을 띄웁니다.</summary>
+    private void OpenZonePool()
+    {
+        if (selected == null) return;
+        poolMode = PoolMode.Zone;
         RebuildPool();
     }
 
     private void ClosePool()
     {
-        poolOpen = false;
-        foreach (var go in poolItems) if (go != null) Destroy(go);
-        poolItems.Clear();
+        poolMode = PoolMode.None;
+        ClearPoolRows();
         if (poolTitleText != null) poolTitleText.text = "";
+    }
+
+    /// <summary>
+    /// 목록 행을 치웁니다.
+    ///
+    /// Destroy는 프레임 끝에야 실제로 지워지므로, 그때까지 남은 낡은 행이
+    /// <b>여전히 클릭 가능</b>합니다. 그 사이 클릭이 들어오면 이전 목록의 항목이
+    /// 지금 열린 대상에 적용되는 오작동이 생기므로, 지우기 전에 즉시 비활성화합니다.
+    /// </summary>
+    private void ClearPoolRows()
+    {
+        foreach (var go in poolItems)
+        {
+            if (go == null) continue;
+            go.SetActive(false);
+            Destroy(go);
+        }
+        poolItems.Clear();
     }
 
     private void RebuildPool()
     {
-        foreach (var go in poolItems) if (go != null) Destroy(go);
-        poolItems.Clear();
+        ClearPoolRows();
 
-        if (!poolOpen || poolItemTemplate == null) return;
+        if (poolItemTemplate == null) return;
 
+        switch (poolMode)
+        {
+            case PoolMode.Equipment: RebuildEquipmentPool(); break;
+            case PoolMode.Zone:      RebuildZonePool();      break;
+        }
+    }
+
+    /// <summary>
+    /// 이 직원에게 배정할 구역 목록.
+    /// 첫 줄은 항상 일반(맵 전체) — 삭제할 수 없는 기본 선택지입니다.
+    /// </summary>
+    private void RebuildZonePool()
+    {
+        var zm = ZoneManager.instance;
+        var assignment = selected != null ? selected.GetComponent<EmployeeZoneAssignment>() : null;
+
+        var zones = zm != null ? zm.GetAllZones() : new List<Zone>();
+
+        if (poolTitleText != null)
+            poolTitleText.text = zones.Count > 0
+                ? "활동 구역 선택 — 배정하면 작업·취침·오락·세척을 그 안에서 해결합니다"
+                : "구역이 없습니다 (하단 바 구역 > 생성에서 먼저 만드세요)";
+
+        if (assignment == null) return;
+
+        int currentId = assignment.AssignedZoneId;
+
+        // 첫 행: 일반 (맵 전체) — 항상 존재하고 지울 수 없는 기본값
+        AddPoolRow(currentId < 0
+                ? $"[ {EmployeeZoneAssignment.GENERAL_ZONE_NAME} ] ◄ 현재"
+                : $"[ {EmployeeZoneAssignment.GENERAL_ZONE_NAME} ]",
+            () => ApplyZone(EmployeeZoneAssignment.GENERAL_ZONE_ID), true);
+
+        foreach (var zone in zones)
+        {
+            int capturedId = zone.zoneId;
+            string mark = capturedId == currentId ? "  ◄ 현재" : "";
+            AddPoolRow($"{zone.zoneName} ({zone.TileCount}칸){mark}", () => ApplyZone(capturedId), true);
+        }
+    }
+
+    /// <summary>구역 배정을 적용합니다 (-1 = 일반/맵 전체).</summary>
+    private void ApplyZone(int zoneId)
+    {
+        var assignment = selected != null ? selected.GetComponent<EmployeeZoneAssignment>() : null;
+        if (assignment == null) { ClosePool(); return; }
+
+        assignment.AssignZone(zoneId);
+
+        // 할당이 바뀌면 지금 하던 행동을 다시 판단해야 한다
+        // (예: 작업 구역이 좁아졌는데 구역 밖 작업을 계속하고 있으면 안 됨)
+        selected.GetComponent<EmployeeAI>()?.ForceReevaluate();
+
+        ClosePool();
+        RefreshDetail();
+    }
+
+    private void RebuildEquipmentPool()
+    {
         var mgr = EquipmentStorageManager.instance;
         bool hasArmory = mgr != null && mgr.HasArmory();
 
