@@ -755,6 +755,7 @@ public class EmployeeMental : MonoBehaviour
         randomX = Mathf.Clamp(randomX, 0, GameMap.MAP_WIDTH - 1);
         randomY = Mathf.Clamp(randomY, 0, GameMap.MAP_HEIGHT - 1);
 
+        // 정신 이상 상태의 방황 — 배정 구역을 무시한다 (이상 행동과 동일 규칙).
         Vector3 wanderTarget = new Vector3(randomX + 0.5f, randomY, 0);
         movement.MoveTo(wanderTarget);
     }

@@ -7,7 +7,7 @@ using UnityEngine;
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 10;
+    public const int CURRENT_VERSION = 11;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -56,6 +56,9 @@ public static class SaveMigration
                     break;
                 case 9:
                     data = MigrateV9ToV10(data);
+                    break;
+                case 10:
+                    data = MigrateV10ToV11(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -467,4 +470,43 @@ public static class SaveMigration
         }
         return false;
     }
+    /// <summary>
+    /// v10 → v11 마이그레이션 (구역 재설계).
+    ///
+    /// 구역에서 용도(ZoneType) 개념이 사라지고, 직원은 구역 하나만 배정받습니다.
+    /// 활동별 4개 필드 중 하나라도 값이 있으면 그것을 단일 배정으로 옮깁니다
+    /// (작업 구역을 가장 우선 — 구역을 나눠 쓰던 의도에 가장 가깝습니다).
+    /// </summary>
+    private static SaveData MigrateV10ToV11(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v10 → v11 마이그레이션 시작 (구역 재설계: 활동별 4구역 → 단일 구역)...");
+
+        int moved = 0;
+        if (data.employees != null)
+        {
+            foreach (var emp in data.employees)
+            {
+                if (emp == null) continue;
+
+                // 우선순위: 작업 > 취침 > 오락 > 세척
+                int picked = emp.workZoneId >= 0 ? emp.workZoneId
+                           : emp.sleepZoneId >= 0 ? emp.sleepZoneId
+                           : emp.recreationZoneId >= 0 ? emp.recreationZoneId
+                           : emp.washZoneId;
+
+                emp.assignedZoneId = picked >= 0 ? picked : -1;
+                if (emp.assignedZoneId >= 0) moved++;
+
+                emp.sleepZoneId = emp.recreationZoneId = emp.washZoneId = emp.workZoneId = -1;
+            }
+        }
+
+        // 구 세이브의 구역에는 용도(zoneType)가 들어 있었으나 필드가 사라졌으므로
+        // JsonUtility가 무시합니다. 구역 자체(이름·타일)는 그대로 살아남습니다.
+
+        Debug.Log($"[SaveMigration] v11 완료 — 구역 배정을 옮긴 직원 {moved}명");
+        data.saveVersion = 11;
+        return data;
+    }
+
 }

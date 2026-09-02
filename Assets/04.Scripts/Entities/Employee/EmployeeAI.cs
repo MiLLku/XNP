@@ -77,6 +77,24 @@ public class EmployeeAI : MonoBehaviour
     private const float WORK_REEVALUATE_INTERVAL = 2f;
     private float workReevaluateTimer;
 
+    // ── 실패 백오프 ─────────────────────────────────────────────────────
+    // 목적지에 갈 수 없을 때(경로 없음 등) 행동이 곧바로 Idle로 되돌아오는데,
+    // OnStateChanged가 재평가 타이머를 0.1초로 당기므로 그대로 두면
+    // "실패 → 즉시 재시도 → 실패"가 초당 10회 반복되며 A*를 낭비한다.
+    // 실패가 이어질수록 재평가를 미뤄 이 루프를 끊는다.
+
+    /// <summary>연속 실패 횟수 (성공적으로 무언가를 시작하면 0으로 초기화).</summary>
+    private int consecutiveFailures;
+
+    /// <summary>이 시각까지는 재평가를 미룬다.</summary>
+    private float failureBackoffUntil;
+
+    /// <summary>실패 1회당 늘어나는 대기 시간 (초).</summary>
+    private const float FAILURE_BACKOFF_STEP = 2f;
+
+    /// <summary>실패 백오프 상한 (초).</summary>
+    private const float FAILURE_BACKOFF_MAX = 30f;
+
     [Header("디버그")]
     [SerializeField] private bool showDebugLogs = false;
 
@@ -161,12 +179,43 @@ public class EmployeeAI : MonoBehaviour
     /// </summary>
     private void OnEmployeeStateChanged(EmployeeState newState)
     {
+        // 무언가를 실제로 시작했다면 그동안의 실패는 없던 일로 한다.
+        if (newState == EmployeeState.Working ||
+            newState == EmployeeState.Resting ||
+            newState == EmployeeState.Eating)
+        {
+            consecutiveFailures = 0;
+            failureBackoffUntil = 0f;
+            return;
+        }
+
         if (newState == EmployeeState.Idle)
         {
-            // Idle 진입 즉시 재평가 (짧은 지연으로 동일 프레임 재할당 충돌 회피)
-            workReevaluateTimer = 0.1f;
-            needsCheckTimer = 0.1f;   // Anything 모드(자유 시간)에서도 즉시 재평가
+            // Idle 진입 즉시 재평가 (짧은 지연으로 동일 프레임 재할당 충돌 회피).
+            // 단, 직전에 실패했다면 백오프가 끝날 때까지 미룬다.
+            float delay = Mathf.Max(0.1f, failureBackoffUntil - Time.time);
+
+            workReevaluateTimer = delay;
+            needsCheckTimer = delay;   // Anything 모드(자유 시간)에서도 동일 적용
         }
+    }
+
+    /// <summary>
+    /// 이동/행동 실패 처리 — 백오프를 걸고 Idle로 되돌립니다.
+    /// EmployeeAI가 거는 모든 MoveTo의 onFailed는 이 메서드를 써야 합니다.
+    /// (직접 SetState(Idle)만 하면 재평가가 0.1초 뒤에 다시 돌아 실패 루프가 됩니다.)
+    /// </summary>
+    private void OnActionFailed()
+    {
+        consecutiveFailures++;
+        failureBackoffUntil = Time.time +
+            Mathf.Min(FAILURE_BACKOFF_STEP * consecutiveFailures, FAILURE_BACKOFF_MAX);
+
+        if (showDebugLogs)
+            Debug.Log($"[AI] {employee.DisplayName}: 행동 실패 {consecutiveFailures}회 연속 → " +
+                      $"{failureBackoffUntil - Time.time:F1}초 후 재평가");
+
+        employee.SetState(EmployeeState.Idle);
     }
 
     #endregion
@@ -271,7 +320,7 @@ public class EmployeeAI : MonoBehaviour
         {
             case ScheduleActivity.Sleep:
                 if (employee.Needs.fatigue >= FATIGUE_FULL_THRESHOLD) return false;
-                return HasFacilityForActivity(FacilityTag.Bed, ZoneType.Sleep);
+                return HasFacility(FacilityTag.Bed);
 
             case ScheduleActivity.Recreation:
             {
@@ -283,13 +332,13 @@ public class EmployeeAI : MonoBehaviour
                 if (funFull && mentalFull) return false;
 
                 // 오락거리: 시설 또는 약물(창고 복용) 중 하나라도 있으면 수행 가능
-                return HasFacilityForActivity(FacilityTag.Recreation, ZoneType.Recreation) ||
+                return HasFacility(FacilityTag.Recreation) ||
                        IsDrugAvailable();
             }
 
             case ScheduleActivity.Wash:
                 if (employee.ErosionLevel <= EROSION_LOW_THRESHOLD) return false;
-                return HasFacilityForActivity(FacilityTag.WashStation, ZoneType.Wash);
+                return HasFacility(FacilityTag.WashStation);
 
             case ScheduleActivity.Work:
                 return true;
@@ -303,27 +352,14 @@ public class EmployeeAI : MonoBehaviour
     }
 
     /// <summary>
-    /// 구역이 할당된 경우 구역 내 시설만, 미할당이면 전체 탐색합니다.
+    /// 해당 시설이 맵에 하나라도 있는지 확인합니다.
+    ///
+    /// 배정 구역 안에 없어도 전체 탐색으로 폴백하므로(FindNearestFacility),
+    /// 여기서 구역으로 걸러내면 직원이 아무것도 못 하고 멈춥니다.
+    /// 구역 우선 선택은 실제 이동 시점(MoveToFacility)에서 처리합니다.
     /// </summary>
-    private bool HasFacilityForActivity(string tag, ZoneType zoneType)
+    private bool HasFacility(string tag)
     {
-        int assignedZoneId = zoneAssignment != null
-            ? zoneAssignment.GetAssignedZoneId(zoneType)
-            : -1;
-
-        if (assignedZoneId >= 0 && ZoneManager.instance != null)
-        {
-            Zone zone = ZoneManager.instance.GetZone(assignedZoneId);
-            if (zone == null) return false;
-
-            var facilities = FindWithTagCached(tag);
-            return facilities.Any(f => f != null && zone.ContainsTile(
-                new Vector2Int(
-                    Mathf.FloorToInt(f.transform.position.x),
-                    Mathf.FloorToInt(f.transform.position.y))));
-        }
-
-        // 구역 미할당: 전체 탐색
         var objs = FindWithTagCached(tag);
         return objs.Length > 0 && objs.Any(o => o != null);
     }
@@ -373,9 +409,7 @@ public class EmployeeAI : MonoBehaviour
                 return;
             }
 
-            int workZoneId = zoneAssignment != null
-                ? zoneAssignment.GetAssignedZoneId(ZoneType.Work)
-                : -1;
+            int workZoneId = zoneAssignment != null ? zoneAssignment.AssignedZoneId : -1;
 
             if (showDebugLogs)
                 Debug.Log($"[AI] {employee.DisplayName}: 자동 작업 할당 시도 (workZoneId={workZoneId})");
@@ -438,13 +472,8 @@ public class EmployeeAI : MonoBehaviour
         var objs = FindWithTagCached(FacilityTag.Recreation);
         if (objs.Length == 0) return null;
 
-        // 구역 필터 준비
-        Zone zone = null;
-        int zoneId = zoneAssignment != null
-            ? zoneAssignment.GetAssignedZoneId(ZoneType.Recreation)
-            : -1;
-        if (zoneId >= 0 && ZoneManager.instance != null)
-            zone = ZoneManager.instance.GetZone(zoneId);
+        // 구역 필터 준비 (배정 구역이 있으면 그 안의 시설을 우선)
+        Zone zone = zoneAssignment != null ? zoneAssignment.AssignedZone : null;
 
         RecreationFacility best = null;
         float bestDist = float.MaxValue;
@@ -488,13 +517,8 @@ public class EmployeeAI : MonoBehaviour
         CancelCurrentAction();
         employee.SetState(EmployeeState.Moving);
 
-        // 구역 할당 시 구역 내 경로만 허용 (MoveToFacility와 동일 규칙)
-        PathOptions pathOpts = null;
-        int zoneId = zoneAssignment != null
-            ? zoneAssignment.GetAssignedZoneId(ZoneType.Recreation)
-            : -1;
-        if (zoneId >= 0)
-            pathOpts = PathOptions.ForZone(zoneId);
+        // 구역 배정 시 구역 내 경로만 허용 (MoveToFacility와 동일 규칙)
+        PathOptions pathOpts = zoneAssignment != null ? zoneAssignment.GetPathOptions() : null;
 
         Action onArrive = () =>
         {
@@ -507,7 +531,7 @@ public class EmployeeAI : MonoBehaviour
             }
             recreationRoutine = StartCoroutine(RecreationTick(facility));
         };
-        Action onFailed = () => employee.SetState(EmployeeState.Idle);
+        Action onFailed = OnActionFailed;
 
         if (pathOpts != null)
             movement.MoveTo(facility.transform.position, pathOpts, onComplete: onArrive, onFailed: onFailed);
@@ -617,7 +641,7 @@ public class EmployeeAI : MonoBehaviour
                 }
                 employee.SetState(EmployeeState.Idle);
             },
-            onFailed: () => employee.SetState(EmployeeState.Idle));
+            onFailed: OnActionFailed);
     }
 
     // ─── Wash ───
@@ -646,7 +670,7 @@ public class EmployeeAI : MonoBehaviour
         // 2. 피로
         if (employee.Needs.fatigue < FREE_FATIGUE_THRESHOLD &&
             employee.State != EmployeeState.Resting &&
-            HasFacilityForActivity(FacilityTag.Bed, ZoneType.Sleep))
+            HasFacility(FacilityTag.Bed))
         {
             ExecuteSleep();
             return;
@@ -655,7 +679,7 @@ public class EmployeeAI : MonoBehaviour
         // 3. 정신력
         if (employee.Stats.mental < employee.Stats.maxMental * FREE_MENTAL_RATIO &&
             employee.State != EmployeeState.Resting &&
-            HasFacilityForActivity(FacilityTag.Recreation, ZoneType.Recreation))
+            HasFacility(FacilityTag.Recreation))
         {
             ExecuteRecreation();
             return;
@@ -663,7 +687,7 @@ public class EmployeeAI : MonoBehaviour
 
         // 4. 침식
         if (employee.ErosionLevel > FREE_EROSION_THRESHOLD &&
-            HasFacilityForActivity(FacilityTag.WashStation, ZoneType.Wash))
+            HasFacility(FacilityTag.WashStation))
         {
             ExecuteWash();
             return;
@@ -758,7 +782,7 @@ public class EmployeeAI : MonoBehaviour
                 if (drug != null) work.StoreDrug(drug, 1);
                 employee.SetState(EmployeeState.Idle);
             },
-            onFailed: () => employee.SetState(EmployeeState.Idle));
+            onFailed: OnActionFailed);
 
         return true;
     }
@@ -803,7 +827,7 @@ public class EmployeeAI : MonoBehaviour
                     employee.SetState(EmployeeState.Idle);
                 }
             },
-            onFailed: () => employee.SetState(EmployeeState.Idle));
+            onFailed: OnActionFailed);
 
         return true;
     }
@@ -852,12 +876,8 @@ public class EmployeeAI : MonoBehaviour
 
         if (zoneAssignment != null)
         {
-            target = zoneAssignment.FindNearestFacility(activity, facilityTag, transform.position);
-
-            int zoneId = zoneAssignment.GetAssignedZoneId(
-                EmployeeZoneAssignment.GetZoneTypeForActivity(activity));
-            if (zoneId >= 0)
-                pathOpts = PathOptions.ForZone(zoneId);
+            target   = zoneAssignment.FindNearestFacility(facilityTag, transform.position);
+            pathOpts = zoneAssignment.GetPathOptions();
         }
 
         if (target == null)
@@ -875,13 +895,13 @@ public class EmployeeAI : MonoBehaviour
         {
             movement.MoveTo(target.transform.position, pathOpts,
                 onComplete: onArrive,
-                onFailed:   () => employee.SetState(EmployeeState.Idle));
+                onFailed:   OnActionFailed);
         }
         else
         {
             movement.MoveTo(target.transform.position,
                 onComplete: onArrive,
-                onFailed:   () => employee.SetState(EmployeeState.Idle));
+                onFailed:   OnActionFailed);
         }
     }
 
@@ -936,7 +956,7 @@ public class EmployeeAI : MonoBehaviour
 
                 employee.SetState(EmployeeState.Idle);
             },
-            onFailed: () => employee.SetState(EmployeeState.Idle));
+            onFailed: OnActionFailed);
     }
 
     /// <summary>외부(스케줄 변경 등)에서 즉시 재결정을 요청합니다.</summary>

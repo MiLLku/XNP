@@ -66,6 +66,31 @@ public abstract class AbnormalBehaviorBase : IAbnormalBehavior
     }
 
     /// <summary>
+    /// 이상 행동의 이동. <b>직원의 배정 구역을 무시</b>하고 맵 전체를 씁니다.
+    ///
+    /// 구역은 '자율 행동에 대한 플레이어 방침'이므로,
+    /// 통제가 불가능한 정신 붕괴 상태에는 적용되지 않습니다.
+    /// </summary>
+    /// <returns>이동을 시작했으면 true (movement 컴포넌트가 없으면 false).</returns>
+    protected static bool MoveIgnoringRestrictions(Employee employee, Vector3 destination)
+    {
+        var movement = employee != null ? employee.GetComponent<EmployeeMovement>() : null;
+        return MoveIgnoringRestrictions(movement, destination);
+    }
+
+    /// <summary>
+    /// <see cref="MoveIgnoringRestrictions(Employee, Vector3)"/>의 오버로드.
+    /// EmployeeMovement를 이미 들고 있는 헬퍼 메서드용 (재조회 회피).
+    /// </summary>
+    protected static bool MoveIgnoringRestrictions(EmployeeMovement movement, Vector3 destination)
+    {
+        if (movement == null) return false;
+
+        movement.MoveTo(destination); // 옵션 없음 = 맵 전체
+        return true;
+    }
+
+    /// <summary>
     /// 직원의 현재 공격력·공격 간격·사거리를 가져옵니다.
     /// 값은 전적으로 <b>장착 무기</b>가 정하고 숙련·특성·연구가 조정합니다(무기가 없으면 맨손 기본값).
     /// 이상 행동의 공격도 평상시 전투와 같은 수치를 쓰도록 EmployeeCombat의 계산을 그대로 재사용합니다.

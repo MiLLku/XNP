@@ -100,7 +100,7 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
             {
                 state.repathTimer = REPATH_INTERVAL;
                 state.approaching = true;
-                movement?.MoveTo(targetPos);
+                MoveIgnoringRestrictions(employee, targetPos);
             }
             return;
         }

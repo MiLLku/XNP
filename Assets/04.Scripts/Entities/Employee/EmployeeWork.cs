@@ -1813,9 +1813,25 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         public Vector2Int position;
         public float distance;
         public int heightDiff;
-        public int pathLength;
         public int fallSafety;
         public int verticalPriority;
+    }
+
+    /// <summary>
+    /// 경로 질의용 길찾기 인스턴스.
+    /// EmployeeMovement가 가진 것을 재사용하고, 없을 때만 만들어 캐시합니다.
+    /// (예전에는 FindWorkablePositionForTarget 호출마다 new 했습니다.)
+    /// </summary>
+    private TilePathfinder _fallbackPathfinder;
+
+    private TilePathfinder GetPathfinder(GameMap gameMap)
+    {
+        if (movement != null && movement.Pathfinder != null) return movement.Pathfinder;
+
+        if (_fallbackPathfinder == null && gameMap != null)
+            _fallbackPathfinder = new TilePathfinder(gameMap);
+
+        return _fallbackPathfinder;
     }
 
     /// <summary>
@@ -1826,16 +1842,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         Vector3Int currentFootTile = GetFootTile();
         Vector2Int startPos = new Vector2Int(currentFootTile.x, currentFootTile.y);
 
-        TilePathfinder pathfinder = null;
-        GameMap gameMap = null;
-        if (MapGenerator.instance != null)
-        {
-            gameMap = MapGenerator.instance.GameMapInstance;
-            if (gameMap != null)
-            {
-                pathfinder = new TilePathfinder(gameMap);
-            }
-        }
+        GameMap gameMap = MapGenerator.instance != null
+            ? MapGenerator.instance.GameMapInstance
+            : null;
+        TilePathfinder pathfinder = GetPathfinder(gameMap);
 
         if (pathfinder == null || gameMap == null)
         {
@@ -1946,9 +1956,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
 
             if (candidatePos == startPos) { rejectedSamePos++; continue; }
 
-            List<Vector2Int> path = pathfinder.FindPath(startPos, candidatePos);
-            if (path == null || path.Count == 0) { rejectedNoPath++; continue; }
-
+            // 경로 검증은 여기서 하지 않는다 — 정렬 후 상위 후보부터 확인한다(아래).
             float distance = Vector2Int.Distance(startPos, candidatePos);
             int heightDiff = Mathf.Abs(candidatePos.y - currentFootTile.y);
 
@@ -1963,7 +1971,6 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
                 position = candidatePos,
                 distance = distance,
                 heightDiff = heightDiff,
-                pathLength = path.Count,
                 fallSafety = fallSafety,
                 verticalPriority = verticalPriority
             });
@@ -1974,23 +1981,45 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             Debug.LogWarning($"[Work] {employee?.DisplayName}: 작업 위치 후보 없음 (target={targetTilePos}, start={startPos}). " +
                              $"기각 사유: 범위밖={rejectedOutOfBounds}, 작업범위밖={rejectedOutOfRange}, " +
                              $"발막힘={rejectedFootBlocked}, 몸막힘={rejectedBodyBlocked}, " +
-                             $"바닥없음={rejectedNoGround}, 동일위치={rejectedSamePos}, 경로없음={rejectedNoPath}");
+                             $"바닥없음={rejectedNoGround}, 동일위치={rejectedSamePos}");
             return Vector3.zero;
         }
 
+        // 경로 없이 계산 가능한 기준으로 먼저 정렬한 뒤, 앞에서부터 경로를 확인하고
+        // 첫 번째로 도달 가능한 후보를 채택한다.
+        // (예전에는 모든 후보에 A*를 돌린 뒤 정렬했다 — 최대 21회 → 보통 1~2회)
         var sortedCandidates = candidates
             .OrderBy(c => c.fallSafety)
             .ThenBy(c => c.verticalPriority)
-            .ThenBy(c => c.pathLength)
             .ThenBy(c => c.heightDiff)
             .ThenBy(c => c.distance)
             .ToList();
 
-        Vector2Int bestPos = sortedCandidates[0].position;
-        if (showDebugInfo)
-            Debug.Log($"[Work] {employee?.DisplayName}: 작업 위치 선정 완료. " +
-                      $"후보={candidates.Count}개, 선택={bestPos} (target={targetTilePos})");
-        return new Vector3(bestPos.x + 0.5f, bestPos.y, 0);
+        var reachability = ReachabilityMap.Current;
+
+        foreach (var candidate in sortedCandidates)
+        {
+            // O(1) 선판정으로 다른 섬에 있는 후보를 A* 없이 걸러낸다.
+            if (reachability != null &&
+                !reachability.IsReachable(startPos, candidate.position, PathOptions.Default))
+            { rejectedNoPath++; continue; }
+
+            // 실제 이동과 같은 정책으로 검증해야 한다 — 여기서 통과한 위치를
+            // 이어서 movement.MoveTo가 거부하면 직원이 그 자리에서 멈춘다.
+            List<Vector2Int> path = pathfinder.FindPath(startPos, candidate.position, PathOptions.Default);
+            if (path == null || path.Count == 0) { rejectedNoPath++; continue; }
+
+            if (showDebugInfo)
+                Debug.Log($"[Work] {employee?.DisplayName}: 작업 위치 선정 완료. " +
+                          $"후보={candidates.Count}개, 경로탐색={rejectedNoPath + 1}회, " +
+                          $"선택={candidate.position} (target={targetTilePos})");
+
+            return new Vector3(candidate.position.x + 0.5f, candidate.position.y, 0);
+        }
+
+        Debug.LogWarning($"[Work] {employee?.DisplayName}: 작업 위치 후보는 있으나 전부 도달 불가 " +
+                         $"(target={targetTilePos}, start={startPos}, 후보={candidates.Count}개)");
+        return Vector3.zero;
     }
 
     #endregion

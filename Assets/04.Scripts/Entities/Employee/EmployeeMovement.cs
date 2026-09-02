@@ -136,6 +136,13 @@ public class EmployeeMovement : MonoBehaviour
     /// <summary>현재 경로</summary>
     public List<Vector2Int> CurrentPath => currentPath;
 
+    /// <summary>
+    /// 이 직원이 쓰는 길찾기 인스턴스 (Start에서 1회 생성).
+    /// 경로 질의가 필요한 다른 컴포넌트(EmployeeWork 등)는 새로 만들지 말고 이것을 재사용하세요.
+    /// 맵 생성 전에는 null입니다.
+    /// </summary>
+    public TilePathfinder Pathfinder => pathfinder;
+
     #endregion
 
     #region 초기화
@@ -483,23 +490,36 @@ public class EmployeeMovement : MonoBehaviour
     #region 이동 시스템
 
     /// <summary>
-    /// 목표 월드 좌표로 이동합니다 (자동 길찾기).
+    /// PathOptions를 지정하여 이동합니다 (구역 제한 등).
+    /// options가 null이면 기본 정책(<see cref="PathOptions.Default"/> — 제한구역만 차단)이 적용됩니다.
+    /// </summary>
+    /// <param name="worldDestination">목표 월드 좌표</param>
+    /// <param name="options">길찾기 정책 (null이면 기본 정책)</param>
+    /// <param name="onComplete">이동 성공 시 콜백</param>
+    /// <param name="onFailed">이동 실패 시 콜백 (경로 없음 등)</param>
+    public void MoveTo(Vector3 worldDestination, PathOptions options, Action onComplete = null, Action onFailed = null)
+    {
+        MoveToInternal(worldDestination, options ?? PathOptions.Default, onComplete, onFailed);
+    }
+
+    /// <summary>
+    /// 제한 없이(맵 전체) 이동합니다.
+    /// 직원의 배정 구역 안으로 제한하려면 EmployeeZoneAssignment.GetPathOptions()를 넘기세요.
     /// </summary>
     /// <param name="worldDestination">목표 월드 좌표</param>
     /// <param name="onComplete">이동 성공 시 콜백</param>
     /// <param name="onFailed">이동 실패 시 콜백 (경로 없음 등)</param>
-    /// <summary>
-    /// PathOptions를 지정하여 이동합니다 (구역 제한 등).
-    /// </summary>
-    public void MoveTo(Vector3 worldDestination, PathOptions options, Action onComplete = null, Action onFailed = null)
-    {
-        currentPathOptions = options;
-        MoveTo(worldDestination, onComplete, onFailed);
-    }
-
     public void MoveTo(Vector3 worldDestination, Action onComplete = null, Action onFailed = null)
     {
-        currentPathOptions = null;
+        MoveToInternal(worldDestination, PathOptions.Default, onComplete, onFailed);
+    }
+
+    /// <summary>
+    /// 모든 MoveTo 오버로드의 단일 진입점.
+    /// options는 여기서만 설정되며, 이동 중 재탐색(NavVersion 변화)에도 동일하게 재사용됩니다.
+    /// </summary>
+    private void MoveToInternal(Vector3 worldDestination, PathOptions options, Action onComplete, Action onFailed)
+    {
         if (pathfinder == null)
         {
             Debug.LogError("[EmployeeMovement] Pathfinder가 초기화되지 않았습니다!");
@@ -508,6 +528,9 @@ public class EmployeeMovement : MonoBehaviour
         }
 
         StopMoving();
+
+        // StopMoving 이후에 설정한다 — 재탐색 시에도 같은 정책을 쓰기 위해 유지되어야 한다.
+        currentPathOptions = options;
 
         Vector2Int currentTile = GetFootTile();
         Vector2Int goalTile = WorldToFootTile(worldDestination);
@@ -527,11 +550,24 @@ public class EmployeeMovement : MonoBehaviour
             return;
         }
 
+        // 연결 성분이 다르면 경로가 존재할 수 없다 — A*를 돌리지 않고 즉시 실패시킨다.
+        // (도달 불가 목적지에 대한 반복 탐색 낭비 방지. 판정 불가 시에는 true를 주므로 통과된다.)
+        var reachability = ReachabilityMap.Current;
+        if (reachability != null && !reachability.IsReachable(currentTile, goalTile, options))
+        {
+            if (showDebugLogs)
+                Debug.Log($"[EmployeeMovement] 도달 불가 (연결 성분 불일치): {currentTile} -> {goalTile}");
+
+            onFailed?.Invoke();
+            return;
+        }
+
         currentPath = pathfinder.FindPath(currentTile, goalTile, currentPathOptions);
 
         if (currentPath == null || currentPath.Count == 0)
         {
-            Debug.LogWarning($"[EmployeeMovement] 경로를 찾을 수 없습니다: {currentTile} -> {goalTile}");
+            Debug.LogWarning($"[EmployeeMovement] 경로를 찾을 수 없습니다: {currentTile} -> {goalTile} " +
+                             $"(허용구역={(options?.allowedZoneIds == null ? "전체" : string.Join(",", options.allowedZoneIds))})");
             onFailed?.Invoke();
             return;
         }

@@ -103,6 +103,7 @@ public class EmployeeDraft : MonoBehaviour
         if (movement != null)
         {
             movement.StopMoving();
+            // 플레이어의 명시적 지시는 배정 구역보다 우선한다.
             movement.MoveTo(worldPosition,
                 onComplete: () =>
                 {

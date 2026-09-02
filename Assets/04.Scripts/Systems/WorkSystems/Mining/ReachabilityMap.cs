@@ -2,337 +2,257 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 도달 가능성 맵
-/// Chunk 기반으로 이동 가능한 영역을 관리하고,
-/// 타일 변경 시 해당 영역만 갱신합니다.
+/// 도달 가능성 맵 — 연결 성분(Connected Component) 라벨링.
+///
+/// 맵 전체를 한 번 훑어 "서 있을 수 있는 타일"에 성분 번호를 부여합니다.
+/// 두 타일의 성분 번호가 다르면 <b>A*를 돌리지 않고도</b> 도달 불가임을 O(1)에 알 수 있습니다.
+/// 벽 너머 고립된 방처럼 애초에 갈 수 없는 목적지를 A* 앞단에서 걸러내는 것이 목적입니다.
+///
+/// ── 정확성 규약 (중요) ─────────────────────────────────────────────
+/// 이 라벨링은 <b>갈 수 있는 곳을 못 간다고 말하면 안 됩니다</b>
+/// (오판하면 직원이 멀쩡한 작업을 거부합니다). 반대로 못 가는 곳을 갈 수 있다고
+/// 말하는 것은 안전합니다 — 그 경우 그냥 A*가 돌고 예전처럼 실패할 뿐입니다.
+///
+/// 그래서 두 가지 안전장치를 둡니다:
+///   1. 이웃 판정을 TilePathfinder.GetMovementNeighbors에 위임 — A*와 규칙이 어긋날 수 없습니다.
+///   2. 간선을 <b>무향으로</b> 취급 — Union-Find로 합치므로 a→b 한 방향만 가능해도 같은 성분이 됩니다.
+///      이동 규칙은 비대칭입니다(사다리 없이 아래로는 내려갈 수 있지만 위로는 못 올라감).
+///      무향으로 합치면 성분이 실제보다 커지므로 오탐(=갈 수 있다고 잘못 말함)만 생기고,
+///      A*가 찾아낼 수 있는 경로는 반드시 같은 성분 안에 들어옵니다.
+///
+/// ── 구역과의 관계 ────────────────────────────────────────────────
+/// 라벨은 <b>순수 지형</b> 기준입니다. 구역 배정(PathOptions.allowedZoneIds)은 직원마다 달라
+/// 미리 라벨링할 수 없으므로, 그런 질의는 판정을 포기하고 A*에 위임합니다.
+/// 따라서 구역이 바뀌어도 재빌드가 필요 없습니다 — 지형(NavVersion)만 보면 됩니다.
 /// </summary>
 public class ReachabilityMap
 {
-    #region 설정
-    
-    public const int CHUNK_SIZE = 16;
-    private const int EMPLOYEE_HEIGHT = 2;
-    
+    #region 상수
+
+    /// <summary>서 있을 수 없는 타일의 성분 번호.</summary>
+    private const int NO_COMPONENT = -1;
+
     #endregion
-    
+
+    #region 정적 접근자
+
+    private static ReachabilityMap _instance;
+    private static GameMap _instanceMap;
+
+    /// <summary>
+    /// 해당 맵의 공용 인스턴스를 반환합니다 (맵이 바뀌면 새로 만듭니다).
+    /// 라벨 배열이 맵 크기만큼이라 직원마다 만들지 말고 이것을 재사용하세요.
+    /// </summary>
+    public static ReachabilityMap For(GameMap map)
+    {
+        if (map == null) return null;
+
+        if (_instance == null || _instanceMap != map)
+        {
+            _instance = new ReachabilityMap(map);
+            _instanceMap = map;
+        }
+        return _instance;
+    }
+
+    /// <summary>MapGenerator의 현재 맵으로 인스턴스를 반환합니다 (준비 전이면 null).</summary>
+    public static ReachabilityMap Current
+        => MapGenerator.instance != null ? For(MapGenerator.instance.GameMapInstance) : null;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics()
+    {
+        _instance = null;
+        _instanceMap = null;
+    }
+
+    #endregion
+
     #region 데이터
-    
-    private GameMap gameMap;
-    
-    // 청크별 도달 가능 노드 캐시
-    // Key: ChunkCoord, Value: 해당 청크 내에서 서 있을 수 있는 위치들
-    private Dictionary<Vector2Int, HashSet<Vector2Int>> chunkReachableNodes;
-    
-    // 전체 연결 그래프 (어느 위치에서 어느 위치로 이동 가능한지)
-    // 성능을 위해 청크 단위로 연결성만 저장
-    private Dictionary<Vector2Int, HashSet<Vector2Int>> chunkConnections;
-    
-    // 더티 플래그 (갱신이 필요한 청크)
-    private HashSet<Vector2Int> dirtyChunks;
-    
+
+    private readonly GameMap gameMap;
+    private TilePathfinder pathfinder;
+
+    /// <summary>타일별 연결 성분 번호 (지형 기준).</summary>
+    private int[] component;
+
+    private int builtNavVersion = -1;
+
+    // 재빌드용 작업 버퍼 (매 재빌드마다 할당하지 않도록 재사용)
+    private int[]  unionParent;
+    private bool[] traversable;
+
     #endregion
-    
-    #region 이벤트
-    
-    public delegate void ReachabilityChangedHandler(Vector2Int chunkCoord);
-    public event ReachabilityChangedHandler OnReachabilityChanged;
-    
-    #endregion
-    
+
     #region 초기화
-    
+
     public ReachabilityMap(GameMap gameMap)
     {
         this.gameMap = gameMap;
-        this.chunkReachableNodes = new Dictionary<Vector2Int, HashSet<Vector2Int>>();
-        this.chunkConnections = new Dictionary<Vector2Int, HashSet<Vector2Int>>();
-        this.dirtyChunks = new HashSet<Vector2Int>();
-        
-        // 초기 빌드
-        BuildInitialMap();
+        // 빌드는 첫 질의 때 lazy로 수행합니다 (생성 시점엔 지형이 아직 준비 전일 수 있음).
     }
-    
-    private void BuildInitialMap()
+
+    #endregion
+
+    #region 빌드
+
+    /// <summary>지형 버전이 바뀌었으면 라벨을 다시 만듭니다.</summary>
+    private void EnsureBuilt()
     {
-        int chunksX = Mathf.CeilToInt((float)GameMap.MAP_WIDTH / CHUNK_SIZE);
-        int chunksY = Mathf.CeilToInt((float)GameMap.MAP_HEIGHT / CHUNK_SIZE);
-        
-        for (int cx = 0; cx < chunksX; cx++)
+        if (component != null && gameMap.NavVersion == builtNavVersion) return;
+
+        Rebuild();
+        builtNavVersion = gameMap.NavVersion;
+    }
+
+    private void Rebuild()
+    {
+        if (pathfinder == null) pathfinder = new TilePathfinder(gameMap);
+
+        int size = GameMap.MAP_WIDTH * GameMap.MAP_HEIGHT;
+        if (component == null || component.Length != size)
         {
-            for (int cy = 0; cy < chunksY; cy++)
+            component   = new int[size];
+            unionParent = new int[size];
+            traversable = new bool[size];
+        }
+
+        float startTime = Time.realtimeSinceStartup;
+
+        // 1) 통행 가능 타일 표시 + Union-Find 초기화
+        for (int x = 0; x < GameMap.MAP_WIDTH; x++)
+        {
+            for (int y = 0; y < GameMap.MAP_HEIGHT; y++)
             {
-                Vector2Int chunkCoord = new Vector2Int(cx, cy);
-                BuildChunk(chunkCoord);
+                int index = Index(x, y);
+                unionParent[index] = index;
+                traversable[index] = pathfinder.IsValidPosition(new Vector2Int(x, y));
+                component[index]   = NO_COMPONENT;
             }
         }
-        
-        Debug.Log($"[ReachabilityMap] 초기 빌드 완료: {chunksX * chunksY}개 청크");
-    }
-    
-    #endregion
-    
-    #region 청크 빌드
-    
-    /// <summary>
-    /// 특정 청크의 도달 가능 노드를 빌드합니다.
-    /// </summary>
-    private void BuildChunk(Vector2Int chunkCoord)
-    {
-        int startX = chunkCoord.x * CHUNK_SIZE;
-        int startY = chunkCoord.y * CHUNK_SIZE;
-        int endX = Mathf.Min(startX + CHUNK_SIZE, GameMap.MAP_WIDTH);
-        int endY = Mathf.Min(startY + CHUNK_SIZE, GameMap.MAP_HEIGHT);
-        
-        HashSet<Vector2Int> reachableNodes = new HashSet<Vector2Int>();
-        
-        for (int x = startX; x < endX; x++)
+
+        // 2) 간선 합치기 — 방향을 구분하지 않으므로 정방향으로 한 번만 훑으면 충분하다
+        for (int x = 0; x < GameMap.MAP_WIDTH; x++)
         {
-            for (int y = startY; y < endY; y++)
+            for (int y = 0; y < GameMap.MAP_HEIGHT; y++)
             {
-                if (CanStandAt(x, y))
+                int index = Index(x, y);
+                if (!traversable[index]) continue;
+
+                foreach (var neighbor in pathfinder.GetMovementNeighbors(new Vector2Int(x, y)))
                 {
-                    reachableNodes.Add(new Vector2Int(x, y));
+                    if (!InBounds(neighbor)) continue;
+
+                    int neighborIndex = Index(neighbor.x, neighbor.y);
+                    if (!traversable[neighborIndex]) continue;
+
+                    Union(index, neighborIndex);
                 }
             }
         }
-        
-        chunkReachableNodes[chunkCoord] = reachableNodes;
+
+        // 3) 루트마다 성분 번호 부여
+        var rootToComponent = new Dictionary<int, int>();
+        int nextComponent = 0;
+
+        for (int index = 0; index < component.Length; index++)
+        {
+            if (!traversable[index]) continue;
+
+            int root = Find(index);
+            if (!rootToComponent.TryGetValue(root, out int id))
+            {
+                id = nextComponent++;
+                rootToComponent[root] = id;
+            }
+            component[index] = id;
+        }
+
+        float elapsedMs = (Time.realtimeSinceStartup - startTime) * 1000f;
+        Debug.Log($"[ReachabilityMap] 재빌드 {elapsedMs:F1}ms — 성분 {nextComponent}개 (nav={gameMap.NavVersion})");
     }
-    
-    /// <summary>
-    /// 특정 위치에 직원이 서 있을 수 있는지 확인
-    /// pos는 발 위치 (발이 있는 빈 공간)입니다.
-    /// </summary>
-    private bool CanStandAt(int x, int y)
+
+    private int Find(int x)
     {
-        if (x < 0 || x >= GameMap.MAP_WIDTH || y < 0 || y >= GameMap.MAP_HEIGHT)
-            return false;
-        
-        // 1. 발 아래 타일(y-1)에 지지대가 있어야 함
-        int groundY = y - 1;
-        if (groundY < 0)
-            return false;
-        
-        int groundTileId = gameMap.TileGrid[x, groundY];
-        bool hasGround = groundTileId != 0 || FloorTile.HasFloorTileAt(new Vector2Int(x, groundY));
-        
-        if (!hasGround)
+        while (unionParent[x] != x)
         {
-            // 사다리 체크
-            FloorTile ladder = FloorTile.GetFloorTileAt(new Vector2Int(x, groundY));
-            if (ladder == null || !ladder.AllowsVerticalMovement())
-            {
-                // 현재 위치에 사다리가 있는지도 확인
-                FloorTile currentLadder = FloorTile.GetFloorTileAt(new Vector2Int(x, y));
-                if (currentLadder == null || !currentLadder.AllowsVerticalMovement())
-                    return false;
-            }
+            unionParent[x] = unionParent[unionParent[x]]; // 경로 절반 압축
+            x = unionParent[x];
         }
-        
-        // 2. 몸통 공간(발 위치 + 발 위 1칸)이 비어있어야 함
-        for (int i = 0; i < EMPLOYEE_HEIGHT; i++)
-        {
-            int checkY = y + i;
-            if (checkY >= GameMap.MAP_HEIGHT)
-                continue;
-            
-            int tileId = gameMap.TileGrid[x, checkY];
-            if (tileId != 0)
-            {
-                // 바닥 타일(사다리 등)이 통과 가능한지 체크
-                FloorTile floorTile = FloorTile.GetFloorTileAt(new Vector2Int(x, checkY));
-                if (floorTile == null || !floorTile.IsPassable())
-                    return false;
-            }
-        }
-        
-        return true;
+        return x;
     }
-    
+
+    private void Union(int a, int b)
+    {
+        int rootA = Find(a);
+        int rootB = Find(b);
+        if (rootA != rootB) unionParent[rootA] = rootB;
+    }
+
     #endregion
-    
-    #region 타일 변경 처리
-    
-    /// <summary>
-    /// 타일이 변경되었을 때 호출 (OnTileChanged 이벤트)
-    /// </summary>
-    public void OnTileChanged(Vector2Int tilePos)
-    {
-        // 해당 타일이 속한 청크와 주변 청크를 더티로 마킹
-        Vector2Int chunkCoord = GetChunkCoord(tilePos);
-        
-        // 중심 청크
-        MarkChunkDirty(chunkCoord);
-        
-        // 주변 8방향 청크 (경계에 있을 수 있으므로)
-        for (int dx = -1; dx <= 1; dx++)
-        {
-            for (int dy = -1; dy <= 1; dy++)
-            {
-                if (dx == 0 && dy == 0) continue;
-                MarkChunkDirty(chunkCoord + new Vector2Int(dx, dy));
-            }
-        }
-    }
-    
-    /// <summary>
-    /// 여러 타일이 변경되었을 때 호출
-    /// </summary>
-    public void OnTilesChanged(IEnumerable<Vector2Int> tilePositions)
-    {
-        foreach (var pos in tilePositions)
-        {
-            OnTileChanged(pos);
-        }
-    }
-    
-    private void MarkChunkDirty(Vector2Int chunkCoord)
-    {
-        if (chunkCoord.x < 0 || chunkCoord.y < 0)
-            return;
-        
-        int maxChunkX = Mathf.CeilToInt((float)GameMap.MAP_WIDTH / CHUNK_SIZE);
-        int maxChunkY = Mathf.CeilToInt((float)GameMap.MAP_HEIGHT / CHUNK_SIZE);
-        
-        if (chunkCoord.x >= maxChunkX || chunkCoord.y >= maxChunkY)
-            return;
-        
-        dirtyChunks.Add(chunkCoord);
-    }
-    
-    /// <summary>
-    /// 더티 청크들을 갱신합니다.
-    /// 매 프레임 또는 필요할 때 호출
-    /// </summary>
-    public void UpdateDirtyChunks()
-    {
-        if (dirtyChunks.Count == 0)
-            return;
-        
-        foreach (var chunkCoord in dirtyChunks)
-        {
-            BuildChunk(chunkCoord);
-            OnReachabilityChanged?.Invoke(chunkCoord);
-        }
-        
-        Debug.Log($"[ReachabilityMap] {dirtyChunks.Count}개 청크 갱신");
-        dirtyChunks.Clear();
-    }
-    
-    /// <summary>
-    /// 즉시 갱신이 필요한 경우 (작업 할당 직전 등)
-    /// </summary>
-    public void ForceUpdate()
-    {
-        UpdateDirtyChunks();
-    }
-    
-    #endregion
-    
-    #region 도달 가능성 쿼리
-    
-    /// <summary>
-    /// 시작점에서 목표점까지 도달 가능한지 확인
-    /// </summary>
+
+    #region 도달 가능성 질의
+
+    /// <summary>from에서 to로 도달할 <b>가능성이 있는지</b> 확인합니다 (구역 제한 없음).</summary>
     public bool IsReachable(Vector2Int from, Vector2Int to)
-    {
-        // 더티 청크가 있으면 먼저 갱신
-        if (dirtyChunks.Count > 0)
-        {
-            ForceUpdate();
-        }
-        
-        // 같은 위치면 true
-        if (from == to)
-            return true;
-        
-        // 목표 위치에 서 있을 수 있는지 먼저 확인
-        Vector2Int toChunk = GetChunkCoord(to);
-        if (!chunkReachableNodes.ContainsKey(toChunk))
-            return false;
-        
-        if (!chunkReachableNodes[toChunk].Contains(to))
-            return false;
-        
-        // 시작 위치가 유효한지
-        Vector2Int fromChunk = GetChunkCoord(from);
-        if (!chunkReachableNodes.ContainsKey(fromChunk))
-            return false;
-        
-        if (!chunkReachableNodes[fromChunk].Contains(from))
-            return false;
-        
-        // 실제 경로 존재 여부는 Pathfinder에 위임
-        // (청크 연결성으로 빠른 필터링 가능하지만, 정확도를 위해 Pathfinder 사용)
-        return true;
-    }
-    
+        => IsReachable(from, to, null);
+
     /// <summary>
-    /// 특정 위치에서 도달 가능한 모든 작업 가능 위치 반환
+    /// from에서 to로 도달할 <b>가능성이 있는지</b> A* 없이 확인합니다.
+    ///
+    /// false면 경로가 확실히 없습니다 — A*를 돌리지 마세요.
+    /// true는 "성분이 같다"는 뜻일 뿐 경로를 보장하지 않습니다. 실제 경로는 A*가 판단합니다.
+    ///
+    /// 판정할 수 없는 상황(라벨 없는 타일, 구역 한정 경로)에서는
+    /// 안전하게 true를 반환해 A*로 넘깁니다.
     /// </summary>
-    public List<Vector2Int> GetReachableWorkPositions(Vector2Int from, Vector2Int targetTile)
+    public bool IsReachable(Vector2Int from, Vector2Int to, PathOptions options)
     {
-        List<Vector2Int> result = new List<Vector2Int>();
-        
-        // 타겟 주변 작업 가능 위치들
-        for (int dx = -1; dx <= 1; dx++)
-        {
-            for (int dy = -3; dy <= 1; dy++)
-            {
-                Vector2Int candidate = new Vector2Int(targetTile.x + dx, targetTile.y + dy);
-                
-                if (candidate == targetTile)
-                    continue;
-                
-                if (IsReachable(from, candidate))
-                {
-                    result.Add(candidate);
-                }
-            }
-        }
-        
-        return result;
+        // 구역 한정 경로는 직원마다 달라 미리 라벨링할 수 없다 → A*에 위임
+        if (options != null && options.allowedZoneIds != null) return true;
+
+        EnsureBuilt();
+
+        if (!InBounds(from) || !InBounds(to)) return true;
+
+        int fromLabel = component[Index(from.x, from.y)];
+        int toLabel   = component[Index(to.x, to.y)];
+
+        // 어느 한쪽이라도 라벨이 없으면 판정을 포기한다.
+        //   - 출발지 미라벨: 직원이 비정상 위치(공중 등)에 있는 경우
+        //   - 목적지 미라벨: A*가 FindNearestValidPosition으로 근처 유효 타일에 스냅할 수 있다
+        if (fromLabel == NO_COMPONENT || toLabel == NO_COMPONENT) return true;
+
+        return fromLabel == toLabel;
     }
-    
-    /// <summary>
-    /// 특정 위치에 서 있을 수 있는지 빠르게 확인
-    /// </summary>
+
+    /// <summary>특정 위치에 서 있을 수 있는지 확인합니다.</summary>
     public bool CanStandAtPosition(Vector2Int pos)
     {
-        Vector2Int chunkCoord = GetChunkCoord(pos);
-        
-        if (!chunkReachableNodes.ContainsKey(chunkCoord))
-            return false;
-        
-        return chunkReachableNodes[chunkCoord].Contains(pos);
+        EnsureBuilt();
+        if (!InBounds(pos)) return false;
+        return component[Index(pos.x, pos.y)] != NO_COMPONENT;
     }
-    
+
     #endregion
-    
+
     #region 유틸리티
-    
-    private Vector2Int GetChunkCoord(Vector2Int worldPos)
+
+    private static int Index(int x, int y) => y * GameMap.MAP_WIDTH + x;
+
+    private static bool InBounds(Vector2Int pos)
+        => pos.x >= 0 && pos.x < GameMap.MAP_WIDTH &&
+           pos.y >= 0 && pos.y < GameMap.MAP_HEIGHT;
+
+    /// <summary>디버그: 두 지점의 성분 번호를 출력합니다.</summary>
+    public void DebugPrintComponents(Vector2Int from, Vector2Int to)
     {
-        return new Vector2Int(
-            worldPos.x / CHUNK_SIZE,
-            worldPos.y / CHUNK_SIZE
-        );
+        EnsureBuilt();
+        if (!InBounds(from) || !InBounds(to)) { Debug.Log("[ReachabilityMap] 범위 밖"); return; }
+
+        Debug.Log($"[ReachabilityMap] {from} -> {to} | " +
+                  $"성분 {component[Index(from.x, from.y)]} vs {component[Index(to.x, to.y)]}");
     }
-    
-    /// <summary>
-    /// 디버그: 청크 정보 출력
-    /// </summary>
-    public void DebugPrintChunkInfo(Vector2Int chunkCoord)
-    {
-        if (!chunkReachableNodes.ContainsKey(chunkCoord))
-        {
-            Debug.Log($"[ReachabilityMap] 청크 {chunkCoord}: 데이터 없음");
-            return;
-        }
-        
-        var nodes = chunkReachableNodes[chunkCoord];
-        Debug.Log($"[ReachabilityMap] 청크 {chunkCoord}: {nodes.Count}개 노드");
-    }
-    
+
     #endregion
 }
