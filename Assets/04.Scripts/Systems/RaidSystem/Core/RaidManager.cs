@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
+using Cysharp.Threading.Tasks;
 
 /// <summary>
 /// 레이드 시스템 매니저.
@@ -49,7 +50,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// <summary>이번 레이드에서 스폰된 제놉스 목록</summary>
     private readonly List<Xenops> spawnedEntities = new List<Xenops>();
 
-    private Coroutine activeRaidCoroutine;
+    /// <summary>진행 중인 레이드 비동기 작업의 취소원 (한 번에 하나만)</summary>
+    private CancellationTokenSource raidCts;
 
     #endregion
 
@@ -117,7 +119,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // InProgress 상태로 저장됐다면 감시 재시작
         if (currentState == RaidState.InProgress && activeRaid != null)
         {
-            activeRaidCoroutine = StartCoroutine(MonitorRaidCompletion());
+            MonitorRaidCompletionAsync(RestartRaidTask()).Forget();
         }
     }
 
@@ -167,10 +169,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         if (showDebugLogs)
             Debug.Log($"[RaidManager] 레이드 시작: {raid.raidName} (배수 {activeMultiplier:F2}, 위치 {raid.spawnLocation})");
 
-        if (activeRaidCoroutine != null)
-            StopCoroutine(activeRaidCoroutine);
-
-        activeRaidCoroutine = StartCoroutine(RunRaid(raid));
+        RunRaidAsync(raid, RestartRaidTask()).Forget();
     }
 
     /// <summary>
@@ -178,11 +177,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// </summary>
     public void ForceEndRaid()
     {
-        if (activeRaidCoroutine != null)
-        {
-            StopCoroutine(activeRaidCoroutine);
-            activeRaidCoroutine = null;
-        }
+        CancelRaidTask();
         CompleteRaid();
     }
 
@@ -202,14 +197,40 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     #endregion
 
-    #region 레이드 코루틴
+    #region 레이드 비동기 진행
 
-    private IEnumerator RunRaid(RaidData raid)
+    /// <summary>
+    /// 진행 중인 레이드 작업을 끊고 새 취소 토큰을 발급합니다.
+    /// 오브젝트가 파괴되면 함께 취소되도록 파괴 토큰에 묶습니다.
+    /// </summary>
+    private CancellationToken RestartRaidTask()
+    {
+        CancelRaidTask();
+        raidCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+        return raidCts.Token;
+    }
+
+    /// <summary>진행 중인 레이드 작업을 취소합니다.</summary>
+    private void CancelRaidTask()
+    {
+        if (raidCts == null) return;
+
+        raidCts.Cancel();
+        raidCts.Dispose();
+        raidCts = null;
+    }
+
+    private void OnDestroy()
+    {
+        CancelRaidTask();
+    }
+
+    private async UniTaskVoid RunRaidAsync(RaidData raid, CancellationToken ct)
     {
         // 접근 연출
         currentState = RaidState.Approaching;
         if (showDebugLogs) Debug.Log($"[RaidManager] {raid.raidName} 접근 중... ({raid.approachDuration}초)");
-        yield return new WaitForSeconds(raid.approachDuration);
+        await UniTask.Delay(TimeSpan.FromSeconds(raid.approachDuration), cancellationToken: ct);
 
         // 레이드 시작
         currentState = RaidState.InProgress;
@@ -232,21 +253,21 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             var wave = raid.waves[i];
 
             if (showDebugLogs) Debug.Log($"[RaidManager] 웨이브 {i + 1}/{raid.waves.Count} 대기 ({wave.delayBeforeWave}초)");
-            yield return new WaitForSeconds(wave.delayBeforeWave);
+            await UniTask.Delay(TimeSpan.FromSeconds(wave.delayBeforeWave), cancellationToken: ct);
 
             GameMessageBus.Publish(new RaidWaveStartedMessage(i));
-            yield return StartCoroutine(SpawnWave(wave));
+            await SpawnWaveAsync(wave, ct);
         }
 
         // 전멸 또는 철수 대기
         if (raid.retreatDelay > 0f)
-            yield return new WaitForSeconds(raid.retreatDelay);
+            await UniTask.Delay(TimeSpan.FromSeconds(raid.retreatDelay), cancellationToken: ct);
 
         // 모든 웨이브 소진 후 전멸 대기 모니터링
-        yield return StartCoroutine(MonitorRaidCompletion());
+        await MonitorRaidCompletionAsync(ct);
     }
 
-    private IEnumerator SpawnWave(RaidWave wave)
+    private async UniTask SpawnWaveAsync(RaidWave wave, CancellationToken ct)
     {
         foreach (var entry in wave.entries)
         {
@@ -258,19 +279,19 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
                 SpawnRaidXenops(entry);
 
                 if (entry.spawnInterval > 0f)
-                    yield return new WaitForSeconds(entry.spawnInterval);
+                    await UniTask.Delay(TimeSpan.FromSeconds(entry.spawnInterval), cancellationToken: ct);
             }
         }
     }
 
-    private IEnumerator MonitorRaidCompletion()
+    private async UniTask MonitorRaidCompletionAsync(CancellationToken ct)
     {
         // 모든 스폰 개체가 제거될 때까지 대기
         while (true)
         {
             spawnedEntities.RemoveAll(x => x == null);
             if (spawnedEntities.Count == 0) break;
-            yield return new WaitForSeconds(1f);
+            await UniTask.Delay(TimeSpan.FromSeconds(1f), cancellationToken: ct);
         }
 
         CompleteRaid();

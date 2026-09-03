@@ -1,7 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 
 [RequireComponent(typeof(Collider2D))]
 public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver, IBuildingExtraSerializable
@@ -31,7 +32,8 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
     private CraftingRecipe _currentRecipe;
     private float _craftingProgress = 0f;
     private GameObject _progressBarInstance;
-    private Coroutine _currentCraftingCoroutine;
+    /// <summary>진행 중인 제작 작업의 취소원 (null이면 제작 중 아님)</summary>
+    private CancellationTokenSource _craftingCts;
 
     // ── 자재 운반(출고) 상태 ──────────────────────────────────────────────
     /// <summary>InventoryManager 예약 ID (자재 잠금, 다른 작업이 가져가지 못하게)</summary>
@@ -62,9 +64,9 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
         }
 
         // 진행 중인 제작 취소
-        if (_currentCraftingCoroutine != null)
+        if (_craftingCts != null)
         {
-            StopCoroutine(_currentCraftingCoroutine);
+            CancelCraftingTask();
             RefundMaterials();
         }
 
@@ -216,7 +218,7 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
         Debug.Log($"[CraftingTable] 자재 운반 요청 생성: {recipe.outputItem.itemName} ({_pendingMaterials.Count}종)");
     }
 
-    /// <summary>모든 자재가 도착한 후 호출되어 실제 제작 코루틴을 시작합니다.</summary>
+    /// <summary>모든 자재가 도착한 후 호출되어 실제 제작을 시작합니다.</summary>
     private void StartActualCrafting()
     {
         if (_currentRecipe == null) return;
@@ -240,8 +242,9 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
         _isAwaitingMaterials = false;
         _deliveredMaterials.Clear(); // 정상 제작 진행 → 도착 자재는 "소비"된 것으로 간주, 환불 불필요
 
-        // 실제 제작 코루틴 시작
-        _currentCraftingCoroutine = StartCoroutine(CraftingCoroutine(_currentRecipe));
+        // 실제 제작 시작
+        Debug.Log($"[CraftingTable] '{_currentRecipe.outputItem.itemName}' 제작 시작... ({_currentRecipe.craftingTime}초)");
+        CraftAsync(_currentRecipe, 0f, RestartCraftingTask()).Forget();
 
         PlaySound(craftingStartSound);
     }
@@ -440,7 +443,7 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
             _isCrafting = true;
             _craftingProgress = data.craftingProgress;
             _isAwaitingMaterials = false;
-            _currentCraftingCoroutine = StartCoroutine(ResumeCraftingCoroutine(recipe, data.craftingProgress));
+            CraftAsync(recipe, data.craftingProgress, RestartCraftingTask()).Forget();
         }
         else if (data.isAwaitingMaterials)
         {
@@ -482,12 +485,38 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
         Debug.Log($"[CraftingTable] 자재 운반 재개 ({_pendingMaterials.Count}종)");
     }
 
-    /// <summary>저장 시점의 진행도부터 제작을 이어가는 코루틴.</summary>
-    private IEnumerator ResumeCraftingCoroutine(CraftingRecipe recipe, float startProgress)
+    /// <summary>
+    /// 진행 중인 제작을 끊고 새 취소 토큰을 발급합니다.
+    /// 작업대가 파괴되면 함께 취소되도록 파괴 토큰에 묶습니다.
+    /// </summary>
+    private CancellationToken RestartCraftingTask()
+    {
+        CancelCraftingTask();
+        _craftingCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+        return _craftingCts.Token;
+    }
+
+    /// <summary>진행 중인 제작 작업을 취소합니다.</summary>
+    private void CancelCraftingTask()
+    {
+        if (_craftingCts == null) return;
+
+        _craftingCts.Cancel();
+        _craftingCts.Dispose();
+        _craftingCts = null;
+    }
+
+    /// <summary>
+    /// 진행도 <paramref name="startProgress"/>(0~1)부터 제작을 진행합니다.
+    /// 세이브 복원 시 중간 진행도부터 이어가는 경로도 이 메서드를 씁니다.
+    /// 정전 중에는 진행이 멈추고, 전력이 복구되면 이어서 진행합니다.
+    /// </summary>
+    private async UniTaskVoid CraftAsync(CraftingRecipe recipe, float startProgress, CancellationToken ct)
     {
         _isCrafting = true;
         _craftingProgress = Mathf.Clamp01(startProgress);
 
+        // 진행 바 생성
         if (progressBarPrefab != null && _progressBarInstance == null)
         {
             _progressBarInstance = Instantiate(progressBarPrefab, transform.position + progressBarOffset, Quaternion.identity, transform);
@@ -500,40 +529,7 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
             // 정전 시 진행 정지 (전력 복구 시 이어서 진행)
             if (powerConsumer != null && !powerConsumer.IsPowered)
             {
-                yield return null;
-                continue;
-            }
-
-            elapsedTime += Time.deltaTime;
-            _craftingProgress = elapsedTime / recipe.craftingTime;
-            UpdateProgressBar(_craftingProgress);
-            yield return null;
-        }
-
-        CompleteCrafting(recipe);
-    }
-    
-    private IEnumerator CraftingCoroutine(CraftingRecipe recipe)
-    {
-        _isCrafting = true;
-        _craftingProgress = 0f;
-        
-        Debug.Log($"[CraftingTable] '{recipe.outputItem.itemName}' 제작 시작... ({recipe.craftingTime}초)");
-        
-        // 진행 바 생성
-        if (progressBarPrefab != null && _progressBarInstance == null)
-        {
-            _progressBarInstance = Instantiate(progressBarPrefab, transform.position + progressBarOffset, Quaternion.identity, transform);
-        }
-        
-        float elapsedTime = 0f;
-        var powerConsumer = GetComponent<PowerConsumer>();
-        while (elapsedTime < recipe.craftingTime)
-        {
-            // 정전 시 진행 정지 (전력 복구 시 이어서 진행)
-            if (powerConsumer != null && !powerConsumer.IsPowered)
-            {
-                yield return null;
+                await UniTask.Yield(GameLoop.Frame, ct);
                 continue;
             }
 
@@ -543,9 +539,9 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
             // 진행 바 업데이트
             UpdateProgressBar(_craftingProgress);
 
-            yield return null;
+            await UniTask.Yield(GameLoop.Frame, ct);
         }
-        
+
         // 제작 완료
         CompleteCrafting(recipe);
     }
@@ -577,11 +573,11 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
             return;
         }
 
-        if (!_isCrafting || _currentCraftingCoroutine == null) return;
+        if (!_isCrafting || _craftingCts == null) return;
 
         Debug.Log("[CraftingTable] 제작 취소됨");
 
-        StopCoroutine(_currentCraftingCoroutine);
+        CancelCraftingTask();
         RefundMaterials();
         ResetCraftingState();
     }
@@ -604,7 +600,7 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
         _isCrafting = false;
         _currentRecipe = null;
         _craftingProgress = 0f;
-        _currentCraftingCoroutine = null;
+        CancelCraftingTask();
         
         // 진행 바 제거
         if (_progressBarInstance != null)

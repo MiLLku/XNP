@@ -5,7 +5,7 @@ using UnityEngine;
 /// 사용처(작업대·건설현장 등)의 자재 요청을 받아 Stockpile에서 꺼내 운반하는 작업.
 ///
 /// 실제 실행(Stockpile 이동→출고→사용처 운반→인계)은
-/// EmployeeWork의 WithdrawWorkCoroutine이 처리합니다.
+/// EmployeeWork의 WithdrawWorkAsync가 처리합니다.
 ///
 /// WorkType은 Hauling을 재사용(입고와 같은 운반 카테고리).
 /// 직원의 우선순위/자격은 한 곳에서 일괄 관리됩니다.
@@ -42,7 +42,7 @@ public class WithdrawOrder : IWorkTarget
 
     /// <summary>
     /// 작업 목표 위치 — 사용처 위치 반환(직원이 최종적으로 도달해야 할 곳).
-    /// 단, WithdrawWorkCoroutine은 Stockpile부터 먼저 들르므로 이 값은 참고용입니다.
+    /// 단, WithdrawWorkAsync는 Stockpile부터 먼저 들르므로 이 값은 참고용입니다.
     /// </summary>
     public Vector3 GetWorkPosition()
     {
@@ -73,7 +73,7 @@ public class WithdrawOrder : IWorkTarget
     }
 
     /// <summary>
-    /// EmployeeWork의 WithdrawWorkCoroutine이 인계 완료 후 직접 호출합니다.
+    /// EmployeeWork의 WithdrawWorkAsync가 인계 완료 후 직접 호출합니다.
     /// </summary>
     public void CompleteWork(Employee worker)
     {
@@ -83,7 +83,7 @@ public class WithdrawOrder : IWorkTarget
 
     /// <summary>
     /// 작업 취소 시 호출. 직원이 자재를 들고 있지 않은 단계에서 호출되므로 받은 자재 환불 불필요.
-    /// 코루틴 내부에서 출고 후 취소되는 경우는 별도 처리.
+    /// 작업 내부에서 출고 후 취소되는 경우는 별도 처리.
     /// </summary>
     public void CancelWork(Employee worker)
     {

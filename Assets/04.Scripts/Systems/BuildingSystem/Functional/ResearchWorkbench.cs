@@ -55,7 +55,7 @@ public class ResearchWorkbench : MonoBehaviour, IBuildingFunction
 
     /// <summary>
     /// 작업 가능 여부 확인.
-    /// EmployeeWork의 ResearchWorkCoroutine에서 매 프레임 체크합니다.
+    /// EmployeeWork의 ResearchWorkAsync에서 매 프레임 체크합니다.
     /// </summary>
     public bool IsWorkAvailable()
     {
@@ -196,7 +196,7 @@ public class ResearchWorkbench : MonoBehaviour, IBuildingFunction
     }
 
     /// <summary>
-    /// 연구를 시작합니다. 직원을 작업 위치로 이동시키고 연구 코루틴을 시작합니다.
+    /// 연구를 시작합니다. 직원을 작업 위치로 이동시키고 연구 작업을 시작합니다.
     /// </summary>
     /// <param name="worker">연구를 수행할 직원</param>
     public void StartResearch(Employee worker)
@@ -242,7 +242,7 @@ public class ResearchWorkbench : MonoBehaviour, IBuildingFunction
     }
 
     /// <summary>
-    /// EmployeeWork의 연구 코루틴에서 매 프레임 호출됩니다.
+    /// EmployeeWork의 연구 작업에서 매 프레임 호출됩니다.
     /// 직원의 researchSpeed를 반영한 포인트를 ResearchManager에 추가합니다.
     /// </summary>
     /// <param name="speedMultiplier">직원의 최종 연구 속도 배율</param>
@@ -260,8 +260,8 @@ public class ResearchWorkbench : MonoBehaviour, IBuildingFunction
     }
 
     /// <summary>
-    /// 직원이 연구를 떠났을 때 EmployeeWork 코루틴에서 호출됩니다.
-    /// (코루틴 자연 종료 또는 CancelWork() 시)
+    /// 직원이 연구를 떠났을 때 EmployeeWork에서 호출됩니다.
+    /// (연구 작업 자연 종료 또는 CancelWork() 시)
     /// </summary>
     public void OnWorkerLeft()
     {

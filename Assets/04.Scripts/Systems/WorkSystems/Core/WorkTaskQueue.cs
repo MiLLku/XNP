@@ -414,7 +414,7 @@ public class WorkTaskQueue
     /// 외부에서 특정 task를 직원에게 직접 예약합니다 (multi-pickup 같은 특수 케이스).
     /// pendingTasks에 있는 task만 예약 가능하며, 성공 시 assignedTasks로 이동합니다.
     /// WorkSystemManager의 employeeToTaskMap에는 등록되지 않으므로
-    /// 호출한 코루틴이 직접 CompleteTask 또는 CancelTask를 호출해야 합니다.
+    /// 호출한 작업 흐름이 직접 CompleteTask 또는 CancelTask를 호출해야 합니다.
     /// </summary>
     public bool TryReserveForWorker(WorkTask task, Employee worker)
     {

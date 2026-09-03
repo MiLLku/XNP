@@ -1,9 +1,10 @@
 using System;
 using System.IO;
-using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 
 /// <summary>
 /// 게임 저장/로드 오케스트레이터.
@@ -219,7 +220,7 @@ public class SaveManager : DontDestroySingleton<SaveManager>
             }
 
             _isLoading = true;
-            StartCoroutine(LoadSequence(data));
+            LoadSequenceAsync(data, this.GetCancellationTokenOnDestroy()).Forget();
             return true;
         }
         catch (Exception e)
@@ -307,7 +308,7 @@ public class SaveManager : DontDestroySingleton<SaveManager>
 
     #region 로드 시퀀스
 
-    private IEnumerator LoadSequence(SaveData data)
+    private async UniTaskVoid LoadSequenceAsync(SaveData data, CancellationToken ct)
     {
         if (showDebugLogs)
         {
@@ -333,10 +334,10 @@ public class SaveManager : DontDestroySingleton<SaveManager>
         {
             Debug.LogError($"[SaveManager] 로드 초기화 실패: {e.Message}\n{e.StackTrace}");
             _isLoading = false;
-            yield break;
+            return;
         }
 
-        yield return null;
+        await UniTask.NextFrame(ct);
 
         // 3. ID 카운터 복원 + 플레이 타임 복원
         _nextInstanceId = data.nextInstanceId;
@@ -360,7 +361,7 @@ public class SaveManager : DontDestroySingleton<SaveManager>
                 Debug.LogError($"[SaveManager] 모듈 복원 실패 ({module.GetType().Name}): {e.Message}\n{e.StackTrace}");
             }
 
-            yield return null;
+            await UniTask.NextFrame(ct);
         }
 
         // 5. 모든 모듈의 PostRestore() 호출 (크로스레퍼런스 연결)

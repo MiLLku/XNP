@@ -1,7 +1,8 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEngine;
+using Cysharp.Threading.Tasks;
 
 /// <summary>
 /// 타일 기반 길찾기와 이동을 지원하는 직원 이동 컨트롤러.
@@ -83,8 +84,8 @@ public class EmployeeMovement : MonoBehaviour
     /// <summary>이동 실패 콜백</summary>
     private Action onMoveFailed;
 
-    /// <summary>이동 코루틴 참조</summary>
-    private Coroutine moveCoroutine;
+    /// <summary>진행 중인 이동 작업의 취소원 (null이면 이동 작업 없음)</summary>
+    private CancellationTokenSource moveCts;
 
     /// <summary>현재 경로 (타일 좌표 목록)</summary>
     private List<Vector2Int> currentPath;
@@ -196,10 +197,12 @@ public class EmployeeMovement : MonoBehaviour
     }
 
     /// <summary>
-    /// 직원 제거 시 등록한 시야를 해제합니다 (안개 복구).
+    /// 직원 제거 시 등록한 시야를 해제하고 진행 중인 이동 작업을 정리합니다.
     /// </summary>
     private void OnDestroy()
     {
+        CancelMoveTask();
+
         if (_hasSightCenter)
             FogOfWarManager.instance?.RemoveEmployeeSight(_lastSightCenter);
     }
@@ -324,11 +327,7 @@ public class EmployeeMovement : MonoBehaviour
     /// </summary>
     private void StopMovingForFall()
     {
-        if (moveCoroutine != null)
-        {
-            StopCoroutine(moveCoroutine);
-            moveCoroutine = null;
-        }
+        CancelMoveTask();
 
         isMoving   = false;
         isClimbing = false;
@@ -472,7 +471,7 @@ public class EmployeeMovement : MonoBehaviour
 
         Vector2Int footTile = GetFootTile();
 
-        // 낙하 착지 후 시야 갱신 (직원이 코루틴 없이 떨어진 경우 커버)
+        // 낙하 착지 후 시야 갱신 (직원이 이동 작업 없이 떨어진 경우 커버)
         var fog = FogOfWarManager.instance;
         if (fog != null)
         {
@@ -587,14 +586,35 @@ public class EmployeeMovement : MonoBehaviour
             }
         }
 
-        moveCoroutine = StartCoroutine(FollowPathCoroutine());
+        FollowPathAsync(RestartMoveTask()).Forget();
     }
 
     /// <summary>
-    /// 경로를 따라 이동하는 코루틴.
+    /// 진행 중인 이동을 끊고 새 취소 토큰을 발급합니다.
+    /// 직원이 파괴되면 함께 취소되도록 파괴 토큰에 묶습니다.
+    /// </summary>
+    private CancellationToken RestartMoveTask()
+    {
+        CancelMoveTask();
+        moveCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+        return moveCts.Token;
+    }
+
+    /// <summary>진행 중인 이동 작업을 취소합니다.</summary>
+    private void CancelMoveTask()
+    {
+        if (moveCts == null) return;
+
+        moveCts.Cancel();
+        moveCts.Dispose();
+        moveCts = null;
+    }
+
+    /// <summary>
+    /// 경로를 따라 이동합니다.
     /// 타일 진입 전마다 GameMap.NavVersion을 확인해 지형 변화 시 즉시 재탐색합니다.
     /// </summary>
-    private IEnumerator FollowPathCoroutine()
+    private async UniTaskVoid FollowPathAsync(CancellationToken ct)
     {
         EnablePhysicsForMovement(false);
         lastNavVersion = gameMap?.NavVersion ?? lastNavVersion;
@@ -634,7 +654,7 @@ public class EmployeeMovement : MonoBehaviour
                         onMoveFailed       = null;
 
                         failCb?.Invoke();
-                        yield break;
+                        return;
                     }
 
                     currentPath      = newPath;
@@ -674,7 +694,7 @@ public class EmployeeMovement : MonoBehaviour
                     onReachDestination = null;
                     onMoveFailed       = null;
                     failCb?.Invoke();
-                    yield break;
+                    return;
                 }
 
                 if (!doorAtNext.IsPassable)
@@ -684,14 +704,14 @@ public class EmployeeMovement : MonoBehaviour
                     if (showDebugLogs)
                         Debug.Log($"[EmployeeMovement] 문 열리는 중 대기: {nextTile}");
 
-                    yield return new WaitUntil(() => doorAtNext.IsPassable || !isMoving);
+                    await UniTask.WaitUntil(() => doorAtNext.IsPassable || !isMoving, GameLoop.Frame, ct);
 
-                    if (!isMoving) yield break; // 대기 중 이동이 외부에서 중단된 경우
+                    if (!isMoving) return; // 대기 중 이동이 외부에서 중단된 경우
                 }
             }
             // ─────────────────────────────────────────────────────────────────────
 
-            yield return MoveToTileCoroutine(nextTile, heightDiff);
+            await MoveToTileAsync(nextTile, heightDiff, ct);
 
             // 문 통과 완료 → 요청 카운터 감소
             doorAtNext?.ReleaseOpen();
@@ -701,7 +721,7 @@ public class EmployeeMovement : MonoBehaviour
 
         if (isMoving && Vector3.Distance(transform.position, targetPosition) > stoppingDistance)
         {
-            yield return MoveToPositionCoroutine(targetPosition);
+            await MoveToPositionAsync(targetPosition, ct);
         }
 
         EnablePhysicsForMovement(true);
@@ -710,12 +730,13 @@ public class EmployeeMovement : MonoBehaviour
     }
 
     /// <summary>
-    /// 단일 타일로 Lerp 이동하는 코루틴.
+    /// 단일 타일로 Lerp 이동합니다.
     /// 높이차가 클수록 이동 속도가 감소합니다.
     /// </summary>
     /// <param name="targetTile">목표 타일</param>
     /// <param name="heightDiff">높이차</param>
-    private IEnumerator MoveToTileCoroutine(Vector2Int targetTile, int heightDiff)
+    /// <param name="ct">이동 취소 토큰</param>
+    private async UniTask MoveToTileAsync(Vector2Int targetTile, int heightDiff, CancellationToken ct)
     {
         Vector3 startPos = transform.position;
         Vector3 endPos = TileToWorld(targetTile);
@@ -743,7 +764,7 @@ public class EmployeeMovement : MonoBehaviour
 
         while (Vector3.Distance(transform.position, endPos) > stoppingDistance)
         {
-            if (!isMoving) yield break;
+            if (!isMoving) return;
 
             float distCovered = (Time.time - startTime) * actualSpeed;
             float fractionOfJourney = distCovered / journeyLength;
@@ -752,7 +773,7 @@ public class EmployeeMovement : MonoBehaviour
             transform.position = newPos;
             UpdateSpriteDirection(endPos.x - startPos.x);
 
-            yield return null;
+            await UniTask.Yield(GameLoop.Frame, ct);
         }
 
         transform.position = endPos;
@@ -778,11 +799,12 @@ public class EmployeeMovement : MonoBehaviour
     }
 
     /// <summary>
-    /// 특정 월드 좌표로 직접 Lerp 이동하는 코루틴.
+    /// 특정 월드 좌표로 직접 Lerp 이동합니다.
     /// 경로의 마지막 지점에서 정확한 목표 위치까지 미세 조정할 때 사용합니다.
     /// </summary>
     /// <param name="targetPos">목표 월드 좌표</param>
-    private IEnumerator MoveToPositionCoroutine(Vector3 targetPos)
+    /// <param name="ct">이동 취소 토큰</param>
+    private async UniTask MoveToPositionAsync(Vector3 targetPos, CancellationToken ct)
     {
         Vector3 startPos = transform.position;
         float journeyLength = Vector3.Distance(startPos, targetPos);
@@ -790,7 +812,7 @@ public class EmployeeMovement : MonoBehaviour
 
         while (Vector3.Distance(transform.position, targetPos) > stoppingDistance)
         {
-            if (!isMoving) yield break;
+            if (!isMoving) return;
 
             float distCovered = (Time.time - startTime) * tileTransitionSpeed;
             float fractionOfJourney = distCovered / journeyLength;
@@ -798,7 +820,7 @@ public class EmployeeMovement : MonoBehaviour
             transform.position = Vector3.Lerp(startPos, targetPos, fractionOfJourney);
             UpdateSpriteDirection(targetPos.x - startPos.x);
 
-            yield return null;
+            await UniTask.Yield(GameLoop.Frame, ct);
         }
 
         transform.position = targetPos;
@@ -862,15 +884,11 @@ public class EmployeeMovement : MonoBehaviour
 
     /// <summary>
     /// 이동을 즉시 중지합니다.
-    /// 코루틴 중지, 상태 초기화, 물리 복원을 수행합니다.
+    /// 이동 작업 취소, 상태 초기화, 물리 복원을 수행합니다.
     /// </summary>
     public void StopMoving()
     {
-        if (moveCoroutine != null)
-        {
-            StopCoroutine(moveCoroutine);
-            moveCoroutine = null;
-        }
+        CancelMoveTask();
 
         isMoving  = false;
         isClimbing = false;

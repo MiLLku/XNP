@@ -4,7 +4,7 @@ using UnityEngine;
 /// 운반 작업 명령.
 /// 바닥의 DroppedItem을 창고(Stockpile)까지 운반하는 작업을 나타냅니다.
 ///
-/// 실제 실행(픽업→이동→배달)은 EmployeeWork의 HaulWorkCoroutine이 처리합니다.
+/// 실제 실행(픽업→이동→배달)은 EmployeeWork의 HaulWorkAsync가 처리합니다.
 /// 이 클래스는 작업 대상 정보(아이템 위치 등)만 담습니다.
 /// </summary>
 [System.Serializable]
@@ -58,13 +58,13 @@ public class HaulOrder : IWorkTarget
     public bool IsWorkAvailable() => !completed && item != null && item.gameObject != null && item.isActiveAndEnabled;
 
     /// <summary>
-    /// EmployeeWork의 HaulWorkCoroutine이 픽업 완료 후 직접 호출합니다.
-    /// 일반 PerformWork 코루틴에서는 호출되지 않습니다.
+    /// EmployeeWork의 HaulWorkAsync가 픽업 완료 후 직접 호출합니다.
+    /// 일반 PerformWorkAsync에서는 호출되지 않습니다.
     /// </summary>
     public void CompleteWork(Employee worker)
     {
         completed = true;
-        // 아이템 제거는 HaulWorkCoroutine에서 처리
+        // 아이템 제거는 HaulWorkAsync에서 처리
     }
 
     public void CancelWork(Employee worker)

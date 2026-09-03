@@ -92,7 +92,7 @@ public class PowerProducer : MonoBehaviour, IPowerNode, IBuildingExtraSerializab
         var pm = PowerManager.instance;
         if (pm != null) pm.UnregisterProducer(this);
 
-        // 보급 대기 중 파괴되면 예약·운반 작업 정리 (운반 중 자재는 코루틴이 환불 처리)
+        // 보급 대기 중 파괴되면 예약·운반 작업 정리 (운반 중 자재는 운반 작업이 환불 처리)
         ClearRefuelRequest(removeOrderAsCancellation: true);
     }
 

@@ -1,8 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UnityEngine;
+using Cysharp.Threading.Tasks;
 
 /// <summary>
 /// 직원 행동 결정기.
@@ -104,8 +105,9 @@ public class EmployeeAI : MonoBehaviour
     /// <summary>자유 시간 욕구 재확인 타이머</summary>
     private float needsCheckTimer;
 
-    /// <summary>진행 중인 오락 회복 코루틴 (null = 오락 중 아님)</summary>
-    private Coroutine recreationRoutine;
+    /// <summary>진행 중인 오락 회복 루프의 취소원 (null = 오락 중 아님)</summary>
+    /// <summary>진행 중인 오락 루프의 취소원 (null이면 오락 중 아님)</summary>
+    private CancellationTokenSource recreationCts;
 
     // 컴포넌트 참조
     private Employee employee;
@@ -160,6 +162,9 @@ public class EmployeeAI : MonoBehaviour
 
     void OnDestroy()
     {
+        recreationCts?.Cancel();
+        DisposeRecreationTask();
+
         if (employee != null)
             employee.OnStateChanged -= OnEmployeeStateChanged;
     }
@@ -434,7 +439,7 @@ public class EmployeeAI : MonoBehaviour
     /// </summary>
     private void ExecuteRecreation()
     {
-        if (recreationRoutine != null) return; // 이미 오락 중
+        if (recreationCts != null) return; // 이미 오락 중
 
         // 1. 최선 시설 후보 (구역 필터 + 사용 가능 + 우선순위/거리 정렬)
         RecreationFacility bestFacility = SelectBestRecreationFacility();
@@ -521,7 +526,8 @@ public class EmployeeAI : MonoBehaviour
                 employee.SetState(EmployeeState.Idle);
                 return;
             }
-            recreationRoutine = StartCoroutine(RecreationTick(facility));
+            recreationCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+            RecreationTickAsync(facility, recreationCts.Token).Forget();
         };
         Action onFailed = OnActionFailed;
 
@@ -535,7 +541,7 @@ public class EmployeeAI : MonoBehaviour
     /// 시설 이용 루프 — 초당 재미/정신력을 회복하고,
     /// 목표치 도달·시설 사용 불가·상태 변화 시 종료합니다.
     /// </summary>
-    private IEnumerator RecreationTick(RecreationFacility facility)
+    private async UniTaskVoid RecreationTickAsync(RecreationFacility facility, CancellationToken ct)
     {
         employee.SetState(EmployeeState.Resting);
 
@@ -554,13 +560,13 @@ public class EmployeeAI : MonoBehaviour
             // 오락으로 오른 정신력은 영구적이지 않다 — 일정 시간 뒤 원래대로 돌아간다
             statsController?.ModifyMental(facility.MentalPerSecond * Time.deltaTime,
                 MentalReason.RECREATION, "오락을 즐김");
-            yield return null;
+            await UniTask.Yield(GameLoop.Frame, ct);
         }
 
         if (showDebugLogs && employee != null)
             Debug.Log($"[AI] {employee.DisplayName}: 오락 종료 (재미 {employee.Needs.fun:F0})");
 
-        recreationRoutine = null;
+        DisposeRecreationTask();
         if (employee != null && employee.State == EmployeeState.Resting)
             employee.SetState(EmployeeState.Idle);
     }
@@ -568,13 +574,20 @@ public class EmployeeAI : MonoBehaviour
     /// <summary>진행 중인 오락을 중단합니다 (활동 전환 등).</summary>
     private void StopRecreation()
     {
-        if (recreationRoutine == null) return;
+        if (recreationCts == null) return;
 
-        StopCoroutine(recreationRoutine);
-        recreationRoutine = null;
+        recreationCts.Cancel();
+        DisposeRecreationTask();
 
         if (employee != null && employee.State == EmployeeState.Resting)
             employee.SetState(EmployeeState.Idle);
+    }
+
+    /// <summary>오락 루프의 취소원을 정리합니다 (정상 종료·중단 공통).</summary>
+    private void DisposeRecreationTask()
+    {
+        recreationCts?.Dispose();
+        recreationCts = null;
     }
 
     /// <summary>약물 복용이 가능한 상태인지 (개인 소지분 또는 창고 재고).</summary>
@@ -690,7 +703,7 @@ public class EmployeeAI : MonoBehaviour
         if (freeFunCfg != null &&
             employee.Needs.fun < freeFunCfg.freeTimeFunThreshold &&
             employee.State != EmployeeState.Resting &&
-            recreationRoutine == null &&
+            recreationCts == null &&
             CanExecuteActivity(ScheduleActivity.Recreation))
         {
             ExecuteRecreation();

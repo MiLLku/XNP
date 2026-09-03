@@ -1,8 +1,9 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using UnityEngine;
+using Cysharp.Threading.Tasks;
 
 /// <summary>
 /// 직원 작업 시스템 컴포넌트.
@@ -47,14 +48,14 @@ public class EmployeeWork : MonoBehaviour
     /// <summary>현재 작업 타입</summary>
     private WorkType currentWork = WorkType.None;
 
-    /// <summary>현재 연구 중인 작업대 (연구 코루틴 종료/취소 시 알림용)</summary>
+    /// <summary>현재 연구 중인 작업대 (연구 작업 종료/취소 시 알림용)</summary>
     private ResearchWorkbench currentResearchBench;
 
     /// <summary>현재 작업 진행도 (0~1)</summary>
     private float workProgress = 0f;
 
-    /// <summary>현재 작업 코루틴</summary>
-    private Coroutine currentWorkCoroutine;
+    /// <summary>진행 중인 작업 실행의 취소원 (null이면 실행 중인 작업 없음)</summary>
+    private CancellationTokenSource workCts;
 
     /// <summary>동적 비자격 리스트</summary>
     [SerializeField] private List<DisqualificationEntry> disqualifications = new List<DisqualificationEntry>();
@@ -496,7 +497,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             CancelWork();
         }
 
-        // ── 운반 작업은 별도 2단계 코루틴으로 처리 ──────────────────────────
+        // ── 운반 작업은 별도 2단계 비동기 흐름으로 처리 ─────────────────────
         if (target is WithdrawOrder withdrawOrder)
         {
             AssignWithdrawWork(workOrder, withdrawOrder);
@@ -714,15 +715,15 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         haulOrder.item?.Claim();
 
         employee.SetState(EmployeeState.Moving);
-        currentWorkCoroutine = StartCoroutine(HaulWorkCoroutine(workOrder, haulOrder));
+        HaulWorkAsync(workOrder, haulOrder, RestartWorkTask()).Forget();
     }
 
     /// <summary>
-    /// 2단계 운반 코루틴.
+    /// 2단계 운반 흐름.
     /// Phase 1: 아이템 위치로 이동 → 픽업 (아이템 파괴)
     /// Phase 2: 창고로 이동 → 배달
     /// </summary>
-private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
+    private async UniTaskVoid HaulWorkAsync(WorkOrder order, HaulOrder haulOrder, CancellationToken ct)
     {
         const float MULTIPICK_RADIUS = 6f;
 
@@ -733,7 +734,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         {
             if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: Haul 아이템이 이미 없음, 취소");
             CancelWork();
-            yield break;
+            return;
         }
 
         Vector3 itemWorldPos = item.transform.position;
@@ -751,15 +752,15 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             onFailed:   () => moveFailed  = true
         );
 
-        yield return new WaitUntil(() => reachedItem || moveFailed
-                                        || item == null || !item.isActiveAndEnabled);
+        await UniTask.WaitUntil(() => reachedItem || moveFailed
+                                        || item == null || !item.isActiveAndEnabled, GameLoop.Frame, ct);
 
         if (moveFailed || item == null || !item.isActiveAndEnabled)
         {
             if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 아이템 위치 이동 실패 또는 아이템 소멸");
             haulOrder.item?.Unclaim();
             CancelWork();
-            yield break;
+            return;
         }
 
         // 첫 픽업: 캐리 더미에 추가
@@ -803,8 +804,8 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
                 onFailed:   () => nextFailed  = true
             );
 
-            yield return new WaitUntil(() => reachedNext || nextFailed
-                                            || next == null || !next.isActiveAndEnabled);
+            await UniTask.WaitUntil(() => reachedNext || nextFailed
+                                            || next == null || !next.isActiveAndEnabled, GameLoop.Frame, ct);
 
             if (nextFailed || next == null || !next.isActiveAndEnabled)
             {
@@ -841,7 +842,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
                 onFailed:   () => moveFailed   = true
             );
 
-            yield return new WaitUntil(() => reachedStock || moveFailed);
+            await UniTask.WaitUntil(() => reachedStock || moveFailed, GameLoop.Frame, ct);
 
             if (!moveFailed)
             {
@@ -875,7 +876,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         currentWorkOrder     = null;
         currentWork          = WorkType.None;
         workProgress         = 0f;
-        currentWorkCoroutine = null;
+        CancelWorkTask();
 
         if (WorkSystemManager.instance != null && completedTarget != null && completedOrder != null)
             WorkSystemManager.instance.OnWorkerCompletedTarget(employee, completedTarget, completedOrder);
@@ -901,21 +902,21 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         currentWork       = WorkType.Hauling;
 
         employee.SetState(EmployeeState.Moving);
-        currentWorkCoroutine = StartCoroutine(WithdrawWorkCoroutine(workOrder, withdrawOrder));
+        WithdrawWorkAsync(workOrder, withdrawOrder, RestartWorkTask()).Forget();
     }
 
     /// <summary>
-    /// 2단계 출고 코루틴.
+    /// 2단계 출고 흐름.
     /// Phase 1: 자재 보유한 가장 가까운 Stockpile로 이동 → Withdraw
     /// Phase 2: receiver.GetDeliveryPosition()으로 이동 → OnMaterialDelivered 호출
     /// </summary>
-    private IEnumerator WithdrawWorkCoroutine(WorkOrder order, WithdrawOrder withdrawOrder)
+    private async UniTaskVoid WithdrawWorkAsync(WorkOrder order, WithdrawOrder withdrawOrder, CancellationToken ct)
     {
         var request = withdrawOrder.request;
         if (request == null || request.itemData == null || request.amount <= 0)
         {
             CancelWork();
-            yield break;
+            return;
         }
 
         // ── Phase 1: 자재 보유 Stockpile 검색 → 이동 → 출고 ─────────────────
@@ -948,14 +949,14 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
                 onFailed:   () => moveFailed    = true
             );
 
-            yield return new WaitUntil(() => reachedSource || moveFailed
-                                             || !request.receiver.IsRequestStillValid());
+            await UniTask.WaitUntil(() => reachedSource || moveFailed
+                                             || !request.receiver.IsRequestStillValid(), GameLoop.Frame, ct);
 
             if (moveFailed || !request.receiver.IsRequestStillValid())
             {
                 request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
                 CancelWork();
-                yield break;
+                return;
             }
 
             // 도착 후 출고 — 이동하는 사이 자재가 소진됐으면 다음 후보 창고로 재시도
@@ -972,7 +973,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
                 Debug.Log($"[Work] {employee.DisplayName}: 자재 {request.itemData.itemName}×{request.amount} 보유한 창고 없음");
             request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
             CancelWork();
-            yield break;
+            return;
         }
 
         var carryPile = new Dictionary<ItemData, int>();
@@ -1039,7 +1040,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
             CancelAdditionalReserves(additionalRequests, refundAll: false);
             FinishWithdrawWork();
-            yield break;
+            return;
         }
 
         Vector3 deliveryPos = request.receiver.GetDeliveryPosition();
@@ -1060,10 +1061,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             );
 
             // 도착 OR work range 진입 OR 실패 OR receiver 무효화
-            yield return new WaitUntil(() =>
+            await UniTask.WaitUntil(() =>
                 reachedDelivery || moveFailed
                 || IsPositionInWorkRange(deliveryTile)
-                || !request.receiver.IsRequestStillValid());
+                || !request.receiver.IsRequestStillValid(), GameLoop.Frame, ct);
 
             // 이동 중 work range에 진입했으면 즉시 멈춤 (불필요한 이동/fall 방지)
             if (!reachedDelivery && IsPositionInWorkRange(deliveryTile))
@@ -1081,7 +1082,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
             CancelAdditionalReserves(additionalRequests, refundAll: false);
             FinishWithdrawWork();
-            yield break;
+            return;
         }
 
         // 첫 인계
@@ -1129,10 +1130,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
                     onComplete: () => reached = true,
                     onFailed:   () => failed = true);
 
-                yield return new WaitUntil(() =>
+                await UniTask.WaitUntil(() =>
                     reached || failed
                     || IsPositionInWorkRange(nextTile)
-                    || !req.receiver.IsRequestStillValid());
+                    || !req.receiver.IsRequestStillValid(), GameLoop.Frame, ct);
 
                 if (!reached && IsPositionInWorkRange(nextTile))
                 {
@@ -1199,7 +1200,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         else          pile[data] = cur;
     }
 
-    /// <summary>WithdrawWorkCoroutine 종료 시 공통 정리/통보.</summary>
+    /// <summary>WithdrawWorkAsync 종료 시 공통 정리/통보.</summary>
     private void FinishWithdrawWork()
     {
         IWorkTarget completedTarget = currentWorkTarget;
@@ -1209,7 +1210,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         currentWorkOrder     = null;
         currentWork          = WorkType.None;
         workProgress         = 0f;
-        currentWorkCoroutine = null;
+        CancelWorkTask();
 
         if (WorkSystemManager.instance != null && completedTarget != null && completedOrder != null)
             WorkSystemManager.instance.OnWorkerCompletedTarget(employee, completedTarget, completedOrder);
@@ -1265,7 +1266,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
 
     /// <summary>
     /// 연구 작업을 할당합니다 (연구 작업대 전용).
-    /// 직원이 workPosition으로 이동 후 연구 코루틴을 시작합니다.
+    /// 직원이 workPosition으로 이동 후 연구 작업을 시작합니다.
     /// </summary>
     /// <param name="bench">연구할 작업대</param>
     /// <param name="workPos">이동할 작업 위치</param>
@@ -1319,10 +1320,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         currentWork = WorkType.Research;
         workProgress = 0f;
 
-        currentWorkCoroutine = StartCoroutine(ResearchWorkCoroutine(bench));
+        ResearchWorkAsync(bench, RestartWorkTask()).Forget();
     }
 
-    private System.Collections.IEnumerator ResearchWorkCoroutine(ResearchWorkbench bench)
+    private async UniTaskVoid ResearchWorkAsync(ResearchWorkbench bench, CancellationToken ct)
     {
         float visualTimer = 0f;
         const float VISUAL_CYCLE = 10f;   // 진행 바 1사이클 시간 (초)
@@ -1355,10 +1356,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             visualTimer += Time.deltaTime;
             workProgress = (visualTimer % VISUAL_CYCLE) / VISUAL_CYCLE;
 
-            yield return null;
+            await UniTask.Yield(GameLoop.Frame, ct);
         }
 
-        // 코루틴이 자연 종료될 때 벤치에 알림
+        // 작업이 자연 종료될 때 벤치에 알림
         if (currentResearchBench != null)
         {
             currentResearchBench.OnWorkerLeft();
@@ -1367,7 +1368,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
 
         currentWork = WorkType.None;
         workProgress = 0f;
-        currentWorkCoroutine = null;
+        CancelWorkTask();
         employee.SetState(EmployeeState.Idle);
     }
 
@@ -1394,12 +1395,12 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         // 중단해도 진행이 남고 다른 직원이 이어받을 수 있다.
         if (target is IProgressiveWork progressive)
         {
-            currentWorkCoroutine = StartCoroutine(PerformProgressiveWork(target, progressive));
+            PerformProgressiveWorkAsync(target, progressive, RestartWorkTask()).Forget();
             return;
         }
 
         float workTime = target.GetWorkTime() / speed;
-        currentWorkCoroutine = StartCoroutine(PerformWork(target, workTime));
+        PerformWorkAsync(target, workTime, RestartWorkTask()).Forget();
     }
 
     /// <summary>
@@ -1409,7 +1410,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
     /// 침식·연구가 곱해진 값이라 유능한 직원일수록 같은 시간에 더 많이 진행시킨다.
     /// 중단 시 지금까지 넣은 작업량은 대상에 그대로 남는다.
     /// </summary>
-    private IEnumerator PerformProgressiveWork(IWorkTarget target, IProgressiveWork progressive)
+    private async UniTaskVoid PerformProgressiveWorkAsync(IWorkTarget target, IProgressiveWork progressive, CancellationToken ct)
     {
         float total = Mathf.Max(0.01f, progressive.GetWorkAmount());
         workProgress = Mathf.Clamp01(progressive.GetAccumulatedWork() / total);
@@ -1421,7 +1422,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
                 Debug.Log($"[Work] {employee.DisplayName}: {target.GetWorkType()} 중단 — " +
                           $"진행도 {progressive.GetAccumulatedWork():F1}/{total:F1}는 대상에 보존됨");
                 CancelWork();
-                yield break;
+                return;
             }
 
             float speed = GetWorkSpeed(currentWork);
@@ -1429,13 +1430,13 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             {
                 Debug.LogWarning($"[Work] {employee.DisplayName}: 작업 속도 0 이하, 작업 취소");
                 CancelWork();
-                yield break;
+                return;
             }
 
             progressive.AddWork(speed * Time.deltaTime);
             workProgress = Mathf.Clamp01(progressive.GetAccumulatedWork() / total);
 
-            yield return null;
+            await UniTask.Yield(GameLoop.Frame, ct);
         }
 
         // 작업 적성 경험치 — 총 작업량에 비례
@@ -1444,7 +1445,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         CompleteWork();
     }
 
-    private IEnumerator PerformWork(IWorkTarget target, float workTime)
+    private async UniTaskVoid PerformWorkAsync(IWorkTarget target, float workTime, CancellationToken ct)
     {
         workProgress = 0f;
 
@@ -1461,10 +1462,10 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
                 Debug.LogWarning($"[Work] {employee.DisplayName}: 작업 중단 → {reason} " +
                                  $"(progress={workProgress:F2}, target={target.GetWorkType()}@{target.GetWorkPosition()})");
                 CancelWork();
-                yield break;
+                return;
             }
 
-            yield return null;
+            await UniTask.Yield(GameLoop.Frame, ct);
         }
 
         // 작업 적성 경험치 — 해당 작업을 실제로 끝냈을 때만 지급된다(스킬 해금 조건).
@@ -1491,16 +1492,16 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
         workProgress = 0f;
 
         craftingOrder.StartWorking();
-        currentWorkCoroutine = StartCoroutine(CraftingWorkCoroutine(craftingOrder));
+        CraftingWorkAsync(craftingOrder, RestartWorkTask()).Forget();
     }
 
-    private IEnumerator CraftingWorkCoroutine(CraftingOrder craftingOrder)
+    private async UniTaskVoid CraftingWorkAsync(CraftingOrder craftingOrder, CancellationToken ct)
     {
         float workSpeed = GetWorkSpeed(WorkType.Crafting);
         if (workSpeed <= 0f)
         {
             CancelWork();
-            yield break;
+            return;
         }
 
         while (craftingOrder != null && craftingOrder.IsWorkAvailable())
@@ -1518,13 +1519,13 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
                 currentWorkOrder = null;
                 currentWork = WorkType.None;
                 workProgress = 0f;
-                currentWorkCoroutine = null;
+                CancelWorkTask();
 
                 employee.SetState(EmployeeState.Idle);
-                yield break;
+                return;
             }
 
-            yield return null;
+            await UniTask.Yield(GameLoop.Frame, ct);
         }
 
         CancelWork();
@@ -1540,7 +1541,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             currentWorkTarget = null;
             currentWork = WorkType.None;
             workProgress = 0f;
-            currentWorkCoroutine = null;
+            CancelWorkTask();
 
             WorkSystemManager.instance.OnWorkerCompletedTarget(employee, completedTarget, completedOrder);
 
@@ -1556,9 +1557,35 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
             currentWorkOrder = null;
             currentWork = WorkType.None;
             workProgress = 0f;
-            currentWorkCoroutine = null;
+            CancelWorkTask();
             employee.SetState(EmployeeState.Idle);
         }
+    }
+
+    private void OnDestroy()
+    {
+        CancelWorkTask();
+    }
+
+    /// <summary>
+    /// 진행 중인 작업 실행을 끊고 새 취소 토큰을 발급합니다.
+    /// 직원이 파괴되면 함께 취소되도록 파괴 토큰에 묶습니다.
+    /// </summary>
+    private CancellationToken RestartWorkTask()
+    {
+        CancelWorkTask();
+        workCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+        return workCts.Token;
+    }
+
+    /// <summary>진행 중인 작업 실행을 취소합니다.</summary>
+    private void CancelWorkTask()
+    {
+        if (workCts == null) return;
+
+        workCts.Cancel();
+        workCts.Dispose();
+        workCts = null;
     }
 
     /// <summary>
@@ -1566,11 +1593,7 @@ private IEnumerator HaulWorkCoroutine(WorkOrder order, HaulOrder haulOrder)
     /// </summary>
     public void CancelWork()
     {
-        if (currentWorkCoroutine != null)
-        {
-            StopCoroutine(currentWorkCoroutine);
-            currentWorkCoroutine = null;
-        }
+        CancelWorkTask();
 
         // 연구 작업대는 IWorkTarget이 아니므로 별도로 알림
         if (currentResearchBench != null)

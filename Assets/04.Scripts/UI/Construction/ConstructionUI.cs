@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
 using MessagePipe;
+using Cysharp.Threading.Tasks;
 
 /// <summary>
 /// 건설 UI 메인 패널
@@ -264,16 +266,16 @@ public class ConstructionUI : BasePanel
         // 스크롤 위치 초기화
         if (buildingListScrollRect != null && buildingListScrollRect.content != null)
         {
-            // 즉시 실행하면 Destroy가 완료되지 않아서 문제 발생
-            // StartCoroutine 또는 다음 프레임에서 실행
-            StartCoroutine(ResetScrollPosition());
+            // 즉시 실행하면 Destroy가 완료되지 않아서 문제 발생 — 다음 프레임에서 실행
+            ResetScrollPositionAsync(this.GetCancellationTokenOnDestroy()).Forget();
         }
     }
-    private System.Collections.IEnumerator ResetScrollPosition()
+
+    /// <summary>목록 갱신 직후 스크롤을 맨 위로 되돌립니다 (Destroy 완료를 한 프레임 기다림).</summary>
+    private async UniTaskVoid ResetScrollPositionAsync(CancellationToken ct)
     {
-        // 한 프레임 대기 (Destroy 완료 대기)
-        yield return null;
-    
+        await UniTask.NextFrame(ct);
+
         if (buildingListScrollRect != null && buildingListScrollRect.content != null)
         {
             buildingListScrollRect.verticalNormalizedPosition = 1f;
