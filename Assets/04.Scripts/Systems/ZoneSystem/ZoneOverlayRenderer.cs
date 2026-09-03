@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using MessagePipe;
 
 /// <summary>
 /// 구역을 색으로 칠해 보여주는 오버레이.
@@ -44,6 +46,9 @@ public class ZoneOverlayRenderer : DestroySingleton<ZoneOverlayRenderer>
     /// <summary>오버레이가 켜져 있는지</summary>
     public bool IsVisible => visible;
 
+    /// <summary>구역·모드 메시지 구독 핸들</summary>
+    private IDisposable subscriptions;
+
     #endregion
 
     #region 생명주기
@@ -55,30 +60,19 @@ public class ZoneOverlayRenderer : DestroySingleton<ZoneOverlayRenderer>
         if (overlayTile == null)
             Debug.LogWarning("[ZoneOverlayRenderer] overlayTile이 연결되지 않았습니다.");
 
-        if (ZoneManager.instance != null)
-        {
-            ZoneManager.instance.OnZoneTilesChanged += HandleZoneChanged;
-            ZoneManager.instance.OnZoneCreated      += HandleZoneCreated;
-            ZoneManager.instance.OnZoneDeleted      += HandleZoneChanged;
-        }
-
-        if (InteractionManager.instance != null)
-            InteractionManager.instance.OnModeChanged += HandleModeChanged;
+        subscriptions = DisposableBag.Create(
+            GameMessageBus.Subscribe<ZoneTilesChangedMessage>(m => HandleZoneChanged(m.zoneId)),
+            GameMessageBus.Subscribe<ZoneCreatedMessage>(m => HandleZoneCreated(m.zone)),
+            GameMessageBus.Subscribe<ZoneDeletedMessage>(m => HandleZoneChanged(m.zoneId)),
+            GameMessageBus.Subscribe<InteractionModeChangedMessage>(m => HandleModeChanged(m.mode)));
 
         SetVisible(alwaysVisible);
     }
 
     private void OnDestroy()
     {
-        if (ZoneManager.instance != null)
-        {
-            ZoneManager.instance.OnZoneTilesChanged -= HandleZoneChanged;
-            ZoneManager.instance.OnZoneCreated      -= HandleZoneCreated;
-            ZoneManager.instance.OnZoneDeleted      -= HandleZoneChanged;
-        }
-
-        if (InteractionManager.instance != null)
-            InteractionManager.instance.OnModeChanged -= HandleModeChanged;
+        subscriptions?.Dispose();
+        subscriptions = null;
     }
 
     private void HandleZoneChanged(int zoneId)

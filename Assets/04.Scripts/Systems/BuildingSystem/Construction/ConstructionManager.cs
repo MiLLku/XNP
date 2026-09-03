@@ -55,15 +55,6 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
     private GameMap gameMap;
     private Dictionary<BuildingCategory, List<BuildingData>> buildingsByCategory;
 
-    // 이벤트
-    public delegate void PlacementModeDelegate(bool isActive, BuildingData buildingData);
-    public event PlacementModeDelegate OnPlacementModeChanged;
-
-    public delegate void ConstructionSiteDelegate(ConstructionSite site);
-    public event ConstructionSiteDelegate OnConstructionSiteCreated;
-    public event ConstructionSiteDelegate OnConstructionSiteCompleted;
-    public event ConstructionSiteDelegate OnConstructionSiteCancelled;
-
     #endregion
 
     #region 초기화
@@ -233,7 +224,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
 
         CreatePlacementGhost();
 
-        OnPlacementModeChanged?.Invoke(true, buildingData);
+        GameMessageBus.Publish(new BuildingPlacementModeChangedMessage(true, buildingData));
 
         if (showDebugInfo)
         {
@@ -257,7 +248,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
 
         DestroyPlacementGhost();
 
-        OnPlacementModeChanged?.Invoke(false, null);
+        GameMessageBus.Publish(new BuildingPlacementModeChangedMessage(false, null));
 
         if (showDebugInfo)
         {
@@ -621,7 +612,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
         {
             site.SetReservationId(reservationId);
             activeConstructionSites.Add(site);
-            OnConstructionSiteCreated?.Invoke(site);
+            GameMessageBus.Publish(new ConstructionSiteCreatedMessage(site));
 
             if (showDebugInfo)
             {
@@ -700,7 +691,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
         if (site == null) return;
 
         activeConstructionSites.Remove(site);
-        OnConstructionSiteCancelled?.Invoke(site);
+        GameMessageBus.Publish(new ConstructionSiteCancelledMessage(site));
 
         site.CancelConstruction();
     }
@@ -715,7 +706,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
         if (site == null) return;
 
         activeConstructionSites.Remove(site);
-        OnConstructionSiteCompleted?.Invoke(site);
+        GameMessageBus.Publish(new ConstructionSiteCompletedMessage(site));
     }
 
     /// <summary>

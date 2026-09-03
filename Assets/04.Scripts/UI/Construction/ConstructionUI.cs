@@ -1,7 +1,9 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
+using MessagePipe;
 
 /// <summary>
 /// 건설 UI 메인 패널
@@ -43,6 +45,9 @@ public class ConstructionUI : BasePanel
     // 상태
     private bool isOpen = false;
     private BuildingCategory currentCategory = BuildingCategory.Production;
+
+    /// <summary>배치 모드·인벤토리 변경 메시지 구독 핸들</summary>
+    private IDisposable _subscriptions;
     private BuildingData selectedBuildingData;
     
     // UI 요소 캐시
@@ -74,14 +79,12 @@ public class ConstructionUI : BasePanel
             buildButton.interactable = false;
         }
         
-        // ConstructionManager 이벤트 구독
-        constructionManager.OnPlacementModeChanged += OnPlacementModeChanged;
-        
-        // 인벤토리 변경 이벤트 구독 (자원 표시 업데이트용)
-        if (InventoryManager.instance != null)
-        {
-            InventoryManager.instance.OnInventoryChanged += OnInventoryChanged;
-        }
+        // 배치 모드 · 인벤토리 변경 구독 (자원 표시 업데이트용)
+        _subscriptions = DisposableBag.Create(
+            GameMessageBus.Subscribe<BuildingPlacementModeChangedMessage>(
+                m => OnPlacementModeChanged(m.isPlacing, m.building)),
+            GameMessageBus.Subscribe<InventoryChangedMessage>(
+                m => OnInventoryChanged(m.item, m.changeAmount)));
         
         // 초기화
         InitializeCategoryTabs();
@@ -89,15 +92,8 @@ public class ConstructionUI : BasePanel
     
     void OnDestroy()
     {
-        if (constructionManager != null)
-        {
-            constructionManager.OnPlacementModeChanged -= OnPlacementModeChanged;
-        }
-        
-        if (InventoryManager.instance != null)
-        {
-            InventoryManager.instance.OnInventoryChanged -= OnInventoryChanged;
-        }
+        _subscriptions?.Dispose();
+        _subscriptions = null;
     }
     
     #region 패널 열기/닫기

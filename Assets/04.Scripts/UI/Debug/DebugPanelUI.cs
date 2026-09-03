@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -53,6 +54,9 @@ public class DebugPanelUI : BasePanel
     private readonly List<GameObject> spawnedRows = new List<GameObject>();
     private readonly List<DebugResourceRow> resourceRows = new List<DebugResourceRow>();
 
+    /// <summary>인벤토리 변경 메시지 구독 핸들</summary>
+    private IDisposable _inventorySubscription;
+
     #endregion
 
     #region 초기화
@@ -74,14 +78,14 @@ public class DebugPanelUI : BasePanel
 
     void OnEnable()
     {
-        if (InventoryManager.instance != null)
-            InventoryManager.instance.OnInventoryChanged += OnInventoryChanged;
+        _inventorySubscription = GameMessageBus.Subscribe<InventoryChangedMessage>(
+            m => OnInventoryChanged(m.item, m.changeAmount));
     }
 
     void OnDisable()
     {
-        if (InventoryManager.instance != null)
-            InventoryManager.instance.OnInventoryChanged -= OnInventoryChanged;
+        _inventorySubscription?.Dispose();
+        _inventorySubscription = null;
     }
 
     private void BindTab(Button button, DebugCategory category)

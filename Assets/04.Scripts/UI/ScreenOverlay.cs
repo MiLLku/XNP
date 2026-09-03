@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,6 +23,9 @@ public class ScreenOverlay : MonoBehaviour
     private Color targetColor;
     private InteractionManager interactionManager;
 
+    /// <summary>상호작용 모드 메시지 구독 핸들</summary>
+    private IDisposable modeSubscription;
+
     #endregion
 
     #region 생명주기
@@ -42,7 +46,7 @@ public class ScreenOverlay : MonoBehaviour
             overlayImage = GetComponent<Image>();
         }
 
-        interactionManager.OnModeChanged += OnModeChanged;
+        modeSubscription = GameMessageBus.Subscribe<InteractionModeChangedMessage>(m => OnModeChanged(m.mode));
 
         OnModeChanged(interactionManager.GetCurrentMode());
         overlayImage.color = targetColor;
@@ -50,10 +54,8 @@ public class ScreenOverlay : MonoBehaviour
 
     void OnDestroy()
     {
-        if (interactionManager != null)
-        {
-            interactionManager.OnModeChanged -= OnModeChanged;
-        }
+        modeSubscription?.Dispose();
+        modeSubscription = null;
     }
 
     void Update()

@@ -82,18 +82,11 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     // 직원 선택 (Normal 모드 좌클릭 — 태세 바 UI가 구독)
     private Employee _selectedEmployee;
 
-    // 이벤트
-    public delegate void ModeChangedDelegate(InteractMode newMode);
-    public event ModeChangedDelegate OnModeChanged;
-
-    /// <summary>직원 선택/해제 시 발생 (null = 해제)</summary>
-    public event System.Action<Employee> OnEmployeeSelected;
-
     // 구역 편집 — '어떤 구역을 지금 편집 중인가'
     private int _editingZoneId = -1;
 
-    /// <summary>편집 대상 구역이 바뀌면 발생 (-1 = 없음)</summary>
-    public event System.Action<int> OnEditingZoneChanged;
+    /// <summary>건물 배치 모드 메시지 구독 핸들</summary>
+    private System.IDisposable _placementModeSubscription;
 
     /// <summary>구역 모드에서 지금 편집 중인 구역 ID (-1 = 없음)</summary>
     public int EditingZoneId => _editingZoneId;
@@ -105,7 +98,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     {
         if (_editingZoneId == zoneId) return;
         _editingZoneId = zoneId;
-        OnEditingZoneChanged?.Invoke(zoneId);
+        GameMessageBus.Publish(new EditingZoneChangedMessage(zoneId));
         UpdateSelectionBoxColor();
     }
 
@@ -133,19 +126,15 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         _workSystemManager = WorkSystemManager.instance;
         _tileHighlighter = TileHighlighter.instance;
         _constructionManager = ConstructionManager.instance;
-        
-        if (_constructionManager != null)
-        {
-            _constructionManager.OnPlacementModeChanged += OnConstructionPlacementModeChanged;
-        }
+
+        _placementModeSubscription = GameMessageBus.Subscribe<BuildingPlacementModeChangedMessage>(
+            m => OnConstructionPlacementModeChanged(m.isPlacing, m.building));
     }
     
     void OnDestroy()
     {
-        if (_constructionManager != null)
-        {
-            _constructionManager.OnPlacementModeChanged -= OnConstructionPlacementModeChanged;
-        }
+        _placementModeSubscription?.Dispose();
+        _placementModeSubscription = null;
     }
 
     void Update()
@@ -248,7 +237,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         }
 
         Debug.Log($"[Interaction] 모드 변경: {mode}");
-        OnModeChanged?.Invoke(mode);
+        GameMessageBus.Publish(new InteractionModeChangedMessage(mode));
     
         UpdateSelectionBoxColor();
     }
@@ -505,7 +494,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     {
         if (_selectedEmployee == employee) return;
         _selectedEmployee = employee;
-        OnEmployeeSelected?.Invoke(employee);
+        GameMessageBus.Publish(new EmployeeSelectionChangedMessage(employee));
         Debug.Log($"[Interaction] 직원 선택: {employee.name}");
     }
 
@@ -514,7 +503,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     {
         if (_selectedEmployee == null) return;
         _selectedEmployee = null;
-        OnEmployeeSelected?.Invoke(null);
+        GameMessageBus.Publish(new EmployeeSelectionChangedMessage(null));
     }
     
     private void OnBuildingClicked(Building building)

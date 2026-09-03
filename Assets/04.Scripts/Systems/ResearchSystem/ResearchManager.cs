@@ -11,11 +11,6 @@ public class ResearchManager : DestroySingleton<ResearchManager>, ISaveModule
     [Header("연구 포인트")]
     [SerializeField] private float totalResearchPoints = 0f;
 
-    // ─── 이벤트 ───────────────────────────────────────────
-
-    /// <summary>연구 포인트가 변경될 때마다 발생합니다. (현재 누적 포인트 전달)</summary>
-    public event System.Action<float> OnResearchPointsChanged;
-
     // ─── 프로퍼티 ─────────────────────────────────────────
 
     /// <summary>현재 누적 연구 포인트 총량</summary>
@@ -33,7 +28,7 @@ public class ResearchManager : DestroySingleton<ResearchManager>, ISaveModule
         if (amount <= 0f) return;
 
         totalResearchPoints += amount;
-        OnResearchPointsChanged?.Invoke(totalResearchPoints);
+        GameMessageBus.Publish(new ResearchPointsChangedMessage(totalResearchPoints));
 
         if (Mathf.FloorToInt(totalResearchPoints) > Mathf.FloorToInt(totalResearchPoints - amount))
         {
@@ -55,7 +50,7 @@ public class ResearchManager : DestroySingleton<ResearchManager>, ISaveModule
         }
 
         totalResearchPoints -= amount;
-        OnResearchPointsChanged?.Invoke(totalResearchPoints);
+        GameMessageBus.Publish(new ResearchPointsChangedMessage(totalResearchPoints));
         Debug.Log($"[ResearchManager] 포인트 소비: -{amount:F1} → 잔여: {totalResearchPoints:F1}");
         return true;
     }
@@ -90,7 +85,7 @@ public class ResearchManager : DestroySingleton<ResearchManager>, ISaveModule
     public void Restore(SaveData data)
     {
         totalResearchPoints = data.researchPoints;
-        OnResearchPointsChanged?.Invoke(totalResearchPoints);
+        GameMessageBus.Publish(new ResearchPointsChangedMessage(totalResearchPoints));
         Debug.Log($"[ResearchManager] 복원: 연구 포인트 {totalResearchPoints:F1}");
     }
 

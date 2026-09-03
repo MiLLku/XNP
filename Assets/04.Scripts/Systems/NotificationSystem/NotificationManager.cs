@@ -36,10 +36,8 @@ public class NotificationManager : DestroySingleton<NotificationManager>
     private float _pollTimer;
     private int _nextLetterId = 1;
 
-    // ── UI 구독용 이벤트 ──
-    public event Action<Letter> OnLetterAdded;
-    public event Action<Letter> OnLetterRemoved;
-    public event Action<List<AlertReport>> OnAlertsRefreshed;
+    /// <summary>게임 이벤트 발생 메시지 구독 핸들</summary>
+    private IDisposable _eventSubscription;
 
     public IReadOnlyList<Letter> Letters => _letters;
     public IReadOnlyList<AlertReport> ActiveAlerts => _activeAlerts;
@@ -54,14 +52,13 @@ public class NotificationManager : DestroySingleton<NotificationManager>
 
     private void Start()
     {
-        if (EventManager.instance != null)
-            EventManager.instance.OnEventTriggered += HandleEvent;
+        _eventSubscription = GameMessageBus.Subscribe<GameEventTriggeredMessage>(m => HandleEvent(m.eventData));
     }
 
     private void OnDestroy()
     {
-        if (EventManager.instance != null)
-            EventManager.instance.OnEventTriggered -= HandleEvent;
+        _eventSubscription?.Dispose();
+        _eventSubscription = null;
     }
 
     private void Update()
@@ -105,7 +102,7 @@ public class NotificationManager : DestroySingleton<NotificationManager>
         // 심각도 높은 순 정렬(Critical이 위)
         _activeAlerts.Sort((a, b) => b.severity.CompareTo(a.severity));
 
-        OnAlertsRefreshed?.Invoke(_activeAlerts);
+        GameMessageBus.Publish(new AlertsRefreshedMessage(_activeAlerts));
     }
 
     #endregion
@@ -120,7 +117,7 @@ public class NotificationManager : DestroySingleton<NotificationManager>
         letter.id = _nextLetterId++;
         letter.createdGameTime = Time.time;
         _letters.Add(letter);
-        OnLetterAdded?.Invoke(letter);
+        GameMessageBus.Publish(new LetterAddedMessage(letter));
 
         // 최대치 초과 시 가장 오래된 "일반" 레터부터 제거(정지 유지 레터는 남김)
         while (_letters.Count > maxLetters)
@@ -129,7 +126,7 @@ public class NotificationManager : DestroySingleton<NotificationManager>
             if (idx < 0) break;
             var old = _letters[idx];
             _letters.RemoveAt(idx);
-            OnLetterRemoved?.Invoke(old);
+            GameMessageBus.Publish(new LetterRemovedMessage(old));
         }
 
         return letter;
@@ -141,7 +138,7 @@ public class NotificationManager : DestroySingleton<NotificationManager>
         if (letter == null) return;
         if (!_letters.Remove(letter)) return;
 
-        OnLetterRemoved?.Invoke(letter);
+        GameMessageBus.Publish(new LetterRemovedMessage(letter));
 
         if (letter.pauseUntilRead && TimeManager.instance != null && TimeManager.instance.IsPaused)
         {

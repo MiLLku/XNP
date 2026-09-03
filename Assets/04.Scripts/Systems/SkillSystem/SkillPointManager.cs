@@ -50,9 +50,6 @@ public class SkillPointManager : DestroySingleton<SkillPointManager>, ISaveModul
     /// <summary>다음 단계 정보 (없으면 null)</summary>
     public UpgradeTier NextTier => HasNextTier ? upgradeTiers[unlockedTierCount] : null;
 
-    /// <summary>상한이 늘어났을 때 발생 (새 전역 보너스)</summary>
-    public event Action<int> OnCapIncreased;
-
     /// <summary>
     /// 다음 단계를 해금합니다. 재료가 부족하면 false.
     /// 훈련소 건물에서 호출합니다.
@@ -91,7 +88,7 @@ public class SkillPointManager : DestroySingleton<SkillPointManager>, ISaveModul
             type = LetterType.Positive
         });
 
-        OnCapIncreased?.Invoke(GlobalBonusPoints);
+        GameMessageBus.Publish(new SkillPointCapIncreasedMessage(GlobalBonusPoints));
         return true;
     }
 

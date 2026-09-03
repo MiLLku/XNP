@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using MessagePipe;
 
 /// <summary>
 /// 구역 조작 바. 하단 바의 "구역" 버튼으로 열립니다.
@@ -58,6 +60,9 @@ public class ZoneModeBarUI : MonoBehaviour
 
     private readonly List<GameObject> listItems = new List<GameObject>();
 
+    /// <summary>구역·모드 메시지 구독 핸들</summary>
+    private IDisposable subscriptions;
+
     private static readonly Color ColActive   = new Color(0.25f, 0.55f, 1.00f);
     private static readonly Color ColInactive = new Color(0.14f, 0.14f, 0.18f);
 
@@ -78,40 +83,20 @@ public class ZoneModeBarUI : MonoBehaviour
 
     private void Start()
     {
-        var im = InteractionManager.instance;
-        if (im != null)
-        {
-            im.OnModeChanged        += OnModeChanged;
-            im.OnEditingZoneChanged += OnEditingZoneChanged;
-        }
-
-        var zm = ZoneManager.instance;
-        if (zm != null)
-        {
-            zm.OnZoneTilesChanged += OnZoneTilesChanged;
-            zm.OnZoneCreated      += OnZoneCreated;
-            zm.OnZoneDeleted      += OnZoneTilesChanged;
-        }
+        subscriptions = DisposableBag.Create(
+            GameMessageBus.Subscribe<InteractionModeChangedMessage>(m => OnModeChanged(m.mode)),
+            GameMessageBus.Subscribe<EditingZoneChangedMessage>(m => OnEditingZoneChanged(m.zoneId)),
+            GameMessageBus.Subscribe<ZoneTilesChangedMessage>(m => OnZoneTilesChanged(m.zoneId)),
+            GameMessageBus.Subscribe<ZoneCreatedMessage>(m => OnZoneCreated(m.zone)),
+            GameMessageBus.Subscribe<ZoneDeletedMessage>(m => OnZoneTilesChanged(m.zoneId)));
 
         RefreshStatus();
     }
 
     private void OnDestroy()
     {
-        var im = InteractionManager.instance;
-        if (im != null)
-        {
-            im.OnModeChanged        -= OnModeChanged;
-            im.OnEditingZoneChanged -= OnEditingZoneChanged;
-        }
-
-        var zm = ZoneManager.instance;
-        if (zm != null)
-        {
-            zm.OnZoneTilesChanged -= OnZoneTilesChanged;
-            zm.OnZoneCreated      -= OnZoneCreated;
-            zm.OnZoneDeleted      -= OnZoneTilesChanged;
-        }
+        subscriptions?.Dispose();
+        subscriptions = null;
     }
 
     private void Update()

@@ -1,8 +1,9 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 상시 경고 배너 리스트(HUD). NotificationManager.OnAlertsRefreshed를 구독해
+/// 상시 경고 배너 리스트(HUD). AlertsRefreshedMessage를 구독해
 /// 매 폴링마다 배너를 재구성한다. 우측 스트립 상단(미니맵 아래)에 배치.
 ///
 /// 계층:
@@ -21,28 +22,23 @@ public class AlertReadoutUI : MonoBehaviour
     [SerializeField] private Color criticalColor = new Color(0.80f, 0.15f, 0.15f, 0.92f); // 빨강
 
     private readonly List<AlertBannerItem> _pool = new List<AlertBannerItem>();
-    private bool _subscribed;
 
-    // OnEnable·Start 양쪽에서 시도 — NotificationManager.instance가 늦게 준비돼도(실행 순서 레이스) 보장.
-    private void OnEnable() => TrySubscribe();
-    private void Start() => TrySubscribe();
+    /// <summary>경고 갱신 메시지 구독 핸들</summary>
+    private IDisposable _alertsSubscription;
+
+    private void OnEnable()
+    {
+        _alertsSubscription = GameMessageBus.Subscribe<AlertsRefreshedMessage>(m => Rebuild(m.alerts));
+
+        // 구독 시점의 현재 경고 즉시 반영
+        var nm = NotificationManager.instance;
+        if (nm != null) Rebuild(new List<AlertReport>(nm.ActiveAlerts));
+    }
 
     private void OnDisable()
     {
-        if (_subscribed && NotificationManager.instance != null)
-            NotificationManager.instance.OnAlertsRefreshed -= Rebuild;
-        _subscribed = false;
-    }
-
-    private void TrySubscribe()
-    {
-        if (_subscribed) return;
-        var nm = NotificationManager.instance;
-        if (nm == null) return;
-
-        nm.OnAlertsRefreshed += Rebuild;
-        _subscribed = true;
-        Rebuild(new List<AlertReport>(nm.ActiveAlerts));   // 구독 시점의 현재 경고 즉시 반영
+        _alertsSubscription?.Dispose();
+        _alertsSubscription = null;
     }
 
     private void Rebuild(List<AlertReport> alerts)

@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 /// <summary>
@@ -12,7 +11,7 @@ using UnityEngine;
 ///
 /// 사용 예:
 ///   DayCycle.instance.CurrentHour  → 현재 시각 (0~23)
-///   DayCycle.instance.OnHourChanged += (hour) => { ... };
+///   GameMessageBus.Subscribe<HourChangedMessage>(m => { ... })  → 시각 변경 구독
 /// </summary>
 public class DayCycle : DestroySingleton<DayCycle>, ISaveModule
 {
@@ -40,16 +39,6 @@ public class DayCycle : DestroySingleton<DayCycle>, ISaveModule
 
     /// <summary>경과 일수 (1일차부터 시작)</summary>
     private int day = 1;
-
-    #endregion
-
-    #region 이벤트
-
-    /// <summary>매 시간 변경 시 발생 (새 시각 전달)</summary>
-    public event Action<int> OnHourChanged;
-
-    /// <summary>새 날 시작 시 발생 (새 날짜 전달)</summary>
-    public event Action<int> OnNewDay;
 
     #endregion
 
@@ -103,7 +92,7 @@ public class DayCycle : DestroySingleton<DayCycle>, ISaveModule
         {
             timeNormalized -= 1f;
             day++;
-            OnNewDay?.Invoke(day);
+            GameMessageBus.Publish(new NewDayMessage(day));
 
             if (showDebugLogs)
                 Debug.Log($"[DayCycle] === {day}일차 시작 ===");
@@ -114,7 +103,7 @@ public class DayCycle : DestroySingleton<DayCycle>, ISaveModule
         if (currentHour != previousHour)
         {
             previousHour = currentHour;
-            OnHourChanged?.Invoke(currentHour);
+            GameMessageBus.Publish(new HourChangedMessage(currentHour));
 
             if (showDebugLogs)
                 Debug.Log($"[DayCycle] {day}일차 {currentHour}시");
@@ -134,7 +123,7 @@ public class DayCycle : DestroySingleton<DayCycle>, ISaveModule
         hour = Mathf.Clamp(hour, 0, 23);
         timeNormalized = hour / 24f;
         previousHour = hour;
-        OnHourChanged?.Invoke(hour);
+        GameMessageBus.Publish(new HourChangedMessage(hour));
     }
 
     /// <summary>
@@ -197,8 +186,8 @@ public class DayCycle : DestroySingleton<DayCycle>, ISaveModule
         timeNormalized = 0f;
         day++;
         previousHour = 0;
-        OnNewDay?.Invoke(day);
-        OnHourChanged?.Invoke(0);
+        GameMessageBus.Publish(new NewDayMessage(day));
+        GameMessageBus.Publish(new HourChangedMessage(0));
     }
 
     #endregion

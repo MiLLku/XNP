@@ -53,19 +53,6 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     #endregion
 
-    #region 이벤트
-
-    /// <summary>레이드가 시작될 때 발행됩니다.</summary>
-    public event Action<RaidData> OnRaidStarted;
-
-    /// <summary>새 웨이브가 시작될 때 발행됩니다. (웨이브 인덱스)</summary>
-    public event Action<int> OnWaveStarted;
-
-    /// <summary>레이드가 완료(전멸 또는 철수)될 때 발행됩니다.</summary>
-    public event Action<RaidData> OnRaidCompleted;
-
-    #endregion
-
     #region 프로퍼티
 
     public RaidState CurrentState => currentState;
@@ -226,7 +213,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
         // 레이드 시작
         currentState = RaidState.InProgress;
-        OnRaidStarted?.Invoke(raid);
+        GameMessageBus.Publish(new RaidStartedMessage(raid));
 
         // 위협 레터 + 강제 일시정지 (확인 시 NotificationManager가 재개)
         NotificationManager.instance?.PushLetter(new Letter
@@ -247,7 +234,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             if (showDebugLogs) Debug.Log($"[RaidManager] 웨이브 {i + 1}/{raid.waves.Count} 대기 ({wave.delayBeforeWave}초)");
             yield return new WaitForSeconds(wave.delayBeforeWave);
 
-            OnWaveStarted?.Invoke(i);
+            GameMessageBus.Publish(new RaidWaveStartedMessage(i));
             yield return StartCoroutine(SpawnWave(wave));
         }
 
@@ -352,7 +339,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         if (showDebugLogs && activeRaid != null)
             Debug.Log($"[RaidManager] 레이드 완료: {activeRaid.raidName}");
 
-        OnRaidCompleted?.Invoke(activeRaid);
+        GameMessageBus.Publish(new RaidCompletedMessage(activeRaid));
 
         // 격퇴 레터 (일반 — 정지 없음)
         if (activeRaid != null)

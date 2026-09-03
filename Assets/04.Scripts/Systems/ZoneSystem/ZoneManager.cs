@@ -36,16 +36,7 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
     #endregion
 
-    #region 이벤트
-
-    /// <summary>구역 생성 시 발생</summary>
-    public event Action<Zone> OnZoneCreated;
-
-    /// <summary>구역 삭제 시 발생</summary>
-    public event Action<int> OnZoneDeleted;
-
-    /// <summary>구역 타일 변경 시 발생 (zoneId)</summary>
-    public event Action<int> OnZoneTilesChanged;
+    #region 리비전
 
     /// <summary>
     /// 구역 구성이 바뀔 때마다 증가하는 리비전 번호.
@@ -77,7 +68,7 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
         zones[zone.zoneId] = zone;
         ZoneVersion++;
-        OnZoneCreated?.Invoke(zone);
+        GameMessageBus.Publish(new ZoneCreatedMessage(zone));
 
         if (showDebugLogs)
             Debug.Log($"[ZoneManager] 구역 생성: [{zone.zoneId}] {zone.zoneName}");
@@ -102,7 +93,7 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
         zones.Remove(zoneId);
         ZoneVersion++;
-        OnZoneDeleted?.Invoke(zoneId);
+        GameMessageBus.Publish(new ZoneDeletedMessage(zoneId));
 
         if (showDebugLogs)
             Debug.Log($"[ZoneManager] 구역 삭제: [{zoneId}] {zone.zoneName}");
@@ -128,7 +119,7 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
                 existingZone.RemoveTile(tile);
                 existingZone.RecalculateBounds();
                 ZoneVersion++;
-                OnZoneTilesChanged?.Invoke(existingZoneId);
+                GameMessageBus.Publish(new ZoneTilesChangedMessage(existingZoneId));
             }
         }
 
@@ -136,7 +127,7 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
         tileToZoneId[tile] = zoneId;
         zone.RecalculateBounds();
         ZoneVersion++;
-        OnZoneTilesChanged?.Invoke(zoneId);
+        GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
     }
 
     /// <summary>
@@ -153,7 +144,7 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
         zone.RecalculateBounds();
         ZoneVersion++;
-        OnZoneTilesChanged?.Invoke(zoneId);
+        GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
     }
 
     /// <summary>
@@ -177,7 +168,7 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
         zone.RecalculateBounds();
         ZoneVersion++;
-        OnZoneTilesChanged?.Invoke(zoneId);
+        GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
     }
 
     /// <summary>
@@ -213,7 +204,7 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
         ZoneVersion++;
         foreach (int zoneId in touched)
-            OnZoneTilesChanged?.Invoke(zoneId);
+            GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
 
         return removed;
     }
@@ -247,7 +238,7 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
         zone.RecalculateBounds();
         ZoneVersion++;
-        OnZoneTilesChanged?.Invoke(zoneId);
+        GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
         return removed;
     }
 
@@ -264,7 +255,7 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
                 zone.RemoveTile(tile);
                 zone.RecalculateBounds();
                 ZoneVersion++;
-                OnZoneTilesChanged?.Invoke(zoneId);
+                GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
             }
 
             tileToZoneId.Remove(tile);

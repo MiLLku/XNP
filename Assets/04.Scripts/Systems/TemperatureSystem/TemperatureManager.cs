@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -47,7 +48,8 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
     private readonly List<string> expiredModifiers = new List<string>();
 
     private float tickTimer;
-    private RoomManager subscribedRooms;
+    /// <summary>방 재계산 메시지 구독 핸들</summary>
+    private IDisposable roomsRebuiltSubscription;
 
     #endregion
 
@@ -157,25 +159,14 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
         if (config == null)
             Debug.LogWarning("[TemperatureManager] TemperatureConfig가 연결되지 않았습니다. 기본값으로 동작합니다.");
 
-        SubscribeToRooms();
+        roomsRebuiltSubscription = GameMessageBus.Subscribe<RoomsRebuiltMessage>(_ => HandleRoomsRebuilt());
         RefreshRoomThermalData();
     }
 
     private void OnDestroy()
     {
-        if (subscribedRooms != null)
-            subscribedRooms.OnRoomsRebuilt -= HandleRoomsRebuilt;
-    }
-
-    private void SubscribeToRooms()
-    {
-        if (RoomManager.instance == null || subscribedRooms == RoomManager.instance) return;
-
-        if (subscribedRooms != null)
-            subscribedRooms.OnRoomsRebuilt -= HandleRoomsRebuilt;
-
-        subscribedRooms = RoomManager.instance;
-        subscribedRooms.OnRoomsRebuilt += HandleRoomsRebuilt;
+        roomsRebuiltSubscription?.Dispose();
+        roomsRebuiltSubscription = null;
     }
 
     private void HandleRoomsRebuilt() => RefreshRoomThermalData();
@@ -183,7 +174,6 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
     private void Update()
     {
         if (RoomManager.instance == null) return;
-        if (subscribedRooms == null) { SubscribeToRooms(); RefreshRoomThermalData(); }
 
         float interval = config != null ? Mathf.Max(0.05f, config.tickInterval) : 1f;
 

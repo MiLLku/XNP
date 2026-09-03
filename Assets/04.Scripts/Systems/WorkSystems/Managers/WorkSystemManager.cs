@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using MessagePipe;
 
 /// <summary>
 /// 작업 시스템 통합 매니저
@@ -43,6 +45,9 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     private WorkAssignmentPanel workAssignmentPanel;
     private WorkOrder currentUIOrder;
     private WorkOrderVisual currentUIVisual;
+
+    // 직원 스폰/제거 메시지 구독 핸들
+    private IDisposable _employeeSubscriptions;
     
     #endregion
     
@@ -62,16 +67,17 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     
     void Start()
     {
-        // EmployeeManager 연동
+        _employeeSubscriptions = DisposableBag.Create(
+            GameMessageBus.Subscribe<EmployeeSpawnedMessage>(m => RegisterEmployee(m.employee)),
+            GameMessageBus.Subscribe<EmployeeRemovedMessage>(m => UnregisterEmployee(m.employee)));
+
+        // 이미 스폰되어 있는 직원은 메시지를 놓치므로 여기서 한 번 훑는다
         if (EmployeeManager.instance != null)
         {
             foreach (var employee in EmployeeManager.instance.AllEmployees)
             {
                 RegisterEmployee(employee);
             }
-            
-            EmployeeManager.instance.OnEmployeeSpawned += RegisterEmployee;
-            EmployeeManager.instance.OnEmployeeRemoved += UnregisterEmployee;
             
             if (showDebugInfo)
             {
@@ -92,11 +98,8 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     
     void OnDestroy()
     {
-        if (EmployeeManager.instance != null)
-        {
-            EmployeeManager.instance.OnEmployeeSpawned -= RegisterEmployee;
-            EmployeeManager.instance.OnEmployeeRemoved -= UnregisterEmployee;
-        }
+        _employeeSubscriptions?.Dispose();
+        _employeeSubscriptions = null;
     }
     
     #endregion

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
@@ -20,6 +21,9 @@ public class WorkModeBarUI : MonoBehaviour
     private static readonly Color ColActive   = new Color(0.25f, 0.55f, 1.00f);
     private static readonly Color ColInactive = new Color(0.14f, 0.14f, 0.18f);
 
+    /// <summary>상호작용 모드 메시지 구독 핸들</summary>
+    private IDisposable modeSubscription;
+
     private void Awake()
     {
         mineButton?.onClick.AddListener(()     => EnterMode(InteractionManager.InteractMode.Mine));
@@ -37,15 +41,14 @@ public class WorkModeBarUI : MonoBehaviour
 
     private void OnEnable()
     {
-        if (InteractionManager.instance != null)
-            InteractionManager.instance.OnModeChanged += OnModeChanged;
+        modeSubscription = GameMessageBus.Subscribe<InteractionModeChangedMessage>(m => OnModeChanged(m.mode));
         RefreshHighlights();
     }
 
     private void OnDisable()
     {
-        if (InteractionManager.instance != null)
-            InteractionManager.instance.OnModeChanged -= OnModeChanged;
+        modeSubscription?.Dispose();
+        modeSubscription = null;
     }
 
     private void Update()

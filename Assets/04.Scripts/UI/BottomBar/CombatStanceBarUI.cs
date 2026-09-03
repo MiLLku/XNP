@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -42,6 +43,9 @@ public class CombatStanceBarUI : MonoBehaviour
     private EmployeeDraft draft;
     private float refreshTimer;
 
+    /// <summary>직원 선택 메시지 구독 핸들</summary>
+    private IDisposable selectionSubscription;
+
     #region 초기화
 
     private void Awake()
@@ -57,14 +61,14 @@ public class CombatStanceBarUI : MonoBehaviour
 
     private void Start()
     {
-        if (InteractionManager.instance != null)
-            InteractionManager.instance.OnEmployeeSelected += OnEmployeeSelected;
+        selectionSubscription = GameMessageBus.Subscribe<EmployeeSelectionChangedMessage>(
+            m => OnEmployeeSelected(m.employee));
     }
 
     private void OnDestroy()
     {
-        if (InteractionManager.instance != null)
-            InteractionManager.instance.OnEmployeeSelected -= OnEmployeeSelected;
+        selectionSubscription?.Dispose();
+        selectionSubscription = null;
     }
 
     #endregion

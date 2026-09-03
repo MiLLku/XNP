@@ -41,6 +41,9 @@ public class DroppedItemManager : DestroySingleton<DroppedItemManager>
     /// <summary>WorkSystemManager가 관리하는 전역 Haul WorkOrder</summary>
     private WorkOrder _haulOrder;
 
+    /// <summary>직원 스폰 메시지 구독 핸들</summary>
+    private System.IDisposable _spawnSubscription;
+
     // 풀링은 PoolManager가 통합 관리 (이전 _inactivePool은 제거됨)
 
     #endregion
@@ -50,18 +53,14 @@ public class DroppedItemManager : DestroySingleton<DroppedItemManager>
     void Start()
     {
         // 새 직원이 생성될 때 기존 모든 DroppedItem과 충돌 무시 처리
-        if (EmployeeManager.instance != null)
-        {
-            EmployeeManager.instance.OnEmployeeSpawned += IgnoreCollisionsForNewEmployee;
-        }
+        _spawnSubscription = GameMessageBus.Subscribe<EmployeeSpawnedMessage>(
+            m => IgnoreCollisionsForNewEmployee(m.employee));
     }
 
     void OnDestroy()
     {
-        if (EmployeeManager.instance != null)
-        {
-            EmployeeManager.instance.OnEmployeeSpawned -= IgnoreCollisionsForNewEmployee;
-        }
+        _spawnSubscription?.Dispose();
+        _spawnSubscription = null;
     }
 
     #endregion
@@ -135,7 +134,7 @@ public class DroppedItemManager : DestroySingleton<DroppedItemManager>
 
     /// <summary>
     /// 새 Employee가 spawn될 때 기존 모든 DroppedItem과 충돌 무시 처리합니다.
-    /// EmployeeManager.OnEmployeeSpawned 이벤트에서 호출됩니다.
+    /// EmployeeSpawnedMessage 수신 시 호출됩니다.
     /// </summary>
     private void IgnoreCollisionsForNewEmployee(Employee employee)
     {

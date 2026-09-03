@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -21,6 +22,9 @@ public class InteractionModePanel : BasePanel
 
     private InteractionManager interactionManager;
 
+    /// <summary>상호작용 모드 메시지 구독 핸들</summary>
+    private IDisposable modeSubscription;
+
     void Start()
     {
         interactionManager = InteractionManager.instance;
@@ -32,8 +36,8 @@ public class InteractionModePanel : BasePanel
             return;
         }
 
-        // 모드 변경 이벤트 구독
-        interactionManager.OnModeChanged += UpdateModeDisplay;
+        // 모드 변경 구독
+        modeSubscription = GameMessageBus.Subscribe<InteractionModeChangedMessage>(m => UpdateModeDisplay(m.mode));
 
         // 초기 모드 표시
         UpdateModeDisplay(interactionManager.GetCurrentMode());
@@ -44,7 +48,7 @@ public class InteractionModePanel : BasePanel
 
     void OnEnable()
     {
-        // 활성화될 때마다 InteractionManager 이벤트 재연결
+        // 활성화될 때마다 현재 모드를 다시 반영
         if (interactionManager != null)
         {
             UpdateModeDisplay(interactionManager.GetCurrentMode());
@@ -53,10 +57,8 @@ public class InteractionModePanel : BasePanel
 
     void OnDestroy()
     {
-        if (interactionManager != null)
-        {
-            interactionManager.OnModeChanged -= UpdateModeDisplay;
-        }
+        modeSubscription?.Dispose();
+        modeSubscription = null;
     }
 
     /// <summary>

@@ -61,14 +61,6 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     #endregion
 
-    #region 이벤트
-
-    public delegate void EmployeeDelegate(Employee employee);
-    public event EmployeeDelegate OnEmployeeSpawned;
-    public event EmployeeDelegate OnEmployeeRemoved;
-
-    #endregion
-
     #region 프로퍼티
 
     /// <summary>모든 직원 목록</summary>
@@ -202,7 +194,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         // RestoreFromSaveData가 소지 식량을 복원한다.
         GrantInitialFood(employee);
 
-        OnEmployeeSpawned?.Invoke(employee);
+        GameMessageBus.Publish(new EmployeeSpawnedMessage(employee));
 
         if (showDebugInfo)
         {
@@ -251,7 +243,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         if (allEmployees.Contains(employee))
         {
             allEmployees.Remove(employee);
-            OnEmployeeRemoved?.Invoke(employee);
+            GameMessageBus.Publish(new EmployeeRemovedMessage(employee));
 
             if (showDebugInfo)
             {

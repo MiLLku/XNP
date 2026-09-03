@@ -43,9 +43,6 @@ public class DebugManager : DestroySingleton<DebugManager>
 
     private DebugFlag activeFlags = DebugFlag.None;
 
-    /// <summary>플래그가 바뀔 때 발행됩니다. (UI 갱신용)</summary>
-    public event Action OnFlagsChanged;
-
     /// <summary>현재 켜져 있는 차단 플래그 전체</summary>
     public DebugFlag ActiveFlags => activeFlags;
 
@@ -96,7 +93,7 @@ public class DebugManager : DestroySingleton<DebugManager>
 
         if (blocked) ApplyImmediateCleanup(flag);
 
-        OnFlagsChanged?.Invoke();
+        GameMessageBus.Publish(new DebugFlagsChangedMessage());
     }
 
     /// <summary>모든 차단을 해제합니다.</summary>
@@ -104,7 +101,7 @@ public class DebugManager : DestroySingleton<DebugManager>
     {
         activeFlags = DebugFlag.None;
         PlayerPrefs.SetInt(PREFS_KEY, 0);
-        OnFlagsChanged?.Invoke();
+        GameMessageBus.Publish(new DebugFlagsChangedMessage());
     }
 
     /// <summary>플래그를 켠 시점에 이미 진행 중이던 것을 정리합니다.</summary>

@@ -27,9 +27,6 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
 
     private int nextInstanceId = 1;
 
-    /// <summary>풀 변경 시 발행 (UI 갱신용)</summary>
-    public event System.Action OnPoolChanged;
-
     #region 생명주기
 
     private void Start()
@@ -98,7 +95,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
             durability = data.maxDurability
         };
         pool.Add(inst);
-        OnPoolChanged?.Invoke();
+        GameMessageBus.Publish(new EquipmentPoolChangedMessage());
         return inst;
     }
 
@@ -107,7 +104,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
     {
         if (inst == null) return;
         pool.Add(inst);
-        OnPoolChanged?.Invoke();
+        GameMessageBus.Publish(new EquipmentPoolChangedMessage());
     }
 
     /// <summary>풀에서 인스턴스를 꺼냅니다 (장착 시). 없으면 null.</summary>
@@ -117,7 +114,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         if (inst != null)
         {
             pool.Remove(inst);
-            OnPoolChanged?.Invoke();
+            GameMessageBus.Publish(new EquipmentPoolChangedMessage());
         }
         return inst;
     }
@@ -179,7 +176,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
                 pool.AddRange(data.equipmentStorage.instances);
             nextInstanceId = Mathf.Max(1, data.equipmentStorage.nextInstanceId);
         }
-        OnPoolChanged?.Invoke();
+        GameMessageBus.Publish(new EquipmentPoolChangedMessage());
     }
 
     public void PostRestore(SaveData data) { }

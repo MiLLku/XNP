@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
+using MessagePipe;
 
 /// <summary>
 /// 연구 트리 패널.
@@ -66,6 +68,9 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
     // ─── 내부 상태 ──────────────────────────────────────────────────────────
 
     private ResearchNodeData _selectedNode;
+
+    /// <summary>연구 진행 메시지 구독 핸들</summary>
+    private IDisposable _subscriptions;
     private readonly Dictionary<string, ResearchNodeUI> _nodeMap = new();
     private readonly List<(ResearchNodeData from, ResearchNodeData to, SkillTreeEdgeUI edge)> _edges = new();
 
@@ -84,22 +89,18 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
 
     private void OnEnable()
     {
-        if (ResearchTreeManager.instance == null) return;
-        ResearchTreeManager.instance.OnResearchStarted    += _ => RefreshAll();
-        ResearchTreeManager.instance.OnResearchCompleted  += _ => RefreshAll();
-        ResearchTreeManager.instance.OnResearchCancelled  += _ => RefreshAll();
-        ResearchTreeManager.instance.OnProgressChanged    += OnProgressChanged;
-        ResearchTreeManager.instance.OnNodeStateChanged   += (_, __) => RefreshAll();
+        _subscriptions = DisposableBag.Create(
+            GameMessageBus.Subscribe<ResearchStartedMessage>(_ => RefreshAll()),
+            GameMessageBus.Subscribe<ResearchCompletedMessage>(_ => RefreshAll()),
+            GameMessageBus.Subscribe<ResearchCancelledMessage>(_ => RefreshAll()),
+            GameMessageBus.Subscribe<ResearchNodeStateChangedMessage>(_ => RefreshAll()),
+            GameMessageBus.Subscribe<ResearchProgressChangedMessage>(m => OnProgressChanged(m.current, m.required)));
     }
 
     private void OnDisable()
     {
-        if (ResearchTreeManager.instance == null) return;
-        ResearchTreeManager.instance.OnResearchStarted    -= _ => RefreshAll();
-        ResearchTreeManager.instance.OnResearchCompleted  -= _ => RefreshAll();
-        ResearchTreeManager.instance.OnResearchCancelled  -= _ => RefreshAll();
-        ResearchTreeManager.instance.OnProgressChanged    -= OnProgressChanged;
-        ResearchTreeManager.instance.OnNodeStateChanged   -= (_, __) => RefreshAll();
+        _subscriptions?.Dispose();
+        _subscriptions = null;
     }
 
     [ContextMenu("씬 참조 자동 연결")]

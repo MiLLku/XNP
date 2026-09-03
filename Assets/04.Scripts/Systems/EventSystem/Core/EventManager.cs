@@ -33,12 +33,6 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
     private Dictionary<int, float> _eventLastTriggerTime;   // 이벤트별 마지막 발생 시간
     private HashSet<int> _triggeredEventIds;                // 한번이라도 발생한 이벤트
 
-    // 이벤트
-    public event Action<EventData> OnEventTriggered;
-    public event Action<EventData> OnPersistentEventStarted;
-    public event Action<EventData> OnPersistentEventEnded;
-    public event Action<EventData, EventChoice> OnEventChoiceMade;
-
     #region Unity 생명주기
 
     protected override void Awake()
@@ -161,7 +155,7 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
         RecordEventTrigger(eventData.eventId);
 
         // 이벤트 콜백
-        OnEventTriggered?.Invoke(eventData);
+        GameMessageBus.Publish(new GameEventTriggeredMessage(eventData));
 
         // 게임 속도 조절: 위험 이벤트 → 강제 정지, 일반 이벤트 → 1배속
         if (TimeManager.instance != null)
@@ -208,7 +202,7 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
         EventEffectApplier.ApplyEffects(choice.effects);
 
         // 콜백
-        OnEventChoiceMade?.Invoke(eventData, choice);
+        GameMessageBus.Publish(new GameEventChoiceMadeMessage(eventData, choice));
 
         // 지속형이면 활성화
         if (eventData.isPersistent)
@@ -265,7 +259,7 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
         EventEffectApplier.ApplyEffects(activeEvent.eventData.endEffects);
 
         // 콜백
-        OnPersistentEventEnded?.Invoke(activeEvent.eventData);
+        GameMessageBus.Publish(new PersistentEventEndedMessage(activeEvent.eventData));
 
         _activePersistentEvents.Remove(eventId);
     }
@@ -450,7 +444,7 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
         EventEffectApplier.ApplyEffects(eventData.persistentEffects);
 
         // 콜백
-        OnPersistentEventStarted?.Invoke(eventData);
+        GameMessageBus.Publish(new PersistentEventStartedMessage(eventData));
     }
 
     private void UpdatePersistentEvents()

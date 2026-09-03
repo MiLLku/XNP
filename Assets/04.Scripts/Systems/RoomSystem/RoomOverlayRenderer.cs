@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -73,6 +74,9 @@ public class RoomOverlayRenderer : DestroySingleton<RoomOverlayRenderer>
 
     private float refreshTimer;
 
+    /// <summary>방 재계산 메시지 구독 핸들</summary>
+    private IDisposable roomsRebuiltSubscription;
+
     #endregion
 
     #region 생명주기
@@ -84,16 +88,15 @@ public class RoomOverlayRenderer : DestroySingleton<RoomOverlayRenderer>
         if (overlayTile == null)
             Debug.LogWarning("[RoomOverlayRenderer] overlayTile이 연결되지 않았습니다.");
 
-        if (RoomManager.instance != null)
-            RoomManager.instance.OnRoomsRebuilt += HandleRoomsRebuilt;
+        roomsRebuiltSubscription = GameMessageBus.Subscribe<RoomsRebuiltMessage>(_ => HandleRoomsRebuilt());
 
         SetVisible(visibleOnStart);
     }
 
     private void OnDestroy()
     {
-        if (RoomManager.instance != null)
-            RoomManager.instance.OnRoomsRebuilt -= HandleRoomsRebuilt;
+        roomsRebuiltSubscription?.Dispose();
+        roomsRebuiltSubscription = null;
     }
 
     private void HandleRoomsRebuilt()

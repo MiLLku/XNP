@@ -36,10 +36,6 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
     /// <summary>다음 예약 ID</summary>
     private int nextReservationId = 1;  
 
-    /// <summary>인벤토리 변경 이벤트 (아이템, 변경 수량)</summary>
-    public delegate void InventoryChangedDelegate(ItemData item, int changeAmount);
-    public event InventoryChangedDelegate OnInventoryChanged;
-
     [Header("인벤토리 설정")]
     [SerializeField] private int maxStackSize = 999;
     [SerializeField] private bool showDebugLogs = true;
@@ -117,7 +113,7 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
             Debug.Log($"[InventoryManager] '{itemData.itemName}' {amount}개 추가, (현재 총: {newAmount}개)");
         }
 
-        OnInventoryChanged?.Invoke(itemData, amount);
+        GameMessageBus.Publish(new InventoryChangedMessage(itemData, amount));
         return true;
     }
 
@@ -163,7 +159,7 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
             }
         }
 
-        OnInventoryChanged?.Invoke(itemData, -amount);
+        GameMessageBus.Publish(new InventoryChangedMessage(itemData, -amount));
         return true;
     }
 
@@ -289,7 +285,7 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
         {
             Debug.Log("[InventoryManager] 인벤토리 및 예약이 초기화되었습니다.");
         }
-        OnInventoryChanged?.Invoke(null, 0);
+        GameMessageBus.Publish(InventoryChangedMessage.Refresh);
     }
 
     #endregion
@@ -425,7 +421,7 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
             Debug.Log($"[InventoryManager] 예약 #{reservationId} 생성 ({costs.Count}종 자원)");
         }
 
-        OnInventoryChanged?.Invoke(null, 0); // UI 갱신용
+        GameMessageBus.Publish(InventoryChangedMessage.Refresh);
         return reservationId;
     }
 
@@ -507,7 +503,7 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
             Debug.Log($"[InventoryManager] 예약 #{reservationId} 취소됨");
         }
 
-        OnInventoryChanged?.Invoke(null, 0); // UI 갱신용
+        GameMessageBus.Publish(InventoryChangedMessage.Refresh);
     }
 
     /// <summary>
@@ -687,7 +683,7 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
             Debug.Log($"[InventoryManager] 복원 완료: {globalInventory.Count}개 아이템, {reservations.Count}개 예약");
         }
 
-        OnInventoryChanged?.Invoke(null, 0);
+        GameMessageBus.Publish(InventoryChangedMessage.Refresh);
     }
 
     public void PostRestore(SaveData data) { }

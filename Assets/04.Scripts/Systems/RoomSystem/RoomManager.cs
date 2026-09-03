@@ -74,10 +74,7 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
 
     #endregion
 
-    #region 이벤트 / 프로퍼티
-
-    /// <summary>방이 다시 계산될 때마다 발행됩니다.</summary>
-    public event Action OnRoomsRebuilt;
+    #region 프로퍼티
 
     /// <summary>현재 방 목록 (실외 제외)</summary>
     public IReadOnlyDictionary<int, Room> Rooms => rooms;
@@ -291,7 +288,7 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
         if (showDebugLogs)
             Debug.Log($"[RoomManager] 방 재계산: {rooms.Count}개 / 실내 {indoorCells}칸 / {LastRebuildMs:F2}ms");
 
-        OnRoomsRebuilt?.Invoke();
+        GameMessageBus.Publish(new RoomsRebuiltMessage());
     }
 
     /// <summary>

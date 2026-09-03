@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 /// <summary>
@@ -42,13 +41,6 @@ public class ErosionManager : DestroySingleton<ErosionManager>, ISaveModule
     /// 게임 진행에 따라 하한이 내려가도록 하는 축의 하나이며, 세이브에 저장된다.
     /// </summary>
     [SerializeField] private float runtimeFloorReduction;
-
-    #endregion
-
-    #region 이벤트
-
-    /// <summary>직원이 제놉스로 변이할 때 발행됩니다.</summary>
-    public event Action<Employee> OnEmployeeMutated;
 
     #endregion
 
@@ -168,7 +160,7 @@ public class ErosionManager : DestroySingleton<ErosionManager>, ISaveModule
             Debug.LogWarning($"[ErosionManager] corrodedXenopsDataId({corrodedXenopsDataId})가 설정되지 않았거나 XenopsManager가 없습니다. 직원만 제거됩니다.");
         }
 
-        OnEmployeeMutated?.Invoke(employee);
+        GameMessageBus.Publish(new EmployeeMutatedMessage(employee));
     }
 
     #endregion

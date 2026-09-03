@@ -25,17 +25,6 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
     private HashSet<int> _unlockedRecipeIds = new();
     private Dictionary<ResearchStatType, float> _statBonuses = new();
 
-    // ─── 이벤트 ────────────────────────────────────────────────────────────────
-
-    public event System.Action<ResearchNodeData> OnResearchStarted;
-    public event System.Action<ResearchNodeData> OnResearchCompleted;
-    public event System.Action<ResearchNodeData> OnResearchCancelled;
-    /// <summary>(현재 포인트, 목표 포인트)</summary>
-    public event System.Action<float, float> OnProgressChanged;
-    public event System.Action<string, ResearchNodeState> OnNodeStateChanged;
-    public event System.Action<BuildingData> OnBuildingUnlocked;
-    public event System.Action<CraftingRecipe> OnRecipeUnlocked;
-
     // ─── 프로퍼티 ──────────────────────────────────────────────────────────────
 
     public ResearchTreeConfig TreeConfig => treeConfig;
@@ -110,7 +99,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
         _currentProgress = 0f;
         SetNodeState(nodeId, ResearchNodeState.InProgress);
 
-        OnResearchStarted?.Invoke(node);
+        GameMessageBus.Publish(new ResearchStartedMessage(node));
         Debug.Log($"[ResearchTreeManager] 연구 시작: {node.nodeName} (목표: {node.researchPointCost}pt)");
         return true;
     }
@@ -124,7 +113,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
         if (node == null) return;
 
         _currentProgress += points;
-        OnProgressChanged?.Invoke(_currentProgress, node.researchPointCost);
+        GameMessageBus.Publish(new ResearchProgressChangedMessage(_currentProgress, node.researchPointCost));
 
         if (_currentProgress >= node.researchPointCost)
             CompleteResearch(node);
@@ -142,7 +131,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
         _activeNodeId = null;
         _currentProgress = 0f;
 
-        OnResearchCancelled?.Invoke(node);
+        GameMessageBus.Publish(new ResearchCancelledMessage(node));
         Debug.Log($"[ResearchTreeManager] 연구 취소: {node?.nodeName}");
     }
 
@@ -161,7 +150,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
                 SetNodeState(child.nodeId, ResearchNodeState.Available);
         }
 
-        OnResearchCompleted?.Invoke(node);
+        GameMessageBus.Publish(new ResearchCompletedMessage(node));
         Debug.Log($"[ResearchTreeManager] 연구 완료: {node.nodeName}");
     }
 
@@ -171,7 +160,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
     private void SetNodeState(string nodeId, ResearchNodeState state)
     {
         _nodeStates[nodeId] = state;
-        OnNodeStateChanged?.Invoke(nodeId, state);
+        GameMessageBus.Publish(new ResearchNodeStateChangedMessage(nodeId, state));
     }
 
     // ─── Effect 콜백 ───────────────────────────────────────────────────────────
@@ -180,7 +169,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
     {
         if (building == null) return;
         _unlockedBuildingIds.Add(building.buildingID);
-        OnBuildingUnlocked?.Invoke(building);
+        GameMessageBus.Publish(new BuildingUnlockedMessage(building));
         Debug.Log($"[ResearchTreeManager] 건물 해금: {building.buildingName}");
     }
 
@@ -188,7 +177,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
     {
         if (recipe == null) return;
         _unlockedRecipeIds.Add(recipe.recipeID);
-        OnRecipeUnlocked?.Invoke(recipe);
+        GameMessageBus.Publish(new RecipeUnlockedMessage(recipe));
         Debug.Log($"[ResearchTreeManager] 레시피 해금: {recipe.outputItem?.itemName}");
     }
 

@@ -15,7 +15,7 @@ using UnityEngine;
 ///   4. 수행 불가 시 → Anything(자유 시간)으로 대체
 ///
 /// 이벤트 기반 설계:
-///   - DayCycle.OnHourChanged  → 스케줄 재평가 (시간 전환 시 1회)
+///   - HourChangedMessage      → 스케줄 재평가 (시간 전환 시 1회)
 ///   - 자유 시간 욕구 감시     → needsCheckInterval마다 소주기 확인
 ///   - Update 폴링 제거        → CPU 부담 대폭 감소
 /// </summary>
@@ -115,6 +115,9 @@ public class EmployeeAI : MonoBehaviour
     private EmployeeZoneAssignment zoneAssignment;
     private EmployeeStatsController statsController;
 
+    /// <summary>시각 변경 메시지 구독 핸들 (OnDisable에서 해지)</summary>
+    private IDisposable hourSubscription;
+
     #endregion
 
     #region 초기화
@@ -131,8 +134,7 @@ public class EmployeeAI : MonoBehaviour
 
     void OnEnable()
     {
-        if (DayCycle.instance != null)
-            DayCycle.instance.OnHourChanged += OnHourChanged;
+        hourSubscription = GameMessageBus.Subscribe<HourChangedMessage>(m => OnHourChanged(m.hour));
 
         if (employee != null)
             employee.OnStateChanged += OnEmployeeStateChanged;
@@ -140,8 +142,8 @@ public class EmployeeAI : MonoBehaviour
 
     void OnDisable()
     {
-        if (DayCycle.instance != null)
-            DayCycle.instance.OnHourChanged -= OnHourChanged;
+        hourSubscription?.Dispose();
+        hourSubscription = null;
 
         if (employee != null)
             employee.OnStateChanged -= OnEmployeeStateChanged;
@@ -149,13 +151,6 @@ public class EmployeeAI : MonoBehaviour
 
     void Start()
     {
-        // DayCycle이 Start 이전에 존재하지 않을 수 있으므로 Start에서도 구독
-        if (DayCycle.instance != null)
-        {
-            DayCycle.instance.OnHourChanged -= OnHourChanged; // 중복 방지
-            DayCycle.instance.OnHourChanged += OnHourChanged;
-        }
-
         // 초기 결정 (게임 시작 시 첫 행동 부여)
         needsCheckTimer = NEEDS_CHECK_INTERVAL;
         workReevaluateTimer = WORK_REEVALUATE_INTERVAL;
@@ -165,9 +160,6 @@ public class EmployeeAI : MonoBehaviour
 
     void OnDestroy()
     {
-        if (DayCycle.instance != null)
-            DayCycle.instance.OnHourChanged -= OnHourChanged;
-
         if (employee != null)
             employee.OnStateChanged -= OnEmployeeStateChanged;
     }
@@ -259,7 +251,7 @@ public class EmployeeAI : MonoBehaviour
     #region 시간 이벤트 핸들러
 
     /// <summary>
-    /// DayCycle.OnHourChanged 이벤트 핸들러.
+    /// HourChangedMessage 핸들러.
     /// 시간이 바뀔 때마다 스케줄을 재평가합니다.
     /// </summary>
     private void OnHourChanged(int newHour)

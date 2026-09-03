@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -38,10 +37,6 @@ public class TimeManager : DestroySingleton<TimeManager>
     // 공개 프로퍼티
     public int CurrentSpeed => currentSpeed;
     public bool IsPaused => _isPaused;
-
-    // 이벤트
-    public event Action<int> OnSpeedChanged;
-    public event Action<bool> OnPauseStateChanged;
 
     #region Unity 생명주기
 
@@ -100,7 +95,7 @@ public class TimeManager : DestroySingleton<TimeManager>
         if (_isPaused)
         {
             _isPaused = false;
-            OnPauseStateChanged?.Invoke(false);
+            GameMessageBus.Publish(new GamePauseStateChangedMessage(false));
         }
 
         if (currentSpeed == speed && !_isPaused) return;
@@ -109,7 +104,7 @@ public class TimeManager : DestroySingleton<TimeManager>
         _previousSpeed = speed;
         ApplyTimeScale();
 
-        OnSpeedChanged?.Invoke(currentSpeed);
+        GameMessageBus.Publish(new GameSpeedChangedMessage(currentSpeed));
 
         if (showDebugLogs)
         {
@@ -128,7 +123,7 @@ public class TimeManager : DestroySingleton<TimeManager>
         _isPaused = true;
         Time.timeScale = 0f;
 
-        OnPauseStateChanged?.Invoke(true);
+        GameMessageBus.Publish(new GamePauseStateChangedMessage(true));
 
         if (showDebugLogs)
         {
@@ -147,7 +142,7 @@ public class TimeManager : DestroySingleton<TimeManager>
         currentSpeed = _previousSpeed;
         ApplyTimeScale();
 
-        OnPauseStateChanged?.Invoke(false);
+        GameMessageBus.Publish(new GamePauseStateChangedMessage(false));
 
         if (showDebugLogs)
         {
@@ -176,7 +171,7 @@ public class TimeManager : DestroySingleton<TimeManager>
         _isPaused = true;
         Time.timeScale = 0f;
 
-        OnPauseStateChanged?.Invoke(true);
+        GameMessageBus.Publish(new GamePauseStateChangedMessage(true));
 
         if (showDebugLogs)
         {
@@ -196,7 +191,7 @@ public class TimeManager : DestroySingleton<TimeManager>
         _previousSpeed = 1;
         ApplyTimeScale();
 
-        OnSpeedChanged?.Invoke(currentSpeed);
+        GameMessageBus.Publish(new GameSpeedChangedMessage(currentSpeed));
 
         if (showDebugLogs)
         {

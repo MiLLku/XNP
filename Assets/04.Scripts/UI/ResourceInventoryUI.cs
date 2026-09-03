@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -24,6 +25,9 @@ public class ResourceInventoryUI : BasePanel
     /// <summary>UI가 현재 열려있는지 여부</summary>
     private bool isOpen = false;
 
+    /// <summary>인벤토리 변경 메시지 구독 핸들</summary>
+    private IDisposable _inventorySubscription;
+
     #endregion
 
     #region 초기화 및 정리
@@ -35,20 +39,15 @@ public class ResourceInventoryUI : BasePanel
             closeButton.onClick.AddListener(OnClose);
         }
 
-        // 인벤토리 변경 이벤트 구독
-        if (InventoryManager.instance != null)
-        {
-            InventoryManager.instance.OnInventoryChanged += OnInventoryChanged;
-        }
+        // 인벤토리 변경 구독
+        _inventorySubscription = GameMessageBus.Subscribe<InventoryChangedMessage>(
+            m => OnInventoryChanged(m.item, m.changeAmount));
     }
 
     void OnDestroy()
     {
-        // 이벤트 구독 해제
-        if (InventoryManager.instance != null)
-        {
-            InventoryManager.instance.OnInventoryChanged -= OnInventoryChanged;
-        }
+        _inventorySubscription?.Dispose();
+        _inventorySubscription = null;
     }
 
     #endregion
