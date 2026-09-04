@@ -50,7 +50,7 @@ public class EmployeeAI : MonoBehaviour
         if (_tagCache.TryGetValue(tag, out var entry) && now - entry.time < TAG_CACHE_DURATION)
             return entry.objs;
 
-        var result = GameObject.FindGameObjectsWithTag(tag);
+        var result = FacilityTag.FindAll(tag);
         _tagCache[tag] = (result, now);
         return result;
     }

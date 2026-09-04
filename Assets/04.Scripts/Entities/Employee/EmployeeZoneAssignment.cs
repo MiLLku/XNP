@@ -115,7 +115,7 @@ public class EmployeeZoneAssignment : MonoBehaviour
     /// <returns>가장 가까운 시설 오브젝트 (없으면 null)</returns>
     public GameObject FindNearestFacility(string facilityTag, Vector3 myPosition)
     {
-        var allFacilities = GameObject.FindGameObjectsWithTag(facilityTag)
+        var allFacilities = FacilityTag.FindAll(facilityTag)
             .Where(f => f != null)
             .ToArray();
 
@@ -153,8 +153,7 @@ public class EmployeeZoneAssignment : MonoBehaviour
     /// </summary>
     public bool HasAnyFacility(string facilityTag)
     {
-        var objs = GameObject.FindGameObjectsWithTag(facilityTag);
-        return objs.Length > 0 && objs.Any(o => o != null);
+        return FacilityTag.AnyExists(facilityTag);
     }
 
     #endregion

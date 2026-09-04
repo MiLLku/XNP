@@ -47,20 +47,8 @@ public class WashStationAlertEvaluator : IAlertEvaluator
     /// </summary>
     private static bool HasAnyWashStation()
     {
-        GameObject[] stations;
-        try
-        {
-            stations = GameObject.FindGameObjectsWithTag(FacilityTag.WashStation);
-        }
-        catch (UnityException)
-        {
-            // 태그가 프로젝트에 정의되지 않은 경우 — 시설도 없다고 본다
-            return false;
-        }
-
-        if (stations == null) return false;
-
-        foreach (var go in stations)
+        // 태그 미정의(UnityException)는 FacilityTag.FindAll이 빈 배열로 삼킨다
+        foreach (var go in FacilityTag.FindAll(FacilityTag.WashStation))
         {
             if (go != null && go.activeInHierarchy) return true;
         }
