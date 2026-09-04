@@ -122,4 +122,16 @@ public class BuildingData : ScriptableObject
     public bool allowOverlap = false;
 
     #endregion
+
+    #region 해금
+
+    [Header("해금")]
+    [Tooltip("연구로 해금해야 건설 목록에 나타나는지 여부." + "\n" +
+             "false(기본) : 처음부터 건설 가능" + "\n" +
+             "true : ResearchBuildingUnlockEffect로 해금될 때까지 건설 UI에서 숨김" + "\n" +
+             "반전 네이밍인 이유 — 새 bool은 기존 에셋에서 false로 역직렬화되므로," + "\n" +
+             "이 방향이어야 기존 건물들이 그대로 기본 해금 상태로 남습니다.")]
+    public bool requiresResearch = false;
+
+    #endregion
 }

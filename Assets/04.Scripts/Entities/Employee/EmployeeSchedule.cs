@@ -65,8 +65,8 @@ public class EmployeeSchedule : MonoBehaviour
                 12             => ScheduleActivity.Recreation,
                 >= 13 and < 18 => ScheduleActivity.Work,
                 18             => ScheduleActivity.Recreation,
-                >= 19 and < 22 => ScheduleActivity.Anything,
-                22             => ScheduleActivity.Wash,
+                >= 19 and < 21 => ScheduleActivity.Anything,
+                >= 21 and < 23 => ScheduleActivity.Wash,
                 23             => ScheduleActivity.Sleep,
                 _              => ScheduleActivity.Anything
             };

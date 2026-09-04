@@ -46,7 +46,7 @@ public static class GameIDRegistry
         public const int COAL = 2003;
         public const int WATER = 2004;
 
-        // 가공 자원 (2100~2199)
+        // 가공 자원 (2100~2199)  ※ 실제 ItemData의 itemID는 ItemType enum 값(101~200)을 씁니다
         public const int WOODEN_PLANK = 2100;
         public const int WOODEN_BEAM = 2101;
         public const int IRON_INGOT = 2102;
@@ -121,6 +121,11 @@ public static class GameIDRegistry
         // 오락 건물 (3500~3599) — RecreationBuildingType enum과 값 일치
         public const int DART_BOARD = 3500;         // 다트판 (1x2, 무전력)
         public const int ARCADE_MACHINE = 3501;     // 게임기 (2x2, 전력 소비)
+
+        // 위생 건물 (3600~3699) — WashBuildingType enum과 값 일치
+        public const int SMALL_WASH_STATION  = 3600; // 간이 세척대 (4x3, 무전력, 동시 1명)
+        public const int MEDIUM_WASH_STATION = 3601; // 세척실 (6x3, 전력 소비, 동시 2명)
+        public const int LARGE_WASH_STATION  = 3602; // 정화 세척실 (8x3, 전력 소비, 동시 4명)
 
         public const int MIN = 3000;
         public const int MAX = 3999;

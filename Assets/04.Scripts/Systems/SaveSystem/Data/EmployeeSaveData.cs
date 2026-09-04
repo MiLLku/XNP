@@ -168,6 +168,9 @@ public class EmployeeSaveData
     /// <summary>마지막 오라 노출 이후 경과 시간 (초) — 회복 타이머용</summary>
     public float timeSinceLastAuraExposure;
 
+    /// <summary>침식 유지 수치 (v12) — 이 값을 넘으면 세척하러 가고, 세척은 여기까지만 진행합니다.</summary>
+    public float erosionMaintainTarget;
+
     /// <summary>
     /// [구 필드 — v7 이하 전용] 침식 단계가 굴리던 이상 행동 타입 (AbnormalBehaviorType int 값, 0 = 없음).
     /// v8부터 침식 계열 정신 이상은 activeMentalEvents가 관리합니다.

@@ -30,6 +30,15 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource
 
     private const float FULL_EROSION_THRESHOLD = 200f;
 
+    /// <summary>침식 유지 수치의 하한.</summary>
+    public const float MIN_MAINTAIN_TARGET = 0f;
+
+    /// <summary>침식 유지 수치의 상한. Critical(150) 이상은 전파 오라를 켜므로 허용하지 않는다.</summary>
+    public const float MAX_MAINTAIN_TARGET = 145f;
+
+    /// <summary>침식 유지 수치 기본값 (0 = 세척 시 완전 제거).</summary>
+    public const float DEFAULT_MAINTAIN_TARGET = 0f;
+
     #endregion
 
     #region 설정
@@ -58,6 +67,12 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource
 
     /// <summary>변이 처리 완료 여부 (중복 변이 방지)</summary>
     private bool hasMutated;
+
+    /// <summary>
+    /// 플레이어가 직원마다 설정하는 '이 정도 침식은 감수한다' 수치.
+    /// 이 값을 넘으면 세척 시간대에 세척 시설을 찾아가고, 세척은 이 값까지만 진행한다.
+    /// </summary>
+    [SerializeField] private float erosionMaintainTarget = DEFAULT_MAINTAIN_TARGET;
 
     /// <summary>
     /// 자연 침식 최고 노출 수치 워터마크.
@@ -113,6 +128,18 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource
 
     /// <summary>출처별 침식 누적 내역 (읽기 전용 — UI 표시용)</summary>
     public IReadOnlyList<ErosionSourceEntry> ErosionSources => erosionSources;
+
+    /// <summary>
+    /// 침식 유지 수치. 세척 트리거이자 세척 목표치입니다.
+    ///
+    /// 주의: 자연 회복 하한(ErosionManager.EffectiveRecoveryFloor, 기본 50) 이상으로 설정하면
+    /// 자연 회복만으로 조건이 충족되어 직원이 세척하러 가지 않습니다.
+    /// </summary>
+    public float ErosionMaintainTarget
+    {
+        get => erosionMaintainTarget;
+        set => erosionMaintainTarget = Mathf.Clamp(value, MIN_MAINTAIN_TARGET, MAX_MAINTAIN_TARGET);
+    }
 
     #endregion
 
@@ -383,6 +410,24 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource
         exposureTimer = 0f;
     }
 
+    /// <summary>
+    /// 침식을 지정한 하한까지만 씻어냅니다 (직원별 침식 유지 수치).
+    /// 완전 세척이 아니므로 내역은 비우지 않고 비례 축소하며, 노출 타이머도 유지합니다.
+    /// </summary>
+    public void ClearErosionTo(float floor)
+    {
+        if (statsController == null) return;
+
+        floor = Mathf.Clamp(floor, 0f, FULL_EROSION_THRESHOLD);
+        if (floor <= 0f) { ClearErosion(); return; }
+
+        float before = statsController.ErosionLevel;
+        if (before <= floor) return;
+
+        statsController.SetErosion(floor);
+        ScaleSources(floor / before);
+    }
+
     /// <summary>출처별 내역에 누적합니다.</summary>
     private void RecordSource(string sourceKey, string displayName, float amount)
     {
@@ -573,6 +618,7 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource
     {
         data.erosionLevel = statsController != null ? statsController.ErosionLevel : 0f;
         data.timeSinceLastAuraExposure = timeSinceLastAuraExposure;
+        data.erosionMaintainTarget = erosionMaintainTarget;
 
         data.erosionSources = new List<ErosionSourceEntry>();
         foreach (var s in erosionSources)
@@ -591,6 +637,7 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource
     public void RestoreFromSaveData(EmployeeSaveData data)
     {
         timeSinceLastAuraExposure = data.timeSinceLastAuraExposure;
+        ErosionMaintainTarget = data.erosionMaintainTarget;   // 프로퍼티 경유 — 범위를 벗어난 값 보정
 
         if (statsController != null)
             statsController.SetErosion(data.erosionLevel);

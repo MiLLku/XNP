@@ -43,6 +43,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4c0801bc04a29844799164b093527714, type: 2}
   - {fileID: 11400000, guid: 4b12b39b46f33004ba94f35af748b346, type: 2}
   - {fileID: 11400000, guid: 0774e9178e0bdda449ef3a71f114418b, type: 2}
+  - {fileID: 11400000, guid: 96785ed92ac786a49a43d1851fc8b0c7, type: 2}
+  - {fileID: 11400000, guid: 7a5dc4706152e544ba0cce6bdd4681da, type: 2}
+  - {fileID: 11400000, guid: 1d8d2a6a86f233c428fc088844c1b28b, type: 2}
   allItemData:
   - {fileID: 11400000, guid: 3824590cd90a121418efa5c76787ea7b, type: 2}
   - {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
@@ -65,6 +68,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a57498eaac13bbd479e5422f7ff5efcc, type: 2}
   - {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
   - {fileID: 11400000, guid: 09ce745046665d24b87c78a7fc2e7848, type: 2}
+  - {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
   allRecipeData:
   - {fileID: 11400000, guid: 80b1b536a9aedbb4d8995fb0482a92d3, type: 2}
   - {fileID: 11400000, guid: ae763cc660863294890b8083b261d75f, type: 2}

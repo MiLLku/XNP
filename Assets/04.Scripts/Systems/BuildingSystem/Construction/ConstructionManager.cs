@@ -145,9 +145,26 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
     {
         if (buildingsByCategory.TryGetValue(category, out List<BuildingData> buildings))
         {
-            return buildings;
+            // 내부 리스트를 그대로 넘기지 않는다 (호출부가 수정하면 등록 목록이 오염된다)
+            return buildings.Where(IsBuildingAvailable).ToList();
         }
         return new List<BuildingData>();
+    }
+
+    /// <summary>
+    /// 지금 건설할 수 있는 건물인지 (연구 해금 여부).
+    ///
+    /// 주의: 세이브 복원 경로(GameDatabase.GetBuildingData)에는 절대 이 필터를 걸지 마세요.
+    /// 이미 지어진 잠긴 건물이 로드에서 사라집니다. 이건 '건설 목록 표시' 전용입니다.
+    /// </summary>
+    public bool IsBuildingAvailable(BuildingData data)
+    {
+        if (data == null) return false;
+        if (!data.requiresResearch) return true;
+
+        // 연구 매니저가 없는 씬(테스트 등)에서는 잠그지 않는다
+        var research = ResearchTreeManager.instance;
+        return research == null || research.IsBuildingUnlocked(data);
     }
 
     /// <summary>
@@ -157,7 +174,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
     public List<BuildingCategory> GetAvailableCategories()
     {
         return buildingsByCategory
-            .Where(kvp => kvp.Value.Count > 0)
+            .Where(kvp => kvp.Value.Any(IsBuildingAvailable))
             .Select(kvp => kvp.Key)
             .ToList();
     }

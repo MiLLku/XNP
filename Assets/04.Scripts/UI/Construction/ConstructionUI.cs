@@ -82,11 +82,14 @@ public class ConstructionUI : BasePanel
         }
         
         // 배치 모드 · 인벤토리 변경 구독 (자원 표시 업데이트용)
+        // 건물 해금은 목록에 없던 건물이 새로 나타나야 하므로 함께 구독한다.
         _subscriptions = DisposableBag.Create(
             GameMessageBus.Subscribe<BuildingPlacementModeChangedMessage>(
                 m => OnPlacementModeChanged(m.isPlacing, m.building)),
             GameMessageBus.Subscribe<InventoryChangedMessage>(
-                m => OnInventoryChanged(m.item, m.changeAmount)));
+                m => OnInventoryChanged(m.item, m.changeAmount)),
+            GameMessageBus.Subscribe<BuildingUnlockedMessage>(
+                m => OnBuildingUnlocked(m.building)));
         
         // 초기화
         InitializeCategoryTabs();
@@ -96,6 +99,15 @@ public class ConstructionUI : BasePanel
     {
         _subscriptions?.Dispose();
         _subscriptions = null;
+    }
+
+    /// <summary>건물이 해금되면 열려 있는 목록을 다시 그립니다.</summary>
+    private void OnBuildingUnlocked(BuildingData unlocked)
+    {
+        if (!isOpen) return;
+
+        InitializeCategoryTabs();
+        RefreshBuildingList();
     }
     
     #region 패널 열기/닫기
@@ -205,6 +217,7 @@ public class ConstructionUI : BasePanel
             case BuildingCategory.Infrastructure: return "기반시설";
             case BuildingCategory.Special: return "특수";
             case BuildingCategory.Power: return "전력시설";
+            case BuildingCategory.Recreation: return "오락";
             default: return category.ToString();
         }
     }

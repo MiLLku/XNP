@@ -7,7 +7,7 @@ using UnityEngine;
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 11;
+    public const int CURRENT_VERSION = 12;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -59,6 +59,9 @@ public static class SaveMigration
                     break;
                 case 10:
                     data = MigrateV10ToV11(data);
+                    break;
+                case 11:
+                    data = MigrateV11ToV12(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -506,6 +509,31 @@ public static class SaveMigration
 
         Debug.Log($"[SaveMigration] v11 완료 — 구역 배정을 옮긴 직원 {moved}명");
         data.saveVersion = 11;
+        return data;
+    }
+
+    /// <summary>
+    /// v11 → v12: 직원별 침식 유지 수치 도입.
+    /// 구 세이브에는 필드가 없어 JsonUtility가 0을 넣으며, 0이 곧 기본값(= 세척 시 완전 제거)이라
+    /// 실질적인 변환은 없습니다. 의도를 명시하기 위해 값을 직접 채웁니다.
+    /// </summary>
+    private static SaveData MigrateV11ToV12(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v11 → v12 마이그레이션 시작 (직원별 침식 유지 수치 추가)...");
+
+        int count = 0;
+        if (data.employees != null)
+        {
+            foreach (var emp in data.employees)
+            {
+                if (emp == null) continue;
+                emp.erosionMaintainTarget = EmployeeErosionController.DEFAULT_MAINTAIN_TARGET;
+                count++;
+            }
+        }
+
+        Debug.Log($"[SaveMigration] v12 완료 — 침식 유지 수치를 기본값으로 채운 직원 {count}명");
+        data.saveVersion = 12;
         return data;
     }
 

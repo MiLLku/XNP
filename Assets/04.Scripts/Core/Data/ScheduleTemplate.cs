@@ -37,8 +37,8 @@ public class ScheduleTemplate : ScriptableObject
                 12             => ScheduleActivity.Recreation,   // 12시: 오락
                 >= 13 and < 18 => ScheduleActivity.Work,         // 13~17시: 작업
                 18             => ScheduleActivity.Recreation,   // 18시: 오락
-                >= 19 and < 22 => ScheduleActivity.Anything,     // 19~21시: 자유
-                22             => ScheduleActivity.Wash,          // 22시: 세척
+                >= 19 and < 21 => ScheduleActivity.Anything,     // 19~20시: 자유
+                >= 21 and < 23 => ScheduleActivity.Wash,         // 21~22시: 세척
                 23             => ScheduleActivity.Sleep,         // 23시: 취침
                 _              => ScheduleActivity.Anything
             };

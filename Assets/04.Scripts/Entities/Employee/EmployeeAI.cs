@@ -26,15 +26,22 @@ public class EmployeeAI : MonoBehaviour
 
     private const float FREE_FATIGUE_THRESHOLD  = 40f;
     private const float FREE_MENTAL_RATIO        = 0.5f;
-    private const float FREE_EROSION_THRESHOLD   = 30f;
     private const float FREE_HUNGER_THRESHOLD    = 50f;
     private const float FATIGUE_FULL_THRESHOLD   = 90f;
     private const float HUNGER_FULL_THRESHOLD    = 80f;
-    private const float EROSION_LOW_THRESHOLD    = 5f;
     private const float MENTAL_FULL_RATIO        = 0.8f;
 
     /// <summary>자유 시간 중 욕구 재확인 간격 (초). 스케줄 체크와 분리.</summary>
     private const float NEEDS_CHECK_INTERVAL = 8f;
+
+    /// <summary>
+    /// 침식 유지 수치를 이만큼 넘어야 세척하러 갑니다.
+    /// 목표치에 딱 붙은 상태에서 세척을 반복하는 핑퐁을 막습니다.
+    /// </summary>
+    private const float WASH_TRIGGER_MARGIN = 5f;
+
+    /// <summary>세척 시간대에 시설을 못 잡았을 때 재시도 간격 (초).</summary>
+    private const float WASH_RETRY_INTERVAL = 5f;
 
     #endregion
 
@@ -109,6 +116,15 @@ public class EmployeeAI : MonoBehaviour
     /// <summary>진행 중인 오락 루프의 취소원 (null이면 오락 중 아님)</summary>
     private CancellationTokenSource recreationCts;
 
+    /// <summary>진행 중인 세척 루프의 취소원 (null이면 세척 중 아님)</summary>
+    private CancellationTokenSource washCts;
+
+    /// <summary>점유 중인 세척 시설 (없으면 null)</summary>
+    private WashStation currentWashStation;
+
+    /// <summary>세척 시간대 재시도 타이머</summary>
+    private float washRetryTimer;
+
     // 컴포넌트 참조
     private Employee employee;
     private EmployeeMovement movement;
@@ -147,6 +163,9 @@ public class EmployeeAI : MonoBehaviour
         hourSubscription?.Dispose();
         hourSubscription = null;
 
+        // 비활성화 중에는 세척 슬롯을 계속 물고 있을 수 없다 (시설이 영구 만석이 된다)
+        ReleaseWashSlot();
+
         if (employee != null)
             employee.OnStateChanged -= OnEmployeeStateChanged;
     }
@@ -164,6 +183,10 @@ public class EmployeeAI : MonoBehaviour
     {
         recreationCts?.Cancel();
         DisposeRecreationTask();
+
+        washCts?.Cancel();
+        DisposeWashTask();
+        ReleaseWashSlot();
 
         if (employee != null)
             employee.OnStateChanged -= OnEmployeeStateChanged;
@@ -194,6 +217,7 @@ public class EmployeeAI : MonoBehaviour
 
             workReevaluateTimer = delay;
             needsCheckTimer = delay;   // Anything 모드(자유 시간)에서도 동일 적용
+            washRetryTimer = delay;    // 세척 시간대 재시도에도 동일 적용
         }
     }
 
@@ -247,6 +271,19 @@ public class EmployeeAI : MonoBehaviour
             {
                 workReevaluateTimer = WORK_REEVALUATE_INTERVAL;
                 ExecuteWork();
+            }
+        }
+        // 세척 시간대에 시설이 만석이거나 경로를 못 찾았으면 주기적으로 다시 시도한다.
+        // (이 분기가 없으면 정시 판단 1회에 실패한 직원이 그 시간대 내내 방치된다)
+        else if (currentExecutingActivity == ScheduleActivity.Wash &&
+                 employee.State == EmployeeState.Idle &&
+                 washCts == null)
+        {
+            washRetryTimer -= Time.deltaTime;
+            if (washRetryTimer <= 0f)
+            {
+                washRetryTimer = WASH_RETRY_INTERVAL;
+                ExecuteWash();
             }
         }
     }
@@ -334,8 +371,14 @@ public class EmployeeAI : MonoBehaviour
             }
 
             case ScheduleActivity.Wash:
-                if (employee.ErosionLevel <= EROSION_LOW_THRESHOLD) return false;
+            {
+                // 직원마다 정해둔 '침식 유지 수치'를 마진 이상 넘겼을 때만 씻으러 간다
+                float washTarget = employee.ErosionController != null
+                    ? employee.ErosionController.ErosionMaintainTarget
+                    : 0f;
+                if (employee.ErosionLevel <= washTarget + WASH_TRIGGER_MARGIN) return false;
                 return HasFacility(FacilityTag.WashStation);
+            }
 
             case ScheduleActivity.Work:
                 return true;
@@ -370,6 +413,10 @@ public class EmployeeAI : MonoBehaviour
         // 오락 진행 중 다른 활동으로 전환하면 오락을 중단
         if (activity != ScheduleActivity.Recreation)
             StopRecreation();
+
+        // 세척 중 다른 활동으로 전환하면 세척을 중단하고 슬롯을 반납
+        if (activity != ScheduleActivity.Wash)
+            StopWashing();
 
         currentExecutingActivity = activity;
 
@@ -651,14 +698,190 @@ public class EmployeeAI : MonoBehaviour
 
     // ─── Wash ───
 
+    /// <summary>
+    /// 세척 시설로 이동해 침식을 씻어냅니다.
+    ///
+    /// 오락 시설과 같은 흐름이되, 세척은 동시 인원이 제한되므로 슬롯 예약이 하나 더 있습니다:
+    ///   시설 선택(만석 제외) → 슬롯 예약 → 슬롯 좌표로 이동 → 도착 → 초당 침식 감소
+    /// 만석이면 아무것도 하지 않고 Update의 재시도 타이머에 맡깁니다.
+    /// </summary>
     private void ExecuteWash()
     {
+        if (washCts != null) return; // 이미 세척 중
+
+        // 주의: CancelCurrentAction은 반드시 슬롯 예약 '전'에 부른다.
+        // 예약 후에 부르면 그 안의 StopWashing이 방금 잡은 슬롯을 도로 반납해 버린다.
         CancelCurrentAction();
-        MoveToFacility(ScheduleActivity.Wash, FacilityTag.WashStation, () =>
+
+        WashStation best = SelectBestWashStation();
+        if (best == null) return;   // 시설 없음/전부 만석 → 재시도 타이머가 다시 시도
+
+        int slot = best.TryReserveSlot(employee);
+        if (slot < 0) return;
+
+        currentWashStation = best;
+
+        GoUseWashStation(best, slot);
+    }
+
+    /// <summary>
+    /// 지금 쓸 수 있는 세척 시설 중 최선(우선순위 → 거리)을 반환합니다.
+    /// CanUse가 만석을 걸러내므로 자연스럽게 여유 있는 시설로 분산됩니다.
+    /// 구역이 배정돼 있으면 구역 내 시설만 후보로 삼습니다.
+    /// </summary>
+    private WashStation SelectBestWashStation()
+    {
+        var objs = FindWithTagCached(FacilityTag.WashStation);
+        if (objs.Length == 0) return null;
+
+        Zone zone = zoneAssignment != null ? zoneAssignment.AssignedZone : null;
+
+        WashStation best = null;
+        float bestDist = float.MaxValue;
+
+        foreach (var obj in objs)
         {
-            employee.ErosionController?.ClearErosion();
+            if (obj == null) continue;
+
+            var station = obj.GetComponent<WashStation>();
+            if (station == null || !station.CanUse(employee)) continue;
+
+            if (zone != null)
+            {
+                var tile = new Vector2Int(
+                    Mathf.FloorToInt(obj.transform.position.x),
+                    Mathf.FloorToInt(obj.transform.position.y));
+                if (!zone.ContainsTile(tile)) continue;
+            }
+
+            float dist = Vector2.Distance(transform.position, obj.transform.position);
+
+            if (best == null ||
+                station.Priority > best.Priority ||
+                (station.Priority == best.Priority && dist < bestDist))
+            {
+                best = station;
+                bestDist = dist;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>예약한 슬롯 좌표로 이동해 세척을 시작합니다.</summary>
+    private void GoUseWashStation(WashStation station, int slot)
+    {
+        if (movement == null || station == null) { ReleaseWashSlot(); return; }
+
+        employee.SetState(EmployeeState.Moving);
+
+        PathOptions pathOpts = zoneAssignment != null ? zoneAssignment.GetPathOptions() : null;
+
+        Action onArrive = () =>
+        {
+            // 이동 중 활동이 바뀌었으면 씻지 않는다 (오락과 달리 자유 시간에는 세척하지 않음)
+            if (currentExecutingActivity != ScheduleActivity.Wash)
+            {
+                ReleaseWashSlot();
+                employee.SetState(EmployeeState.Idle);
+                return;
+            }
+
+            station.MarkArrived(employee);
+            washCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+            WashTickAsync(station, washCts.Token).Forget();
+        };
+
+        Action onFailed = () =>
+        {
+            ReleaseWashSlot();
+            OnActionFailed();
+        };
+
+        Vector3 slotPos = station.GetSlotPosition(slot);
+
+        if (pathOpts != null)
+            movement.MoveTo(slotPos, pathOpts, onComplete: onArrive, onFailed: onFailed);
+        else
+            movement.MoveTo(slotPos, onComplete: onArrive, onFailed: onFailed);
+    }
+
+    /// <summary>
+    /// 세척 루프 — 초당 침식을 깎고 그만큼 침식 결정체를 산출합니다.
+    /// 유지 수치 도달·시설 사용 불가·상태 변화 시 종료합니다.
+    /// </summary>
+    private async UniTaskVoid WashTickAsync(WashStation station, CancellationToken ct)
+    {
+        employee.SetState(EmployeeState.Resting);
+
+        var erosion = employee.ErosionController;
+        float target = erosion != null ? erosion.ErosionMaintainTarget : 0f;
+
+        if (showDebugLogs)
+            Debug.Log($"[AI] {employee.DisplayName}: 세척 시작 ({station.name}, 침식 {employee.ErosionLevel:F0} → 목표 {target:F0})");
+
+        while (employee != null &&
+               employee.State == EmployeeState.Resting &&
+               station != null && station.IsOperating &&
+               erosion != null &&
+               employee.ErosionLevel > target)
+        {
+            float before = employee.ErosionLevel;
+            float step   = Mathf.Min(station.ErosionClearPerSecond * Time.deltaTime, before - target);
+            if (step <= 0f) break;
+
+            erosion.ReduceErosion(step, "세척");
+            station.ReportWashed(before - employee.ErosionLevel);
+
+            await UniTask.Yield(GameLoop.Frame, ct);
+        }
+
+        // 부동소수 잔차를 없애고 목표치에 정확히 맞춘다 (target 0이면 내역까지 완전 초기화)
+        if (erosion != null && employee != null && employee.ErosionLevel <= target + 0.5f)
+            erosion.ClearErosionTo(target);
+
+        if (showDebugLogs && employee != null)
+            Debug.Log($"[AI] {employee.DisplayName}: 세척 종료 (침식 {employee.ErosionLevel:F0})");
+
+        DisposeWashTask();
+        ReleaseWashSlot();
+
+        if (employee != null && employee.State == EmployeeState.Resting)
             employee.SetState(EmployeeState.Idle);
-        });
+    }
+
+    /// <summary>진행 중인 세척을 중단하고 슬롯을 반납합니다 (활동 전환 등).</summary>
+    private void StopWashing()
+    {
+        // 취소는 await 지점에서 예외를 던지므로 WashTickAsync의 루프 뒤 코드가 실행되지 않는다.
+        // 슬롯 반납은 반드시 여기서 명시적으로 해야 한다.
+        if (washCts != null)
+        {
+            washCts.Cancel();
+            DisposeWashTask();
+        }
+
+        bool held = currentWashStation != null;
+        ReleaseWashSlot();
+
+        if (held && employee != null && employee.State == EmployeeState.Resting)
+            employee.SetState(EmployeeState.Idle);
+    }
+
+    /// <summary>세척 루프의 취소원을 정리합니다 (정상 종료·중단 공통).</summary>
+    private void DisposeWashTask()
+    {
+        washCts?.Dispose();
+        washCts = null;
+    }
+
+    /// <summary>점유 중인 세척 슬롯을 반납합니다 (잡고 있지 않으면 no-op).</summary>
+    private void ReleaseWashSlot()
+    {
+        if (currentWashStation != null)
+            currentWashStation.ReleaseSlot(employee);
+
+        currentWashStation = null;
     }
 
     // ─── Free Time ───
@@ -690,13 +913,8 @@ public class EmployeeAI : MonoBehaviour
             return;
         }
 
-        // 4. 침식
-        if (employee.ErosionLevel > FREE_EROSION_THRESHOLD &&
-            HasFacility(FacilityTag.WashStation))
-        {
-            ExecuteWash();
-            return;
-        }
+        // 4. 침식 — 세척은 Wash 스케줄 시간대에만 한다.
+        //    자유 시간에 끼워 넣으면 플레이어가 정한 세척 시간이 무의미해지므로 여기서는 다루지 않는다.
 
         // 4.3 재미 — 낮으면 스스로 오락거리를 찾는다 (시설 또는 약물)
         FunConfig freeFunCfg = EmployeeManager.instance?.FunConfig;
@@ -861,6 +1079,7 @@ public class EmployeeAI : MonoBehaviour
     private void CancelCurrentAction()
     {
         StopRecreation(); // 오락 이용 중이었다면 중단 (아니면 no-op)
+        StopWashing();    // 세척 중이었다면 중단하고 슬롯 반납 (아니면 no-op)
 
         if (employee.State == EmployeeState.Working)
             employee.CancelWork();

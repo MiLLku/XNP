@@ -35,6 +35,9 @@ public enum ItemType
     SilverIngot = 103,
     GoldIngot   = 104,
 
+    /// <summary>침식 결정체 — 세척 시설이 직원의 침식을 씻어내며 산출합니다.</summary>
+    ErosionCrystal = 105,
+
     // ─── 음식 (201~250) ─────────────────────────
     Berry       = 201,
 

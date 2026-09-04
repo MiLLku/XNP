@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: WashStationSmall
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 3600
+  buildingName: "\uAC04\uC774 \uC138\uCC99\uB300"
+  icon: {fileID: 21300000, guid: 2c50641ff3c5efa41b5258a4da673968, type: 3}
+  category: 1
+  description: "\uBB3C\uC744 \uB07C\uC5B9\uC5B4 \uCE68\uC2DD\uC744 \uC53B\uC5B4\uB0B4\uB294
+    \uAC04\uC774 \uC2DC\uC124. \uD55C \uBC88\uC5D0 \uD55C \uBA85\uB9CC \uC4F8 \uC218
+    \uC788\uB2E4. \uC53B\uACA8\uB098\uAC04 \uCE68\uC2DD\uC740 \uACB0\uC815\uCCB4\uB85C
+    \uAD73\uC5B4 \uD68C\uC218\uB41C\uB2E4."
+  buildingPrefab: {fileID: 6829916977556707050, guid: 64f292a1553f76b46ac0154435a57c31, type: 3}
+  size: {x: 4, y: 3}
+  pivot: {x: 0, y: 0}
+  workAmount: 60
+  requiredResources:
+  - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
+    amount: 20
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 10
+  maxHealth: 100
+  blocksMovement: 0
+  requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
+  destructionDrops: []
+  paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  powerConsumption: 0
+  allowOverlap: 0
+  requiresResearch: 0

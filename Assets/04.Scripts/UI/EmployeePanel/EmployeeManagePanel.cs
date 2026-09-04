@@ -9,6 +9,7 @@ using TMPro;
 ///   - 장비 슬롯 (무기/방어구 — 클릭 → 보관소 보유 장비 리스트 → 클릭 장착 지시)
 ///   - 구역 배정 (클릭 → 구역 리스트 → 클릭 배정. 기본값은 일반 = 맵 전체)
 ///   - 필수 소지 설정 (식량/약물 개수 — AI 선제 확보가 이 값을 따름)
+///   - 침식 유지 수치 (이 값을 넘으면 세척 시간대에 세척 시설로 감. 세척도 이 값까지만)
 ///
 /// 하단의 선택 리스트는 장비와 구역이 공용으로 씁니다 (PoolMode로 구분).
 ///
@@ -39,6 +40,11 @@ public class EmployeeManagePanel : BasePanel
     [SerializeField] private Button drugPlusButton;
     [SerializeField] private TMP_Text drugCountText;
 
+    [Header("침식 유지 수치")]
+    [SerializeField] private Button erosionMinusButton;
+    [SerializeField] private Button erosionPlusButton;
+    [SerializeField] private TMP_Text erosionTargetText;
+
     [Header("구역 배정")]
     [Tooltip("클릭 시 아래 선택 리스트에 구역 목록이 뜹니다")]
     [SerializeField] private Button zoneButton;
@@ -50,6 +56,12 @@ public class EmployeeManagePanel : BasePanel
 
     private const float REFRESH_INTERVAL = 0.5f;
 
+    /// <summary>침식 유지 수치 ± 버튼 1클릭당 변화량</summary>
+    private const float EROSION_TARGET_STEP = 5f;
+
+    private static readonly Color ROW_NORMAL   = new Color(0.16f, 0.16f, 0.20f, 1f);
+    private static readonly Color ROW_SELECTED = new Color(0.26f, 0.34f, 0.46f, 1f);
+
     /// <summary>선택 리스트가 지금 무엇을 고르는 중인지</summary>
     private enum PoolMode { None, Equipment, Zone }
 
@@ -59,6 +71,9 @@ public class EmployeeManagePanel : BasePanel
     private float refreshTimer;
 
     private readonly List<GameObject> listItems = new List<GameObject>();
+
+    /// <summary>선택 하이라이트를 칠하기 위한 직원 ↔ 행 매핑</summary>
+    private readonly Dictionary<Employee, Image> rowByEmployee = new Dictionary<Employee, Image>();
     private readonly List<GameObject> poolItems = new List<GameObject>();
 
     #region 초기화
@@ -80,6 +95,9 @@ public class EmployeeManagePanel : BasePanel
         foodPlusButton?.onClick.AddListener(() => AdjustCarry(isFood: true, delta: +1));
         drugMinusButton?.onClick.AddListener(() => AdjustCarry(isFood: false, delta: -1));
         drugPlusButton?.onClick.AddListener(() => AdjustCarry(isFood: false, delta: +1));
+
+        erosionMinusButton?.onClick.AddListener(() => AdjustErosionTarget(-EROSION_TARGET_STEP));
+        erosionPlusButton?.onClick.AddListener(() => AdjustErosionTarget(+EROSION_TARGET_STEP));
     }
 
     public override void OnOpen()
@@ -87,6 +105,13 @@ public class EmployeeManagePanel : BasePanel
         base.OnOpen();
         RebuildList();
         RefreshDetail();
+    }
+
+    /// <summary>닫을 때 선택 리스트를 치웁니다 (다시 열었을 때 낡은 행이 남지 않도록).</summary>
+    public override void OnClose()
+    {
+        ClosePool();
+        base.OnClose();
     }
 
     private void Update()
@@ -115,6 +140,7 @@ public class EmployeeManagePanel : BasePanel
             Destroy(go);
         }
         listItems.Clear();
+        rowByEmployee.Clear();
 
         if (listItemTemplate == null || EmployeeManager.instance == null) return;
 
@@ -131,17 +157,33 @@ public class EmployeeManagePanel : BasePanel
             Employee captured = emp;
             row.onClick.AddListener(() => Select(captured));
             listItems.Add(row.gameObject);
+
+            var rowImage = row.GetComponent<Image>();
+            if (rowImage != null) rowByEmployee[captured] = rowImage;
         }
 
         // 선택 직원이 죽었거나 없으면 첫 직원 선택
         if (selected == null || selected.State == EmployeeState.Dead)
             selected = firstAlive;
+
+        RefreshListHighlight();
+    }
+
+    /// <summary>선택된 직원의 행만 밝게 칠합니다.</summary>
+    private void RefreshListHighlight()
+    {
+        foreach (var pair in rowByEmployee)
+        {
+            if (pair.Value == null) continue;
+            pair.Value.color = pair.Key == selected ? ROW_SELECTED : ROW_NORMAL;
+        }
     }
 
     private void Select(Employee emp)
     {
         selected = emp;
         ClosePool();
+        RefreshListHighlight();
         RefreshDetail();
     }
 
@@ -179,6 +221,7 @@ public class EmployeeManagePanel : BasePanel
         RefreshSlotLabels();
         RefreshZoneLabels();
         RefreshCarryLabels();
+        RefreshErosionTargetLabel();
     }
 
     /// <summary>
@@ -293,6 +336,43 @@ public class EmployeeManagePanel : BasePanel
         if (isFood) work.DesiredFoodCount += delta;
         else        work.DesiredDrugCount += delta;
         RefreshCarryLabels();
+    }
+
+    /// <summary>
+    /// 침식 유지 수치를 표시합니다.
+    ///
+    /// 자연 회복 하한 이상으로 설정하면 자연 회복만으로 조건이 충족돼 직원이 세척하러
+    /// 가지 않습니다 — 설정이 무력화된 것처럼 보이므로 그 사실을 라벨에 직접 알립니다.
+    /// </summary>
+    private void RefreshErosionTargetLabel()
+    {
+        if (erosionTargetText == null) return;
+
+        var erosion = selected != null ? selected.ErosionController : null;
+        if (erosion == null) { erosionTargetText.text = "침식 유지: -"; return; }
+
+        float target = erosion.ErosionMaintainTarget;
+        float floor = ErosionManager.instance != null
+            ? ErosionManager.instance.EffectiveRecoveryFloor
+            : 50f;
+
+        string warn = target >= floor
+            ? $"  <color=#E0A030>(자연 회복 하한 {floor:F0} 이상 — 세척하러 가지 않음)</color>"
+            : string.Empty;
+
+        erosionTargetText.text = $"침식 유지: {target:F0}{warn}";
+    }
+
+    private void AdjustErosionTarget(float delta)
+    {
+        var erosion = selected != null ? selected.ErosionController : null;
+        if (erosion == null) return;
+
+        erosion.ErosionMaintainTarget += delta;   // 프로퍼티가 범위를 보정
+        RefreshErosionTargetLabel();
+
+        // 다른 설정 변경과 동일하게 즉시 재평가시킨다 (지금이 세척 시간대일 수 있음)
+        selected.GetComponent<EmployeeAI>()?.ForceReevaluate();
     }
 
     public static string GetSlotDisplayName(EquipmentSlot slot)
