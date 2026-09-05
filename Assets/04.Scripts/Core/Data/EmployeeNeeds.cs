@@ -8,15 +8,15 @@ using UnityEngine;
 [System.Serializable]
 public struct EmployeeNeeds
 {
-    /// <summary>배고픔 (0~100, 0이면 굶주림)</summary>
+    /// <summary>배고픔 (0~100, 0이면 굶주림, 낮으면 정신력에 취약)</summary>
     [Range(0, 100)]
     public float hunger;
 
-    /// <summary>피로 (0~100, 0이면 탈진)</summary>
+    /// <summary>피로 (0~100, 0이면 탈진, 낮으면 정신력에 취약)</summary>
     [Range(0, 100)]
     public float fatigue;
 
-    /// <summary>재미 (0~100, 높으면 작업 효율↑ / 낮으면 침식 취약)</summary>
+    /// <summary>재미 (0~100, 낮으면 정신력에 취약)</summary>
     [Range(0, 100)]
     public float fun;
 }
