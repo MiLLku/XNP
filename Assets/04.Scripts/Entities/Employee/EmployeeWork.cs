@@ -509,6 +509,12 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             AssignHaulWork(workOrder, haulOrder);
             return;
         }
+
+        if (target is BuildingHaulOrder buildingHaulOrder)
+        {
+            AssignBuildingHaulWork(workOrder, buildingHaulOrder);
+            return;
+        }
         // ────────────────────────────────────────────────────────────────────
 
         currentWorkOrder = workOrder;
@@ -699,6 +705,153 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     /// Phase 2: 가장 가까운 창고로 이동 → 배달
     /// 창고가 없으면 인벤토리에 직접 추가.
     /// </summary>
+    /// <summary>
+    /// 건물 산출물 운반을 할당합니다.
+    /// Phase 1: 건물로 이동 → 운반력만큼 수령
+    /// Phase 2: 가장 가까운 창고로 이동 → 입고
+    /// </summary>
+    private void AssignBuildingHaulWork(WorkOrder workOrder, BuildingHaulOrder order)
+    {
+        if (!order.IsWorkAvailable())
+        {
+            employee.SetState(EmployeeState.Idle);
+            return;
+        }
+
+        currentWorkOrder  = workOrder;
+        currentWorkTarget = order;
+        currentWork       = WorkType.Hauling;
+
+        employee.SetState(EmployeeState.Moving);
+        BuildingHaulWorkAsync(workOrder, order, RestartWorkTask()).Forget();
+    }
+
+    private async UniTaskVoid BuildingHaulWorkAsync(WorkOrder order, BuildingHaulOrder haulOrder, CancellationToken ct)
+    {
+        IBuildingOutput source = haulOrder.source;
+
+        // ── Phase 1: 건물로 이동 ───────────────────────────────────────────
+        if (!haulOrder.IsWorkAvailable())
+        {
+            CancelWork();
+            return;
+        }
+
+        bool reached    = false;
+        bool moveFailed = false;
+
+        movement.MoveTo(haulOrder.GetWorkPosition(),
+            onComplete: () => reached    = true,
+            onFailed:   () => moveFailed = true
+        );
+
+        await UniTask.WaitUntil(() => reached || moveFailed || !haulOrder.IsWorkAvailable(),
+                                GameLoop.Frame, ct);
+
+        if (moveFailed || !haulOrder.IsWorkAvailable())
+        {
+            if (showDebugInfo)
+                Debug.Log($"[Work] {employee.DisplayName}: 산출물 건물 이동 실패 또는 산출물 소진");
+            CancelWork();
+            return;
+        }
+
+        // ── Phase 2: 운반력만큼 수령 ───────────────────────────────────────
+        // 운반력은 '더미(슬롯) 개수'다 — 바닥 아이템 운반과 같은 규약.
+        // 한 더미에 몇 개가 들었는지는 세지 않으므로, 한 종류는 있는 대로 다 집는다.
+        var carryPile = new Dictionary<ItemData, int>();
+        int remainingSlots = GetCarryCapacity();
+
+        var pending = new List<ResourceCost>();
+        source.GetPendingOutputs(pending);
+
+        foreach (var stack in pending)
+        {
+            if (remainingSlots <= 0) break;
+            if (stack.item == null || stack.amount <= 0) continue;
+
+            int taken = source.TakeOutput(stack.item, stack.amount);
+            if (taken <= 0) continue;
+
+            AddToCarryPile(carryPile, stack.item, taken);
+            remainingSlots--;
+        }
+
+        haulOrder.CompleteWork(employee);
+
+        if (carryPile.Count == 0)
+        {
+            // 다른 직원이 먼저 비웠다 — 헛걸음이지만 정상 종료
+            CancelWork();
+            return;
+        }
+
+        if (showDebugInfo)
+            Debug.Log($"[Work] {employee.DisplayName}: 산출물 수령 → {SummarizePile(carryPile)}");
+
+        // ── Phase 3: 창고 배달 (HaulWorkAsync와 같은 규약) ─────────────────
+        await DeliverCarryPileAsync(carryPile, ct);
+
+        IWorkTarget completedTarget = currentWorkTarget;
+        WorkOrder   completedOrder  = currentWorkOrder;
+
+        currentWorkTarget = null;
+        currentWorkOrder  = null;
+        currentWork       = WorkType.None;
+        workProgress      = 0f;
+        CancelWorkTask();
+
+        if (WorkSystemManager.instance != null && completedTarget != null && completedOrder != null)
+            WorkSystemManager.instance.OnWorkerCompletedTarget(employee, completedTarget, completedOrder);
+        else
+            employee.SetState(EmployeeState.Idle);
+    }
+
+    /// <summary>
+    /// 들고 있는 더미를 가장 가까운 창고에 입고합니다.
+    /// 창고가 없거나 못 가면 전역 인벤토리로 폴백합니다 (물건을 잃지 않도록).
+    /// </summary>
+    private async UniTask DeliverCarryPileAsync(Dictionary<ItemData, int> carryPile, CancellationToken ct)
+    {
+        Vector2Int myTile = new Vector2Int(
+            Mathf.FloorToInt(transform.position.x),
+            Mathf.FloorToInt(transform.position.y));
+
+        Stockpile stockpile = StockpileManager.instance != null
+            ? StockpileManager.instance.GetNearestStockpile(myTile)
+            : null;
+
+        if (stockpile == null)
+        {
+            foreach (var kv in carryPile) InventoryManager.instance?.AddItem(kv.Key, kv.Value);
+            if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 창고 없음 → 인벤토리 직접 추가");
+            return;
+        }
+
+        bool reached    = false;
+        bool moveFailed = false;
+
+        employee.SetState(EmployeeState.Moving);
+        movement.MoveTo(stockpile.GetDepositPosition(),
+            onComplete: () => reached    = true,
+            onFailed:   () => moveFailed = true
+        );
+
+        await UniTask.WaitUntil(() => reached || moveFailed, GameLoop.Frame, ct);
+
+        if (moveFailed)
+        {
+            foreach (var kv in carryPile) InventoryManager.instance?.AddItem(kv.Key, kv.Value);
+            if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 창고 이동 실패 → 인벤토리 폴백");
+            return;
+        }
+
+        foreach (var kv in carryPile) stockpile.Deposit(kv.Key, kv.Value);
+
+        if (showDebugInfo)
+            Debug.Log($"[Work] {employee.DisplayName}: 창고 배달 완료 → {SummarizePile(carryPile)}");
+    }
+
     private void AssignHaulWork(WorkOrder workOrder, HaulOrder haulOrder)
     {
         if (!haulOrder.IsWorkAvailable())

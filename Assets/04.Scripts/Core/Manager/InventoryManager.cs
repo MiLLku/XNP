@@ -37,7 +37,9 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
     private int nextReservationId = 1;  
 
     [Header("인벤토리 설정")]
-    [SerializeField] private int maxStackSize = 999;
+    // 스택 상한은 없습니다. 한 종류를 얼마든지 쌓을 수 있고, 표시상 '묶음'이 나뉘더라도
+    // 저장 모델은 종류당 총합 하나이므로 상한을 두지 않는 것이 곧 '묶음 자동 생성'과 같습니다.
+    // (구 maxStackSize 필드는 제거됨 — 세척 결정체처럼 대량 산출되는 자원이 조용히 유실됐습니다)
     [SerializeField] private bool showDebugLogs = true;
 
     [Header("시작 인벤토리")]
@@ -92,19 +94,6 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
 
         int currentAmount = GetItemCount(itemData);
         int newAmount = currentAmount + amount;
-
-        // 최대 스택 체크
-        if (newAmount > maxStackSize)
-        {
-            int actualAdded = maxStackSize - currentAmount;
-            if (actualAdded <= 0)
-            {
-                if (showDebugLogs) Debug.LogWarning($"[InventoryManager] '{itemData.itemName}' 스택이 가득 참 (최대: {maxStackSize})");
-                return false;
-            }
-            amount = actualAdded;
-            newAmount = maxStackSize;
-        }
 
         globalInventory[itemData] = newAmount;
 

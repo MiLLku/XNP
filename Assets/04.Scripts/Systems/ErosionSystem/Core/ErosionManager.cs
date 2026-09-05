@@ -25,6 +25,9 @@ public class ErosionManager : DestroySingleton<ErosionManager>, ISaveModule
     [Tooltip("침식 회복 파라미터 ScriptableObject")]
     [SerializeField] private ErosionRecoveryConfig recoveryConfig;
 
+    [Tooltip("세척 시설 밸런스 기준값 (전 티어 공통). 비어 있으면 코드 기본값을 씁니다.")]
+    [SerializeField] private WashConfig washConfig;
+
     [Header("변이 설정")]
     [Tooltip("완전 침식 시 생성할 '침식자(Corroded)' XenopsData ID")]
     [SerializeField] private int corrodedXenopsDataId;
@@ -48,6 +51,14 @@ public class ErosionManager : DestroySingleton<ErosionManager>, ISaveModule
 
     public ErosionStageConfig StageConfig => stageConfig;
     public ErosionRecoveryConfig RecoveryConfig => recoveryConfig;
+    public WashConfig WashConfig => washConfig;
+
+    /// <summary>
+    /// 씻어낸 침식 1당 산출되는 결정체 수 (전역 기본값).
+    /// Config 에셋이 없어도 안전하게 동작하도록 폴백을 둡니다.
+    /// </summary>
+    public float CrystalPerErosion =>
+        washConfig != null ? washConfig.crystalPerErosion : WashConfig.DEFAULT_CRYSTAL_PER_EROSION;
 
     /// <summary>런타임 하한 감소량 (읽기용)</summary>
     public float RuntimeFloorReduction => runtimeFloorReduction;

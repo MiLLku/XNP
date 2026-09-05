@@ -7,7 +7,8 @@ using UnityEngine;
 /// 동작:
 ///   - Awake에서 Unity Tag를 FacilityTag.WashStation으로 설정 → 기존 AI 시설 탐색에 자동 편입
 ///   - 직원이 슬롯을 예약하고 그 자리로 이동 → 도착하면 EmployeeAI가 초당 침식을 깎음
-///   - 씻긴 침식량만큼 침식 결정체를 산출해 전역 인벤토리에 넣음
+///   - 씻긴 침식량만큼 침식 결정체를 <b>건물 안에 보관</b> (전역 인벤토리로 바로 가지 않음)
+///   - 보관분이 수용 상한에 차면 세척 불가(IsOperating=false) → 직원이 운반해 비워야 재가동
 ///   - PowerConsumer가 붙어 있으면 정전 시 사용 불가 (IsOperating=false)
 ///
 /// 티어 차등은 프리팹별 인스펙터 값으로 표현합니다 (오락 시설의 DartBoard/ArcadeMachine과 같은 방식).
@@ -16,7 +17,7 @@ using UnityEngine;
 /// 슬롯 점유는 반드시 반납되어야 합니다. AI가 명시적으로 ReleaseSlot을 부르지만,
 /// 어떤 경로로든 새는 경우에 대비해 Update의 자가 청소 스윕이 최종 안전망 역할을 합니다.
 /// </summary>
-public class WashStation : MonoBehaviour, IBuildingFunction
+public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IBuildingExtraSerializable
 {
     #region 인스펙터
 
@@ -34,8 +35,16 @@ public class WashStation : MonoBehaviour, IBuildingFunction
     [Tooltip("세척으로 산출되는 아이템 (침식 결정체)")]
     [SerializeField] private ItemData crystalItem;
 
-    [Tooltip("씻긴 침식 1당 산출되는 결정체 개수")]
-    [SerializeField] private float crystalPerErosion = 1f;
+    [Tooltip("씻긴 침식 1당 산출되는 결정체 개수." + "\n" +
+             "음수면 WashConfig(ErosionManager)의 전역 값을 씁니다 — 티어별로 다르게 할 때만 0 이상을 넣으세요.")]
+    [SerializeField] private float crystalPerErosionOverride = -1f;
+
+    [Tooltip("건물이 보관할 수 있는 결정체 최대 개수. 가득 차면 세척이 멈춥니다." + "\n" +
+             "권장: 4x3=50 / 6x3=100 / 8x3=200")]
+    [SerializeField, Min(1)] private int crystalCapacity = 50;
+
+    [Tooltip("직원이 결정체를 받아갈 위치 오프셋 (건물 좌측 하단 기준)")]
+    [SerializeField] private Vector2 pickupOffset = new Vector2(0.5f, 0f);
 
     [Header("슬롯 위치 (선택)")]
     [Tooltip("비워두면 건물 폭을 capacity로 나눠 자동 계산합니다")]
@@ -70,7 +79,13 @@ public class WashStation : MonoBehaviour, IBuildingFunction
     /// <summary>정수 단위가 찰 때까지 결정체 산출분을 모아두는 소수 누적기.</summary>
     private float crystalCarry;
 
+    /// <summary>건물 안에 보관 중인 결정체 수. 직원이 창고로 운반해야 비워집니다.</summary>
+    private int storedCrystals;
+
     private float sweepTimer;
+
+    /// <summary>산출물 레지스트리 등록 여부 (중복 해제 방지)</summary>
+    private bool outputRegistered;
 
     #endregion
 
@@ -79,6 +94,32 @@ public class WashStation : MonoBehaviour, IBuildingFunction
     public int Capacity => capacity;
     public int Priority => priority;
     public float ErosionClearPerSecond => erosionClearPerSecond;
+
+    /// <summary>보관 중인 결정체 수.</summary>
+    public int StoredCrystals => storedCrystals;
+
+    /// <summary>결정체 수용 상한.</summary>
+    public int CrystalCapacity => crystalCapacity;
+
+    /// <summary>보관함이 가득 찼는지. 가득 차면 세척을 받지 않습니다.</summary>
+    public bool IsCrystalFull => storedCrystals >= crystalCapacity;
+
+    /// <summary>산출되는 결정체 아이템 (운반·출고에서 참조).</summary>
+    public ItemData CrystalItem => crystalItem;
+
+    /// <summary>
+    /// 실제 적용되는 산출 비율. 프리팹 오버라이드가 0 이상이면 그것을, 아니면 전역 Config 값을 씁니다.
+    /// </summary>
+    public float EffectiveCrystalPerErosion
+    {
+        get
+        {
+            if (crystalPerErosionOverride >= 0f) return crystalPerErosionOverride;
+            return ErosionManager.instance != null
+                ? ErosionManager.instance.CrystalPerErosion
+                : WashConfig.DEFAULT_CRYSTAL_PER_EROSION;
+        }
+    }
 
     /// <summary>현재 슬롯을 잡고 있는 직원 수.</summary>
     public int OccupiedCount
@@ -106,7 +147,13 @@ public class WashStation : MonoBehaviour, IBuildingFunction
 
     #region IBuildingFunction
 
-    public bool IsOperating => buildingEnabled && (powerConsumer == null || powerConsumer.IsPowered);
+    /// <summary>
+    /// 세척을 받을 수 있는 상태인지.
+    /// 보관함이 가득 차면 더 씻어도 산출물을 둘 곳이 없으므로 정전과 동일하게 사용 불가로 만듭니다.
+    /// (AI의 시설 선택·세척 루프가 모두 이 값을 보므로 자연스럽게 다른 시설로 흩어집니다)
+    /// </summary>
+    public bool IsOperating =>
+        buildingEnabled && (powerConsumer == null || powerConsumer.IsPowered) && !IsCrystalFull;
 
     public void OnBuildingDisabled()
     {
@@ -135,11 +182,21 @@ public class WashStation : MonoBehaviour, IBuildingFunction
             gameObject.tag = FacilityTag.WashStation;
     }
 
+    private void Start()
+    {
+        BuildingOutputRegistry.instance?.Register(this);
+        outputRegistered = true;
+    }
+
     private void OnEnable() => EmployeeAI.InvalidateTagCache(FacilityTag.WashStation);
 
     private void OnDisable() => ReleaseAllSlots();
 
-    private void OnDestroy() => EmployeeAI.InvalidateTagCache(FacilityTag.WashStation);
+    private void OnDestroy()
+    {
+        EmployeeAI.InvalidateTagCache(FacilityTag.WashStation);
+        if (outputRegistered) BuildingOutputRegistry.instance?.Unregister(this);
+    }
 
     /// <summary>
     /// 슬롯 누수 최종 안전망. AI가 반납하지 못한 경우(직원 파괴·사망·이탈·예약 후 미도착)를
@@ -262,23 +319,108 @@ public class WashStation : MonoBehaviour, IBuildingFunction
 
     #endregion
 
-    #region 부산물
+    #region 부산물 (건물 내 보관)
 
     /// <summary>
-    /// 씻긴 침식량을 보고받아 침식 결정체를 산출합니다.
-    /// 매 프레임 소수점 단위로 들어오므로 정수가 될 때까지 모았다가 넣습니다.
+    /// 씻긴 침식량을 보고받아 침식 결정체를 <b>건물 안에</b> 쌓습니다.
+    /// 매 프레임 소수점 단위로 들어오므로 정수가 될 때까지 모았다가 적립합니다.
+    ///
+    /// 전역 인벤토리로 바로 넣지 않습니다 — 직원이 창고로 운반해야 합니다.
+    /// 상한을 넘기는 몫은 버리지만, 상한에 닿는 순간 IsOperating이 false가 되어
+    /// 세척 자체가 멈추므로 실제로 버려지는 양은 한 프레임분뿐입니다.
     /// </summary>
     public void ReportWashed(float erosionRemoved)
     {
         if (erosionRemoved <= 0f || crystalItem == null) return;
-        if (InventoryManager.instance == null) return;
 
-        crystalCarry += erosionRemoved * crystalPerErosion;
+        crystalCarry += erosionRemoved * EffectiveCrystalPerErosion;
         if (crystalCarry < 1f) return;
 
         int amount = Mathf.FloorToInt(crystalCarry);
         crystalCarry -= amount;
-        InventoryManager.instance.AddItem(crystalItem, amount);
+
+        int room = crystalCapacity - storedCrystals;
+        if (room <= 0) return;
+
+        storedCrystals += Mathf.Min(amount, room);
+
+        // 운반 작업이 아직 없으면 만들어 달라고 알린다
+        BuildingOutputRegistry.instance?.NotifyOutputChanged(this);
+    }
+
+    /// <summary>
+    /// 보관 중인 결정체를 꺼냅니다 (직원 운반·제작 출고 공용).
+    /// 요청량보다 적게 남았으면 남은 만큼만 주고, 실제로 꺼낸 수량을 반환합니다.
+    /// </summary>
+    public int TakeCrystals(int amount)
+    {
+        if (amount <= 0 || storedCrystals <= 0) return 0;
+
+        int taken = Mathf.Min(amount, storedCrystals);
+        storedCrystals -= taken;
+
+        // 가득 차서 멈춰 있었다면 이제 다시 쓸 수 있다 → 시설 탐색 캐시를 즉시 무효화
+        EmployeeAI.InvalidateTagCache(FacilityTag.WashStation);
+        return taken;
+    }
+
+    #endregion
+
+    #region IBuildingOutput
+
+    public bool HasPendingOutput => storedCrystals > 0 && crystalItem != null;
+
+    public bool IsOutputAccessible => building == null || building.IsFunctional;
+
+    public Vector3 GetPickupPosition() =>
+        transform.position + new Vector3(pickupOffset.x, pickupOffset.y, 0f);
+
+    public void GetPendingOutputs(List<ResourceCost> into)
+    {
+        if (into == null) return;
+        into.Clear();
+
+        if (crystalItem == null || storedCrystals <= 0) return;
+        into.Add(new ResourceCost { item = crystalItem, amount = storedCrystals });
+    }
+
+    public int TakeOutput(ItemData item, int amount)
+    {
+        if (item != crystalItem) return 0;
+        return TakeCrystals(amount);
+    }
+
+    #endregion
+
+    #region 저장 (IBuildingExtraSerializable)
+
+    [System.Serializable]
+    private class WashStationExtra
+    {
+        public int storedCrystals;
+        public float crystalCarry;
+    }
+
+    public string SerializeExtra()
+    {
+        if (storedCrystals <= 0 && crystalCarry <= 0f) return string.Empty;
+
+        return JsonUtility.ToJson(new WashStationExtra
+        {
+            storedCrystals = storedCrystals,
+            crystalCarry   = crystalCarry
+        });
+    }
+
+    public void DeserializeExtra(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return;
+
+        var extra = JsonUtility.FromJson<WashStationExtra>(json);
+        if (extra == null) return;
+
+        storedCrystals = Mathf.Clamp(extra.storedCrystals, 0, crystalCapacity);
+        crystalCarry   = Mathf.Max(0f, extra.crystalCarry);
     }
 
     #endregion

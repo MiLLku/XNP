@@ -16424,6 +16424,8 @@ MonoBehaviour:
     pushLetter: 1
     letterRepeatInterval: 0
     pauseUntilRead: 0
+  washStationFullConfig:
+    enabled: 1
   roomErosionConfig:
     enabled: 1
     cautionThreshold: 60
@@ -30134,6 +30136,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ErosionManager
   stageConfig: {fileID: 11400000, guid: 1024491685f93c54ebf14612cd2ef6e8, type: 2}
   recoveryConfig: {fileID: 11400000, guid: 36cc49acc36fddf418452a97d345a195, type: 2}
+  washConfig: {fileID: 11400000, guid: 0f7a0e018e5022f458231b3df0dd18da, type: 2}
   corrodedXenopsDataId: 6100
   showDebugLogs: 0
   runtimeFloorReduction: 0
@@ -31188,7 +31191,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 592c4f742e7f2c9469289ce776e4459b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxStackSize: 99
   showDebugLogs: 1
   startingInventory: {fileID: 11400000, guid: 4378c01afa98482e85143972df73c241, type: 2}
 --- !u!1 &1848527538
@@ -32691,6 +32693,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1969771031}
   - component: {fileID: 1969771032}
+  - component: {fileID: 1969771033}
   m_Layer: 0
   m_Name: DroppedItemManager
   m_TagString: Untagged
@@ -32728,6 +32731,20 @@ MonoBehaviour:
   droppedItemPrefab: {fileID: 0}
   circleSprite: {fileID: 0}
   haulMaxWorkers: 10
+--- !u!114 &1969771033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1969771030}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca900a7b02ef579448e96d5bd8ce659d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingOutputRegistry
+  haulMaxWorkers: 10
+  rescanInterval: 5
 --- !u!1 &1990211548
 GameObject:
   m_ObjectHideFlags: 0

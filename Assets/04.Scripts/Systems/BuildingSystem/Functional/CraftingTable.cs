@@ -548,14 +548,8 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
     
     private void CompleteCrafting(CraftingRecipe recipe)
     {
-        // 아이템 추가
-        if (InventoryManager.instance != null)
-        {
-            // 산출물이 장비면 인벤토리 대신 장비 보관소 풀에 인스턴스로 입고
-            if (!EquipmentStorageManager.TryAddCraftOutput(recipe.outputItem, recipe.outputAmount))
-                InventoryManager.instance.AddItem(recipe.outputItem, recipe.outputAmount);
-            Debug.Log($"[CraftingTable] '{recipe.outputItem.itemName}' x{recipe.outputAmount} 제작 완료!");
-        }
+        // 완성품은 건물에 보관되고 직원이 창고로 운반합니다 (버퍼가 없으면 인벤토리 직행)
+        StoreCraftOutput(recipe.outputItem, recipe.outputAmount);
         
         // 사운드 재생
         PlaySound(craftingCompleteSound);
@@ -564,6 +558,39 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
         ResetCraftingState();
     }
     
+    /// <summary>
+    /// 완성품을 어디에 둘지 결정합니다 (ProductionBuilding.StoreCraftOutput과 같은 규약).
+    ///
+    ///   1. 장비 → 장비 보관소 풀 (인스턴스 단위 관리라 운반 대상이 아님)
+    ///   2. BuildingOutputBuffer가 있으면 → 건물에 보관, 직원이 창고로 운반
+    ///   3. 없으면 → 전역 인벤토리 직행 (구 프리팹 호환)
+    ///
+    /// 주의: 이 컴포넌트가 이미 IBuildingExtraSerializable이므로, 같은 건물에
+    /// BuildingOutputBuffer를 붙이면 Building이 둘 중 하나만 저장합니다.
+    /// 버퍼를 쓰려면 이 클래스의 extra 데이터에 버퍼 상태를 함께 담아야 합니다.
+    /// </summary>
+    private void StoreCraftOutput(ItemData output, int amount)
+    {
+        if (output == null || amount <= 0) return;
+
+        if (EquipmentStorageManager.TryAddCraftOutput(output, amount))
+        {
+            Debug.Log($"[CraftingTable] '{output.itemName}' x{amount} 제작 완료 → 장비 보관소");
+            return;
+        }
+
+        var buffer = GetComponent<BuildingOutputBuffer>();
+        int stored = buffer != null ? buffer.TryStore(output, amount) : 0;
+        int overflow = amount - stored;
+
+        if (overflow > 0) InventoryManager.instance?.AddItem(output, overflow);
+
+        if (stored > 0)
+            Debug.Log($"[CraftingTable] '{output.itemName}' x{stored} 제작 완료 — 운반 대기");
+        if (overflow > 0)
+            Debug.Log($"[CraftingTable] 보관함 여유 없음 — '{output.itemName}' x{overflow}은(는) 인벤토리로 보냈습니다.");
+    }
+
     public void CancelCrafting()
     {
         // 자재 운반 대기 단계 취소

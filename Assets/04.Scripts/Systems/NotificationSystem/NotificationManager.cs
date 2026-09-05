@@ -23,6 +23,7 @@ public class NotificationManager : DestroySingleton<NotificationManager>
 
     [Tooltip("세척 시설 부재 경고 — 침식을 완전히 제거할 수단이 없음을 알린다")]
     [SerializeField] private WashStationAlertConfig washStationConfig = new WashStationAlertConfig();
+    [SerializeField] private WashStationFullAlertConfig washStationFullConfig = new WashStationFullAlertConfig();
     [SerializeField] private RoomErosionAlertConfig roomErosionConfig = new RoomErosionAlertConfig();
 
     [Header("레터")]
@@ -85,6 +86,7 @@ public class NotificationManager : DestroySingleton<NotificationManager>
         if (foodConfig != null)     _evaluators.Add(new FoodShortageAlertEvaluator(foodConfig));
         if (funAlertConfig != null) _evaluators.Add(new FunAlertEvaluator(funAlertConfig));
         if (washStationConfig != null) _evaluators.Add(new WashStationAlertEvaluator(washStationConfig));
+        if (washStationFullConfig != null) _evaluators.Add(new WashStationFullAlertEvaluator(washStationFullConfig));
         if (roomErosionConfig != null) _evaluators.Add(new RoomErosionAlertEvaluator(roomErosionConfig));
     }
 

@@ -431,22 +431,46 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
             InventoryManager.instance.ConsumeReservation(reservationId);
         }
 
-        // 제작 결과물 인벤토리에 추가
         int totalOutput = recipe.outputAmount * amount;
-        if (InventoryManager.instance != null)
-        {
-            // 산출물이 장비면 인벤토리 대신 장비 보관소 풀에 인스턴스로 입고
-            if (!EquipmentStorageManager.TryAddCraftOutput(recipe.outputItem, totalOutput))
-                InventoryManager.instance.AddItem(recipe.outputItem, totalOutput);
-        }
-
-        Debug.Log($"[{GetBuildingName()}] 제작 완료! {recipe.outputItem.itemName} x{totalOutput}이(가) 인벤토리에 추가되었습니다. (예약 #{reservationId} 소모)");
+        StoreCraftOutput(recipe.outputItem, totalOutput, reservationId);
 
         _currentOrder = null;
         StopWorkingEffect();
 
         // 하위 클래스 훅
         OnProductionCompleted(recipe, amount);
+    }
+
+    /// <summary>
+    /// 완성품을 어디에 둘지 결정합니다.
+    ///
+    /// 우선순위:
+    ///   1. 장비 → 장비 보관소 풀 (인스턴스 단위 관리라 운반 대상이 아님)
+    ///   2. BuildingOutputBuffer가 붙어 있으면 → 건물에 보관, 직원이 창고로 운반
+    ///   3. 버퍼가 없으면 → 기존대로 전역 인벤토리 직행 (구 프리팹 호환)
+    ///
+    /// 버퍼가 가득 차 못 담은 몫은 잃지 않도록 인벤토리로 보냅니다.
+    /// </summary>
+    protected void StoreCraftOutput(ItemData output, int totalOutput, int reservationId)
+    {
+        if (output == null || totalOutput <= 0) return;
+
+        if (EquipmentStorageManager.TryAddCraftOutput(output, totalOutput))
+        {
+            Debug.Log($"[{GetBuildingName()}] 제작 완료! {output.itemName} x{totalOutput} → 장비 보관소 (예약 #{reservationId} 소모)");
+            return;
+        }
+
+        var buffer = GetComponent<BuildingOutputBuffer>();
+        int stored = buffer != null ? buffer.TryStore(output, totalOutput) : 0;
+        int overflow = totalOutput - stored;
+
+        if (overflow > 0) InventoryManager.instance?.AddItem(output, overflow);
+
+        if (stored > 0)
+            Debug.Log($"[{GetBuildingName()}] 제작 완료! {output.itemName} x{stored} 보관 — 운반 대기 (예약 #{reservationId} 소모)");
+        if (overflow > 0)
+            Debug.Log($"[{GetBuildingName()}] 보관함 여유 없음 — {output.itemName} x{overflow}은(는) 인벤토리로 보냈습니다.");
     }
 
     /// <summary>

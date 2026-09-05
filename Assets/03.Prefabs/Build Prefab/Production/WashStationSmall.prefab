@@ -172,5 +172,7 @@ MonoBehaviour:
   erosionClearPerSecond: 6
   priority: 0
   crystalItem: {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
-  crystalPerErosion: 1
+  crystalPerErosionOverride: -1
+  crystalCapacity: 50
+  pickupOffset: {x: 0.5, y: 0}
   slotAnchors: []
