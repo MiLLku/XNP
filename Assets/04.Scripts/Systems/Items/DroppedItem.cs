@@ -17,7 +17,7 @@ using UnityEngine;
 ///   - Rigidbody2D는 dynamic + gravityScale=2 로 중력 적용 → 바닥에 떨어짐
 ///   - DroppedItem끼리는 Physics2D.IgnoreCollision으로 충돌 무시 (DroppedItemManager에서 처리)
 /// </summary>
-public class DroppedItem : MonoBehaviour, IPoolable
+public class DroppedItem : MonoBehaviour, IPoolable, IMaterialSource
 {
     #region 상수
 
@@ -116,6 +116,10 @@ public void Initialize(ItemData data, int qty = 1)
             _spriteRenderer = GetComponent<SpriteRenderer>();
 
         ApplyVisual();
+
+        // 바닥 더미도 제작·건설의 자재 공급원이다.
+        // 데이터가 채워진 뒤에 등록해야 GetStoredAmount가 올바른 값을 낸다.
+        MaterialSourceRegistry.instance?.Register(this);
     }
 
     /// <summary>직원이 이 아이템의 운반을 예약합니다.</summary>
@@ -123,6 +127,33 @@ public void Initialize(ItemData data, int qty = 1)
 
     /// <summary>운반 예약을 해제합니다 (취소 시).</summary>
     public void Unclaim() => IsClaimed = false;
+
+    #region IMaterialSource
+    // 바닥에 떨어진 더미도 제작·건설의 자재 공급원이 됩니다 —
+    // 창고로 한 번 옮겨진 뒤에야 쓸 수 있던 제약을 없앱니다.
+    //
+    // 운반 예약(IsClaimed)된 더미는 이미 다른 직원이 창고로 가져가는 중이므로
+    // 자재 공급원에서는 제외합니다 (같은 물건을 두 번 세지 않도록).
+
+    public bool IsSourceAvailable => IsAvailable && itemData != null && quantity > 0;
+
+    public Vector3 GetWithdrawPosition() => transform.position;
+
+    public int GetStoredAmount(ItemData item)
+        => item != null && item == itemData ? quantity : 0;
+
+    /// <summary>요청량을 전부 댈 수 있을 때만 꺼냅니다 (반쪽 출고 금지).</summary>
+    public bool Withdraw(ItemData item, int amount)
+    {
+        if (item == null || item != itemData || amount <= 0) return false;
+        if (quantity < amount) return false;
+
+        quantity -= amount;
+        if (quantity <= 0) Remove();
+        return true;
+    }
+
+    #endregion
 
     /// <summary>픽업 완료 후 오브젝트를 파괴합니다.</summary>
 public void Remove()
@@ -144,6 +175,8 @@ public void Remove()
     /// <summary>풀로 반환되기 직전 호출. 다음 재사용 시 잔존 데이터로 인한 오작동 방지.</summary>
     public void OnDespawn()
     {
+        MaterialSourceRegistry.instance?.Unregister(this);
+
         IsClaimed = false;
         itemData  = null;
         quantity  = 0;

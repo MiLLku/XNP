@@ -17,7 +17,7 @@ using UnityEngine;
 /// 슬롯 점유는 반드시 반납되어야 합니다. AI가 명시적으로 ReleaseSlot을 부르지만,
 /// 어떤 경로로든 새는 경우에 대비해 Update의 자가 청소 스윕이 최종 안전망 역할을 합니다.
 /// </summary>
-public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IBuildingExtraSerializable
+public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IMaterialSource, IBuildingExtraSerializable
 {
     #region 인스펙터
 
@@ -45,6 +45,11 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IB
 
     [Tooltip("직원이 결정체를 받아갈 위치 오프셋 (건물 좌측 하단 기준)")]
     [SerializeField] private Vector2 pickupOffset = new Vector2(0.5f, 0f);
+
+    [Header("물류")]
+    [Tooltip("여기 쌓인 산출물을 자동 물류에 태울지 여부." + "\n" +
+             "끄면 직원이 창고로 옮기지도, 제작에 꺼내 쓰지도 않습니다.")]
+    [SerializeField] private bool autoHaulEnabled = true;
 
     [Header("슬롯 위치 (선택)")]
     [Tooltip("비워두면 건물 폭을 capacity로 나눠 자동 계산합니다")]
@@ -185,6 +190,7 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IB
     private void Start()
     {
         BuildingOutputRegistry.instance?.Register(this);
+        MaterialSourceRegistry.instance?.Register(this);
         outputRegistered = true;
     }
 
@@ -195,7 +201,11 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IB
     private void OnDestroy()
     {
         EmployeeAI.InvalidateTagCache(FacilityTag.WashStation);
-        if (outputRegistered) BuildingOutputRegistry.instance?.Unregister(this);
+        if (outputRegistered)
+        {
+            BuildingOutputRegistry.instance?.Unregister(this);
+            MaterialSourceRegistry.instance?.Unregister(this);
+        }
     }
 
     /// <summary>
@@ -368,6 +378,12 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IB
 
     #region IBuildingOutput
 
+    public bool AutoHaulEnabled
+    {
+        get => autoHaulEnabled;
+        set => autoHaulEnabled = value;
+    }
+
     public bool HasPendingOutput => storedCrystals > 0 && crystalItem != null;
 
     public bool IsOutputAccessible => building == null || building.IsFunctional;
@@ -388,6 +404,23 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IB
     {
         if (item != crystalItem) return 0;
         return TakeCrystals(amount);
+    }
+
+    #endregion
+
+    #region IMaterialSource
+
+    public bool IsSourceAvailable => autoHaulEnabled && IsOutputAccessible;
+
+    public Vector3 GetWithdrawPosition() => GetPickupPosition();
+
+    public int GetStoredAmount(ItemData item) => item == crystalItem ? storedCrystals : 0;
+
+    /// <summary>요청량을 전부 댈 수 있을 때만 꺼냅니다 (반쪽 출고 금지 — Stockpile과 같은 규약).</summary>
+    public bool Withdraw(ItemData item, int amount)
+    {
+        if (item != crystalItem || amount <= 0 || storedCrystals < amount) return false;
+        return TakeCrystals(amount) == amount;
     }
 
     #endregion

@@ -17,7 +17,7 @@ using UnityEngine;
 /// 자기 SerializeExtra 안에서 이 버퍼 상태를 함께 저장하면 됩니다.
 /// </summary>
 [RequireComponent(typeof(Building))]
-public class BuildingOutputBuffer : MonoBehaviour, IBuildingOutput, IBuildingExtraSerializable
+public class BuildingOutputBuffer : MonoBehaviour, IBuildingOutput, IMaterialSource, IBuildingExtraSerializable
 {
     #region 인스펙터
 
@@ -26,6 +26,10 @@ public class BuildingOutputBuffer : MonoBehaviour, IBuildingOutput, IBuildingExt
 
     [Tooltip("직원이 산출물을 받아갈 위치 오프셋 (건물 좌측 하단 기준)")]
     [SerializeField] private Vector2 pickupOffset = new Vector2(0.5f, 0f);
+
+    [Tooltip("여기 쌓인 산출물을 자동 물류에 태울지 여부." + "\n" +
+             "끄면 직원이 창고로 옮기지도, 제작에 꺼내 쓰지도 않습니다.")]
+    [SerializeField] private bool autoHaulEnabled = true;
 
     #endregion
 
@@ -63,12 +67,15 @@ public class BuildingOutputBuffer : MonoBehaviour, IBuildingOutput, IBuildingExt
     void Start()
     {
         BuildingOutputRegistry.instance?.Register(this);
+        MaterialSourceRegistry.instance?.Register(this);
         _registered = true;
     }
 
     void OnDestroy()
     {
-        if (_registered) BuildingOutputRegistry.instance?.Unregister(this);
+        if (!_registered) return;
+        BuildingOutputRegistry.instance?.Unregister(this);
+        MaterialSourceRegistry.instance?.Unregister(this);
     }
 
     #endregion
@@ -97,6 +104,12 @@ public class BuildingOutputBuffer : MonoBehaviour, IBuildingOutput, IBuildingExt
     #endregion
 
     #region IBuildingOutput
+
+    public bool AutoHaulEnabled
+    {
+        get => autoHaulEnabled;
+        set => autoHaulEnabled = value;
+    }
 
     public bool HasPendingOutput => _stored.Count > 0;
 
@@ -129,6 +142,25 @@ public class BuildingOutputBuffer : MonoBehaviour, IBuildingOutput, IBuildingExt
         else          _stored.Remove(item);
 
         return taken;
+    }
+
+    #endregion
+
+    #region IMaterialSource
+
+    public bool IsSourceAvailable => autoHaulEnabled && IsOutputAccessible;
+
+    public Vector3 GetWithdrawPosition() => GetPickupPosition();
+
+    public int GetStoredAmount(ItemData item)
+        => item != null && _stored.TryGetValue(item, out int n) ? n : 0;
+
+    /// <summary>요청량을 전부 댈 수 있을 때만 꺼냅니다 (반쪽 출고 금지).</summary>
+    public bool Withdraw(ItemData item, int amount)
+    {
+        if (item == null || amount <= 0) return false;
+        if (GetStoredAmount(item) < amount) return false;
+        return TakeOutput(item, amount) == amount;
     }
 
     #endregion

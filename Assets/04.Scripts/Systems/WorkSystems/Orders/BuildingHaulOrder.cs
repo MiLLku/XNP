@@ -65,7 +65,7 @@ public class BuildingHaulOrder : IWorkTarget
     {
         if (completed) return false;
         if (!IsSourceAlive()) return false;
-        return source.IsOutputAccessible && source.HasPendingOutput;
+        return source.AutoHaulEnabled && source.IsOutputAccessible && source.HasPendingOutput;
     }
 
     /// <summary>

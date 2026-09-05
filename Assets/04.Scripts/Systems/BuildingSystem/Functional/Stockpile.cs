@@ -19,7 +19,7 @@ using UnityEngine;
 ///   3. depositOffset으로 직원이 배달/출고하러 오는 정확한 위치를 조정합니다.
 /// </summary>
 [RequireComponent(typeof(Building))]
-public class Stockpile : MonoBehaviour, IBuildingFunction
+public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource
 {
     #region 설정
 
@@ -113,6 +113,19 @@ public class Stockpile : MonoBehaviour, IBuildingFunction
     {
         return transform.position + new Vector3(depositOffset.x, depositOffset.y, 0f);
     }
+
+    #region IMaterialSource
+    // 창고는 전역 인벤토리의 물리적 접근점입니다. 다른 소스(건물 산출물·바닥 더미)와
+    // 같은 인터페이스로 묶여야 직원이 "가장 가까운 자재 보유 지점"을 한 번에 고를 수 있습니다.
+
+    public bool IsSourceAvailable => IsOperational && _linkedStorage != null;
+
+    public Vector3 GetWithdrawPosition() => GetDepositPosition();
+
+    public int GetStoredAmount(ItemData item)
+        => item != null && _linkedStorage != null ? _linkedStorage.GetItemCount(item) : 0;
+
+    #endregion
 
     /// <summary>
     /// 아이템을 창고에 저장합니다 (위임된 저장소로 전달).

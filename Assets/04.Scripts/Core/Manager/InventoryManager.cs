@@ -337,6 +337,25 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
     /// </summary>
     /// <param name="item">조회할 아이템</param>
     /// <returns>사용 가능 수량</returns>
+    /// <summary>
+    /// 세상 전체에서 지금 쓸 수 있는 수량 — 창고 재고 + 창고 밖 재고(건물 산출물·바닥 더미) − 예약분.
+    ///
+    /// 제작·건설이 "자재가 충분한가"를 물을 때 쓰는 값입니다.
+    /// 실제 차감은 직원이 <see cref="IMaterialSource.Withdraw"/>하는 순간 그 소스에서 일어나므로
+    /// 여기서 합산해도 이중 차감이 생기지 않습니다.
+    /// </summary>
+    public int GetWorldAvailable(ItemData item)
+    {
+        if (item == null) return 0;
+
+        int outside = MaterialSourceRegistry.instance != null
+            ? MaterialSourceRegistry.instance.GetTotalAvailable(item)
+            : 0;
+
+        return GetAvailableAmount(item) + outside;
+    }
+
+    /// <summary>창고(전역 인벤토리)에서 쓸 수 있는 수량 — 예약분 제외.</summary>
     public int GetAvailableAmount(ItemData item)
     {
         if (item == null)
@@ -379,14 +398,14 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
             return 0; // 비용 없음 → 예약 불필요, 팬텀 ID 생성 방지
         }
 
-        // 모든 자원이 사용 가능한지 확인
+        // 모든 자원이 사용 가능한지 확인 (창고 + 창고 밖 소스 합산)
         foreach (var cost in costs)
         {
-            if (GetAvailableAmount(cost.item) < cost.amount)
+            if (GetWorldAvailable(cost.item) < cost.amount)
             {
                 if (showDebugLogs)
                 {
-                    Debug.LogWarning($"[InventoryManager] 예약 실패: {cost.item.itemName} 필요 {cost.amount}, 사용가능 {GetAvailableAmount(cost.item)}");
+                    Debug.LogWarning($"[InventoryManager] 예약 실패: {cost.item.itemName} 필요 {cost.amount}, 사용가능 {GetWorldAvailable(cost.item)}");
                 }
                 return -1;
             }

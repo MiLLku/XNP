@@ -21,6 +21,18 @@ using UnityEngine;
 /// </summary>
 public interface IBuildingOutput
 {
+    /// <summary>
+    /// 이 건물의 산출물을 자동 물류에 태울지 여부 (플레이어 토글).
+    ///
+    /// 끄면 두 가지가 함께 멈춥니다:
+    ///   • 직원이 창고로 옮기지 않음 (운반 작업이 생기지 않음)
+    ///   • 제작·건설이 이 건물의 재고를 꺼내 쓰지 않음 (자재 공급원에서 제외)
+    ///
+    /// "여기 쌓인 건 건드리지 마라"를 한 스위치로 표현합니다.
+    /// 단, 세척 시설처럼 보관함이 차면 멈추는 건물은 꺼둔 채 방치하면 가동이 멎습니다.
+    /// </summary>
+    bool AutoHaulEnabled { get; set; }
+
     /// <summary>지금 가져갈 산출물이 하나라도 있는지.</summary>
     bool HasPendingOutput { get; }
 

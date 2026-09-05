@@ -1042,6 +1042,30 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     /// Phase 1: 가장 가까운 자재 보유 Stockpile로 이동 → 출고
     /// Phase 2: 사용처(IMaterialReceiver)로 이동 → 인계
     /// </summary>
+    /// <summary>
+    /// 자재를 가지러 갈 곳을 고릅니다 — 창고와 창고 밖 소스(건물 산출물·바닥 더미)를
+    /// 한 줄에 세워 가장 가까운 곳을 반환합니다.
+    ///
+    /// 창고를 우선하지 않습니다: 눈앞의 작업대에 재료가 쌓여 있는데
+    /// 맵 반대편 창고까지 걸어가는 것이 더 이상한 동작이기 때문입니다.
+    /// </summary>
+    private IMaterialSource FindNearestMaterialSource(Vector2Int from, ItemData item, int amount)
+    {
+        IMaterialSource stock = StockpileManager.instance?.GetNearestStockpileWith(from, item, amount);
+        IMaterialSource other = MaterialSourceRegistry.instance?.FindNearestWith(from, item, amount);
+
+        if (stock == null) return other;
+        if (other == null) return stock;
+
+        return Dist(from, stock) <= Dist(from, other) ? stock : other;
+    }
+
+    private static float Dist(Vector2Int from, IMaterialSource src)
+    {
+        Vector3 p = src.GetWithdrawPosition();
+        return Vector2Int.Distance(from, new Vector2Int(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y)));
+    }
+
     private void AssignWithdrawWork(WorkOrder workOrder, WithdrawOrder withdrawOrder)
     {
         if (!withdrawOrder.IsWorkAvailable())
@@ -1077,7 +1101,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         // 재탐색해 실제로 이동한 뒤 다시 출고합니다 (창고별 개별 저장소 구조에서도 안전).
         const int MAX_SOURCE_ATTEMPTS = 3;
 
-        Stockpile source = null;
+        IMaterialSource source = null;
         bool withdrawn   = false;
         bool moveFailed  = false;
 
@@ -1088,12 +1112,11 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                 Mathf.FloorToInt(transform.position.y)
             );
 
-            source = StockpileManager.instance?.GetNearestStockpileWith(
-                footTile, request.itemData, request.amount);
+            source = FindNearestMaterialSource(footTile, request.itemData, request.amount);
 
             if (source == null) break;
 
-            Vector3 sourcePos = source.GetDepositPosition();
+            Vector3 sourcePos = source.GetWithdrawPosition();
 
             bool reachedSource = false;
             moveFailed = false;
@@ -1116,14 +1139,14 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             withdrawn = source.Withdraw(request.itemData, request.amount);
 
             if (!withdrawn && showDebugInfo)
-                Debug.Log($"[Work] {employee.DisplayName}: {source.name} 출고 실패(도착 전 소진) — " +
-                          $"다른 창고 재탐색 ({attempt + 1}/{MAX_SOURCE_ATTEMPTS})");
+                Debug.Log($"[Work] {employee.DisplayName}: 출고 실패(도착 전 소진) — " +
+                          $"다른 자재 지점 재탐색 ({attempt + 1}/{MAX_SOURCE_ATTEMPTS})");
         }
 
         if (!withdrawn)
         {
             if (showDebugInfo)
-                Debug.Log($"[Work] {employee.DisplayName}: 자재 {request.itemData.itemName}×{request.amount} 보유한 창고 없음");
+                Debug.Log($"[Work] {employee.DisplayName}: 자재 {request.itemData.itemName}×{request.amount} 보유한 지점 없음");
             request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
             CancelWork();
             return;
@@ -1157,7 +1180,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                     if (otherReq.itemData != request.itemData) continue;
                     if (otherReq.amount > remainingCapacity) continue;
                     if (!otherWO.IsWorkAvailable()) continue;
-                    if (!source.HasItem(otherReq.itemData, otherReq.amount)) continue;
+                    if (source.GetStoredAmount(otherReq.itemData) < otherReq.amount) continue;
 
                     // task를 직원에게 lock (다른 직원 픽업 방지) → 성공해야 출고
                     if (!wo.taskQueue.TryReserveForWorker(t, employee)) continue;

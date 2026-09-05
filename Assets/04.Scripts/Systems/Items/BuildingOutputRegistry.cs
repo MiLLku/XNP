@@ -70,6 +70,7 @@ public class BuildingOutputRegistry : DestroySingleton<BuildingOutputRegistry>
     public void NotifyOutputChanged(IBuildingOutput source)
     {
         if (source == null || !source.HasPendingOutput) return;
+        if (!source.AutoHaulEnabled) return;   // 자동 운반 꺼짐 — 직원을 보내지 않는다
 
         // 이미 유효한 태스크가 걸려 있으면 더 만들지 않는다
         if (_pendingTasks.TryGetValue(source, out var existing) &&
@@ -97,7 +98,7 @@ public class BuildingOutputRegistry : DestroySingleton<BuildingOutputRegistry>
             var obj = src as UnityEngine.Object;
             if (src == null || obj == null) { _sources.RemoveAt(i); continue; }
 
-            if (src.IsOutputAccessible && src.HasPendingOutput)
+            if (src.AutoHaulEnabled && src.IsOutputAccessible && src.HasPendingOutput)
                 NotifyOutputChanged(src);
         }
     }

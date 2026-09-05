@@ -66,8 +66,12 @@ public class WithdrawOrder : IWorkTarget
         // 창고에 자재가 실제로 있을 때만 할당 가능.
         // 자재가 없으면 직원을 보내지 않고(헛걸음·재시도 스팸 방지) 작업이 큐에 보류된 채 남으며,
         // 자재가 입고되면 다음 작업 평가 때 자동으로 다시 후보가 된다 (별도 이벤트 구독 불필요).
-        if (StockpileManager.instance == null) return false;
-        if (!StockpileManager.instance.HasItemAnywhere(request.itemData, request.amount)) return false;
+        bool inStockpile = StockpileManager.instance != null &&
+                           StockpileManager.instance.HasItemAnywhere(request.itemData, request.amount);
+        bool outside     = MaterialSourceRegistry.instance != null &&
+                           MaterialSourceRegistry.instance.HasItemAnywhere(request.itemData, request.amount);
+
+        if (!inStockpile && !outside) return false;
 
         return request.receiver.IsRequestStillValid();
     }
