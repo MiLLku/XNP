@@ -1,7 +1,7 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 /// <summary>
-/// 직원 재미(사기) 저하 경고 평가기. 재미가 낮은 직원은 침식에 취약해지므로
+/// 직원 재미(사기) 저하 경고 평가기. 재미가 낮으면 정신력이 깎여 정신 이상에 취약해지므로
 /// 플레이어에게 오락 시설·약물 확보를 유도합니다.
 /// 출력(라벨/심각도/대상)은 이 코드에서 생성, 기준값만 Config(SO)에서 읽습니다.
 /// </summary>

@@ -53,17 +53,24 @@ public static class MentalReason
     /// <summary>굶주림 (상태형 — 배가 차면 사라짐)</summary>
     public const string STARVATION = "starvation";
 
-    /// <summary>탈진 (상태형 — 자고 나면 사라짐)</summary>
+    /// <summary>
+    /// 수면 부족 (상태형 — 자고 나면 사라짐).
+    /// 피로가 낮을수록 페널티가 커지는 사다리이며, 탈진(피로 0)이 그 마지막 칸이다.
+    /// 단계가 바뀌면 같은 키의 값과 표시명만 갱신된다.
+    /// </summary>
     public const string EXHAUSTION = "exhaustion";
+
+    /// <summary>
+    /// 재미 (상태형 — 기준점으로 돌아오면 사라짐).
+    /// 기준점(FunConfig.baseline) 아래면 페널티, 위면 보너스가 붙는 연속형 항목.
+    /// </summary>
+    public const string FUN = "fun";
 
     /// <summary>추위 (상태형 — 따뜻한 곳으로 가거나 방한 장비를 갖추면 사라짐)</summary>
     public const string COLD = "cold";
 
     /// <summary>더위 (상태형 — 시원한 곳으로 가거나 방열 장비를 갖추면 사라짐)</summary>
     public const string HEAT = "heat";
-
-    /// <summary>오락을 즐김 (시간형)</summary>
-    public const string RECREATION = "recreation";
 
     /// <summary>동료의 감정 폭발 목격 (시간형)</summary>
     public const string OUTBURST = "outburst";

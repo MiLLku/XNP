@@ -10,9 +10,16 @@ using UnityEngine;
 /// 욕구 흐름:
 ///   - 허기: 매 프레임 감소 (hungerDecayRate × 특성 보정)
 ///   - 피로: 작업 중 증가, 휴식 중 회복
+///   - 재미: 오락으로만 회복, 그 외에는 항상 감소
 ///   - 기아(허기 0): 체력 감소 + 정신력 페널티 모디파이어
-///   - 탈진(피로 0): 정신력 페널티 모디파이어
+///   - 수면 부족(피로 30/10/0): 단계별 정신력 페널티 모디파이어
+///   - 재미(기준점 대비): 연속형 정신력 보정 모디파이어
 ///   - 체력 0 → Dead, 정신력 0 → MentalBreak
+///
+/// <b>욕구는 정신력을 통해서만 정신 이상에 영향을 준다 (2026-09-06 개편).</b>
+///   욕구 → 정신력 → 정신 이상 발생 확률. 욕구가 정신 이상 임계점을 직접 건드리는 경로는 없다 —
+///   임계점을 움직이는 것은 특성·스킬의 abnormalResistMult뿐이다.
+///   (구 GetFunErosionFactor/GetFatigueErosionFactor는 이 원칙에 따라 제거됨)
 ///
 /// <b>정신력은 직접 가감하는 값이 아니다 (2026-07-29 개편).</b>
 ///   정신력 = clamp(기본값(EmployeeData.baseMental) + Σ활성 모디파이어, 0, 최대치)
@@ -42,8 +49,14 @@ public class EmployeeStatsController : MonoBehaviour
     // ── 정신력 모디파이어 기본값 (MentalModifierConfig 미할당 시 사용) ──
     private const float DEFAULT_STARVATION_PENALTY  = -25f;
     private const float DEFAULT_EXHAUSTION_PENALTY  = -20f;
+    private const float DEFAULT_SLEEP_THRESHOLD        = 30f;
+    private const float DEFAULT_SLEEP_PENALTY          = -8f;
+    private const float DEFAULT_SEVERE_SLEEP_THRESHOLD = 10f;
+    private const float DEFAULT_SEVERE_SLEEP_PENALTY   = -15f;
+
+    /// <summary>재미 정신력 보정을 다시 반영할 최소 변화 폭 (매 프레임 이벤트 방지)</summary>
+    private const float FUN_MODIFIER_EPSILON = 0.05f;
     private const float DEFAULT_MODIFIER_DURATION   = 120f;
-    private const float DEFAULT_RECREATION_MAX      = 40f;
 
     /// <summary>EmployeeData.baseMental이 0 이하일 때 쓰는 기본 정신력</summary>
     private const float FALLBACK_BASE_MENTAL = 50f;
@@ -288,13 +301,16 @@ public class EmployeeStatsController : MonoBehaviour
         }
 
         // 재미: 오락으로만 차오르고, 그 외에는 항상 일정하게 감소한다.
-        // (기준점 50은 수렴 지점이 아니라 정신 이상 임계점 계산의 기준일 뿐이다)
+        // (기준점 50은 수렴 지점이 아니라 정신력 보정이 0이 되는 지점일 뿐이다)
         FunConfig funCfg = EmployeeManager.instance?.FunConfig;
         if (funCfg != null && !needsFrozen)
         {
             currentNeeds.fun -= funCfg.decayPerSecond * deltaTime;
             currentNeeds.fun = Mathf.Clamp(currentNeeds.fun, 0f, 100f);
         }
+
+        // ── 욕구 3종은 모두 여기서 정신력 상태형 모디파이어로 환산된다 ──
+        // 정신 이상 판정(임계점)을 욕구가 직접 건드리는 경로는 없다. 욕구 → 정신력 → 발생 확률.
 
         // 기아: 체력은 지속 감소(생존 위협), 정신력은 상태형 모디파이어 — 먹이면 즉시 원상복구된다
         if (currentNeeds.hunger <= 0f)
@@ -304,9 +320,8 @@ public class EmployeeStatsController : MonoBehaviour
         UpdateNeedPenalty(MentalReason.STARVATION, "굶주림",
             StarvationPenalty, currentNeeds.hunger <= 0f);
 
-        // 탈진: 정신력 상태형 모디파이어 — 재우면 즉시 원상복구된다
-        UpdateNeedPenalty(MentalReason.EXHAUSTION, "탈진",
-            ExhaustionPenalty, currentNeeds.fatigue <= 0f);
+        UpdateSleepPenalty();
+        UpdateFunModifier();
 
         // 시간형 모디파이어 소멸 처리
         TickMentalModifiers(deltaTime);
@@ -326,6 +341,70 @@ public class EmployeeStatsController : MonoBehaviour
     private void UpdateNeedPenalty(string key, string displayName, float basePenalty, bool active)
     {
         SetConditionalMental(key, displayName, basePenalty * cachedMentalDecayMult, active);
+    }
+
+    /// <summary>
+    /// 피로에 따른 정신력 페널티를 갱신합니다 (수면 부족 사다리, 상태형).
+    ///
+    /// 탈진(피로 0) 하나만 두면 수면 관리 실패가 너무 늦게 드러나기 때문에
+    /// 그 앞에 두 칸을 더 뒀다. 세 칸 모두 <b>같은 키(EXHAUSTION)</b>를 쓰므로
+    /// 단계가 바뀌어도 항목이 늘어나지 않고 값과 표시명만 갱신된다 — 중복 계산이 없다.
+    ///   피로 &lt; 30 → 수면 부족 / &lt; 10 → 심한 수면 부족 / ≤ 0 → 탈진
+    /// </summary>
+    private void UpdateSleepPenalty()
+    {
+        float fatigue = currentNeeds.fatigue;
+
+        float penalty;
+        string label;
+
+        if (fatigue <= 0f)                        { penalty = ExhaustionPenalty;    label = "탈진"; }
+        else if (fatigue < SevereSleepThreshold)   { penalty = SevereSleepPenalty;   label = "심한 수면 부족"; }
+        else if (fatigue < SleepDeprivedThreshold) { penalty = SleepDeprivedPenalty; label = "수면 부족"; }
+        else                                       { penalty = 0f;                   label = null; }
+
+        UpdateNeedPenalty(MentalReason.EXHAUSTION, label, penalty, label != null);
+    }
+
+    /// <summary>
+    /// 재미에 따른 정신력 보정을 갱신합니다 (연속형, 상태형).
+    ///
+    /// <b>재미가 정신 이상에 관여하는 유일한 경로다.</b> 기준점(baseline)에서 멀어진 만큼
+    /// 선형으로 정신력이 오르내리고, 그 정신력이 정신 이상 발생 확률을 정한다.
+    /// 재미가 기준점으로 돌아오면 보정도 사라진다(값 0 → 항목 제거).
+    ///
+    /// 페널티(음수)에만 특성의 정신력 감소 배율(mentalDecayMult)이 곱해진다 —
+    /// "정신력이 잘 깎이는 특성"이 보너스까지 키우면 방향이 뒤집히기 때문이다.
+    /// </summary>
+    private void UpdateFunModifier()
+    {
+        FunConfig cfg = EmployeeManager.instance?.FunConfig;
+        if (cfg == null)
+        {
+            SetConditionalMental(MentalReason.FUN, null, 0f, false);
+            return;
+        }
+
+        float offset = (currentNeeds.fun - cfg.baseline) * cfg.mentalPerFunPoint;
+        offset = Mathf.Clamp(offset, cfg.minMentalOffset, cfg.maxMentalOffset);
+
+        if (offset < 0f) offset *= cachedMentalDecayMult;
+
+        bool active = !Mathf.Approximately(offset, 0f);
+        string label = offset < 0f ? "무료함" : "즐거운 나날";
+
+        // 재미는 매 프레임 조금씩 변한다. 그 미세한 변화까지 그대로 반영하면
+        // 직원 수만큼 OnStatsChanged가 매 프레임 터지므로, 눈에 띄는 폭으로 움직였을 때만 갱신한다.
+        // (합산 자체는 UpdateNeeds 끝의 RecalculateMental이 매 프레임 다시 하므로 정신력은 어긋나지 않는다)
+        var existing = FindModifier(MentalReason.FUN);
+        if (active && existing != null &&
+            Mathf.Abs(existing.value - offset) < FUN_MODIFIER_EPSILON)
+        {
+            existing.displayName = label;
+            return;
+        }
+
+        SetConditionalMental(MentalReason.FUN, label, offset, active);
     }
 
     /// <summary>
@@ -525,14 +604,6 @@ public class EmployeeStatsController : MonoBehaviour
                 value = amount,
                 remainingTime = dur
             });
-            existing = mentalModifiers[mentalModifiers.Count - 1];
-        }
-
-        // 오락 보너스는 무한 누적되지 않도록 상한을 건다
-        if (reasonKey == MentalReason.RECREATION)
-        {
-            float cap = cfg != null ? cfg.recreationMaxBonus : DEFAULT_RECREATION_MAX;
-            existing.value = Mathf.Min(existing.value, cap);
         }
 
         RecalculateMental();
@@ -652,6 +723,42 @@ public class EmployeeStatsController : MonoBehaviour
         }
     }
 
+    private static float SleepDeprivedThreshold
+    {
+        get
+        {
+            var cfg = MentalCfg;
+            return cfg != null ? cfg.sleepDeprivedThreshold : DEFAULT_SLEEP_THRESHOLD;
+        }
+    }
+
+    private static float SleepDeprivedPenalty
+    {
+        get
+        {
+            var cfg = MentalCfg;
+            return cfg != null ? cfg.sleepDeprivedPenalty : DEFAULT_SLEEP_PENALTY;
+        }
+    }
+
+    private static float SevereSleepThreshold
+    {
+        get
+        {
+            var cfg = MentalCfg;
+            return cfg != null ? cfg.severeSleepDeprivedThreshold : DEFAULT_SEVERE_SLEEP_THRESHOLD;
+        }
+    }
+
+    private static float SevereSleepPenalty
+    {
+        get
+        {
+            var cfg = MentalCfg;
+            return cfg != null ? cfg.severeSleepDeprivedPenalty : DEFAULT_SEVERE_SLEEP_PENALTY;
+        }
+    }
+
     /// <summary>배고픔 수정</summary>
     public void ModifyHunger(float amount)
     {
@@ -694,39 +801,6 @@ public class EmployeeStatsController : MonoBehaviour
     {
         if (currentNeeds.fatigue < 20f) return SEVERE_FATIGUE_SPEED;
         if (currentNeeds.fatigue < 50f) return MODERATE_FATIGUE_SPEED;
-        return 1f;
-    }
-
-    /// <summary>
-    /// 재미에 따른 정신 이상 저항 배율을 반환합니다 (구간형).
-    /// 재미가 낮으면 1.0 미만 → 정신 이상 임계점이 올라가 더 일찍 터진다(취약).
-    /// EmployeeMental.GetBreakResistance에서 abnormalResistMult에 곱해집니다.
-    ///
-    /// 재미는 이 역할만 갖는다 — 작업 속도에는 관여하지 않는다.
-    /// </summary>
-    public float GetFunErosionFactor()
-    {
-        FunConfig cfg = EmployeeManager.instance?.FunConfig;
-        if (cfg == null) return 1f;
-
-        // 연속형 — 기준점(50)에서 멀어진 만큼 선형으로 반영된다.
-        // 기준점 위면 1.0 초과(잘 버팀), 아래면 1.0 미만(취약).
-        float factor = 1f + (currentNeeds.fun - cfg.baseline) * cfg.resistPerFunPoint;
-        return Mathf.Clamp(factor, cfg.minResistFactor, cfg.maxResistFactor);
-    }
-
-    /// <summary>
-    /// 피로(수면 부족)에 따른 정신 이상 저항 배율을 반환합니다 (구간형).
-    /// 수면 관리가 무너져도 임계점이 올라간다 — 재미(GetFunErosionFactor)와 곱연산으로 누적.
-    /// 정신력이 같아도 욕구 관리 실패만으로 정신 이상 위험이 생기는 설계.
-    /// </summary>
-    public float GetFatigueErosionFactor()
-    {
-        FunConfig cfg = EmployeeManager.instance?.FunConfig;
-        if (cfg == null) return 1f;
-
-        if (currentNeeds.fatigue < cfg.fatigueSevereThreshold) return cfg.fatigueSevereFactor;
-        if (currentNeeds.fatigue < cfg.fatigueVulnerableThreshold) return cfg.fatigueVulnerableFactor;
         return 1f;
     }
 

@@ -170,7 +170,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RecreationFacility
   priority: 10
   funPerSecond: 8
-  mentalPerSecond: 2
 --- !u!114 &1632108593812422837
 MonoBehaviour:
   m_ObjectHideFlags: 0

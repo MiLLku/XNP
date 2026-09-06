@@ -12,14 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e1780ec15c3c914d9ca97bad12a5787, type: 3}
   m_Name: FunConfig
   m_EditorClassIdentifier: Assembly-CSharp::FunConfig
+  baseline: 50
   decayPerSecond: 0.06
-  workingExtraDecayPerSecond: 0.06
-  workBonusThreshold: 70
-  workBonusMultiplier: 1.15
-  vulnerableThreshold: 30
-  vulnerableFactor: 0.8
-  severeVulnerableThreshold: 10
-  severeVulnerableFactor: 0.6
+  mentalPerFunPoint: 0.4
+  minMentalOffset: -20
+  maxMentalOffset: 20
   recreationTargetFun: 90
   freeTimeFunThreshold: 40
-  drugPriority: -10

@@ -17,7 +17,8 @@ using UnityEngine;
 ///   정신 이상 발생 판정은 EmployeeMental 한 곳으로 통합됐고, 침식 수치는
 ///   "발생한 정신 이상이 침식 계열일 확률"만 높입니다. 침식 단계는 속도 디버프·
 ///   전파 오라·변이에만 관여하며, 단계 판정도 실제 침식 수치를 그대로 씁니다.
-///   (재미·피로 계수는 EmployeeMental의 정신 이상 임계점 쪽으로 옮겨졌습니다.)
+///   (재미·피로는 EmployeeStatsController의 정신력 모디파이어로 반영됩니다 —
+///    정신 이상 임계점을 건드리는 것은 직원 특성·직원 스킬뿐입니다.)
 ///
 /// 오라 노출 추적:
 ///   HostileErosionAura가 침식을 적용할 때 MarkAuraExposure()를 호출합니다.
@@ -216,7 +217,7 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource
 
         // 단계는 실제 침식 수치를 그대로 쓴다. 단계가 관여하는 것은 속도 디버프·전파 오라·변이뿐이며,
         // 이상행동(정신 이상) 발생은 EmployeeMental이 정신 수치로 판정한다.
-        // 저항 배율(특성·재미·피로)은 그쪽 임계점 보정으로 옮겨졌다.
+        // 임계점 보정(저항 배율)은 특성·스킬만 담당하고, 재미·피로는 정신력 모디파이어로 반영된다.
         var def = stageConfig.GetStageDefinition(erosion);
         if (def == null) return;
 

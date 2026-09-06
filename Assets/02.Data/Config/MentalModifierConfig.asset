@@ -14,7 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MentalModifierConfig
   starvationPenalty: -25
   exhaustionPenalty: -20
+  sleepDeprivedThreshold: 30
+  sleepDeprivedPenalty: -8
+  severeSleepDeprivedThreshold: 10
+  severeSleepDeprivedPenalty: -15
   defaultDuration: 200
-  recreationDuration: 300
-  recreationMaxBonus: 40
   outburstDuration: 150

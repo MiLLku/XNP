@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -29,7 +29,6 @@ public class EmployeeAI : MonoBehaviour
     private const float FREE_HUNGER_THRESHOLD    = 50f;
     private const float FATIGUE_FULL_THRESHOLD   = 90f;
     private const float HUNGER_FULL_THRESHOLD    = 80f;
-    private const float MENTAL_FULL_RATIO        = 0.8f;
 
     /// <summary>자유 시간 중 욕구 재확인 간격 (초). 스케줄 체크와 분리.</summary>
     private const float NEEDS_CHECK_INTERVAL = 8f;
@@ -131,7 +130,6 @@ public class EmployeeAI : MonoBehaviour
     private EmployeeSchedule schedule;
     private EmployeeDraft draft;
     private EmployeeZoneAssignment zoneAssignment;
-    private EmployeeStatsController statsController;
 
     /// <summary>시각 변경 메시지 구독 핸들 (OnDisable에서 해지)</summary>
     private IDisposable hourSubscription;
@@ -147,7 +145,6 @@ public class EmployeeAI : MonoBehaviour
         schedule        = GetComponent<EmployeeSchedule>();
         draft           = GetComponent<EmployeeDraft>();
         zoneAssignment  = GetComponent<EmployeeZoneAssignment>();
-        statsController = GetComponent<EmployeeStatsController>();
     }
 
     void OnEnable()
@@ -358,16 +355,14 @@ public class EmployeeAI : MonoBehaviour
 
             case ScheduleActivity.Recreation:
             {
-                // 재미와 정신력 둘 다 충분하면 오락 불필요
+                // 재미가 목표치에 닿았으면 오락 불필요.
+                // 정신력은 따로 보지 않는다 — 오락은 재미만 올리고, 재미가 이미 꽉 찼다면
+                // 시설에 가봐야 즉시 종료될 뿐이다(정신력은 재미 보정으로 이미 최대치).
                 FunConfig funCfg = EmployeeManager.instance?.FunConfig;
                 float funTarget = funCfg != null ? funCfg.recreationTargetFun : 90f;
-                bool funFull    = employee.Needs.fun >= funTarget;
-                bool mentalFull = employee.Stats.mental >= employee.Stats.maxMental * MENTAL_FULL_RATIO;
-                if (funFull && mentalFull) return false;
+                if (employee.Needs.fun >= funTarget) return false;
 
-                // 오락거리: 시설 또는 약물(창고 복용) 중 하나라도 있으면 수행 가능
-                return HasFacility(FacilityTag.Recreation) ||
-                       IsDrugAvailable();
+                return HasFacility(FacilityTag.Recreation);
             }
 
             case ScheduleActivity.Wash:
@@ -412,11 +407,15 @@ public class EmployeeAI : MonoBehaviour
     {
         // 오락 진행 중 다른 활동으로 전환하면 오락을 중단
         if (activity != ScheduleActivity.Recreation)
+        {
             StopRecreation();
+        }
 
         // 세척 중 다른 활동으로 전환하면 세척을 중단하고 슬롯을 반납
         if (activity != ScheduleActivity.Wash)
+        {
             StopWashing();
+        }
 
         currentExecutingActivity = activity;
 
@@ -480,31 +479,18 @@ public class EmployeeAI : MonoBehaviour
 
     /// <summary>
     /// 오락거리를 알아서 찾아 재미를 회복합니다.
-    /// 선택: 우선순위(IFunSource.Priority / FunConfig.drugPriority) 높은 순 → 동률이면 거리순.
-    ///   - 오락 시설: 이동 → 이용(초당 재미/정신력 회복) → 목표치 도달 또는 활동 전환 시 종료
-    ///   - 약물: 창고로 이동 → 복용 → 즉시 회복 (추후 '정책' 시스템으로 개인 소지 확장 예정)
+    /// 선택: 우선순위(IFunSource.Priority) 높은 순 → 동률이면 거리순.
+    ///   - 오락 시설: 이동 → 이용(초당 재미 회복) → 목표치 도달 또는 활동 전환 시 종료
     /// </summary>
     private void ExecuteRecreation()
     {
         if (recreationCts != null) return; // 이미 오락 중
 
-        // 1. 최선 시설 후보 (구역 필터 + 사용 가능 + 우선순위/거리 정렬)
+        // 최선 시설 후보 (구역 필터 + 사용 가능 + 우선순위/거리 정렬)
         RecreationFacility bestFacility = SelectBestRecreationFacility();
+        if (bestFacility == null) return;   // CanExecuteActivity가 걸러 Anything으로 대체됨
 
-        // 2. 약물 후보와 우선순위 비교
-        FunConfig funCfg = EmployeeManager.instance?.FunConfig;
-        int drugPriority = funCfg != null ? funCfg.drugPriority : -10;
-        bool drugAvailable = IsDrugAvailable();
-
-        if (bestFacility != null && (!drugAvailable || bestFacility.Priority >= drugPriority))
-        {
-            GoUseRecreationFacility(bestFacility);
-        }
-        else if (drugAvailable)
-        {
-            GoTakeDrug();
-        }
-        // 둘 다 없으면 아무것도 안 함 (CanExecuteActivity가 걸러 Anything으로 대체됨)
+        GoUseRecreationFacility(bestFacility);
     }
 
     /// <summary>
@@ -585,7 +571,7 @@ public class EmployeeAI : MonoBehaviour
     }
 
     /// <summary>
-    /// 시설 이용 루프 — 초당 재미/정신력을 회복하고,
+    /// 시설 이용 루프 — 초당 재미를 회복하고,
     /// 목표치 도달·시설 사용 불가·상태 변화 시 종료합니다.
     /// </summary>
     private async UniTaskVoid RecreationTickAsync(RecreationFacility facility, CancellationToken ct)
@@ -603,10 +589,9 @@ public class EmployeeAI : MonoBehaviour
                facility != null && facility.IsOperating &&
                employee.Needs.fun < target)
         {
+            // 재미만 올린다. 정신력은 재미가 오른 만큼 FunConfig 보정으로 따라 올라가므로
+            // 여기서 따로 건드리면 같은 효과를 두 경로로 주게 된다.
             employee.ModifyFun(facility.FunPerSecond * Time.deltaTime);
-            // 오락으로 오른 정신력은 영구적이지 않다 — 일정 시간 뒤 원래대로 돌아간다
-            statsController?.ModifyMental(facility.MentalPerSecond * Time.deltaTime,
-                MentalReason.RECREATION, "오락을 즐김");
             await UniTask.Yield(GameLoop.Frame, ct);
         }
 
@@ -635,65 +620,6 @@ public class EmployeeAI : MonoBehaviour
     {
         recreationCts?.Dispose();
         recreationCts = null;
-    }
-
-    /// <summary>약물 복용이 가능한 상태인지 (개인 소지분 또는 창고 재고).</summary>
-    private bool IsDrugAvailable()
-    {
-        var work = employee.GetComponent<EmployeeWork>();
-        if (work != null && work.HasDrug) return true;
-
-        return InventoryManager.instance != null &&
-               InventoryManager.instance.HasAnyDrug() &&
-               StockpileManager.instance != null;
-    }
-
-    /// <summary>
-    /// 창고로 이동해 약물 1개를 복용합니다 (즉시 재미 회복).
-    /// 추후 '정책' 시스템 도입 시: 여기서 복용 대신 소지 슬롯에 넣는 분기가 추가될 예정
-    /// (식량의 GoToStockpileForFood(eatAfterStocking) 패턴 참고).
-    /// </summary>
-    private void GoTakeDrug()
-    {
-        // 개인 소지분이 있으면 이동 없이 즉시 복용 ('정책' 소지 시스템)
-        var heldWork = employee.GetComponent<EmployeeWork>();
-        if (heldWork != null && heldWork.HasDrug)
-        {
-            int funValue = heldWork.ConsumeOneDrug();
-            if (funValue > 0)
-            {
-                employee.ModifyFun(funValue);
-                if (showDebugLogs)
-                    Debug.Log($"[AI] {employee.DisplayName}: 소지 약물 복용 (재미 +{funValue} → {employee.Needs.fun:F0})");
-            }
-            return;
-        }
-
-        if (movement == null || StockpileManager.instance == null) return;
-
-        Vector2Int footTile = new Vector2Int(
-            Mathf.FloorToInt(transform.position.x),
-            Mathf.FloorToInt(transform.position.y));
-
-        Stockpile target = StockpileManager.instance.GetNearestStockpile(footTile);
-        if (target == null) return;
-
-        CancelCurrentAction();
-        employee.SetState(EmployeeState.Moving);
-
-        movement.MoveTo(target.GetDepositPosition(),
-            onComplete: () =>
-            {
-                ItemData drug = InventoryManager.instance?.TakeAnyDrug(1);
-                if (drug != null)
-                {
-                    employee.ModifyFun(drug.funValue);
-                    if (showDebugLogs)
-                        Debug.Log($"[AI] {employee.DisplayName}: 약물 복용 ({drug.itemName}, 재미 +{drug.funValue} → {employee.Needs.fun:F0})");
-                }
-                employee.SetState(EmployeeState.Idle);
-            },
-            onFailed: OnActionFailed);
     }
 
     // ─── Wash ───
@@ -916,7 +842,7 @@ public class EmployeeAI : MonoBehaviour
         // 4. 침식 — 세척은 Wash 스케줄 시간대에만 한다.
         //    자유 시간에 끼워 넣으면 플레이어가 정한 세척 시간이 무의미해지므로 여기서는 다루지 않는다.
 
-        // 4.3 재미 — 낮으면 스스로 오락거리를 찾는다 (시설 또는 약물)
+        // 4.3 재미 — 낮으면 스스로 오락 시설을 찾는다
         FunConfig freeFunCfg = EmployeeManager.instance?.FunConfig;
         if (freeFunCfg != null &&
             employee.Needs.fun < freeFunCfg.freeTimeFunThreshold &&
@@ -928,9 +854,8 @@ public class EmployeeAI : MonoBehaviour
             return;
         }
 
-        // 4.5 필수 소지 설정만큼 미리 챙겨두기 (유도) — 식량·약물
+        // 4.5 필수 소지 설정만큼 미리 챙겨두기 (유도)
         if (TryStockUpFood()) return;
-        if (TryStockUpDrug()) return;
 
         // 5. 작업
         ExecuteWork();
@@ -974,40 +899,6 @@ public class EmployeeAI : MonoBehaviour
         if (work.DesiredFoodCount <= 0 || work.HeldFoodCount >= work.DesiredFoodCount) return false;
 
         return GoToStockpileForFood(work, eatAfterStocking: false);
-    }
-
-    /// <summary>
-    /// 약물 필수 소지 설정만큼 미리 챙겨두는 '유도' (식량과 동일 패턴).
-    /// </summary>
-    private bool TryStockUpDrug()
-    {
-        var work = employee.GetComponent<EmployeeWork>();
-        if (work == null) return false;
-        if (work.DesiredDrugCount <= 0 || work.HeldDrugCount >= work.DesiredDrugCount) return false;
-
-        if (InventoryManager.instance == null || !InventoryManager.instance.HasAnyDrug()) return false;
-        if (StockpileManager.instance == null || movement == null) return false;
-
-        Vector2Int footTile = new Vector2Int(
-            Mathf.FloorToInt(transform.position.x),
-            Mathf.FloorToInt(transform.position.y));
-
-        Stockpile target = StockpileManager.instance.GetNearestStockpile(footTile);
-        if (target == null) return false;
-
-        CancelCurrentAction();
-        employee.SetState(EmployeeState.Moving);
-
-        movement.MoveTo(target.GetDepositPosition(),
-            onComplete: () =>
-            {
-                ItemData drug = InventoryManager.instance?.TakeAnyDrug(1);
-                if (drug != null) work.StoreDrug(drug, 1);
-                employee.SetState(EmployeeState.Idle);
-            },
-            onFailed: OnActionFailed);
-
-        return true;
     }
 
     /// <summary>

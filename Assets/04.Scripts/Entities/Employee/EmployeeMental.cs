@@ -7,16 +7,18 @@ using UnityEngine;
 ///
 /// 역할 분담:
 ///   • <b>정신 수치</b> → 정신 이상이 <b>발생할 확률</b>을 결정한다.
+///     욕구(허기·피로·재미)는 정신력 모디파이어를 통해서만 여기에 관여한다 — 판정에 직접 끼지 않는다.
 ///   • <b>침식 수치</b> → 발생한 정신 이상이 <b>'침식 계열'일 확률</b>을 높인다. 발생 여부에는 관여하지 않는다.
-///   • <b>임계점</b> → 직원마다 다르다. 공통 기본값을 개인 저항 배율로 나눠 보정한다.
+///   • <b>임계점</b> → 직원마다 다르다. 공통 기본값을 개인 저항 배율로 나눠 보정하며,
+///     그 배율을 건드리는 것은 <b>직원 특성·직원 스킬 둘뿐</b>이다.
 ///
 /// 판정 흐름 (림월드식):
 ///   1. checkIntervalSeconds(기본 2.5초)마다 한 번만 검사한다.
 ///   2. 정신 비율이 실효 임계점 아래면 후보가 된다.
 ///      실효 임계점 = 기본 임계점 / 저항배율.
-///      저항배율 = abnormalResistMult(특성·스킬) × 재미계수 × 피로계수.
-///      → 저항이 높으면 임계점이 낮아져 더 낮은 정신까지 버티고,
-///        재미·수면 관리가 무너지면 저항이 깎여 임계점이 올라가 더 일찍 터진다.
+///      저항배율 = abnormalResistMult — <b>특성·스킬만</b>이 이걸 건드린다.
+///      → 저항이 높으면 임계점이 낮아져 더 낮은 정신까지 버틴다.
+///      욕구(재미·피로·허기)는 임계점이 아니라 <b>정신력 수치</b>를 움직여 판정에 참여한다.
 ///   3. 발생 확률은 평균 발생 간격(MTB)에서 환산한다: p = 1 - exp(-Δt / MTB).
 ///      임계점 아래로 깊이 내려갈수록 MTB가 짧아진다.
 ///   4. 발생이 확정되면 계열을 고른다:
@@ -305,17 +307,19 @@ public class EmployeeMental : MonoBehaviour
 
     /// <summary>
     /// 이 직원의 정신 이상 저항 배율.
-    /// 특성·스킬의 abnormalResistMult에 재미·피로 계수를 곱해 누적합니다.
     /// 1보다 크면 저항(임계점이 내려감), 1보다 작으면 취약(임계점이 올라감).
+    ///
+    /// <b>여기에 곱해지는 것은 특성·스킬뿐이다 (2026-09-06 개편).</b>
+    /// 임계점은 "이 직원이 어떤 사람인가"만 반영한다 — 그날그날의 컨디션(욕구)은
+    /// 정신력 수치로 표현되고, 임계점은 고정된 채 정신력이 그 아래로 내려가느냐가 판정을 가른다.
+    /// 욕구가 임계점까지 같이 밀면 같은 축을 두 번 재는 셈이라 재미·피로 계수는 제거됐다.
+    /// (재미·수면 부족 → EmployeeStatsController의 정신력 상태형 모디파이어로 이관)
     /// </summary>
     public float GetBreakResistance()
     {
         if (statsController == null) return 1f;
 
-        float resist = statsController.CachedAbnormalResistMult
-                     * statsController.GetFunErosionFactor()
-                     * statsController.GetFatigueErosionFactor();
-
+        float resist = statsController.CachedAbnormalResistMult;
         return resist > 0f ? resist : 1f;
     }
 
