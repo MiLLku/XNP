@@ -10,7 +10,6 @@ using UnityEngine;
 [RequireComponent(typeof(MapRenderer))]
 public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
 {
-    // ... (모든 인스펙터 변수는 변경 없음) ...
     [Header("필수 연결")]
     [SerializeField] private StampLibrary stampLibrary;
     [SerializeField] private ResourceManager resourceManager;
@@ -27,39 +26,13 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [Header("동굴")]
     [SerializeField] [Range(0.01f, 0.2f)] private float caveNoiseScale = 0.07f;
     [SerializeField] [Range(0f, 1f)] private float caveThreshold = 0.7f;
-    [Header("광물 지층 (지표면 기준)")]
-    [SerializeField] [Range(0.01f, 0.3f)] private float copperNoiseScale = 0.15f;
-    [SerializeField] [Range(0f, 1f)]      private float copperThreshold  = 0.70f;
-    [SerializeField] [Range(0.01f, 0.3f)] private float ironNoiseScale   = 0.18f;
-    [SerializeField] [Range(0f, 1f)]      private float ironThreshold    = 0.75f;
-    [SerializeField] [Range(0.01f, 0.3f)] private float goldNoiseScale   = 0.20f;
-    [SerializeField] [Range(0f, 1f)]      private float goldThreshold    = 0.80f;
-    [Header("석탄 (지표 -3 ~ -15, 흔함)")]
-    [SerializeField] [Range(0.01f, 0.3f)] private float coalNoiseScale   = 0.12f;
-    [SerializeField] [Range(0f, 1f)]      private float coalThreshold    = 0.65f;
-    [Header("은 (지표 -25 이하, 보통)")]
-    [SerializeField] [Range(0.01f, 0.3f)] private float silverNoiseScale = 0.14f;
-    [SerializeField] [Range(0f, 1f)]      private float silverThreshold  = 0.73f;
-    [Header("수정 (지표 -55 이하, 희귀)")]
-    [SerializeField] [Range(0.01f, 0.3f)] private float crystalNoiseScale = 0.22f;
-    [SerializeField] [Range(0f, 1f)]      private float crystalThreshold  = 0.82f;
-    [Header("나무 배치 (지표면 잔디)")]
-    [SerializeField] private string treeStampKey = "TREE_2X3";
-    [SerializeField] [Range(2, 20)] private int minTreeDistance = 5;
+    // ── 광맥·식생물 배치 값은 정의 에셋으로 옮겼습니다 ─────────────────────────
+    //   광물 지층(깊이·노이즈·희귀도) → TileDefinition의 "광맥 생성" 항목
+    //   나무·베리 덤불·침식 식물     → EntityDefinition의 "맵 생성 배치" 항목
+    // 새 광물이나 식생물을 추가할 때 이 스크립트를 고칠 필요가 없습니다.
+    [Header("자연물 공통")]
+    [Tooltip("시작 지점 좌우로 자연물을 배치하지 않을 여유 칸 수")]
     [SerializeField] [Range(5, 50)] private int spawnAreaPadding = 15;
-    [SerializeField] [Range(0f, 1f)] private float treePlacementChance = 0.5f;
-    [Header("베리 덤불 배치 (지표면 잔디, 식량원)")]
-    [Tooltip("StampLibrary의 베리 덤불 스탬프 키 (대소문자 정확히 일치해야 함)")]
-    [SerializeField] private string berryBushStampKey = "BERRY_BUSH";
-    // 밸런스: 초반 직원 소수엔 여유, 직원이 늘수록 빡빡해지도록 공급 적정화.
-    // (직원 1명 ~20베리/일 소비, 덤불 1개 ~36베리/일 생산[재성장 50초] → 덤불 1개가 직원 ~1.8명 부양)
-    [SerializeField] [Range(2, 20)] private int minBerryBushDistance = 11;
-    [SerializeField] [Range(0f, 1f)] private float berryBushPlacementChance = 0.25f;
-    [Header("침식 식물 (지상 잔디/흙)")]
-    [Tooltip("독성 고사리 타일당 생성 확률")]
-    [SerializeField] [Range(0f, 0.1f)] private float toxicFernSpawnChance = 0.03f;
-    [Tooltip("부패한 버섯 타일당 생성 확률")]
-    [SerializeField] [Range(0f, 0.1f)] private float corruptedMushroomSpawnChance = 0.02f;
     [Header("광물 군집 크기")]
     [Tooltip("군집당 최소 광물 타일 수")]
     [SerializeField] [Range(1, 6)] private int clusterMinSize = 2;
@@ -73,18 +46,12 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     private MapStamper _stamper;
     private MapRenderer _mapRenderer;
     
-    // 사용할 타일 ID
-    private const int AIR_ID           = 0;
-    private const int DIRT_ID          = 1;  // 흙
-    private const int STONE_ID         = 2;  // 돌
-    private const int COPPER_ID        = 3;  // 구리
-    private const int IRON_ID          = 4;  // 철
-    private const int GOLD_ID          = 5;  // 금
-    private const int GRASS_ID         = 6;  // 잔디
-    // ── 신규 광물 ────────────────────────────────────────────────────────────
-    private const int COAL_ID          = 9;  // 석탄  (표층 근처, 흔함)
-    private const int SILVER_ID        = 10; // 은    (중간 깊이)
-    private const int CRYSTAL_ID       = 11; // 수정  (심층, 희귀)
+    // 지형 생성이 직접 쓰는 타일 ID. 값은 TileDefinition 에셋에서 생성된 TileType이 정합니다.
+    // 광물은 여기 없습니다 — 광맥은 정의 에셋을 훑어 배치합니다(PlaceMineralClusters).
+    private const int AIR_ID   = (int)TileType.Air;
+    private const int DIRT_ID  = (int)TileType.Dirt;
+    private const int STONE_ID = (int)TileType.Stone;
+    private const int GRASS_ID = (int)TileType.GrassDirt;
     // 개체(식물·건물) 종류는 EntityType enum으로 관리합니다. MapEntity.id에는 (int) 캐스트로 대입합니다.
 
 
@@ -173,9 +140,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             ConvertSurfaceDirtToGrass(groundHeightMap);
             PlaceMineralClusters(groundHeightMap);          // 광물 군집화 (2~6타일)
             PlaceStartingRoom(groundHeightMap);              // 스타팅 룸 배치
-            PlaceErosionPlants();                            // 침식 식물 배치
-            PlaceTrees(groundHeightMap);
-            PlaceBerryBushes(groundHeightMap);               // 베리 덤불(식량원) 배치
+            PlaceNaturalEntities(groundHeightMap);           // 식생물 배치 (정의 에셋 기반)
         }
         finally
         {
@@ -413,28 +378,40 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     #region 광물 군집 (Mineral Clusters)
 
     /// <summary>
-    /// 모든 광물 타입을 깊이별로 군집(2~clusterMaxSize 타일) 형태로 배치합니다.
+    /// generateAsVein이 켜진 모든 타일 정의를 깊이별로 군집(2~clusterMaxSize 타일) 형태로 배치합니다.
     /// GetTileIDForCoordinate에서는 STONE_ID만 반환하고, 이 함수가 광물을 덮어씁니다.
     ///
-    /// 깊이 기준: currentHeight(지표면) 기준 음수 오프셋
-    ///   석탄:  -3 ~ -20  (흔함)
-    ///   구리: -10 ~ -30  (보통)
-    ///   철:   -20 ~ -45  (보통)
-    ///   은:   -25 ~ -55  (희귀)
-    ///   금:   -40 ~ -70  (희귀)
-    ///   수정: -55 ~ -90  (매우 희귀)
+    /// 깊이·노이즈·희귀도는 각 TileDefinition의 "광맥 생성" 항목이 들고 있습니다.
+    /// <b>얕은 광맥부터 순서대로</b> 놓습니다 — 씨앗은 돌 타일에만 심기므로 순서가 결과를 바꾸고,
+    /// 얕은 것부터 놓아야 리팩터링 이전(석탄→구리→철→은→금→수정)과 같은 지층이 나옵니다.
     /// </summary>
     private void PlaceMineralClusters(int[] groundHeightMap)
     {
-        // (mineralId, minDepth, maxDepth, noiseScale, seedThreshold, seedOffset)
-        PlaceClustersForMineral(COAL_ID,    groundHeightMap,  -3, -20, coalNoiseScale,    coalThreshold,    5000f);
-        PlaceClustersForMineral(COPPER_ID,  groundHeightMap, -10, -30, copperNoiseScale,  copperThreshold,  2000f);
-        PlaceClustersForMineral(IRON_ID,    groundHeightMap, -20, -45, ironNoiseScale,    ironThreshold,    3000f);
-        PlaceClustersForMineral(SILVER_ID,  groundHeightMap, -25, -55, silverNoiseScale,  silverThreshold,  6000f);
-        PlaceClustersForMineral(GOLD_ID,    groundHeightMap, -40, -70, goldNoiseScale,    goldThreshold,    4000f);
-        PlaceClustersForMineral(CRYSTAL_ID, groundHeightMap, -55, -90, crystalNoiseScale, crystalThreshold, 7000f);
+        var db = DefinitionDatabase.Instance;
+        if (db == null)
+        {
+            Debug.LogError("[PlaceMineralClusters] 정의 데이터베이스가 없어 광맥을 배치하지 못했습니다. " +
+                           "메뉴 [XNP/정의/현재 코드에서 정의 에셋 생성]을 실행하세요.");
+            return;
+        }
 
-        Debug.Log("[PlaceMineralClusters] 광물 군집 배치 완료.");
+        var veins = new List<TileDefinition>();
+        foreach (var def in db.tiles)
+        {
+            if (def != null && def.generateAsVein) veins.Add(def);
+        }
+
+        // 얕은 한계가 지표에 가까운(=값이 큰) 것부터
+        veins.Sort((a, b) => b.veinShallowOffset.CompareTo(a.veinShallowOffset));
+
+        foreach (var def in veins)
+        {
+            PlaceClustersForMineral(def.id, groundHeightMap,
+                def.veinShallowOffset, def.veinDeepOffset,
+                def.veinNoiseScale, def.veinThreshold, def.veinSeedOffset);
+        }
+
+        Debug.Log($"[PlaceMineralClusters] 광물 군집 배치 완료. (광맥 {veins.Count}종)");
     }
 
     /// <summary>
@@ -528,138 +505,144 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     #region 식물 (Vegetation)
 
     /// <summary>
-    /// 침식 식물(독성 고사리 / 부패한 버섯)을 지상 잔디/흙 타일 위에 배치합니다.
-    /// 스폰 지점 주변(spawnAreaPadding)은 제외합니다.
+    /// spawnOnMapGeneration이 켜진 모든 개체 정의를 placementOrder 순서대로 배치합니다.
+    ///
+    /// 예전에는 PlaceTrees / PlaceBerryBushes / PlaceErosionPlants 세 함수가
+    /// 거의 같은 일을 각자 하드코딩된 확률·간격·스탬프 키로 하고 있었습니다.
+    /// 이제 그 값들은 EntityDefinition의 "맵 생성 배치" 항목에 있으므로,
+    /// 새 식생물을 추가할 때 이 스크립트를 고칠 필요가 없습니다.
     /// </summary>
-    private void PlaceErosionPlants()
+    private void PlaceNaturalEntities(int[] groundHeightMap)
     {
-        int spawnX       = 100;
-        int toxicCount   = 0;
-        int mushroomCount = 0;
-
-        for (int x = 0; x < GameMap.MAP_WIDTH; x++)
+        var db = DefinitionDatabase.Instance;
+        if (db == null)
         {
-            // 스폰 지점 주변 제외
-            if (x >= spawnX - spawnAreaPadding && x <= spawnX + spawnAreaPadding) continue;
-
-            for (int y = 1; y < GameMap.MAP_HEIGHT - 1; y++)
-            {
-                // 스폰 가능한 잔디/흙 타일이고 윗 칸이 공기인 경우만
-                if (!_gameMap.IsTileSpawnable(x, y)) continue;
-                if (_gameMap.TileGrid[x, y + 1] != AIR_ID) continue;
-
-                float roll = Random.value;
-
-                if (roll < toxicFernSpawnChance)
-                {
-                    _gameMap.AddEntity(new MapEntity
-                    {
-                        position = new Vector2Int(x, y + 1),
-                        type     = TypeObjectTile.Plant,
-                        id       = (int)EntityType.ToxicFern
-                    });
-                    _gameMap.MarkTileOccupied(x, y);
-                    toxicCount++;
-                }
-                else if (roll < toxicFernSpawnChance + corruptedMushroomSpawnChance)
-                {
-                    _gameMap.AddEntity(new MapEntity
-                    {
-                        position = new Vector2Int(x, y + 1),
-                        type     = TypeObjectTile.Plant,
-                        id       = (int)EntityType.CorruptedMushroom
-                    });
-                    _gameMap.MarkTileOccupied(x, y);
-                    mushroomCount++;
-                }
-            }
+            Debug.LogError("[PlaceNaturalEntities] 정의 데이터베이스가 없어 식생물을 배치하지 못했습니다. " +
+                           "메뉴 [XNP/정의/현재 코드에서 정의 에셋 생성]을 실행하세요.");
+            return;
         }
 
-        Debug.Log($"[PlaceErosionPlants] 배치 완료. (독성고사리: {toxicCount}개, 부패버섯: {mushroomCount}개)");
-    }
-
-    private void PlaceTrees(int[] groundHeightMap)
-    {
-        if (treePlacementChance <= 0f) return;
-
-        int spawnX = 100;
-        int lastTreeX = -minTreeDistance; 
-        const int treeWidth = 2; 
-        int skippedByPadding = 0, skippedByDistance = 0, failedFlatGroundCheck = 0, failedChanceRoll = 0, treesPlaced = 0;
-
-        for (int x = 0; x < GameMap.MAP_WIDTH - treeWidth; x++) 
-        {
-            if (x >= spawnX - spawnAreaPadding && x <= spawnX + spawnAreaPadding) { skippedByPadding++; continue; }
-            if (x < lastTreeX + minTreeDistance) { skippedByDistance++; continue; }
-
-            int y = groundHeightMap[x];
-            
-            // 1. (x,y) 타일이 잔디(GRASS_ID)이고 '스폰 가능'한지 확인
-            // (IsTileSpawnable이 OccupiedGrid를 검사하므로 열매 나무와 겹치지 않음)
-            bool isFlatGrassPatch = _gameMap.IsTileSpawnable(x, y) && 
-                                    _gameMap.TileGrid[x, y] == GRASS_ID; 
-
-            for (int i = 1; i < treeWidth; i++) 
-            {
-                // 2. 옆 타일(x+i, y)도 잔디이고, 높이가 같고, '스폰 가능'한지 확인
-                if (groundHeightMap[x + i] != y || 
-                    !_gameMap.IsTileSpawnable(x + i, y) || // ★점유 상태 확인
-                    _gameMap.TileGrid[x + i, y] != GRASS_ID) 
-                { 
-                    isFlatGrassPatch = false; 
-                    break; 
-                }
-            }
-            
-            if (isFlatGrassPatch)
-            {
-                if (Random.value < treePlacementChance) 
-                {
-                    _stamper.PlaceStamp(treeStampKey, new Vector2Int(x, y + 1)); 
-                    lastTreeX = x;
-                    
-                    // 2. ★타일 2칸을 '점유됨'으로 마킹 (ID를 바꾸지 않음)★
-                    _gameMap.MarkTileOccupied(x, y);
-                    _gameMap.MarkTileOccupied(x + 1, y);
-                    treesPlaced++;
-                } else { failedChanceRoll++; }
-            } else { failedFlatGroundCheck++; }
-        }
-        Debug.Log($"[PlaceTrees] 배치 완료. (배치: {treesPlaced}그루, 평지실패: {failedFlatGroundCheck}칸, 확률실패: {failedChanceRoll}칸)");
+        foreach (var def in db.NaturalSpawns)
+            PlaceNaturalEntity(def, groundHeightMap);
     }
 
     /// <summary>
-    /// 지표면 잔디에 베리 덤불(식량원)을 배치합니다. 베리 덤불은 1칸이며,
-    /// 나무·다른 베리 덤불과 겹치지 않도록 IsTileSpawnable(점유 그리드)을 확인합니다.
-    /// 스폰 지점 주변(spawnAreaPadding)은 제외합니다.
+    /// 개체 정의 하나를 규칙대로 맵 전체에 뿌립니다.
+    ///
+    /// 지표면만 훑는 모드(GroundLevel)는 열마다 후보를 한 곳만 보고,
+    /// 노출면 전체 모드(AnyExposedSurface)는 동굴 천장·단차까지 훑습니다.
     /// </summary>
-    private void PlaceBerryBushes(int[] groundHeightMap)
+    private void PlaceNaturalEntity(EntityDefinition def, int[] groundHeightMap)
     {
-        if (berryBushPlacementChance <= 0f) return;
+        if (def == null || def.spawnChance <= 0f) return;
 
-        int spawnX = 100;
-        int lastX = -minBerryBushDistance;
+        const int SPAWN_X = 100;
+        int width = Mathf.Max(1, def.footprintWidth);
+        int lastPlacedX = int.MinValue;
         int placed = 0;
 
-        for (int x = 0; x < GameMap.MAP_WIDTH; x++)
+        for (int x = 0; x + width <= GameMap.MAP_WIDTH; x++)
         {
-            if (x >= spawnX - spawnAreaPadding && x <= spawnX + spawnAreaPadding) continue;
-            if (x < lastX + minBerryBushDistance) continue;
+            if (def.avoidSpawnArea &&
+                x >= SPAWN_X - spawnAreaPadding && x <= SPAWN_X + spawnAreaPadding) continue;
 
-            int y = groundHeightMap[x];
+            if (def.minSpacing > 0 && lastPlacedX != int.MinValue &&
+                x < lastPlacedX + def.minSpacing) continue;
 
-            // 잔디이고 점유되지 않은 칸에만 (나무가 이미 차지한 칸 회피)
-            if (!_gameMap.IsTileSpawnable(x, y) || _gameMap.TileGrid[x, y] != GRASS_ID) continue;
-
-            if (Random.value < berryBushPlacementChance)
+            if (def.scanMode == SurfaceScanMode.GroundLevel)
             {
-                _stamper.PlaceStamp(berryBushStampKey, new Vector2Int(x, y + 1));
-                lastX = x;
-                _gameMap.MarkTileOccupied(x, y);
+                int y = groundHeightMap[x];
+                if (!IsFootprintValid(def, x, y, width, groundHeightMap)) continue;
+                if (Random.value >= def.spawnChance) continue;
+
+                PlaceNaturalEntityAt(def, x, y, width);
+                lastPlacedX = x;
                 placed++;
             }
+            else
+            {
+                // 한 열에 여러 개가 붙을 수 있다 (동굴 안 여러 층)
+                for (int y = 1; y < GameMap.MAP_HEIGHT - 1; y++)
+                {
+                    if (!IsFootprintValid(def, x, y, width, null)) continue;
+                    if (Random.value >= def.spawnChance) continue;
+
+                    PlaceNaturalEntityAt(def, x, y, width);
+                    lastPlacedX = x;
+                    placed++;
+                }
+            }
         }
-        Debug.Log($"[PlaceBerryBushes] 배치 완료. (배치: {placed}개)");
+
+        Debug.Log($"[PlaceNaturalEntities] {def.Label} 배치 완료: {placed}개");
+    }
+
+    /// <summary>
+    /// (x, y)에서 시작해 width칸이 이 개체를 받을 수 있는 자리인지 확인합니다.
+    /// 바닥이 스폰 가능한 지표면이고, 점유되어 있지 않고, 위가 비어 있어야 합니다.
+    /// </summary>
+    private bool IsFootprintValid(EntityDefinition def, int x, int y, int width, int[] groundHeightMap)
+    {
+        if (y + 1 >= GameMap.MAP_HEIGHT) return false;
+
+        for (int i = 0; i < width; i++)
+        {
+            int cx = x + i;
+
+            // 여러 칸짜리는 평지여야 한다
+            if (groundHeightMap != null && groundHeightMap[cx] != y) return false;
+
+            // 스폰 가능한 지표면 + 미점유 (IsTileSpawnable이 둘 다 본다)
+            if (!_gameMap.IsTileSpawnable(cx, y)) return false;
+
+            // 위가 비어 있어야 개체가 설 수 있다
+            if (_gameMap.TileGrid[cx, y + 1] != AIR_ID) return false;
+
+            // 특정 타일 위에만 두는 개체 (나무·베리 덤불은 잔디만)
+            if (def.allowedGroundTiles != null && def.allowedGroundTiles.Length > 0)
+            {
+                bool allowed = false;
+                foreach (var t in def.allowedGroundTiles)
+                {
+                    if (_gameMap.TileGrid[cx, y] == (int)t) { allowed = true; break; }
+                }
+                if (!allowed) return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// 개체를 실제로 놓고 바닥 칸을 점유 표시합니다.
+    /// 개체는 바닥 타일 <b>위</b>(y+1)에 서고, 점유되는 것은 바닥 칸(y)입니다.
+    /// </summary>
+    private void PlaceNaturalEntityAt(EntityDefinition def, int x, int y, int width)
+    {
+        var position = new Vector2Int(x, y + 1);
+
+        if (def.placementMode == PlacementMode.Stamp)
+        {
+            _stamper.PlaceStamp(def.stampKey, position);
+        }
+        else
+        {
+            _gameMap.AddEntity(new MapEntity
+            {
+                position = position,
+                type     = ToObjectType(def.kind),
+                id       = def.id
+            });
+        }
+
+        for (int i = 0; i < width; i++)
+            _gameMap.MarkTileOccupied(x + i, y);
+    }
+
+    /// <summary>개체 분류를 맵 오브젝트 타입으로 옮깁니다.</summary>
+    private static TypeObjectTile ToObjectType(EntityKind kind)
+    {
+        return kind == EntityKind.Plant ? TypeObjectTile.Plant : TypeObjectTile.Building;
     }
 
     #endregion
@@ -738,52 +721,82 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
 
     public void PostRestore(SaveData data) { }
 
+    /// <summary>
+    /// 저장 대상으로 표시된(EntityDefinition.persistInSave) 모든 개체의 위치와 성장 상태를 담습니다.
+    ///
+    /// 예전에는 ChoppableTree·ErosionPlantEntity를 타입별로 찾아 <c>variantId</c>에
+    /// 0·2·3 같은 임시 번호를 넣었고, 베리 덤불은 아예 빠져 있어 로드하면 사라졌습니다.
+    /// 이제 <see cref="MapEntityIdentity"/> 꼬리표 하나만 훑고 variantId에는 EntityType 값을 넣습니다.
+    /// </summary>
     private List<MapEntitySaveData> CaptureMapEntities()
     {
         var entities = new List<MapEntitySaveData>();
+        var db = DefinitionDatabase.Instance;
 
-        // 나무 (ChoppableTree) — variantId=0
-        var trees = FindObjectsByType<ChoppableTree>();
-        foreach (var tree in trees)
+        foreach (var identity in FindObjectsByType<MapEntityIdentity>(FindObjectsSortMode.None))
         {
+            var def = db?.GetEntity(identity.EntityId);
+            if (def == null || !def.persistInSave) continue;
+
+            float growth = 0f;
+            if (def.hasGrowthState)
+            {
+                var tree = identity.GetComponentInChildren<ChoppableTree>();
+                if (tree != null) growth = tree.IsFullyGrown ? 1f : tree.GrowthProgress;
+            }
+
             entities.Add(new MapEntitySaveData
             {
-                x = Mathf.FloorToInt(tree.transform.position.x),
-                y = Mathf.FloorToInt(tree.transform.position.y),
-                entityType        = (int)TypeObjectTile.Plant,
-                variantId         = 0,
-                remainingResource = tree.IsFullyGrown ? 1f : tree.GrowthProgress
-            });
-        }
-
-        // 침식 식물 (ErosionPlantEntity) — variantId=2(ToxicFern), 3(CorruptedMushroom)
-        var erosionPlants = FindObjectsByType<ErosionPlantEntity>();
-        foreach (var ep in erosionPlants)
-        {
-            int variant = (ep.entityId == (int)EntityType.ToxicFern) ? 2 : 3;
-            entities.Add(new MapEntitySaveData
-            {
-                x = Mathf.FloorToInt(ep.transform.position.x),
-                y = Mathf.FloorToInt(ep.transform.position.y),
-                entityType        = (int)TypeObjectTile.Plant,
-                variantId         = variant,
-                remainingResource = 0f // 침식 식물은 성장 상태 없음
+                x = Mathf.FloorToInt(identity.transform.position.x),
+                y = Mathf.FloorToInt(identity.transform.position.y),
+                entityType        = (int)ToObjectType(def.kind),
+                variantId         = def.id,
+                remainingResource = growth
             });
         }
 
         return entities;
     }
 
+    /// <summary>
+    /// 구 세이브의 variantId(0·1·2·3)를 EntityType 값으로 옮깁니다.
+    ///
+    /// 신규 ID는 20 이상이라 구 번호와 겹치지 않으므로 세이브 버전을 올리지 않고도 구분됩니다.
+    /// </summary>
+    private static int ResolveEntityId(int variantId)
+    {
+        switch (variantId)
+        {
+            case 0: return (int)EntityType.Tree2x3;
+            case 1: return (int)EntityType.BerryBush;
+            case 2: return (int)EntityType.ToxicFern;
+            case 3: return (int)EntityType.CorruptedMushroom;
+            default: return variantId;
+        }
+    }
+
     private void RestoreMapEntities(List<MapEntitySaveData> entities)
     {
         if (entities == null || _stamper == null) return;
 
-        // 1. 기존 자연물 제거
-        var existingTrees = FindObjectsByType<ChoppableTree>();
-        foreach (var tree in existingTrees) Destroy(tree.gameObject);
+        var db = DefinitionDatabase.Instance;
 
-        var existingErosionPlants = FindObjectsByType<ErosionPlantEntity>();
-        foreach (var ep in existingErosionPlants) Destroy(ep.gameObject);
+        // 1. 기존 자연물 제거 — 꼬리표가 붙은 저장 대상만
+        foreach (var identity in FindObjectsByType<MapEntityIdentity>(FindObjectsSortMode.None))
+        {
+            var def = db?.GetEntity(identity.EntityId);
+            if (def != null && def.persistInSave) Destroy(identity.gameObject);
+        }
+
+        // 1-1. 꼬리표 없이 씬에 남아 있던 구 자연물도 정리 (리팩터링 이전 경로 대비)
+        foreach (var tree in FindObjectsByType<ChoppableTree>(FindObjectsSortMode.None))
+        {
+            if (tree.GetComponent<MapEntityIdentity>() == null) Destroy(tree.gameObject);
+        }
+        foreach (var plant in FindObjectsByType<ErosionPlantEntity>(FindObjectsSortMode.None))
+        {
+            if (plant.GetComponent<MapEntityIdentity>() == null) Destroy(plant.gameObject);
+        }
 
         // 2. _gameMap.Entities 클리어 — GenerateWorld()에서 쌓인 항목 제거
         _gameMap.ClearEntities();
@@ -791,56 +804,65 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         // 3. 데이터 등록 (_gameMap.Entities에 추가, 아직 GameObject 없음)
         foreach (var entity in entities)
         {
-            Vector2Int pos = new Vector2Int(entity.x, entity.y);
-            switch (entity.variantId)
+            int id = ResolveEntityId(entity.variantId);
+            var def = db?.GetEntity(id);
+            if (def == null)
             {
-                case 0: // 나무
-                    _stamper.PlaceStamp(treeStampKey, pos);
-                    break;
-                case 2: // 독성 고사리
-                    _gameMap.AddEntity(new MapEntity
-                    {
-                        position = pos,
-                        type     = TypeObjectTile.Plant,
-                        id       = (int)EntityType.ToxicFern
-                    });
-                    break;
-                case 3: // 부패한 버섯
-                    _gameMap.AddEntity(new MapEntity
-                    {
-                        position = pos,
-                        type     = TypeObjectTile.Plant,
-                        id       = (int)EntityType.CorruptedMushroom
-                    });
-                    break;
+                Debug.LogWarning($"[MapGenerator] 세이브의 개체 ID {id}에 해당하는 정의가 없어 건너뜁니다.");
+                continue;
+            }
+
+            var pos = new Vector2Int(entity.x, entity.y);
+
+            if (def.placementMode == PlacementMode.Stamp)
+            {
+                _stamper.PlaceStamp(def.stampKey, pos);
+            }
+            else
+            {
+                _gameMap.AddEntity(new MapEntity
+                {
+                    position = pos,
+                    type     = ToObjectType(def.kind),
+                    id       = def.id
+                });
             }
         }
 
         // 4. 실제 GameObject 인스턴스화
         MapRendererInstance.RenderRestoredEntities();
 
-        // 5. 나무 성장 상태 복원 (침식 식물은 성장 상태 없음)
-        ApplyTreeGrowthStates(entities);
+        // 5. 성장 상태 복원 (hasGrowthState가 켜진 개체만)
+        ApplyGrowthStates(entities);
     }
 
     /// <summary>
-    /// 복원된 나무 GameObjects에 저장된 성장 진행도를 적용합니다.
+    /// 복원된 GameObject에 저장된 성장 진행도를 적용합니다.
+    /// 성장 상태가 없는 개체(침식 식물 등)는 건너뜁니다.
     /// </summary>
-    private void ApplyTreeGrowthStates(List<MapEntitySaveData> entities)
+    private void ApplyGrowthStates(List<MapEntitySaveData> entities)
     {
-        var spawnedTrees = FindObjectsByType<ChoppableTree>();
+        var db = DefinitionDatabase.Instance;
+        var spawnedTrees = FindObjectsByType<ChoppableTree>(FindObjectsSortMode.None);
+        int restored = 0;
 
         foreach (var saved in entities)
         {
-            if (saved.variantId != 0) continue;
+            var def = db?.GetEntity(ResolveEntityId(saved.variantId));
+            if (def == null || !def.hasGrowthState) continue;
 
             var tree = System.Array.Find(spawnedTrees, t =>
                 Mathf.FloorToInt(t.transform.position.x) == saved.x &&
                 Mathf.FloorToInt(t.transform.position.y) == saved.y);
-            tree?.RestoreGrowthState(saved.remainingResource);
+
+            if (tree != null)
+            {
+                tree.RestoreGrowthState(saved.remainingResource);
+                restored++;
+            }
         }
 
-        Debug.Log($"[MapGenerator] 성장 상태 복원 완료 (저장 항목: {entities.Count}개)");
+        Debug.Log($"[MapGenerator] 성장 상태 복원 완료 (저장 항목: {entities.Count}개, 적용: {restored}개)");
     }
 
     #endregion

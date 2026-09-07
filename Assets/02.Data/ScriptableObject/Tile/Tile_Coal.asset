@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27504165417e2ab4caf42c3ec78806f7, type: 3}
+  m_Name: Tile_Coal
+  m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
+  codeName: Coal
+  id: 9
+  displayName: "\uC11D\uD0C4"
+  description: 
+  tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
+  isSolid: 1
+  isClimbable: 0
+  isSpawnableSurface: 0
+  isMineable: 1
+  hardness: 1.2
+  requiredMiningSkillId: 5
+  dropItem: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
+  generateAsVein: 1
+  veinShallowOffset: -3
+  veinDeepOffset: -20
+  veinNoiseScale: 0.12
+  veinThreshold: 0.65
+  veinSeedOffset: 5000
+  thermalConductivity: 0.6
+  heatOutput: 0

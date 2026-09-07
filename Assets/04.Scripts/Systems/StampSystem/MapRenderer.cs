@@ -100,7 +100,10 @@ public class MapRenderer : MonoBehaviour
             if (prefab != null)
             {
                 Vector3 worldPos = new Vector3(entity.position.x, entity.position.y, 0);
-                Instantiate(prefab, worldPos, Quaternion.identity, entityParent);
+                var spawned = Instantiate(prefab, worldPos, Quaternion.identity, entityParent);
+
+                // 세이브 캡처가 종류별 컴포넌트를 뒤지지 않아도 되도록 ID를 새겨 둔다
+                MapEntityIdentity.Attach(spawned, entity.id);
             }
             else
             {

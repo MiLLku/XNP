@@ -21,8 +21,10 @@ public struct MapEntity
 /// 게임 맵 데이터 클래스.
 /// 타일 그리드, 벽 그리드, 점유 상태, 이동 차단 등 맵의 핵심 데이터를 관리합니다.
 ///
-/// 타일 ID 규칙:
-///   0=AIR, 1=DIRT, 2=STONE, 3=COPPER, 4=IRON, 5=GOLD, 6=GRASS, 7=PROCESSED_DIRT, 8=LADDER
+/// 타일 ID는 TileDefinition 에셋이 정하고 TileType enum으로 생성됩니다.
+/// "통과 가능한가 / 사다리인가 / 스폰 가능한 지표면인가" 같은 판정은
+/// 숫자를 직접 비교하지 않고 <see cref="TileRules"/>에 묻습니다 —
+/// 새 블록을 추가해도 이 클래스를 고칠 필요가 없도록.
 /// </summary>
 public class GameMap
 {
@@ -30,10 +32,12 @@ public class GameMap
 
     public const int MAP_WIDTH = 200;
     public const int MAP_HEIGHT = 200;
-    private const int AIR_ID = 0;
-    private const int DIRT_ID = 1;
-    private const int GRASS_ID = 6;
-    private const int LADDER_ID = 8;
+
+    /// <summary>빈 공간 타일 ID. 정의 에셋에서 생성된 TileType에서 가져옵니다.</summary>
+    private const int AIR_ID = (int)TileType.Air;
+
+    /// <summary>사다리 타일 ID. 설치·철거에서만 쓰이며, 판정은 TileRules를 씁니다.</summary>
+    private const int LADDER_ID = (int)TileType.Ladder;
 
     #endregion
 
@@ -238,26 +242,24 @@ public class GameMap
     }
 
     /// <summary>
-    /// 해당 좌표에 직원을 스폰할 수 있는지 확인합니다.
-    /// DIRT 또는 GRASS 타일이고 점유되지 않은 경우에만 가능합니다.
+    /// 해당 좌표에 직원을 스폰하거나 식생물을 배치할 수 있는지 확인합니다.
+    /// TileDefinition.isSpawnableSurface가 켜진 타일이고 점유되지 않은 경우에만 가능합니다.
     /// </summary>
     public bool IsTileSpawnable(int x, int y)
     {
         if (!IsInBounds(x, y)) return false;
         if (IsTileOccupied(x, y)) return false;
 
-        int tileID = TileGrid[x, y];
-        return (tileID == DIRT_ID || tileID == GRASS_ID);
+        return TileRules.IsSpawnableSurface(TileGrid[x, y]);
     }
 
     /// <summary>
-    /// 타일이 통과 가능한지 확인합니다 (AIR 또는 LADDER).
+    /// 타일이 통과 가능한지 확인합니다 (TileDefinition.isSolid가 꺼진 타일 — 공기·사다리).
     /// </summary>
     public bool IsPassableTile(int x, int y)
     {
         if (!IsInBounds(x, y)) return false;
-        int tileId = TileGrid[x, y];
-        return tileId == AIR_ID || tileId == LADDER_ID;
+        return !TileRules.IsSolid(TileGrid[x, y]);
     }
 
     #endregion
@@ -345,12 +347,12 @@ public class GameMap
     #region 사다리
 
     /// <summary>
-    /// 사다리 타일인지 확인합니다.
+    /// 사다리 타일인지 확인합니다 (TileDefinition.isClimbable).
     /// </summary>
     public bool IsLadder(int x, int y)
     {
         if (!IsInBounds(x, y)) return false;
-        return TileGrid[x, y] == LADDER_ID;
+        return TileRules.IsClimbable(TileGrid[x, y]);
     }
 
     /// <summary>

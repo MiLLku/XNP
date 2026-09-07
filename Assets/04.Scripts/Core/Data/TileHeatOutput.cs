@@ -9,7 +9,8 @@
 /// 채굴해서 파내거나 단열 벽으로 덮으면 다음 재계산에 자동 반영됩니다.
 /// 맞닿은 면이 넓을수록 더 뜨거워지는 것도 그대로 따라옵니다.
 ///
-/// <see cref="TileConductivity"/>와 짝입니다 — 같은 접촉면 루프에서 함께 더해집니다.
+/// <b>값은 더 이상 여기 있지 않습니다.</b> TileDefinition 에셋의 heatOutput 필드에서
+/// 읽어 옵니다. <see cref="TileConductivity"/>와 짝이며 같은 접촉면 루프에서 함께 더해집니다.
 /// </summary>
 public static class TileHeatOutput
 {
@@ -17,22 +18,14 @@ public static class TileHeatOutput
     public const float NONE = 0f;
 
     /// <summary>
-    /// 접촉면 하나가 방에 넣는 초당 열량. 미등록 타일은 0.
+    /// 접촉면 하나가 방에 넣는 초당 열량. 정의가 없으면 0.
     /// </summary>
-    public static float Get(TileType tile)
-    {
-        switch (tile)
-        {
-            // ── 심층 광물: 파고들면 방이 달아오른다 ──
-            // 수정은 -55~-90 깊이에만 나오므로, 이 값 하나로 심층 채굴이 더워진다.
-            case TileType.Crystal:
-                return 3.0f;
-
-            default:
-                return NONE;
-        }
-    }
+    public static float Get(TileType tile) => Get((int)tile);
 
     /// <summary>타일 ID(정수)로 조회합니다.</summary>
-    public static float Get(int tileId) => Get((TileType)tileId);
+    public static float Get(int tileId)
+    {
+        var def = TileDefinitionLookup.Find(tileId);
+        return def != null ? def.heatOutput : NONE;
+    }
 }

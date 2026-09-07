@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6e2a6b7164fb3f4198573d809fcd852, type: 3}
+  m_Name: Entity_Chest
+  m_EditorClassIdentifier: Assembly-CSharp::EntityDefinition
+  codeName: Chest
+  id: 2005
+  displayName: "\uC0C1\uC790"
+  description: 
+  kind: 2
+  prefab: {fileID: 7158746851217845667, guid: 93e10cc539125c34aa9bc78f38b33ccb, type: 3}
+  spawnOnMapGeneration: 0
+  placementOrder: 0
+  placementMode: 0
+  stampKey: 
+  scanMode: 0
+  footprintWidth: 1
+  spawnChance: 0
+  minSpacing: 0
+  allowedGroundTiles: 
+  avoidSpawnArea: 1
+  persistInSave: 0
+  hasGrowthState: 0

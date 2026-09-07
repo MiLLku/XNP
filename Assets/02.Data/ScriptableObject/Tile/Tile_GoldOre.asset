@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27504165417e2ab4caf42c3ec78806f7, type: 3}
+  m_Name: Tile_GoldOre
+  m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
+  codeName: GoldOre
+  id: 5
+  displayName: "\uAE08 \uAD11\uC11D"
+  description: 
+  tileAsset: {fileID: 11400000, guid: a8a2442aaec02f44c87b4794342d6478, type: 2}
+  isSolid: 1
+  isClimbable: 0
+  isSpawnableSurface: 0
+  isMineable: 1
+  hardness: 4
+  requiredMiningSkillId: 7
+  dropItem: {fileID: 11400000, guid: 588966bd842a65643a3c94860af4ddee, type: 2}
+  generateAsVein: 1
+  veinShallowOffset: -40
+  veinDeepOffset: -70
+  veinNoiseScale: 0.2
+  veinThreshold: 0.8
+  veinSeedOffset: 4000
+  thermalConductivity: 2.8
+  heatOutput: 0

@@ -1,5 +1,3 @@
-using UnityEngine;
-
 /// <summary>
 /// 타일별 채광 자격 게이트.
 ///
@@ -11,6 +9,10 @@ using UnityEngine;
 ///   채광 I 기초(5)   — 지표·돌·석탄·구리  (기본 해제)
 ///   채광 II 심층(6)  — 철·은
 ///   채광 III 정밀(7) — 금·수정
+///
+/// <b>어떤 타일이 어떤 스킬을 요구하는지는 더 이상 여기 있지 않다.</b>
+/// TileDefinition 에셋의 requiredMiningSkillId 필드에서 읽어 온다.
+/// 스킬 ID → 이름 대응만 스킬 트리 쪽 지식이므로 여기 남겨 두었다.
 /// </summary>
 public static class MiningSkillGate
 {
@@ -21,39 +23,14 @@ public static class MiningSkillGate
     /// <summary>
     /// 해당 타일을 캐는 데 필요한 스킬 ID. 0이면 제한 없음.
     /// </summary>
-    public static int RequiredSkillId(TileType tile)
+    public static int RequiredSkillId(TileType tile) => RequiredSkillId((int)tile);
+
+    /// <summary>타일 ID(정수)로 조회합니다.</summary>
+    public static int RequiredSkillId(int tileId)
     {
-        switch (tile)
-        {
-            // 지표·기초 자원 — 제한 없음
-            case TileType.Dirt:
-            case TileType.GrassDirt:
-            case TileType.ProcessedDirt:
-            case TileType.Stone:
-                return 0;
-
-            // T1 — 채광 I
-            case TileType.Coal:
-            case TileType.CopperOre:
-                return SKILL_MINING_I;
-
-            // T2~T3 초입 — 채광 II 심층
-            case TileType.IronOre:
-            case TileType.SilverOre:
-                return SKILL_MINING_II;
-
-            // T3 후반~T4 — 채광 III 정밀
-            case TileType.GoldOre:
-            case TileType.Crystal:
-                return SKILL_MINING_III;
-
-            default:
-                return 0;
-        }
+        var def = TileDefinitionLookup.Find(tileId);
+        return def != null ? def.requiredMiningSkillId : 0;
     }
-
-    /// <summary>호환용 int 오버로드.</summary>
-    public static int RequiredSkillId(int tileId) => RequiredSkillId((TileType)tileId);
 
     /// <summary>
     /// 해당 직원이 이 타일을 캘 수 있는지 확인합니다.

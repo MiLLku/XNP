@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27504165417e2ab4caf42c3ec78806f7, type: 3}
+  m_Name: Tile_Crystal
+  m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
+  codeName: Crystal
+  id: 11
+  displayName: "\uC218\uC815"
+  description: 
+  tileAsset: {fileID: 0}
+  isSolid: 1
+  isClimbable: 0
+  isSpawnableSurface: 0
+  isMineable: 1
+  hardness: 6
+  requiredMiningSkillId: 7
+  dropItem: {fileID: 11400000, guid: 0436ed0d1eb390b44830a471fdb1e83f, type: 2}
+  generateAsVein: 1
+  veinShallowOffset: -55
+  veinDeepOffset: -90
+  veinNoiseScale: 0.22
+  veinThreshold: 0.82
+  veinSeedOffset: 7000
+  thermalConductivity: 1.5
+  heatOutput: 3

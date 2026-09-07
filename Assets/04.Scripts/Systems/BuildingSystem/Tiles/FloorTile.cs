@@ -18,9 +18,10 @@ public class FloorTile : MonoBehaviour
     #region 필드
 
     [Header("바닥 타일 속성")]
-    [Tooltip("이 바닥 타일의 타입")]
+    [Tooltip("이 바닥 타일의 타입. 수치는 같은 이름의 FloorTileDefinition 에셋에서 읽어옵니다.")]
     [SerializeField] private FloorTileType tileType;
 
+    [Header("폴백 값 (정의 에셋이 없을 때만 사용)")]
     [Tooltip("이동 속도 배율 (1.0 = 기본 속도)")]
     [SerializeField] private float movementSpeedMultiplier = 1.0f;
 
@@ -31,6 +32,7 @@ public class FloorTile : MonoBehaviour
     [SerializeField] private bool allowsVerticalMovement = false;
 
     private Building building;
+    private FloorTileDefinition definition;
     private Vector2Int gridPosition;
 
     /// <summary>위치별 바닥 타일 정적 레지스트리</summary>
@@ -62,6 +64,7 @@ public class FloorTile : MonoBehaviour
     void Awake()
     {
         building = GetComponent<Building>();
+        definition = DefinitionDatabase.Instance?.GetFloor(tileType);
     }
 
     void Start()
@@ -134,17 +137,33 @@ public class FloorTile : MonoBehaviour
     #region 타일 속성 조회
 
     /// <summary>
+    /// 이 타일의 정의 에셋. 없으면 null이며 이 경우 프리팹의 폴백 값을 씁니다.
+    /// </summary>
+    private FloorTileDefinition Definition
+    {
+        get
+        {
+            if (definition == null)
+                definition = DefinitionDatabase.Instance?.GetFloor(tileType);
+            return definition;
+        }
+    }
+
+    /// <summary>
     /// 이동 속도 배율을 반환합니다.
     /// 건물이 비활성화 상태면 절반으로 감소합니다.
     /// </summary>
     public float GetMovementSpeedMultiplier()
     {
+        var def = Definition;
+        float baseSpeed = def != null ? def.movementSpeedMultiplier : movementSpeedMultiplier;
+
         if (building != null && !building.IsFunctional)
         {
-            return movementSpeedMultiplier * DAMAGED_SPEED_MULTIPLIER;
+            return baseSpeed * DAMAGED_SPEED_MULTIPLIER;
         }
 
-        return movementSpeedMultiplier;
+        return baseSpeed;
     }
 
     /// <summary>
@@ -158,7 +177,8 @@ public class FloorTile : MonoBehaviour
             return false;
         }
 
-        return isPassable;
+        var def = Definition;
+        return def != null ? def.isPassable : isPassable;
     }
 
     /// <summary>
@@ -172,31 +192,9 @@ public class FloorTile : MonoBehaviour
             return false;
         }
 
-        return allowsVerticalMovement;
+        var def = Definition;
+        return def != null ? def.allowsVerticalMovement : allowsVerticalMovement;
     }
 
     #endregion
-}
-
-/// <summary>
-/// 바닥 타일 타입 열거형.
-/// </summary>
-public enum FloorTileType
-{
-    /// <summary>나무 바닥 (속도: 1.0)</summary>
-    WoodFloor = 0,
-    /// <summary>돌 바닥 (속도: 1.0)</summary>
-    StoneFloor = 1,
-    /// <summary>금속 바닥 (속도: 1.2)</summary>
-    MetalFloor = 2,
-    /// <summary>나무 사다리 (속도: 0.8, 수직 이동 가능)</summary>
-    WoodLadder = 3,
-    /// <summary>금속 사다리 (속도: 0.9, 수직 이동 가능)</summary>
-    MetalLadder = 4,
-    /// <summary>좁은 통로 (속도: 0.9)</summary>
-    Catwalk = 5,
-    /// <summary>다리 (속도: 1.0)</summary>
-    Bridge = 6,
-    /// <summary>가공된 흙 바닥 (속도: 0.9, 기본 인프라 타일)</summary>
-    DirtFloor = 7
 }

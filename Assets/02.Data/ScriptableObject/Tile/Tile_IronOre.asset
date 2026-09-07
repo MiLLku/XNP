@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27504165417e2ab4caf42c3ec78806f7, type: 3}
+  m_Name: Tile_IronOre
+  m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
+  codeName: IronOre
+  id: 4
+  displayName: "\uCCA0 \uAD11\uC11D"
+  description: 
+  tileAsset: {fileID: 0}
+  isSolid: 1
+  isClimbable: 0
+  isSpawnableSurface: 0
+  isMineable: 1
+  hardness: 2.2
+  requiredMiningSkillId: 6
+  dropItem: {fileID: 11400000, guid: a57498eaac13bbd479e5422f7ff5efcc, type: 2}
+  generateAsVein: 1
+  veinShallowOffset: -20
+  veinDeepOffset: -45
+  veinNoiseScale: 0.18
+  veinThreshold: 0.75
+  veinSeedOffset: 3000
+  thermalConductivity: 1.9
+  heatOutput: 0

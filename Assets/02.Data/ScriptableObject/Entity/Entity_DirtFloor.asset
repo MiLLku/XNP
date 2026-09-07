@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6e2a6b7164fb3f4198573d809fcd852, type: 3}
+  m_Name: Entity_DirtFloor
+  m_EditorClassIdentifier: Assembly-CSharp::EntityDefinition
+  codeName: DirtFloor
+  id: 2013
+  displayName: "\uD759 \uBC14\uB2E5"
+  description: 
+  kind: 3
+  prefab: {fileID: 7505152173001505341, guid: 2853fd1db479b3a40a4458d139e20ba4, type: 3}
+  spawnOnMapGeneration: 0
+  placementOrder: 0
+  placementMode: 0
+  stampKey: 
+  scanMode: 0
+  footprintWidth: 1
+  spawnChance: 0
+  minSpacing: 0
+  allowedGroundTiles: 
+  avoidSpawnArea: 1
+  persistInSave: 0
+  hasGrowthState: 0

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6e2a6b7164fb3f4198573d809fcd852, type: 3}
+  m_Name: Entity_CorruptedMushroom
+  m_EditorClassIdentifier: Assembly-CSharp::EntityDefinition
+  codeName: CorruptedMushroom
+  id: 21
+  displayName: "\uBD80\uD328\uD55C \uBC84\uC12F"
+  description: 
+  kind: 1
+  prefab: {fileID: 8981467727152508161, guid: e12d23da7d07cfd439186f3671f2192d, type: 3}
+  spawnOnMapGeneration: 1
+  placementOrder: 1
+  placementMode: 0
+  stampKey: 
+  scanMode: 1
+  footprintWidth: 1
+  spawnChance: 0.02
+  minSpacing: 0
+  allowedGroundTiles: 
+  avoidSpawnArea: 1
+  persistInSave: 1
+  hasGrowthState: 0

@@ -48,20 +48,28 @@ public class DropEntry
 
 /// <summary>
 /// 리소스 매니저 ScriptableObject.
-/// 타일 ID → 타일 에셋, 개체 ID → 프리팹, 타일 ID → 드롭 아이템 매핑을 관리합니다.
+/// 타일 ID → 타일 에셋, 개체 ID → 프리팹, 타일 ID → 드롭 아이템, 아이템 ID → ItemData 조회 창구입니다.
+///
+/// <b>타일·개체 매핑은 이제 정의 에셋이 소유합니다.</b>
+/// TileDefinition.tileAsset / EntityDefinition.prefab / TileDefinition.dropItem을 먼저 보고,
+/// 정의가 없을 때만 아래 레거시 목록으로 되돌아갑니다. 새 타일·개체는 정의 에셋에만 등록하세요.
+/// 아이템 카탈로그(allItems)는 ItemData가 스스로 ID를 들고 있으므로 여기 그대로 둡니다.
 /// </summary>
 [CreateAssetMenu(fileName = "ResourceManager", menuName = "StampSystem/ResourceManager")]
 public class ResourceManager : ScriptableObject
 {
     #region 필드
 
-    [Header("타일 시각 정보")]
+    [Header("타일 시각 정보 (레거시 폴백)")]
+    [Tooltip("TileDefinition.tileAsset이 우선합니다. 정의가 없는 타일에만 쓰입니다.")]
     [SerializeField] private List<TileEntry> tileEntries;
 
-    [Header("개체(건물, 식물) 프리팹")]
+    [Header("개체(건물, 식물) 프리팹 (레거시 폴백)")]
+    [Tooltip("EntityDefinition.prefab이 우선합니다. 정의가 없는 개체에만 쓰입니다.")]
     [SerializeField] private List<EntityEntry> entityEntries;
 
-    [Header("타일 드랍 아이템")]
+    [Header("타일 드랍 아이템 (레거시 폴백)")]
+    [Tooltip("TileDefinition.dropItem이 우선합니다. 정의가 없는 타일에만 쓰입니다.")]
     [SerializeField] private List<DropEntry> dropEntries;
 
     [Header("전역 아이템 카탈로그")]
@@ -77,7 +85,7 @@ public class ResourceManager : ScriptableObject
 
     #region 초기화
 
-private void OnEnable()
+    private void OnEnable()
     {
         _tileLookup = new Dictionary<TileType, TileBase>();
         if (tileEntries != null)
@@ -136,8 +144,11 @@ private void OnEnable()
     /// </summary>
     /// <param name="id">타일 ID</param>
     /// <returns>타일 에셋 (없으면 null)</returns>
-public TileBase GetTileAsset(TileType tile)
+    public TileBase GetTileAsset(TileType tile)
     {
+        var def = TileDefinitionLookup.Find(tile);
+        if (def != null && def.tileAsset != null) return def.tileAsset;
+
         if (_tileLookup == null) return null;
         _tileLookup.TryGetValue(tile, out TileBase asset);
         return asset;
@@ -153,6 +164,9 @@ public TileBase GetTileAsset(TileType tile)
     /// <returns>프리팹 (없으면 null)</returns>
     public GameObject GetEntityPrefab(EntityType entity)
     {
+        var def = DefinitionDatabase.Instance?.GetEntity(entity);
+        if (def != null && def.prefab != null) return def.prefab;
+
         if (_entityLookup == null) return null;
         _entityLookup.TryGetValue(entity, out GameObject prefab);
         return prefab;
@@ -166,7 +180,7 @@ public TileBase GetTileAsset(TileType tile)
     /// </summary>
     /// <param name="tileId">타일 ID</param>
     /// <returns>드롭 프리팹 (없으면 null)</returns>
-public GameObject GetDropPrefab(TileType tile)
+    public GameObject GetDropPrefab(TileType tile)
     {
         ItemData data = GetTileDropItem(tile);
         return data != null ? data.dropPrefab : null;
@@ -179,8 +193,11 @@ public GameObject GetDropPrefab(TileType tile)
     /// 타일 ID에 해당하는 드롭 ItemData를 반환합니다.
     /// 가공 자원 등 모든 ItemData는 GetItemByID(itemId)로 조회하세요.
     /// </summary>
-public ItemData GetTileDropItem(TileType tile)
+    public ItemData GetTileDropItem(TileType tile)
     {
+        var def = TileDefinitionLookup.Find(tile);
+        if (def != null && def.dropItem != null) return def.dropItem;
+
         if (_dropLookup == null) return null;
         _dropLookup.TryGetValue(tile, out ItemData data);
         return data;
@@ -192,7 +209,7 @@ public ItemData GetTileDropItem(TileType tile)
     /// <summary>
     /// 아이템 ID로 ItemData를 조회합니다 (가공 자원·채광 자원 모두 포함).
     /// </summary>
-public ItemData GetItemByID(ItemType type)
+    public ItemData GetItemByID(ItemType type)
     {
         if (_itemLookup == null) return null;
         _itemLookup.TryGetValue(type, out ItemData data);

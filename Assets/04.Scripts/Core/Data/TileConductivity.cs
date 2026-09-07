@@ -7,58 +7,23 @@
 /// 진행도상 깊은 층일수록 금속·수정이 많아지므로, 심층 기지는 같은 벽 두께로도
 /// 온도를 유지하기 어려워집니다 — 깊이 중심 난이도와 같은 방향입니다.
 ///
-/// <see cref="TileHardness"/>와 같은 형태로 두어 타일 데이터가 한 자리에 모이게 했습니다.
+/// <b>값은 더 이상 여기 있지 않습니다.</b> TileDefinition 에셋의 thermalConductivity 필드에서
+/// 읽어 옵니다. 이 클래스는 기존 호출부를 살리기 위한 얇은 창구입니다.
 /// </summary>
 public static class TileConductivity
 {
-    /// <summary>기준 전도율 (돌)</summary>
+    /// <summary>기준 전도율 (돌). 정의를 찾지 못한 타일에도 이 값을 씁니다.</summary>
     public const float DEFAULT = 1.0f;
 
     /// <summary>
-    /// 타일의 열 전도율을 반환합니다. 미등록 타일은 <see cref="DEFAULT"/>.
+    /// 타일의 열 전도율을 반환합니다. 정의가 없으면 <see cref="DEFAULT"/>.
     /// </summary>
-    public static float Get(TileType tile)
-    {
-        switch (tile)
-        {
-            // ── 흙 계열: 단열이 좋다 ──
-            case TileType.Dirt:
-            case TileType.GrassDirt:
-                return 0.5f;
-
-            case TileType.ProcessedDirt:
-                return 0.4f;   // 다져서 더 촘촘하다
-
-            // ── 기준 ──
-            case TileType.Stone:
-                return 1.0f;
-
-            case TileType.Coal:
-                return 0.6f;   // 탄소질이라 열을 덜 흘린다
-
-            // ── 금속 광맥: 열을 잘 흘려보낸다 ──
-            case TileType.CopperOre:
-                return 2.2f;
-            case TileType.IronOre:
-                return 1.9f;
-            case TileType.SilverOre:
-                return 2.6f;
-            case TileType.GoldOre:
-                return 2.8f;
-
-            case TileType.Crystal:
-                return 1.5f;
-
-            // ── 공기·사다리는 벽이 아니므로 경계에 나타나지 않는다 ──
-            case TileType.Air:
-            case TileType.Ladder:
-                return DEFAULT;
-
-            default:
-                return DEFAULT;
-        }
-    }
+    public static float Get(TileType tile) => Get((int)tile);
 
     /// <summary>타일 ID(정수)로 조회합니다.</summary>
-    public static float Get(int tileId) => Get((TileType)tileId);
+    public static float Get(int tileId)
+    {
+        var def = TileDefinitionLookup.Find(tileId);
+        return def != null ? def.thermalConductivity : DEFAULT;
+    }
 }

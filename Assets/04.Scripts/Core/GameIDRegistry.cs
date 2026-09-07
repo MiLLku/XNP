@@ -5,27 +5,79 @@ using UnityEngine;
 /// ScriptableObject 생성 시 ID 범위를 참고하여 충돌을 방지합니다.
 ///
 /// ID 범위:
-///   타일(1000~1999), 아이템(2000~2999), 건물(3000~3999),
+///   타일(0~99), 바닥 타일(0~99), 개체(0~7999),
+///   아이템(2000~2999), 건물(3000~3999),
 ///   직원(4000~4999), 레시피(5000~5999), 제노프스(6000~6999)
+///
+/// 타일·바닥 타일·개체 ID는 <see cref="DefinitionDatabase"/>의 정의 에셋이 소유하며,
+/// 여기 있는 범위 상수는 정의 에디터가 중복·범위 이탈을 검증할 때 씁니다.
+/// 아이템 이하 대역은 여전히 각 ScriptableObject가 직접 들고 있습니다.
 /// </summary>
 public static class GameIDRegistry
 {
-    #region 타일 ID (1000~1999)
+    #region 타일 ID (0~99)
 
     /// <summary>
-    /// 타일 ID 범위 (1000~1999)
+    /// 지형 타일 ID 범위.
+    ///
+    /// GameMap.TileGrid에 그대로 저장되는 raw int 값이라 1000번대가 아니라 0부터 씁니다.
+    /// 실제 값은 TileDefinition 에셋이 정하고 TileType enum으로 생성됩니다.
     /// </summary>
     public static class Tiles
     {
-        public const int AIR = 1000;
-        public const int DIRT = 1001;
-        public const int STONE = 1002;
-        public const int IRON_ORE = 1003;
-        public const int COAL = 1004;
-        public const int WOOD_TILE = 1005;
+        /// <summary>TileGrid raw 값의 하한</summary>
+        public const int RAW_MIN = 0;
 
-        public const int MIN = 1000;
-        public const int MAX = 1999;
+        /// <summary>TileGrid raw 값의 상한 (TileRules의 배열 크기와 함께 관리)</summary>
+        public const int RAW_MAX = 99;
+
+        public const int MIN = RAW_MIN;
+        public const int MAX = RAW_MAX;
+
+        public static bool IsValid(int id) => id >= MIN && id <= MAX;
+    }
+
+    #endregion
+
+    #region 바닥 타일 ID (0~99)
+
+    /// <summary>
+    /// 건설되는 바닥 타일 ID 범위.
+    /// FloorTileDefinition 에셋이 정하고 FloorTileType enum으로 생성됩니다.
+    /// FloorTile 프리팹에 직렬화된 값이므로 기존 번호는 바꾸지 마세요.
+    /// </summary>
+    public static class FloorTiles
+    {
+        public const int MIN = 0;
+        public const int MAX = 99;
+
+        public static bool IsValid(int id) => id >= MIN && id <= MAX;
+    }
+
+    #endregion
+
+    #region 개체 ID (0~7999)
+
+    /// <summary>
+    /// 맵에 배치되는 개체(식생물·건물·바닥 프리팹) ID 범위.
+    /// EntityDefinition 에셋이 정하고 EntityType enum으로 생성됩니다.
+    ///
+    /// <b>주의</b>: 이 대역은 역사적으로 뒤섞여 있습니다 — 침식 식물은 20·21,
+    /// 나머지는 2001~2016으로, 아이템 대역(2000~2999)과 숫자가 겹칩니다.
+    /// MapEntity.id와 StampElement.id로 세이브·스탬프 에셋에 이미 박혀 있어
+    /// 재번호는 마이그레이션이 필요하므로 그대로 두었습니다.
+    /// <b>새 개체는 <see cref="RECOMMENDED_MIN"/> 이상에서 발급하세요.</b>
+    /// </summary>
+    public static class Entities
+    {
+        public const int MIN = 0;
+        public const int MAX = 7999;
+
+        /// <summary>신규 개체 권장 대역의 시작 (기존 대역과 겹치지 않음)</summary>
+        public const int RECOMMENDED_MIN = 7000;
+
+        /// <summary>신규 개체 권장 대역의 끝</summary>
+        public const int RECOMMENDED_MAX = 7999;
 
         public static bool IsValid(int id) => id >= MIN && id <= MAX;
     }
@@ -224,13 +276,15 @@ public static class GameIDRegistry
     #region 유틸리티
 
     /// <summary>
-    /// ID가 어떤 타입에 속하는지 문자열로 반환합니다.
+    /// ID가 어떤 ScriptableObject 대역에 속하는지 문자열로 반환합니다.
+    ///
+    /// 타일·바닥 타일·개체는 raw 값 대역(0~)이 서로 겹치므로 여기서 판정하지 않습니다.
+    /// 그쪽은 <see cref="DefinitionDatabase.Validate"/>가 목록 단위로 검증합니다.
     /// </summary>
     /// <param name="id">확인할 ID</param>
-    /// <returns>타입 문자열 (Tile, Item, Building, Employee, Recipe, Xenops, Unknown)</returns>
+    /// <returns>타입 문자열 (Item, Building, Employee, Recipe, Xenops, Unknown)</returns>
     public static string GetIDType(int id)
     {
-        if (Tiles.IsValid(id)) return "Tile";
         if (Items.IsValid(id)) return "Item";
         if (Buildings.IsValid(id)) return "Building";
         if (Employees.IsValid(id)) return "Employee";
@@ -266,7 +320,9 @@ public static class GameIDRegistry
     public static void LogNextAvailableIDs()
     {
         Debug.Log("=== 다음 사용 가능한 ID ===");
-        Debug.Log($"타일 (Tile): {Tiles.MIN} ~ {Tiles.MAX}");
+        Debug.Log($"타일 (Tile, 정의 에셋): {Tiles.MIN} ~ {Tiles.MAX}");
+        Debug.Log($"바닥 타일 (FloorTile, 정의 에셋): {FloorTiles.MIN} ~ {FloorTiles.MAX}");
+        Debug.Log($"개체 (Entity, 정의 에셋, 신규 권장): {Entities.RECOMMENDED_MIN} ~ {Entities.RECOMMENDED_MAX}");
         Debug.Log($"아이템 (Item): {Items.MIN} ~ {Items.MAX}");
         Debug.Log($"건물 (Building): {Buildings.MIN} ~ {Buildings.MAX}");
         Debug.Log($"직원 (Employee): {Employees.MIN} ~ {Employees.MAX}");

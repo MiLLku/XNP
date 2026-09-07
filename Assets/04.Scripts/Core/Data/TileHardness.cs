@@ -5,52 +5,26 @@
 /// 물리적으로 막지는 않는다(도구 티어 없음). 대신 시간 비용이 급격히 늘어나
 /// 채광 속도 확보(직원 스킬 + 연구 MiningSpeedBonus) 없이는 심층 채굴이 비현실적이 된다.
 ///
+/// <b>값은 더 이상 여기 있지 않다.</b> TileDefinition 에셋의 hardness 필드에서 읽어 온다.
+/// 이 클래스는 기존 호출부(<c>TileHardness.Get(tileId)</c>)를 그대로 살리기 위한 얇은 창구다.
+///
 /// 깊이 분포는 MapGenerator.PlaceMineralClusters 참고:
 ///   석탄 -3~-20 · 구리 -10~-30 · 철 -20~-45 · 은 -25~-55 · 금 -40~-70 · 수정 -55~-90
 /// </summary>
 public static class TileHardness
 {
+    /// <summary>정의를 찾지 못한 타일의 경도</summary>
+    public const float DEFAULT = 1.0f;
+
     /// <summary>
-    /// 타일 채광 시간 배율을 반환합니다. 미등록 타일은 1.0(기본).
+    /// 타일 채광 시간 배율을 반환합니다. 정의가 없으면 <see cref="DEFAULT"/>.
     /// </summary>
-    public static float Get(TileType tile)
+    public static float Get(TileType tile) => Get((int)tile);
+
+    /// <summary>타일 ID(정수)로 조회합니다.</summary>
+    public static float Get(int tileId)
     {
-        switch (tile)
-        {
-            // ── 지표층: 빠르게 파인다 ──
-            case TileType.Dirt:
-            case TileType.GrassDirt:
-            case TileType.ProcessedDirt:
-                return 0.6f;
-
-            case TileType.Stone:
-                return 1.0f;
-
-            // ── T1 얕은 층 ──
-            case TileType.Coal:
-                return 1.2f;
-            case TileType.CopperOre:
-                return 1.5f;
-
-            // ── T2 중간층 ──
-            case TileType.IronOre:
-                return 2.2f;
-
-            // ── T3 깊은 층 ──
-            case TileType.SilverOre:
-                return 3.0f;
-            case TileType.GoldOre:
-                return 4.0f;
-
-            // ── T4 심층 ──
-            case TileType.Crystal:
-                return 6.0f;
-
-            default:
-                return 1.0f;
-        }
+        var def = TileDefinitionLookup.Find(tileId);
+        return def != null ? def.hardness : DEFAULT;
     }
-
-    /// <summary>호환용 int 오버로드.</summary>
-    public static float Get(int tileId) => Get((TileType)tileId);
 }
