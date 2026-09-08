@@ -59,10 +59,15 @@ public class DefinitionDatabase : ScriptableObject
     [Tooltip("모든 FloorTileDefinition. FloorTileType enum이 이 목록에서 생성됩니다.")]
     public List<FloorTileDefinition> floorTiles = new List<FloorTileDefinition>();
 
+    [Tooltip("지층 목록 — 순서가 곧 위에서 아래입니다(첫 항목이 하늘, 마지막이 최하층). " +
+             "두께는 thicknessWeight의 비율로 정해지므로 맵 높이를 바꿔도 구성이 따라옵니다.")]
+    public List<StrataDefinition> strata = new List<StrataDefinition>();
+
     private Dictionary<int, TileDefinition> _tileById;
     private Dictionary<int, EntityDefinition> _entityById;
     private Dictionary<int, FloorTileDefinition> _floorById;
     private List<EntityDefinition> _naturalSpawns;
+    private StrataLayout _strataLayout;
 
     #endregion
 
@@ -121,7 +126,27 @@ public class DefinitionDatabase : ScriptableObject
             }
         }
 
+        // 지층 경계는 맵 높이 상수에서 파생되므로 여기서 한 번만 풀어 둔다
+        _strataLayout = new StrataLayout(strata, GameMap.MAP_HEIGHT);
+
         TileRules.Invalidate();
+    }
+
+    #endregion
+
+    #region 조회 — 지층
+
+    /// <summary>
+    /// 지층 목록을 Y 경계로 푼 결과. 목록을 편집하면 <see cref="RebuildCaches"/> 후 갱신됩니다.
+    /// 지층을 하나도 등록하지 않으면 비어 있는 레이아웃이 오고, 생성기는 예전 단일 파라미터로 동작합니다.
+    /// </summary>
+    public StrataLayout StrataLayout
+    {
+        get
+        {
+            if (_strataLayout == null) RebuildCaches();
+            return _strataLayout;
+        }
     }
 
     #endregion

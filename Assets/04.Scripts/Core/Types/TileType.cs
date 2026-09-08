@@ -47,6 +47,9 @@ public enum TileType
     /// <summary>수정</summary>
     Crystal = 11,
 
+    /// <summary>덩굴 줄기 — 최하층에 얽혀 있는 굵은 뿌리. 침식을 뿜으며, 열매가 여기서 자란다.</summary>
+    Trunk = 12,
+
     /// <summary>특수</summary>
     Special = 99,
 }

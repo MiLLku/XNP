@@ -30,8 +30,11 @@ public class GameMap
 {
     #region 상수
 
-    public const int MAP_WIDTH = 200;
-    public const int MAP_HEIGHT = 200;
+    // ⚠️ 이 값은 세이브의 타일 배열 크기와 직결됩니다.
+    //    MapGenerator.Restore가 저장된 크기와 대조해 다르면 거부하므로,
+    //    바꾸면 그 이전 세이브는 열리지 않습니다.
+    public const int MAP_WIDTH = 300;
+    public const int MAP_HEIGHT = 300;
 
     /// <summary>빈 공간 타일 ID. 정의 에셋에서 생성된 TileType에서 가져옵니다.</summary>
     private const int AIR_ID = (int)TileType.Air;
