@@ -45,10 +45,10 @@ public class RoomOverlayRenderer : DestroySingleton<RoomOverlayRenderer>
     [SerializeField] private OverlayMode mode = OverlayMode.RoomId;
 
     [Tooltip("이 온도 이하는 완전한 파랑")]
-    [SerializeField] private float coldTemperature = -10f;
+    [SerializeField] private float coldTemperature = -30f;
 
-    [Tooltip("이 온도 이상은 완전한 빨강")]
-    [SerializeField] private float hotTemperature = 60f;
+    [Tooltip("이 온도 이상은 완전한 빨강. 지열 때문에 최심부가 70도까지 가므로 그보다 높게 둡니다.")]
+    [SerializeField] private float hotTemperature = 80f;
 
     [Tooltip("온도·침식 모드에서 색을 새로 칠하는 주기(초)")]
     [SerializeField] private float colorRefreshInterval = 0.5f;
@@ -239,24 +239,33 @@ public class RoomOverlayRenderer : DestroySingleton<RoomOverlayRenderer>
 
     /// <summary>
     /// 온도를 색으로 바꿉니다.
-    /// 기준(주변 온도)에서 멀어질수록 파랑/빨강이 짙어지므로, 한눈에 데워진 방을 찾을 수 있습니다.
+    ///
+    /// 기준은 <b>직원의 쾌적 구간</b>입니다 — 그 안이면 회색, 위로 갈수록 빨강, 아래로 갈수록 파랑.
+    /// 즉 "여기 사람이 살 수 있나"를 그대로 보여줍니다.
+    ///
+    /// 예전에는 실외 온도를 기준으로 삼았는데, 깊이 지열이 들어오면서 그 방식은 무너집니다:
+    /// 심층 방의 기준이 60도를 넘어가면 <c>hotTemperature</c>보다 커져 <b>모든 뜨거운 방이 회색</b>이 됩니다.
     /// </summary>
     private Color GetTemperatureColor(float temperature)
     {
-        float neutral = TemperatureManager.instance != null
-            ? TemperatureManager.instance.OutdoorTemperature
-            : 20f;
+        var config = TemperatureManager.instance != null ? TemperatureManager.instance.Config : null;
+        float comfortMin = config != null ? config.comfortMin : 10f;
+        float comfortMax = config != null ? config.comfortMax : 25f;
 
-        Color color;
-        if (temperature >= neutral)
+        Color gray = new Color(0.7f, 0.7f, 0.7f);
+        Color color = gray;
+
+        if (temperature > comfortMax)
         {
-            float t = hotTemperature > neutral ? Mathf.Clamp01((temperature - neutral) / (hotTemperature - neutral)) : 0f;
-            color = Color.Lerp(new Color(0.7f, 0.7f, 0.7f), new Color(1f, 0.15f, 0.05f), t);
+            float t = hotTemperature > comfortMax
+                ? Mathf.Clamp01((temperature - comfortMax) / (hotTemperature - comfortMax)) : 0f;
+            color = Color.Lerp(gray, new Color(1f, 0.15f, 0.05f), t);
         }
-        else
+        else if (temperature < comfortMin)
         {
-            float t = neutral > coldTemperature ? Mathf.Clamp01((neutral - temperature) / (neutral - coldTemperature)) : 0f;
-            color = Color.Lerp(new Color(0.7f, 0.7f, 0.7f), new Color(0.15f, 0.4f, 1f), t);
+            float t = comfortMin > coldTemperature
+                ? Mathf.Clamp01((comfortMin - temperature) / (comfortMin - coldTemperature)) : 0f;
+            color = Color.Lerp(gray, new Color(0.15f, 0.4f, 1f), t);
         }
 
         color.a = alpha;

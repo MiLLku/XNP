@@ -55,6 +55,15 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     // 개체(식물·건물) 종류는 EntityType enum으로 관리합니다. MapEntity.id에는 (int) 캐스트로 대입합니다.
 
 
+    /// <summary>언덕 기복을 뺀 기준 지표 높이(Y). 온도 시스템의 깊이 0 기준이 여기서 나옵니다.</summary>
+    public int BaseGroundLevel => baseGroundLevel;
+
+    /// <summary>
+    /// 지표의 평균 높이(Y) — 기준 높이에 언덕 진폭의 절반을 더한 값입니다.
+    /// 지열 깊이는 이 값에서 얼마나 내려왔는지로 잽니다.
+    /// </summary>
+    public float SurfaceReferenceY => baseGroundLevel + hillAmplitude * 0.5f;
+
     public GameMap GameMapInstance { get; private set; }
     public MapStamper StamperInstance { get; private set; }
     public MapRenderer MapRendererInstance { get; private set; }

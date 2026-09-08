@@ -41,4 +41,7 @@ public enum UIPanelType
 
     /// <summary>개발용 디버그 패널 (차단 스위치·즉시 실행·자원 지급)</summary>
     DebugUI,
+
+    /// <summary>냉난방기 목표 온도 설정 패널</summary>
+    ClimateControlUI,
 }

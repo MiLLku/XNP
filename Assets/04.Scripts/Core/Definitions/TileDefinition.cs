@@ -109,6 +109,12 @@ public class TileDefinition : ScriptableObject
     [Tooltip("접촉면 하나가 방에 넣는 초당 열량. 0이면 발열하지 않습니다.")]
     public float heatOutput = 0f;
 
+    [Tooltip("목표 온도를 쓸지. 끄면 상한 없이 계속 데웁니다. heatOutput이 0이면 의미 없습니다.")]
+    public bool useHeatTarget = false;
+
+    [Tooltip("이 타일이 방을 데울 수 있는 한계 온도(℃). 방이 이 온도에 닿으면 더는 올리지 않습니다.")]
+    public float heatTargetTemperature = 60f;
+
     #endregion
 
     #region 프로퍼티

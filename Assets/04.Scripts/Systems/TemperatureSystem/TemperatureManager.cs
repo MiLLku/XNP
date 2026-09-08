@@ -7,11 +7,20 @@ using UnityEngine;
 ///
 /// <b>모델</b> — 방마다 온도 값 하나. 매 틱 평형 온도로 지수 접근합니다.
 /// <code>
-///   평형 = 주변온도 + 열원출력 / 누출계수
-///   T += (평형 - T) × (1 - exp(-누출계수 / 열용량 × Δt))
+///   G   = 누출계수 + 비례 구간 열원의 전도율 합
+///   평형 = (누출계수 × 주변온도 + Σ(g × 목표온도) + Σ전출력) / G
+///   T  += (평형 - T) × (1 - exp(-G / 열용량 × Δt))
 /// </code>
 /// 지수형이라 틱 간격을 바꿔도 장기 결과가 같고 평형을 넘어 튀지 않습니다.
-/// 누출계수가 0인 완전 밀폐 방은 평형이 없으므로 출력만큼 계속 오릅니다.
+///
+/// <b>열원의 목표 온도는 해법 안으로 접어 넣습니다.</b> 출력만 미리 깎아서 넣으면
+/// 뻣뻣한 항을 명시적으로 푸는 꼴이라 목표 근처에서 톱니처럼 진동합니다
+/// (2×2 밀폐 방 + 40W 열원이면 한 틱에 10도씩 넘나든다). 목표 근처의 열원을
+/// "목표 온도의 저장소에 전도율 g로 붙은 것"으로 보고 G와 평형에 함께 넣으면 무조건 안정합니다.
+/// 모든 열원이 목표에서 멀면(전출력) G = 누출계수가 되어 예전 공식과 정확히 같아집니다.
+///
+/// <b>주변 온도는 깊이의 함수</b>입니다 — 깊을수록 덥고, 깊을수록 계절·한파·폭염을 덜 탑니다.
+/// 누출계수가 0인 완전 밀폐 방이라도 목표 온도를 가진 열원이 있으면 그 목표에서 멈춥니다.
 ///
 /// <b>방과 방 사이</b>는 벽으로 새지 않습니다. 오직 <b>문을 여닫는 순간</b>에만 공기가 섞입니다.
 /// 벽을 통한 손실은 언제나 주변 온도(실외·지열) 쪽으로만 갑니다.
@@ -34,8 +43,14 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
 
     private readonly HashSet<IHeatSource> sources = new HashSet<IHeatSource>();
 
-    /// <summary>이번 틱에 방별로 합산한 열 출력</summary>
-    private readonly Dictionary<int, float> heatByRoom = new Dictionary<int, float>();
+    /// <summary>이번 틱에 방별로 합산한 열원 기여 (목표 온도 상태별로 분류된 것)</summary>
+    private readonly Dictionary<int, HeatAccum> heatByRoom = new Dictionary<int, HeatAccum>();
+
+    /// <summary>이번 틱에 각 열원이 데우기로 결정된 방. 냉난방기가 자기 방을 되찾을 때 씁니다.</summary>
+    private readonly Dictionary<IHeatSource, int> resolvedRoomBySource = new Dictionary<IHeatSource, int>();
+
+    /// <summary>지표 기준 Y 캐시. MapGenerator가 있으면 그쪽 값을 우선합니다.</summary>
+    private float? surfaceYCache;
 
     /// <summary>열원 주변 방 투표용 버퍼</summary>
     private readonly Dictionary<int, int> neighborVotes = new Dictionary<int, int>();
@@ -147,8 +162,74 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
     /// <summary>등록된 열원 개수</summary>
     public int SourceCount => sources.Count;
 
+    /// <summary>등록된 열원들 (디버그 표시용)</summary>
+    public IEnumerable<IHeatSource> Sources => sources;
+
     /// <summary>접촉면 전도율 합에 곱하는 전역 배율</summary>
     public float ConductanceScale => config != null ? Mathf.Max(0.0001f, config.conductanceScale) : 0.05f;
+
+    #endregion
+
+    #region 깊이 · 지열
+
+    /// <summary>
+    /// 깊이 0으로 삼는 지표 Y. MapGenerator가 있으면 그 값을, 없으면 설정값을 씁니다.
+    /// 지형 파라미터를 바꿔도 지열 곡선이 따라오도록 코드 쪽을 우선합니다.
+    /// </summary>
+    public float SurfaceReferenceY
+    {
+        get
+        {
+            if (surfaceYCache.HasValue) return surfaceYCache.Value;
+
+            float value = MapGenerator.instance != null
+                ? MapGenerator.instance.SurfaceReferenceY
+                : (config != null ? config.surfaceReferenceY : 145f);
+
+            surfaceYCache = value;
+            return value;
+        }
+    }
+
+    /// <summary>지표면 기준 깊이(칸). 지표보다 위면 0입니다.</summary>
+    public float GetDepth(float y) => Mathf.Max(0f, SurfaceReferenceY - y);
+
+    /// <summary>
+    /// 깊이에 따른 주변 온도(℃).
+    ///
+    /// <code>
+    ///   주변온도 = 연평균 + 기울기 × 깊이 + (지표 실외온도 - 연평균) × exp(-깊이 / 감쇠깊이)
+    /// </code>
+    ///
+    /// 두 번째 항이 <b>깊을수록 덥다</b>를, 세 번째 항이 <b>깊을수록 계절·날씨를 안 탄다</b>를 만듭니다.
+    /// 깊이 0에서는 감쇠가 1이라 결과가 실외 온도와 <b>정확히 같습니다</b> — 지표는 예전 그대로 동작합니다.
+    /// 한파·폭염 모디파이어도 실외 온도에 들어 있으므로 자동으로 같이 감쇠합니다.
+    /// </summary>
+    public float GetAmbientAtDepth(float depth) => GetAmbientAtDepth(depth, OutdoorTemperature);
+
+    /// <summary>실외 온도를 미리 구해 둔 경우용 (틱 루프에서 모디파이어 순회를 반복하지 않기 위함)</summary>
+    private float GetAmbientAtDepth(float depth, float outdoor)
+    {
+        if (config == null || !config.useGeothermal) return outdoor;
+
+        float mean = config.annualMeanTemperature;
+        float damp = Mathf.Exp(-depth / Mathf.Max(1f, config.seasonDampDepth));
+
+        return mean + config.geothermalGradient * depth + (outdoor - mean) * damp;
+    }
+
+    /// <summary>해당 높이의 주변 온도. 방에 속하지 않은 칸을 조회할 때 씁니다.</summary>
+    public float GetAmbientAt(float y) => GetAmbientAtDepth(GetDepth(y));
+
+    /// <summary>방의 평균 깊이에 해당하는 주변 온도. 열원이 없다면 이 방이 수렴할 온도입니다.</summary>
+    public float GetAmbientForRoom(Room room)
+        => room == null ? OutdoorTemperature : GetAmbientForRoom(room, OutdoorTemperature);
+
+    private float GetAmbientForRoom(Room room, float outdoor)
+    {
+        if (room == null || room.CellCount == 0) return outdoor;
+        return GetAmbientAtDepth(GetDepth(room.AverageY), outdoor);
+    }
 
     #endregion
 
@@ -306,62 +387,97 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
         var manager = RoomManager.instance;
         if (manager == null) return;
 
-        float ambient = OutdoorTemperature;
+        surfaceYCache = null;   // 지형이 바뀌었을 수 있으니 지표 기준을 다시 잡는다
+        float outdoor = OutdoorTemperature;
 
         foreach (var pair in manager.Rooms)
         {
             Room room = pair.Value;
 
             float conductance = 0f;
-            float environmentHeat = 0f;
+            room.EnvironmentHeat.Clear();
 
             // 접촉면 한 번의 순회로 '얼마나 새는가'와 '벽이 얼마나 뜨거운가'를 함께 구한다
             foreach (var face in room.BoundaryFaces)
             {
-                conductance    += GetCellConductivity(face);
-                environmentHeat += GetCellHeatOutput(face);
+                ReadFace(face, out float conductivity, out float heat, out bool limited, out float target);
+
+                conductance += conductivity;
+                if (heat != 0f) AddEnvironmentHeat(room, heat, limited, target);
             }
 
             room.LeakConductance = conductance * ConductanceScale;
-            room.EnvironmentHeat = environmentHeat;
+            room.AmbientTemperature = GetAmbientForRoom(room, outdoor);
 
-            // 새로 생긴 방(이어받을 값이 없던 방)은 주변 온도에서 시작한다
+            // 새로 생긴 방(이어받을 값이 없던 방)은 주변 온도에서 시작한다.
+            // 실제로는 RoomManager.InheritState가 먼저 값을 채우므로 여기까지 오는 경우는 드물다.
             if (!room.TemperatureInitialized)
             {
-                room.Temperature = ambient;
+                room.Temperature = room.AmbientTemperature;
                 room.TemperatureInitialized = true;
             }
         }
     }
 
     /// <summary>
-    /// 경계 칸 하나의 열 전도율.
-    /// 차단 건물이 있으면 건물 값을, 없으면 지형 타일 값을 씁니다.
+    /// 경계 칸 하나의 열 특성을 <b>한 번의 조회</b>로 모두 읽습니다.
+    ///
+    /// 차단 건물이 있으면 건물 값을 쓰고 지형 발열은 가려진 것으로 봅니다 —
+    /// 단열 벽으로 뜨거운 광맥을 덮는 대응이 여기서 성립합니다.
     /// </summary>
-    private float GetCellConductivity(Vector2Int cell)
+    private void ReadFace(Vector2Int cell, out float conductivity, out float heat, out bool limited, out float target)
     {
+        heat = 0f;
+        limited = false;
+        target = 0f;
+
         Building building = Building.GetBuildingAt(cell);
         if (building != null && building.buildingData != null)
-            return Mathf.Max(0f, building.buildingData.heatConductivity);
+        {
+            conductivity = Mathf.Max(0f, building.buildingData.heatConductivity);
+            return;
+        }
 
         GameMap map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
-        if (map == null) return TileConductivity.DEFAULT;
+        if (map == null)
+        {
+            conductivity = TileConductivity.DEFAULT;
+            return;
+        }
 
-        return TileConductivity.Get(map.TileGrid[cell.x, cell.y]);
+        TileDefinition def = TileDefinitionLookup.Find(map.TileGrid[cell.x, cell.y]);
+        if (def == null)
+        {
+            conductivity = TileConductivity.DEFAULT;
+            return;
+        }
+
+        conductivity = def.thermalConductivity;
+        heat = def.heatOutput;
+        limited = def.useHeatTarget;
+        target = def.heatTargetTemperature;
     }
 
     /// <summary>
-    /// 경계 칸 하나가 스스로 내는 열.
-    /// 건물이 덮고 있으면 지형이 가려진 것으로 보고 0을 반환합니다 — 단열 벽으로 뜨거운 광맥을 덮는 대응이 성립합니다.
+    /// 접촉면의 발열을 방의 목표 온도별 묶음에 더합니다.
+    /// 목표가 거의 같으면(0.01도 이내) 같은 묶음으로 합칩니다 — 부동소수 동등 비교를 피하기 위함입니다.
     /// </summary>
-    private float GetCellHeatOutput(Vector2Int cell)
+    private static void AddEnvironmentHeat(Room room, float heat, bool limited, float target)
     {
-        if (Building.GetBuildingAt(cell) != null) return TileHeatOutput.NONE;
+        var buckets = room.EnvironmentHeat;
 
-        GameMap map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
-        if (map == null) return TileHeatOutput.NONE;
+        for (int i = 0; i < buckets.Count; i++)
+        {
+            if (buckets[i].limited != limited) continue;
+            if (limited && Mathf.Abs(buckets[i].target - target) > 0.01f) continue;
 
-        return TileHeatOutput.Get(map.TileGrid[cell.x, cell.y]);
+            var merged = buckets[i];
+            merged.output += heat;
+            buckets[i] = merged;
+            return;
+        }
+
+        buckets.Add(new EnvironmentHeatBucket { output = heat, limited = limited, target = target });
     }
 
     #endregion
@@ -375,22 +491,39 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
 
         UpdateOutdoorModifiers(deltaTime);
 
-        float ambient = OutdoorTemperature;
+        float outdoor = OutdoorTemperature;
         float capacityPerCell = config != null ? Mathf.Max(0.01f, config.heatCapacityPerCell) : 1f;
         float minT = config != null ? config.minTemperature : -60f;
         float maxT = config != null ? config.maxTemperature : 300f;
+        float band = config != null ? Mathf.Max(0.1f, config.heatTargetBand) : 3f;
+        bool buildingTargets = config == null || config.buildingsUseHeatTarget;
 
         // 1) 열원을 방별로 합산 — 실외에 있는 열원은 버린다(바깥은 데워지지 않는다)
         heatByRoom.Clear();
+        resolvedRoomBySource.Clear();
+
         foreach (var source in sources)
         {
-            if (source == null || !source.IsHeatActive) continue;
+            if (source == null) continue;
 
             int roomId = ResolveHeatRoom(manager, source.HeatTilePosition, source.HeatFootprint);
+            resolvedRoomBySource[source] = roomId;   // 꺼져 있어도 기록한다 — 냉난방기 UI가 자기 방을 찾는 데 쓴다
+
+            if (!source.IsHeatActive) continue;
             if (roomId == RoomManager.OUTDOOR_ID) continue;
 
-            heatByRoom.TryGetValue(roomId, out float current);
-            heatByRoom[roomId] = current + source.HeatOutput;
+            Room room = manager.GetRoomById(roomId);
+            if (room == null) continue;
+
+            // 목표 온도를 쓰지 않으면 무한대를 목표로 삼는다 → 항상 전출력 = 예전 동작과 완전히 동일
+            bool limited = source.HasHeatTarget && (buildingTargets || !(source is Building));
+            float target = limited
+                ? source.HeatTargetTemperature
+                : (source.HeatOutput > 0f ? float.PositiveInfinity : float.NegativeInfinity);
+
+            HeatAccum acc = heatByRoom.TryGetValue(roomId, out var existing) ? existing : HeatAccum.Empty;
+            Accumulate(ref acc, source.HeatOutput, target, band, room.Temperature, source.IsClimateControl);
+            heatByRoom[roomId] = acc;
         }
 
         // 2) 방마다 평형으로 접근
@@ -398,29 +531,136 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
         {
             Room room = pair.Value;
 
-            heatByRoom.TryGetValue(room.Id, out float heat);
-            heat += room.EnvironmentHeat;   // 뜨거운 벽이 내는 열
+            HeatAccum acc = heatByRoom.TryGetValue(room.Id, out var found) ? found : HeatAccum.Empty;
+
+            // 뜨거운 벽이 내는 열 — 이건 능동 공조기가 아니므로 자연 평형에도 들어간다
+            foreach (var bucket in room.EnvironmentHeat)
+            {
+                float bucketTarget = bucket.limited
+                    ? bucket.target
+                    : (bucket.output > 0f ? float.PositiveInfinity : float.NegativeInfinity);
+
+                Accumulate(ref acc, bucket.output, bucketTarget, band, room.Temperature, false);
+            }
+
+            float ambient = GetAmbientForRoom(room, outdoor);
+            room.AmbientTemperature = ambient;
 
             float capacity = Mathf.Max(0.01f, room.CellCount * capacityPerCell);
             float leak = room.LeakConductance;
+            float before = room.Temperature;
 
-            if (leak <= 0f)
+            // 냉난방기를 뺀 평형 — 공조기의 부하이자 전력 소모의 기준
+            room.NaturalEquilibrium = leak + acc.passiveConductance > 0f
+                ? (leak * ambient + acc.passiveDrive + acc.passiveSaturated) / (leak + acc.passiveConductance)
+                : before;
+
+            float totalConductance = leak + acc.conductance;
+
+            if (totalConductance <= 0f)
             {
-                // 완전 밀폐 — 평형이 없다. 열원 출력만큼 계속 오르거나 내린다.
-                room.Temperature += heat / capacity * deltaTime;
+                // 완전 밀폐 + 목표 온도를 쓰지 않는 열원뿐 — 평형이 없다. 출력만큼 계속 오르거나 내린다.
+                room.Temperature += acc.saturated / capacity * deltaTime;
             }
             else
             {
-                float equilibrium = ambient + heat / leak;
-                float k = 1f - Mathf.Exp(-leak / capacity * deltaTime);
+                float equilibrium = (leak * ambient + acc.drive + acc.saturated) / totalConductance;
+                float k = 1f - Mathf.Exp(-totalConductance / capacity * deltaTime);
                 room.Temperature += (equilibrium - room.Temperature) * k;
             }
+
+            ApplyTargetGuard(room, acc, ambient, before);
 
             room.Temperature = Mathf.Clamp(room.Temperature, minT, maxT);
         }
 
         if (showDebugLogs && manager.RoomCount > 0)
             Debug.Log($"[TemperatureManager] 방 {manager.RoomCount}개 갱신 (열원 {sources.Count}개)");
+    }
+
+    /// <summary>
+    /// 열원 하나를 세 상태 중 하나로 분류해 누적합니다.
+    ///
+    /// <list type="bullet">
+    /// <item><b>정지</b> — 이미 목표를 넘었다. 아무것도 하지 않는다.</item>
+    /// <item><b>비례</b> — 목표에서 band 이내. "목표 온도의 저장소에 전도율 g = |출력|/band로 붙은 것"으로 다룬다.</item>
+    /// <item><b>전출력</b> — 목표에서 멀다. 정격 출력을 그대로 넣는다(예전 동작과 동일).</item>
+    /// </list>
+    ///
+    /// 비례 구간을 전도율로 다루는 것이 핵심입니다. 출력만 깎아서 넣으면 명시적 적분이 되어
+    /// 목표 근처에서 톱니처럼 진동하지만, G와 평형에 함께 넣으면 무조건 안정합니다.
+    /// </summary>
+    private static void Accumulate(ref HeatAccum acc, float output, float target, float band,
+                                   float currentTemperature, bool isClimateControl)
+    {
+        if (output == 0f) return;
+
+        // 목표까지 남은 거리 — 난방은 위로, 냉방은 아래로 잰다
+        float headroom = output > 0f ? target - currentTemperature : currentTemperature - target;
+
+        if (headroom <= 0f) return;                        // 정지
+
+        if (headroom >= band)
+        {
+            acc.saturated += output;                       // 전출력
+            if (!isClimateControl) acc.passiveSaturated += output;
+        }
+        else
+        {
+            float g = Mathf.Abs(output) / band;            // 비례
+            acc.conductance += g;
+            acc.drive += g * target;
+
+            if (!isClimateControl)
+            {
+                acc.passiveConductance += g;
+                acc.passiveDrive += g * target;
+            }
+        }
+
+        // 하드 천장/바닥 — 전출력 구간의 단일 틱 오버슛까지 막는다
+        if (output > 0f) acc.ceiling = Mathf.Max(acc.ceiling, target);
+        else             acc.floor   = Mathf.Min(acc.floor, target);
+    }
+
+    /// <summary>
+    /// 열원이 자기 목표를 넘겨버리는 것을 막습니다.
+    ///
+    /// 지수 해법은 평형을 넘지 않지만, 전출력 구간에서는 평형 자체가 목표보다 위일 수 있습니다.
+    /// <paramref name="before"/>로 게이트하므로 <b>지열이 정당하게 올려놓은 방은 건드리지 않습니다</b> —
+    /// 깊이 100의 52도 방에 목표 24도 온열기를 놓아도 방이 24도로 끌려 내려가지 않습니다.
+    /// </summary>
+    private static void ApplyTargetGuard(Room room, HeatAccum acc, float ambient, float before)
+    {
+        float roof = Mathf.Max(ambient, acc.ceiling);
+        if (before <= roof && room.Temperature > roof) room.Temperature = roof;
+
+        float basin = Mathf.Min(ambient, acc.floor);
+        if (before >= basin && room.Temperature < basin) room.Temperature = basin;
+    }
+
+    /// <summary>
+    /// 한 방에 모인 열원 기여. passive* 는 능동 공조기를 뺀 값으로,
+    /// <see cref="Room.NaturalEquilibrium"/>(= 공조기의 부하 기준)을 구하는 데 씁니다.
+    /// </summary>
+    private struct HeatAccum
+    {
+        public float conductance;        // Σ g   (비례 구간)
+        public float drive;              // Σ g × 목표온도
+        public float saturated;          // Σ 출력 (전출력 구간)
+
+        public float passiveConductance;
+        public float passiveDrive;
+        public float passiveSaturated;
+
+        public float ceiling;            // 난방 열원이 넘길 수 없는 상한
+        public float floor;              // 냉방 열원이 내릴 수 없는 하한
+
+        public static HeatAccum Empty => new HeatAccum
+        {
+            ceiling = float.NegativeInfinity,
+            floor = float.PositiveInfinity
+        };
     }
 
     /// <summary>
@@ -495,9 +735,10 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
 
         if (a == null && b == null) return;
 
-        // 한쪽이 실외 — 무한 부피로 취급한다
-        if (a == null) { PullToward(b, OutdoorTemperature, exchangeRate); return; }
-        if (b == null) { PullToward(a, OutdoorTemperature, exchangeRate); return; }
+        // 한쪽이 실외 — 무한 부피로 취급한다.
+        // 실외 온도는 살아있는 쪽 방의 깊이를 따른다(문은 그 방에 붙어 있으므로 깊이가 같다).
+        if (a == null) { PullToward(b, GetAmbientForRoom(b), exchangeRate); return; }
+        if (b == null) { PullToward(a, GetAmbientForRoom(a), exchangeRate); return; }
 
         float totalVolume = a.CellCount + b.CellCount;
         if (totalVolume <= 0f) return;
@@ -518,15 +759,48 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
 
     #region 조회
 
-    /// <summary>해당 칸의 온도. 실외이거나 고체면 주변 온도를 반환합니다.</summary>
+    /// <summary>
+    /// 해당 칸의 온도. 실외이거나 고체면 그 <b>높이의 주변 온도</b>를 반환합니다.
+    ///
+    /// 즉 하늘까지 뚫은 수직 갱도라도 깊은 곳은 여전히 덥습니다 — 갱도 하나로 지열을 무력화할 수 없습니다.
+    /// 설정의 <c>outdoorFollowsDepth</c>를 끄면 예전처럼 지표 공기가 그대로 내려옵니다.
+    /// </summary>
     public float GetTemperatureAt(int x, int y)
     {
         Room room = RoomManager.instance != null ? RoomManager.instance.GetRoom(x, y) : null;
-        return room != null ? room.Temperature : OutdoorTemperature;
+        if (room != null) return room.Temperature;
+
+        return (config != null && config.outdoorFollowsDepth) ? GetAmbientAt(y) : OutdoorTemperature;
     }
 
     /// <inheritdoc cref="GetTemperatureAt(int,int)"/>
     public float GetTemperatureAt(Vector2Int cell) => GetTemperatureAt(cell.x, cell.y);
+
+    /// <summary>
+    /// 이번 틱에 이 열원이 데우기로 결정된 방. 없으면 <see cref="RoomManager.OUTDOOR_ID"/>.
+    ///
+    /// 다중 타일 건물은 자기 풋프린트가 벽이라 어느 방에도 속하지 않으므로,
+    /// 좌표로 방을 찾으면 실외가 나옵니다. 냉난방기는 반드시 이 캐시를 통해 자기 방을 찾아야 합니다.
+    /// </summary>
+    public int GetResolvedRoomId(IHeatSource source)
+    {
+        if (source == null) return RoomManager.OUTDOOR_ID;
+        return resolvedRoomBySource.TryGetValue(source, out int roomId) ? roomId : RoomManager.OUTDOOR_ID;
+    }
+
+    /// <summary>
+    /// 이 열원이 선 방에서 <b>능동 공조기를 뺐을 때</b> 수렴할 온도.
+    /// 공조기의 목표와 이 값의 차이가 곧 부하이고, 부하가 전력 소모를 정합니다.
+    /// 방을 못 찾으면 그 높이의 주변 온도를 돌려줍니다.
+    /// </summary>
+    public float GetNaturalEquilibriumFor(IHeatSource source)
+    {
+        int roomId = GetResolvedRoomId(source);
+        Room room = RoomManager.instance != null ? RoomManager.instance.GetRoomById(roomId) : null;
+
+        if (room != null) return room.NaturalEquilibrium;
+        return source != null ? GetAmbientAt(source.HeatTilePosition.y) : OutdoorTemperature;
+    }
 
     #endregion
 }

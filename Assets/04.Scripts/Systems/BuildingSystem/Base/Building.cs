@@ -180,6 +180,7 @@ public class Building : MonoBehaviour, IHeatSource
             _collider.isTrigger = !data.blocksMovement;
 
         _powerConsumer = GetComponent<PowerConsumer>();
+        _climateUnit = GetComponent<ClimateControlUnit>();
 
         RegisterToGameMap();
         RegisterHeatSource();
@@ -562,8 +563,29 @@ private void ReturnPartialResources()
         }
     }
 
+    /// <summary>
+    /// 목표 온도를 쓰는지.
+    /// 냉난방기(<see cref="ClimateControlUnit"/>)가 붙어 있으면 플레이어 지정값을 쓰므로 항상 true입니다.
+    /// </summary>
+    public bool HasHeatTarget => _climateUnit != null
+        || (buildingData != null && buildingData.useHeatTarget);
+
+    /// <summary>
+    /// 이 건물이 방을 데우거나 식힐 수 있는 한계 온도(℃).
+    /// 냉난방기가 붙어 있으면 플레이어가 지정한 값이 우선합니다.
+    /// </summary>
+    public float HeatTargetTemperature => _climateUnit != null
+        ? _climateUnit.TargetTemperature
+        : (buildingData != null ? buildingData.heatTargetTemperature : 22f);
+
+    /// <summary>플레이어가 목표를 지정하는 능동 공조기인지</summary>
+    public bool IsClimateControl => _climateUnit != null;
+
     /// <summary>전력 소비 컴포넌트 캐시 (없으면 null — 전력이 필요 없는 건물)</summary>
     private PowerConsumer _powerConsumer;
+
+    /// <summary>냉난방기 컴포넌트 캐시 (없으면 null — 목표 온도를 BuildingData에서 읽는다)</summary>
+    private ClimateControlUnit _climateUnit;
 
     /// <summary>
     /// 열 출력이 있는 건물이면 온도 시스템에 등록합니다.

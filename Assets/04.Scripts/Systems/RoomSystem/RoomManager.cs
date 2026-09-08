@@ -377,11 +377,14 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
     /// 바깥 공기를 가둔 셈이므로 평균에서 빼면 안 됩니다.
     /// 이 규칙 덕분에 넓은 야외를 새로 밀폐하면 실외 값 쪽으로 희석되고,
     /// 오염된 방을 터서 넓히면 그만큼 옅어집니다.
+    ///
+    /// 온도 쪽 '실외 값'은 <b>이 방 깊이의 주변 온도</b>입니다 — 깊은 동굴을 새로 밀폐하면
+    /// 지표 공기가 아니라 그 깊이의 지열에서 출발합니다.
     /// </summary>
     private void InheritState(Room room, int[,] previousGrid, Dictionary<int, Room> previousRooms)
     {
         float outdoorTemperature = TemperatureManager.instance != null
-            ? TemperatureManager.instance.OutdoorTemperature
+            ? TemperatureManager.instance.GetAmbientForRoom(room)
             : 20f;
 
         float outdoorErosion = TerrainErosionManager.instance != null

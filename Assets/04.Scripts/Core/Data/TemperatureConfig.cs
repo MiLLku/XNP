@@ -5,10 +5,14 @@
 ///
 /// 온도는 <b>방마다 값 하나</b>이며, 방은 다음 1차 미분방정식으로 평형에 다가갑니다.
 /// <code>
-///   평형온도 = 주변온도 + 열원출력 / 누출계수
-///   T += (평형온도 - T) × (1 - exp(-누출계수 / 열용량 × Δt))
+///   G   = 누출계수 + 비례 구간 열원의 전도율 합
+///   평형 = (누출계수 × 주변온도 + Σ(g × 목표온도) + Σ전출력) / G
+///   T  += (평형 - T) × (1 - exp(-G / 열용량 × Δt))
 /// </code>
 /// 지수형으로 접근시키므로 틱 간격을 바꿔도 결과가 흔들리지 않고, 평형을 넘어서 튀지도 않습니다.
+/// 열원의 목표 온도를 <b>해법 안으로 접어 넣기</b> 때문에 목표 근처에서 진동하지 않습니다.
+///
+/// <b>주변 온도는 깊이의 함수</b>입니다 — 깊을수록 덥고, 깊을수록 계절·한파·폭염을 덜 탑니다.
 ///
 /// 방과 방 사이의 열 이동은 <b>문을 여닫는 순간의 혼합</b>으로만 일어납니다.
 /// 벽을 통한 손실은 항상 주변온도(실외/지열) 쪽으로 갑니다.
@@ -17,8 +21,29 @@
 public class TemperatureConfig : ScriptableObject
 {
     [Header("주변 온도")]
-    [Tooltip("계절을 쓰지 않을 때의 실외 기준 온도(℃). 한파·폭염은 여기에 모디파이어로 더해집니다. 깊이 보정은 쓰지 않고 뜨거운 타일 배치로 대신합니다.")]
+    [Tooltip("계절을 쓰지 않을 때의 실외 기준 온도(℃). 한파·폭염은 여기에 모디파이어로 더해집니다.")]
     public float outdoorTemperature = 20f;
+
+    [Header("지열 (깊이)")]
+    [Tooltip("깊이에 따른 지열을 쓸지. 끄면 모든 방이 실외 온도를 그대로 주변 온도로 씁니다(이전 동작).")]
+    public bool useGeothermal = true;
+
+    [Tooltip("깊이 0으로 삼을 지표면 Y 좌표. MapGenerator의 baseGroundLevel(140)에 언덕 진폭의 절반을 더한 값입니다. " +
+             "MapGenerator를 찾을 수 있으면 그쪽 값을 우선합니다.")]
+    public float surfaceReferenceY = 145f;
+
+    [Tooltip("한 칸 깊어질 때마다 오르는 온도(℃/칸). 0.4면 바닥(깊이 145)이 약 70도가 됩니다.")]
+    public float geothermalGradient = 0.4f;
+
+    [Tooltip("깊은 곳이 수렴하는 연평균 기온(℃). 계절 기준값 네 개의 평균으로 두면 '깊이 들어가면 계절이 사라진다'가 자연스럽습니다.")]
+    public float annualMeanTemperature = 12.25f;
+
+    [Tooltip("지표의 계절·한파·폭염이 e분의 1로 줄어드는 깊이(칸). 이 값의 두세 배 아래로 내려가면 바깥 날씨가 느껴지지 않습니다.")]
+    [Min(1f)] public float seasonDampDepth = 25f;
+
+    [Tooltip("방에 속하지 않은 칸(실외·수직 갱도)도 깊이 온도를 따를지. " +
+             "끄면 하늘까지 뚫은 갱도가 지표 공기를 그대로 내려보내므로 공짜 냉방 수단이 됩니다.")]
+    public bool outdoorFollowsDepth = true;
 
     [Header("계절")]
     [Tooltip("계절에 따라 실외 온도가 바뀌게 할지. 끄면 outdoorTemperature 고정값을 씁니다.")]
@@ -64,6 +89,21 @@ public class TemperatureConfig : ScriptableObject
 
     [Tooltip("온도 갱신 주기(초). 방 개수만큼만 계산하므로 짧아도 부담이 적습니다.")]
     public float tickInterval = 1f;
+
+    [Header("열원 목표 온도")]
+    [Tooltip("열원이 목표에 다가갈 때 출력을 줄이기 시작하는 폭(℃). 목표보다 이만큼 아래면 정격 출력, 목표에 닿으면 0입니다. " +
+             "좁을수록 목표를 정확히 지키고 넓을수록 부드럽게 붙습니다.")]
+    [Min(0.1f)] public float heatTargetBand = 3f;
+
+    [Tooltip("건물 열원에도 목표 온도를 적용할지. 끄면 지형 타일 발열에만 상한이 걸리고 건물은 예전처럼 무한히 밉니다.")]
+    public bool buildingsUseHeatTarget = true;
+
+    [Header("냉난방기")]
+    [Tooltip("플레이어가 지정할 수 있는 목표 온도의 하한(℃)")]
+    public float climateTargetMin = -20f;
+
+    [Tooltip("플레이어가 지정할 수 있는 목표 온도의 상한(℃)")]
+    public float climateTargetMax = 60f;
 
     [Header("문")]
     [Tooltip("문을 한 번 여닫을 때 섞이는 비율(0~1). DoorData에 개별값이 없을 때 사용합니다.")]
