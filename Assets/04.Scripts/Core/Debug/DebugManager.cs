@@ -375,7 +375,61 @@ public class DebugManager : DestroySingleton<DebugManager>
         foreach (var pair in manager.Rooms)
         {
             Room room = pair.Value;
-            Debug.Log($"  방#{room.Id} {room.CellCount}칸 @{room.Representative} — {room.Temperature:F1}도 (누출 {room.LeakConductance:F2}) · 침식 {room.Erosion:F1}");
+            float depth = temperature.GetDepth(room.AverageY);
+            Debug.Log($"  방#{room.Id} {room.CellCount}칸 @{room.Representative} — {room.Temperature:F1}도 " +
+                      $"(평균Y {room.AverageY:F0} · 깊이 {depth:F0} · 주변 {room.AmbientTemperature:F1} · " +
+                      $"공조기 제외 평형 {room.NaturalEquilibrium:F1} · 누출 {room.LeakConductance:F2}) · 침식 {room.Erosion:F1}");
+        }
+    }
+
+    /// <summary>
+    /// 등록된 열원마다 어느 방을 데우는지, 목표 온도에 대해 어떤 상태인지 출력합니다.
+    /// 다중 타일 건물이 방을 제대로 찾는지 확인하는 데 씁니다 — 여기서 '실외'가 나오면 방 해석이 깨진 것입니다.
+    /// </summary>
+    public void PrintHeatSources()
+    {
+        var manager = RoomManager.instance;
+        var temperature = TemperatureManager.instance;
+        if (manager == null || temperature == null)
+        {
+            Debug.LogWarning("[DebugManager] RoomManager 또는 TemperatureManager가 없습니다.");
+            return;
+        }
+
+        var config = temperature.Config;
+        float band = config != null ? Mathf.Max(0.1f, config.heatTargetBand) : 3f;
+
+        Debug.Log($"[DebugManager] 열원 {temperature.SourceCount}개 (목표 온도 폭 {band:F1}도)");
+
+        foreach (var source in temperature.Sources)
+        {
+            if (source == null) continue;
+
+            int roomId = temperature.GetResolvedRoomId(source);
+            Room room = manager.GetRoomById(roomId);
+            string where = room != null ? $"방#{roomId} ({room.Temperature:F1}도)" : "실외 — 데우지 않음";
+
+            string state;
+            if (!source.IsHeatActive) state = "정지(고장·정전)";
+            else if (!source.HasHeatTarget) state = "상한 없음";
+            else if (room == null) state = "-";
+            else
+            {
+                float headroom = source.HeatOutput > 0f
+                    ? source.HeatTargetTemperature - room.Temperature
+                    : room.Temperature - source.HeatTargetTemperature;
+
+                if (headroom <= 0f)        state = "정지(목표 도달)";
+                else if (headroom >= band) state = "전출력";
+                else                       state = $"비례 {(headroom / band * 100f):F0}%";
+            }
+
+            string label = (source as Building)?.buildingData?.buildingName ?? source.ToString();
+            string target = source.HasHeatTarget ? $"목표 {source.HeatTargetTemperature:F0}도" : "목표 없음";
+            string power = source.IsClimateControl && source is Building b && b.TryGetComponent(out ClimateControlUnit unit)
+                ? $" · {unit.GetPowerDraw()}W (부하 {unit.Load:F1}도)" : "";
+
+            Debug.Log($"  {label} @{source.HeatTilePosition} {source.HeatOutput:+0;-0}/초 · {target} · {state} → {where}{power}");
         }
     }
 
@@ -432,6 +486,12 @@ public class DebugManager : DestroySingleton<DebugManager>
 
         Debug.Log($"[DebugManager] {day}일차 {hour}시 — {temperature.DescribeSeason()}");
         Debug.Log($"  실외 온도 {temperature.OutdoorTemperature:F1}도 (기준 {temperature.BaseOutdoorTemperature:F1}, 모디파이어: {temperature.DescribeOutdoorModifiers()})");
+
+        // 깊이 곡선 — 지열 기울기와 계절 감쇠를 한 줄로 확인한다
+        var profile = new System.Text.StringBuilder($"  지열 (지표 Y {temperature.SurfaceReferenceY:F0}):");
+        foreach (int depth in new[] { 0, 25, 50, 75, 100, 145 })
+            profile.Append($" {depth}칸 {temperature.GetAmbientAtDepth(depth):F1}도 /");
+        Debug.Log(profile.ToString().TrimEnd('/'));
     }
 
     /// <summary>다음 계절 첫날로 건너뜁니다.</summary>

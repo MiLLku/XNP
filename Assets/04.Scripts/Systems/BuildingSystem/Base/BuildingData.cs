@@ -105,11 +105,27 @@ public class BuildingData : ScriptableObject
 
     [Header("온도")]
 
-    [Tooltip("초당 열 출력. 0이면 열원이 아닙니다. 양수=난방, 음수=냉방. 평형 온도는 주변온도 + 출력/누출계수이므로 잘 막힌 방일수록 더 뜨거워집니다.")]
+    [Tooltip("초당 열 출력. 0이면 열원이 아닙니다. 양수=난방, 음수=냉방. 목표 온도에서 멀 때의 평형은 주변온도 + 출력/누출계수이므로 잘 막힌 방일수록 더 뜨거워집니다.")]
     public float heatOutput = 0f;
 
     [Tooltip("이 건물이 방의 벽일 때의 열 전도율. 낮을수록 단열재입니다. (돌=1.0 기준)")]
     public float heatConductivity = 0.8f;
+
+    [Tooltip("목표 온도를 쓸지. 끄면 상한 없이 계속 밉니다. ClimateControlUnit이 붙은 건물은 플레이어 지정값이 우선합니다.")]
+    public bool useHeatTarget = false;
+
+    [Tooltip("이 건물이 방을 데울(난방) 또는 식힐(냉방) 수 있는 한계 온도(℃). 목표에 가까워질수록 출력이 줄어듭니다.")]
+    public float heatTargetTemperature = 22f;
+
+    [Header("냉난방기 (ClimateControlUnit이 붙은 건물만)")]
+    [Tooltip("대기 전력(W). 부하가 0이어도 이만큼은 먹습니다.")]
+    public int climateIdleWatts = 60;
+
+    [Tooltip("목표 온도와 방의 자연 평형 온도가 1도 차이날 때마다 추가되는 전력(W)")]
+    public float climateWattsPerDegree = 12f;
+
+    [Tooltip("최대 전력(W). 부하가 아무리 커도 여기서 멈춥니다.")]
+    public int climateMaxWatts = 600;
 
     [Header("전력")]
     [Tooltip("이 건물이 가동에 필요로 하는 전력(W). 0이면 전력을 소비하지 않습니다.\n" +

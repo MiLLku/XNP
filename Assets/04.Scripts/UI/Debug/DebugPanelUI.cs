@@ -195,6 +195,7 @@ public class DebugPanelUI : BasePanel
         AddAction("방 재계산",           "방을 지금 다시 계산하고 소요 시간을 찍습니다.", manager.RebuildRooms);
         AddAction("오버레이 모드 전환",   "방 번호 색 ↔ 온도 색.",                    manager.CycleRoomOverlayMode);
         AddAction("방 온도 출력",         "방마다 온도와 누출계수를 콘솔에 찍습니다.",   manager.PrintRoomTemperatures);
+        AddAction("열원 출력",           "열원마다 어느 방을 데우는지·목표 온도 상태를 찍습니다.", manager.PrintHeatSources);
         AddAction("방 침식 출력",         "방 침식·실외 기본 침식·발원지 수를 찍습니다.", manager.PrintRoomErosion);
         AddAction("직원 온도 출력",       "직원별 체감 온도·견딤 범위·단계를 찍습니다.", manager.PrintEmployeeTemperatures);
         AddAction("계절 정보 출력",       "계절·일교차·실외 온도를 찍습니다.",         manager.PrintSeason);

@@ -32,3 +32,5 @@ MonoBehaviour:
   veinSeedOffset: 7000
   thermalConductivity: 1.5
   heatOutput: 3
+  useHeatTarget: 1
+  heatTargetTemperature: 80

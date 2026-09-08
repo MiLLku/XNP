@@ -33,5 +33,11 @@ MonoBehaviour:
   paybackRatio: 0.5
   heatOutput: 20
   heatConductivity: 0.8
+  useHeatTarget: 1
+  heatTargetTemperature: 35
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
   powerConsumption: 0
   allowOverlap: 0
+  requiresResearch: 0

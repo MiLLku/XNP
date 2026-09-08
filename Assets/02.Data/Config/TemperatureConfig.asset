@@ -13,9 +13,38 @@ MonoBehaviour:
   m_Name: TemperatureConfig
   m_EditorClassIdentifier: Assembly-CSharp::TemperatureConfig
   outdoorTemperature: 20
+  useGeothermal: 1
+  surfaceReferenceY: 145
+  geothermalGradient: 0.4
+  annualMeanTemperature: 12.25
+  seasonDampDepth: 25
+  outdoorFollowsDepth: 1
+  useSeasons: 1
+  daysPerSeason: 15
+  springTemperature: 15
+  summerTemperature: 30
+  autumnTemperature: 12
+  winterTemperature: -8
+  dailyTemperatureAmplitude: 5
   heatCapacityPerCell: 1
-  defaultBuildingConductivity: 0.8
+  conductanceScale: 0.05
   tickInterval: 1
+  heatTargetBand: 3
+  buildingsUseHeatTarget: 1
+  climateTargetMin: -20
+  climateTargetMax: 60
   defaultDoorExchangeRate: 0.05
+  comfortMin: 10
+  comfortMax: 25
+  degreesPerProtectionLevel: 5
+  tier1MaxExcess: 10
+  tier2MaxExcess: 20
+  tier1MentalPenalty: -15
+  tier2MentalPenalty: -25
+  tier3MentalPenalty: -40
+  tier1HealthLossPerSecond: 0
+  tier2HealthLossPerSecond: 0.1
+  tier3HealthLossPerSecond: 0.4
+  conditionTickInterval: 1
   minTemperature: -60
   maxTemperature: 300

@@ -17,17 +17,25 @@ public class PowerConsumer : MonoBehaviour, IPowerNode
 
     private Building _building;
 
+    /// <summary>소비 전력이 변하는 컴포넌트 (냉난방기 등). 없으면 null.</summary>
+    private IVariablePowerDraw _variableDraw;
+
     /// <summary>현재 전력을 공급받고 있는지 (PowerManager가 설정).</summary>
     public bool IsPowered { get; private set; } = true;
 
     /// <summary>기반이 정상인지 (파괴되면 false).</summary>
     public bool IsOnline => _building == null || _building.IsFunctional;
 
-    /// <summary>초당 소비 전력(W).</summary>
+    /// <summary>
+    /// 초당 소비 전력(W).
+    /// <see cref="IVariablePowerDraw"/> 컴포넌트가 있으면 그쪽이 최우선입니다 —
+    /// 냉난방기처럼 부하에 따라 소비가 달라지는 건물이 여기에 해당합니다.
+    /// </summary>
     public int Consumption
     {
         get
         {
+            if (_variableDraw != null) return Mathf.Max(0, _variableDraw.GetPowerDraw());
             if (consumptionOverride > 0) return consumptionOverride;
             return (_building != null && _building.buildingData != null)
                 ? _building.buildingData.powerConsumption
@@ -42,6 +50,7 @@ public class PowerConsumer : MonoBehaviour, IPowerNode
     void Awake()
     {
         _building = GetComponent<Building>();
+        _variableDraw = GetComponent<IVariablePowerDraw>();
     }
 
     void OnEnable()
