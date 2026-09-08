@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TemperatureConfig
   outdoorTemperature: 20
   useGeothermal: 1
-  surfaceReferenceY: 145
-  geothermalGradient: 0.4
+  surfaceReferenceY: 239
+  geothermalGradient: 0.35
+  geothermalCapTemperature: 70
   annualMeanTemperature: 12.25
   seasonDampDepth: 25
   outdoorFollowsDepth: 1

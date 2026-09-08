@@ -204,6 +204,10 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
     /// 두 번째 항이 <b>깊을수록 덥다</b>를, 세 번째 항이 <b>깊을수록 계절·날씨를 안 탄다</b>를 만듭니다.
     /// 깊이 0에서는 감쇠가 1이라 결과가 실외 온도와 <b>정확히 같습니다</b> — 지표는 예전 그대로 동작합니다.
     /// 한파·폭염 모디파이어도 실외 온도에 들어 있으므로 자동으로 같이 감쇠합니다.
+    ///
+    /// 지열 항은 <see cref="TemperatureConfig.geothermalCapTemperature"/>에서 <b>평탄해집니다</b>.
+    /// 그래서 심부 아래(경계층·최하층)는 심부와 같은 온도가 되고, 그 층들의 위협은 온도가 아니라 침식이 됩니다.
+    /// 상한은 <b>지열 항에만</b> 걸리므로 계절 감쇠항은 그대로 살아 지표 거동이 바뀌지 않습니다.
     /// </summary>
     public float GetAmbientAtDepth(float depth) => GetAmbientAtDepth(depth, OutdoorTemperature);
 
@@ -215,7 +219,11 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
         float mean = config.annualMeanTemperature;
         float damp = Mathf.Exp(-depth / Mathf.Max(1f, config.seasonDampDepth));
 
-        return mean + config.geothermalGradient * depth + (outdoor - mean) * damp;
+        // 지열 항만 상한에 걸린다 — 계절 감쇠항은 손대지 않아야 지표가 예전 그대로 동작한다
+        float geothermal = Mathf.Min(mean + config.geothermalGradient * depth,
+                                     config.geothermalCapTemperature);
+
+        return geothermal + (outdoor - mean) * damp;
     }
 
     /// <summary>해당 높이의 주변 온도. 방에 속하지 않은 칸을 조회할 때 씁니다.</summary>

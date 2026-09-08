@@ -14,10 +14,11 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [SerializeField] private StampLibrary stampLibrary;
     [SerializeField] private ResourceManager resourceManager;
     [Header("맵 생성 시드")]
-    [SerializeField] private float noiseSeed = 0f;
+    [Tooltip("0이면 새 게임마다 무작위로 정합니다. 특정 지형을 재현하려면 값을 넣으세요.")]
+    [SerializeField] private int mapSeed = 0;
     [Header("언덕 지형")]
-    [SerializeField] private int baseGroundLevel = 140;
-    [SerializeField] [Range(0f, 50f)] private float hillAmplitude = 10f;
+    [SerializeField] private int baseGroundLevel = 232;
+    [SerializeField] [Range(0f, 50f)] private float hillAmplitude = 14f;
     [SerializeField] [Range(0.01f, 0.1f)] private float hillScale = 0.05f;
     [SerializeField] [Range(1, 20)] private int surfaceDirtDepth = 5;
     [Header("흙 덩어리 (돌 속)")]
@@ -26,6 +27,11 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [Header("동굴")]
     [SerializeField] [Range(0.01f, 0.2f)] private float caveNoiseScale = 0.07f;
     [SerializeField] [Range(0f, 1f)] private float caveThreshold = 0.7f;
+    [Header("지층 경계")]
+    [Tooltip("층 경계가 위아래로 흔들리는 폭(칸). 0이면 자로 그은 듯 일직선이 됩니다.")]
+    [SerializeField] [Range(0f, 40f)] private float strataBoundaryAmplitude = 12f;
+    [Tooltip("경계 흔들림의 스케일. 작을수록 완만하게 굽이치고, 크면 잘게 들쭉날쭉해집니다.")]
+    [SerializeField] [Range(0.005f, 0.1f)] private float strataBoundaryScale = 0.022f;
     // ── 광맥·식생물 배치 값은 정의 에셋으로 옮겼습니다 ─────────────────────────
     //   광물 지층(깊이·노이즈·희귀도) → TileDefinition의 "광맥 생성" 항목
     //   나무·베리 덤불·침식 식물     → EntityDefinition의 "맵 생성 배치" 항목
@@ -45,6 +51,34 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     private GameMap _gameMap;
     private MapStamper _stamper;
     private MapRenderer _mapRenderer;
+
+    // ── 시드 ────────────────────────────────────────────────────────────────
+    // 예전 noiseSeed는 Perlin 좌표에 그대로 더하는 오프셋이라 해시가 아니었고,
+    // 언덕 호출은 두 번째 인자로도 같은 값을 넘겨 시드 0에서 퇴화했습니다.
+    // 그래서 값을 바꿔도 "같은 지형이 옆으로 밀리는" 결과만 나왔습니다.
+    // 이제 시드에서 기능별 오프셋을 각각 해시로 파생합니다.
+    private float _hillOffsetX, _hillOffsetY;
+    private float _caveOffsetX, _caveOffsetY;
+    private float _dirtOffsetX, _dirtOffsetY;
+    private float _veinOffsetBase;
+    private float _boundaryOffsetX, _boundaryOffsetY;
+    private float _filamentOffsetX, _filamentOffsetY;
+    private float _warpOffsetX, _warpOffsetY;
+
+    /// <summary>
+    /// 군집 모양·식생물 배치용 난수.
+    /// 전역 <c>UnityEngine.Random</c>을 쓰면 다른 시스템의 난수까지 흔들리므로 로컬 스트림을 씁니다.
+    /// </summary>
+    private System.Random _rng;
+
+    /// <summary>이번 생성에 실제로 쓴 시드. mapSeed가 0이면 무작위로 채운 값이 들어갑니다.</summary>
+    public int ActiveSeed { get; private set; }
+
+    /// <summary>이번 생성에 쓴 지층 경계. 지층을 등록하지 않으면 비어 있습니다.</summary>
+    private StrataLayout _strata;
+
+    /// <summary>이번 생성에서 시작방이 놓인 X. 자연물 제외 구역도 이 값을 기준으로 잡습니다.</summary>
+    private int _startingRoomX = GameMap.MAP_WIDTH / 2;
     
     // 지형 생성이 직접 쓰는 타일 ID. 값은 TileDefinition 에셋에서 생성된 TileType이 정합니다.
     // 광물은 여기 없습니다 — 광맥은 정의 에셋을 훑어 배치합니다(PlaceMineralClusters).
@@ -137,11 +171,63 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     }
     
     // --- 맵 생성 메인 함수 ---
+    /// <summary>
+    /// 시드를 확정하고 기능별 노이즈 오프셋을 파생합니다.
+    ///
+    /// 오프셋을 기능마다 따로 두는 것이 핵심입니다 — 같은 값을 여기저기 더하면
+    /// 언덕과 동굴이 같은 방향으로 함께 밀려서 "다른 맵"이 되지 않습니다.
+    /// </summary>
+    private void InitializeSeed()
+    {
+        ActiveSeed = mapSeed != 0 ? mapSeed : UnityEngine.Random.Range(1, int.MaxValue);
+
+        _hillOffsetX = SeedOffset(ActiveSeed, 1);
+        _hillOffsetY = SeedOffset(ActiveSeed, 2);
+        _caveOffsetX = SeedOffset(ActiveSeed, 3);
+        _caveOffsetY = SeedOffset(ActiveSeed, 4);
+        _dirtOffsetX = SeedOffset(ActiveSeed, 5);
+        _dirtOffsetY = SeedOffset(ActiveSeed, 6);
+        _veinOffsetBase = SeedOffset(ActiveSeed, 7);
+        _boundaryOffsetX = SeedOffset(ActiveSeed, 8);
+        _boundaryOffsetY = SeedOffset(ActiveSeed, 9);
+        _filamentOffsetX = SeedOffset(ActiveSeed, 10);
+        _filamentOffsetY = SeedOffset(ActiveSeed, 11);
+        _warpOffsetX = SeedOffset(ActiveSeed, 12);
+        _warpOffsetY = SeedOffset(ActiveSeed, 13);
+
+        _rng = new System.Random(ActiveSeed);
+
+        Debug.Log($"[MapGenerator] 시드 {ActiveSeed} (mapSeed={mapSeed}, 0이면 무작위)");
+    }
+
+    /// <summary>
+    /// 시드와 용도(salt)를 섞어 Perlin 좌표 오프셋을 만듭니다.
+    /// Perlin은 정수 격자에서 반복·대칭이므로 <b>소수부가 있는</b> 큰 값이어야 패턴이 실제로 달라집니다.
+    /// </summary>
+    private static float SeedOffset(int seed, int salt)
+    {
+        unchecked
+        {
+            int h = seed * 73856093 ^ salt * 19349663;
+            h ^= h >> 13;
+            h *= 1274126177;
+            h ^= h >> 16;
+            return ((h & 0x7FFFFFFF) % 1000000) * 0.01f;   // 0 ~ 10000, 0.01 단위
+        }
+    }
+
     private void GenerateWorld()
     {
         Debug.Log("맵 데이터 생성을 시작합니다...");
 
-        // 4만 칸을 한 번에 쓰므로 칸 단위 통지를 멈추고, 끝난 뒤 OnBulkChanged 한 번으로 알린다
+        InitializeSeed();
+        _strata = DefinitionDatabase.Instance != null ? DefinitionDatabase.Instance.StrataLayout : null;
+        if (_strata != null && !_strata.IsEmpty)
+            Debug.Log($"[MapGenerator] 지층: {_strata.Describe()}");
+        else
+            Debug.LogWarning("[MapGenerator] 지층이 등록되지 않아 예전 단일 파라미터로 생성합니다.");
+
+        // 9만 칸을 한 번에 쓰므로 칸 단위 통지를 멈추고, 끝난 뒤 OnBulkChanged 한 번으로 알린다
         _gameMap.BeginBulkChange();
         try
         {
@@ -165,7 +251,8 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         int[] groundHeightMap = new int[GameMap.MAP_WIDTH];
         for (int x = 0; x < GameMap.MAP_WIDTH; x++)
         {
-            float hillNoise = Mathf.PerlinNoise((x * hillScale) + noiseSeed, noiseSeed);
+            // 두 인자에 서로 다른 오프셋을 준다 — 같은 값을 넘기면 시드가 바뀌어도 곡선이 퇴화한다
+            float hillNoise = Mathf.PerlinNoise((x * hillScale) + _hillOffsetX, _hillOffsetY);
             int currentHeight = baseGroundLevel + (int)(hillNoise * hillAmplitude);
             groundHeightMap[x] = currentHeight; 
             for (int y = 0; y < GameMap.MAP_HEIGHT; y++)
@@ -177,20 +264,42 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         return groundHeightMap;
     }
     
+    /// <summary>
+    /// 칸 하나의 지형 재료를 정합니다 — <b>지형 재료를 정하는 유일한 함수</b>라 지층 조회도 여기 한 곳에 들어갑니다.
+    ///
+    /// 지층이 등록되어 있으면 동굴·흙·기반 암석 파라미터를 그 층 값으로 바꿔 씁니다.
+    /// 등록이 없으면 인스펙터의 단일 파라미터로 예전처럼 동작합니다.
+    /// </summary>
     private int GetTileIDForCoordinate(int x, int y, int currentHeight)
     {
         if (y > currentHeight) return AIR_ID;
 
-        float caveNoise = Mathf.PerlinNoise((x * caveNoiseScale) + noiseSeed + 1000f,
-                                             (y * caveNoiseScale) + noiseSeed + 1000f);
-        float dirtNoise = Mathf.PerlinNoise((x * dirtNoiseScale) + noiseSeed - 1000f,
-                                             (y * dirtNoiseScale) + noiseSeed - 1000f);
+        StrataDefinition strata = StrataAt(x, y);
 
-        if (caveNoise > caveThreshold) return AIR_ID;
-        if (y >= currentHeight - surfaceDirtDepth || dirtNoise > dirtThreshold) return DIRT_ID;
+        if (strata != null && strata.terrainMode == StrataTerrainMode.FilamentWeb)
+            return GetFilamentTile(x, y, strata);
+
+        float caveScale = strata != null ? strata.caveNoiseScale : caveNoiseScale;
+        float caveLimit = strata != null ? strata.caveThreshold  : caveThreshold;
+        float dirtScale = strata != null ? strata.dirtNoiseScale : dirtNoiseScale;
+        float dirtLimit = strata != null ? strata.dirtThreshold  : dirtThreshold;
+        int   baseRock  = strata != null ? strata.BaseRockId     : STONE_ID;
+
+        // 가로로 늘이기 — x를 느리게 훑으면 무늬가 그만큼 옆으로 길어진다
+        float stretch = strata != null ? Mathf.Max(1f, strata.caveStretch) : 1f;
+        float lens    = strata != null ? strata.caveLensSplit : 0f;
+
+        if (IsCaveOpen(x, y, caveScale, stretch, caveLimit, lens)) return AIR_ID;
+
+        // 지표 바로 아래는 지층과 무관하게 흙 — 잔디가 덮이는 층이다
+        if (y >= currentHeight - surfaceDirtDepth) return DIRT_ID;
+
+        float dirtNoise = Mathf.PerlinNoise((x * dirtScale) + _dirtOffsetX,
+                                             (y * dirtScale) + _dirtOffsetY);
+        if (dirtNoise > dirtLimit) return DIRT_ID;
 
         // 광물은 PlaceMineralClusters()에서 군집(2~6타일)으로 배치
-        return STONE_ID;
+        return baseRock;
     }
     
     private void ConvertSurfaceDirtToGrass(int[] groundHeightMap)
@@ -228,7 +337,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     
  
     /// <summary>
-    /// 맵 중앙(X=100)에 13×9 스타팅 룸을 배치합니다.
+    /// 맵 정중앙에 13×9 스타팅 룸을 배치합니다.
     ///
     /// 레이아웃 (local y 기준, 0=바닥):
     ///   y=8 : 상단 벽 (흙)
@@ -239,19 +348,36 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     ///   lx=0, lx=12: 좌우 벽 (흙)
     ///
     /// 사다리(lx=8)는 ly=1~4에 배치하여 하층-상층 간 수직 이동을 지원합니다.
+    ///
+    /// <b>위치는 언제나 맵 정중앙</b>입니다. 지형이 돌이든 흙언덕이든 동굴이든 상관하지 않습니다 —
+    /// 아래 1~2단계가 파내고·메우고·걷어내서 자리를 <b>만들어</b> 쓰기 때문입니다.
+    ///
+    /// 한때 "가장 평탄한 열"을 찾게 해봤지만 잘못된 방향이었습니다. 어차피 지형을 갈아엎으므로
+    /// 평탄한 자리를 고를 이유가 없는데, 탐색 때문에 기지가 시드마다 수십 칸씩 밀렸습니다.
+    /// <b>좌우 침식축이 기지 중심을 기준으로 도는 설계</b>라 기지가 밀리면 그 축이 통째로 망가집니다.
     /// </summary>
     private void PlaceStartingRoom(int[] groundHeightMap)
     {
-        const int spawnX     = 100;
         const int roomWidth  = 13;
         const int roomHeight = 9;
+
+        int spawnX = GameMap.MAP_WIDTH / 2;
+        _startingRoomX = spawnX;   // 자연물 제외 구역이 이 값을 공유한다
         const int ladderLX   = 8;   // 사다리 열 (local x)
         const int dividerY   = 4;   // 층 구분 (1줄, local y) — 기존 y=3 구분선 제거
         const int ladderMinY = 1;   // 사다리 시작 (하층 바닥, local y)
         const int ladderMaxY = dividerY; // 사다리 끝 (층 구분, local y)
 
         int groundY  = groundHeightMap[spawnX];
-        int roomLeft = spawnX - roomWidth / 2;   // = 94
+        int roomLeft = spawnX - roomWidth / 2;
+
+        // 방 좌우로 이만큼 더 정리한다 — 문 앞과 직원 스폰 지점이 묻히지 않도록
+        const int CLEAR_MARGIN = 3;
+        // 방 바닥 아래를 이 깊이까지 메운다 — 동굴 공동 위에 방이 뜨는 것을 막는다
+        const int FOUNDATION_DEPTH = 8;
+
+        int clearLeft  = Mathf.Max(0, roomLeft - CLEAR_MARGIN);
+        int clearRight = Mathf.Min(GameMap.MAP_WIDTH - 1, roomLeft + roomWidth - 1 + CLEAR_MARGIN);
 
         // ── 1. 방 아래 지형 평탄화 (기존 terrain이 더 낮으면 DIRT로 채움) ──────
         for (int lx = 0; lx < roomWidth; lx++)
@@ -260,6 +386,28 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             int localGround = groundHeightMap[wx];
             for (int wy = localGround + 1; wy <= groundY; wy++)
                 _gameMap.SetTile(wx, wy, DIRT_ID);
+        }
+
+        // ── 1-b. 기초 다지기 — 방 바닥 아래의 동굴 공동을 메운다 ────────────────
+        //    1번은 지표가 더 '낮은' 열만 채운다. 바로 아래에 동굴이 뚫려 있으면
+        //    방이 허공에 뜨고, 직원이 바닥을 뚫고 떨어지거나 아예 진입하지 못한다.
+        for (int wx = clearLeft; wx <= clearRight; wx++)
+        {
+            for (int d = 0; d < FOUNDATION_DEPTH; d++)
+            {
+                int wy = groundY - d;
+                if (wy < 0) break;
+                if (_gameMap.TileGrid[wx, wy] == AIR_ID)
+                    _gameMap.SetTile(wx, wy, DIRT_ID);
+            }
+        }
+
+        // ── 1-c. 방 위 지형 걷어내기 — 언덕에 묻히지 않도록 ──────────────────────
+        for (int wx = clearLeft; wx <= clearRight; wx++)
+        {
+            int top = groundHeightMap[wx];
+            for (int wy = groundY + roomHeight; wy <= top; wy++)
+                _gameMap.SetTile(wx, wy, AIR_ID);
         }
 
         // ── 2. 방 구조 배치 (벽/층구분=흙, 내부=공기) ──────────────────────────
@@ -438,25 +586,128 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
 
             for (int y = yTop; y <= yBottom; y++)
             {
-                // 이미 광물이 채워졌거나 돌이 아니면 씨앗 불가
-                if (_gameMap.TileGrid[x, y] != STONE_ID) continue;
+                // 이미 광물이 채워졌거나 그 층의 기반 암석이 아니면 씨앗 불가
+                if (!IsVeinHost(x, y)) continue;
 
                 float noise = Mathf.PerlinNoise(
-                    x * noiseScale + noiseSeed + seedOffset,
-                    y * noiseScale + noiseSeed + seedOffset);
+                    x * noiseScale + _veinOffsetBase + seedOffset,
+                    y * noiseScale + _veinOffsetBase + seedOffset);
 
                 if (noise < threshold) continue;
 
                 // 씨앗 선정 → 군집 확장
-                int targetSize = Random.Range(clusterMinSize, clusterMaxSize + 1);
+                int targetSize = _rng.Next(clusterMinSize, clusterMaxSize + 1);
                 ExpandMineralCluster(x, y, mineralId, targetSize, yBottom);
             }
         }
     }
 
     /// <summary>
+    /// 이 칸이 속한 지층 — 경계를 노이즈로 <b>흔들어서</b> 찾습니다.
+    ///
+    /// 층 경계를 Y로 딱 자르면 자로 그은 듯한 일직선이 나와 지형이 인공적으로 보입니다.
+    /// 조회에 쓰는 Y를 노이즈만큼 밀어 주면 같은 경계가 굽이치고, 층 사이에 서로 파고든
+    /// 주머니도 생겨 훨씬 자연스러워집니다.
+    /// </summary>
+    private StrataDefinition StrataAt(int x, int y)
+    {
+        if (_strata == null) return null;
+        if (strataBoundaryAmplitude <= 0f) return _strata.At(y);
+
+        // ⚠️ 진폭을 그 층 두께에 맞춰 조인다.
+        //    경계층은 15칸뿐이라 ±12칸을 흔들면 위아래 층이 그대로 배어들어
+        //    "뚫리지 않는 장벽"이라는 설계가 통째로 무너진다.
+        //    두께의 1/4로 제한하면 층 한가운데 절반은 항상 자기 층으로 남는다.
+        int thickness = _strata.ThicknessAt(y);
+        float amplitude = thickness > 0
+            ? Mathf.Min(strataBoundaryAmplitude, thickness * 0.25f)
+            : strataBoundaryAmplitude;
+
+        // y도 섞되 비중을 낮춘다 — 순수 x 함수면 모든 경계가 똑같은 모양으로 평행하게 굽이친다
+        float n = Mathf.PerlinNoise(x * strataBoundaryScale + _boundaryOffsetX,
+                                    y * strataBoundaryScale * 0.35f + _boundaryOffsetY);
+        int warped = y + Mathf.RoundToInt((n - 0.5f) * 2f * amplitude);
+        return _strata.At(warped);
+    }
+
+    /// <summary>
+    /// 이 칸이 동굴(빈 공간)인지.
+    ///
+    /// <paramref name="lens"/>가 0이면 평범한 노이즈 임계 판정입니다.
+    /// 0보다 크면 같은 노이즈를 <b>위아래로 어긋나게 두 번</b> 뽑아 둘 다 열린 곳만 파냅니다 —
+    /// 두 타원의 교집합이라 위아래가 눌리고 <b>좌우 끝이 뾰족한 눈동자</b>가 됩니다.
+    ///
+    /// 임계값만 올리는 방법으로는 이 모양이 안 나옵니다. Perlin은 봉우리 근처가 매끄러워
+    /// 등고선이 타원이라, 높게 자를수록 <b>작아질 뿐 여전히 둥급니다</b>(실측 충전율 0.71~0.76 고정).
+    /// </summary>
+    private bool IsCaveOpen(int x, float y, float scale, float stretch, float limit, float lens)
+    {
+        if (lens <= 0f) return CaveNoise(x, y, scale, stretch) > limit;
+
+        return CaveNoise(x, y - lens, scale, stretch) > limit
+            && CaveNoise(x, y + lens, scale, stretch) > limit;
+    }
+
+    private float CaveNoise(float x, float y, float scale, float stretch)
+        => Mathf.PerlinNoise((x * scale / stretch) + _caveOffsetX, (y * scale) + _caveOffsetY);
+
+    /// <summary>
+    /// 덩굴망 지형 — 빈 공간에 굵은 줄기가 얽힌 구조.
+    ///
+    /// 노이즈의 <b>능선(ridge)</b>만 남기는 방식입니다. Perlin 값이 0.5에 가까운 곳은
+    /// 등고선처럼 이어진 곡선을 이루는데, 그 주변만 타일로 채우면 굵기가 일정한 줄기가 됩니다.
+    /// 샘플 좌표를 다른 노이즈로 미리 비틀어(도메인 워프) 곡선을 뒤엉키게 만듭니다.
+    /// 두 겹을 겹치면 서로 다른 방향의 망이 교차해 뿌리처럼 보입니다.
+    /// </summary>
+    private int GetFilamentTile(int x, int y, StrataDefinition strata)
+    {
+        float scale = strata.filamentScale;
+        float band  = strata.filamentThickness;
+
+        // 도메인 워프 — 좌표 자체를 흔들어 곡선을 비튼다
+        float warpScale = scale * 0.5f;
+        float wx = Mathf.PerlinNoise(x * warpScale + _warpOffsetX, y * warpScale + _warpOffsetY) - 0.5f;
+        float wy = Mathf.PerlinNoise(x * warpScale + _warpOffsetY, y * warpScale + _warpOffsetX) - 0.5f;
+
+        float sx = x + wx * 2f * strata.filamentWarp;
+        float sy = y + wy * 2f * strata.filamentWarp;
+
+        if (IsOnRidge(sx * scale + _filamentOffsetX, sy * scale + _filamentOffsetY, band))
+            return strata.FilamentTileId;
+
+        // 두 번째 겹은 스케일과 오프셋을 달리해 다른 방향으로 흐르게 한다
+        if (strata.filamentSecondLayer &&
+            IsOnRidge(sy * scale * 1.37f + _filamentOffsetY, sx * scale * 1.37f + _filamentOffsetX, band * 0.8f))
+            return strata.FilamentTileId;
+
+        return AIR_ID;
+    }
+
+    /// <summary>노이즈 값이 0.5 근처(=능선)인지. band가 클수록 두꺼운 띠가 됩니다.</summary>
+    private static bool IsOnRidge(float nx, float ny, float band)
+    {
+        float n = Mathf.PerlinNoise(nx, ny);
+        return Mathf.Abs(n - 0.5f) < band * 0.5f;
+    }
+
+    /// <summary>
+    /// 이 칸에 광맥 씨앗을 심을 수 있는지 — <b>그 층의 기반 암석</b>이어야 합니다.
+    ///
+    /// 예전에는 STONE_ID로 못박혀 있었습니다. 지층마다 기반 암석이 달라질 수 있게 되면서
+    /// 그대로 두면 <b>돌이 아닌 층의 광맥이 통째로 조용히 사라집니다</b>(에러도 안 납니다).
+    /// </summary>
+    private bool IsVeinHost(int x, int y)
+    {
+        StrataDefinition strata = StrataAt(x, y);
+        if (strata != null && !strata.HostsVeins) return false;   // 덩굴망 층엔 기반 암석이 없다
+
+        int host = strata != null ? strata.BaseRockId : STONE_ID;
+        return _gameMap.TileGrid[x, y] == host;
+    }
+
+    /// <summary>
     /// 씨앗 위치에서 무작위 확장(Random Walk)으로 광물 군집을 형성합니다.
-    /// 인접한 STONE 타일에만 확장하며, maxY(얕은 한계)를 넘지 않습니다.
+    /// 그 층의 기반 암석 칸으로만 확장하며, maxY(얕은 한계)를 넘지 않습니다.
     /// </summary>
     private void ExpandMineralCluster(int startX, int startY, int mineralId, int targetSize, int maxY)
     {
@@ -477,13 +728,13 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         while (placed.Count < targetSize && frontier.Count > 0)
         {
             // 무작위 프론티어 선택
-            int fi = Random.Range(0, frontier.Count);
+            int fi = _rng.Next(frontier.Count);
             var pos = frontier[fi];
 
             // 방향 셔플 (Fisher-Yates)
             for (int i = dirs.Length - 1; i > 0; i--)
             {
-                int j = Random.Range(0, i + 1);
+                int j = _rng.Next(i + 1);
                 var tmp = dirs[i]; dirs[i] = dirs[j]; dirs[j] = tmp;
             }
 
@@ -495,7 +746,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                 if (nb.x < 0 || nb.x >= GameMap.MAP_WIDTH)  continue;
                 if (nb.y < 0 || nb.y >= GameMap.MAP_HEIGHT) continue;
                 if (nb.y > maxY) continue; // 얕은 한계 초과 금지
-                if (_gameMap.TileGrid[nb.x, nb.y] != STONE_ID) continue;
+                if (!IsVeinHost(nb.x, nb.y)) continue;
 
                 placed.Add(nb);
                 frontier.Add(nb);
@@ -545,7 +796,9 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     {
         if (def == null || def.spawnChance <= 0f) return;
 
-        const int SPAWN_X = 100;
+        // 예전에는 여기에 100이 또 한 번 못박혀 있어서, 시작방을 옮기면 제외 구역만 엉뚱한 곳에 남았다.
+        // 이제 실제 시작방 X를 공유한다.
+        int spawnX = _startingRoomX;
         int width = Mathf.Max(1, def.footprintWidth);
         int lastPlacedX = int.MinValue;
         int placed = 0;
@@ -553,7 +806,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         for (int x = 0; x + width <= GameMap.MAP_WIDTH; x++)
         {
             if (def.avoidSpawnArea &&
-                x >= SPAWN_X - spawnAreaPadding && x <= SPAWN_X + spawnAreaPadding) continue;
+                x >= spawnX - spawnAreaPadding && x <= spawnX + spawnAreaPadding) continue;
 
             if (def.minSpacing > 0 && lastPlacedX != int.MinValue &&
                 x < lastPlacedX + def.minSpacing) continue;
@@ -562,7 +815,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             {
                 int y = groundHeightMap[x];
                 if (!IsFootprintValid(def, x, y, width, groundHeightMap)) continue;
-                if (Random.value >= def.spawnChance) continue;
+                if (_rng.NextDouble() >= def.spawnChance) continue;
 
                 PlaceNaturalEntityAt(def, x, y, width);
                 lastPlacedX = x;
@@ -574,7 +827,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                 for (int y = 1; y < GameMap.MAP_HEIGHT - 1; y++)
                 {
                     if (!IsFootprintValid(def, x, y, width, null)) continue;
-                    if (Random.value >= def.spawnChance) continue;
+                    if (_rng.NextDouble() >= def.spawnChance) continue;
 
                     PlaceNaturalEntityAt(def, x, y, width);
                     lastPlacedX = x;
@@ -702,6 +955,25 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         if (data.map == null || _gameMap == null) return;
 
         var mapData = data.map;
+
+        // 맵 크기가 다르면 인덱싱이 그대로 깨진다(저장이 더 크면 IndexOutOfRange,
+        // 작으면 절반만 덮인 채 조용히 이상한 맵이 된다). 조용히 깨지느니 명확히 거부한다.
+        if (mapData.width != GameMap.MAP_WIDTH || mapData.height != GameMap.MAP_HEIGHT)
+        {
+            Debug.LogError(
+                $"[MapGenerator] 세이브의 맵 크기({mapData.width}×{mapData.height})가 " +
+                $"현재 맵 크기({GameMap.MAP_WIDTH}×{GameMap.MAP_HEIGHT})와 달라 불러올 수 없습니다. " +
+                "맵 크기를 바꾼 뒤에는 이전 세이브를 쓸 수 없습니다 — 새로 시작하세요.");
+            return;
+        }
+
+        int expected = mapData.width * mapData.height;
+        if (mapData.tileGrid == null || mapData.tileGrid.Length < expected ||
+            mapData.wallGrid == null || mapData.wallGrid.Length < expected)
+        {
+            Debug.LogError("[MapGenerator] 세이브의 타일/벽 배열이 손상되었습니다. 불러오기를 중단합니다.");
+            return;
+        }
 
         // 복원도 대량 변경 — 끝난 뒤 OnBulkChanged로 파생 데이터를 전체 재계산시킨다
         _gameMap.BeginBulkChange();

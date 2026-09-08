@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26aa567317bfb9442ae110797d6c552e, type: 3}
+  m_Name: Strata_Abyss
+  m_EditorClassIdentifier: Assembly-CSharp::StrataDefinition
+  codeName: Abyss
+  displayName: "\uCD5C\uD558\uCE35"
+  description: "\uB098\uBB34\uC904\uAE30 \uBC14\uC774\uC634. \uC628\uB3C4\uB294 \uC2EC\uBD80\uC640
+    \uAC19\uACE0 \uCE68\uC2DD\uC774 \uCD5C\uACE0."
+  thicknessWeight: 4
+  terrainMode: 1
+  baseRock: 2
+  dirtThreshold: 0.9
+  dirtNoiseScale: 0.07
+  caveThreshold: 0.55
+  caveNoiseScale: 0.04
+  filamentTile: 12
+  filamentScale: 0.048
+  filamentThickness: 0.075
+  filamentWarp: 14
+  filamentSecondLayer: 1
+  baseErosion: 0
+  temperatureOffset: 0
