@@ -50,6 +50,12 @@ public enum TileType
     /// <summary>덩굴 줄기 — 최하층에 얽혀 있는 굵은 뿌리. 침식을 뿜으며, 열매가 여기서 자란다.</summary>
     Trunk = 12,
 
+    /// <summary>티타늄 광맥 — 심부에만 묻힌 고강도 금속. 채광 III 자격이 필요하다.</summary>
+    Titanium = 13,
+
+    /// <summary>가스 분출구 — 바위 동굴층 바닥에서 가스가 새어나오는 구멍. 캘 수 없고, 위에 가스 발전기를 지을 수 있다.</summary>
+    GasVent = 14,
+
     /// <summary>특수</summary>
     Special = 99,
 }

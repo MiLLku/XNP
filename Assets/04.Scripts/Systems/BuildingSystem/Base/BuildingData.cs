@@ -111,6 +111,12 @@ public class BuildingData : ScriptableObject
     [Tooltip("이 건물이 방의 벽일 때의 열 전도율. 낮을수록 단열재입니다. (돌=1.0 기준)")]
     public float heatConductivity = 0.8f;
 
+    [Header("특수 배치 조건")]
+    [Tooltip("바로 아래가 이 타일이어야 지을 수 있습니다. Air로 두면 제약 없음(기본).\n" +
+             "가스 분출구 위에만 짓는 발전소처럼 지형 자원을 점유하는 건물에 씁니다. " +
+             "풋프린트 열 중 하나라도 이 타일 위에 있으면 통과합니다.")]
+    public TileType requiredTileBelow = TileType.Air;
+
     [Tooltip("목표 온도를 쓸지. 끄면 상한 없이 계속 밉니다. ClimateControlUnit이 붙은 건물은 플레이어 지정값이 우선합니다.")]
     public bool useHeatTarget = false;
 

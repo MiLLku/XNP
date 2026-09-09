@@ -25,10 +25,10 @@ MonoBehaviour:
   requiredMiningSkillId: 7
   dropItem: {fileID: 11400000, guid: 0436ed0d1eb390b44830a471fdb1e83f, type: 2}
   generateAsVein: 1
-  veinShallowOffset: -55
-  veinDeepOffset: -90
+  veinShallowOffset: -108
+  veinDeepOffset: -160
   veinNoiseScale: 0.22
-  veinThreshold: 0.82
+  veinThreshold: 0.86
   veinSeedOffset: 7000
   thermalConductivity: 1.5
   heatOutput: 3

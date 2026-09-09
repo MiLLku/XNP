@@ -10,22 +10,24 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 26aa567317bfb9442ae110797d6c552e, type: 3}
-  m_Name: Strata_RockCave
+  m_Name: Strata_RockCave_Erosion
   m_EditorClassIdentifier: Assembly-CSharp::StrataDefinition
-  codeName: RockCave
-  displayName: "\uBC14\uC704 \uB3D9\uAD74"
-  description: "\uAD11\uBB3C\uCE35/\uCE68\uC2DD\uB3D9\uAD74 2\uBCC0\uC885. \uAC00\uC2A4
-    \uBCA4\uD2B8. \uBC00\uD3D0 \uACF5\uAC04\uC774 \uC8FC \uC704\uD611."
-  thicknessWeight: 4
+  codeName: RockCaveErosion
+  displayName: "\uCE68\uC2DD \uB3D9\uAD74"
+  description: "\uBC14\uC704 \uB3D9\uAD74\uCE35\uC758 \uBCC0\uC885. \uAE30\uBC18\uC774
+    \uD759\uC774\uB77C \uAD11\uB9E5\uC774 \uC0DD\uAE30\uC9C0 \uC54A\uACE0, \uB300\uC2E0
+    \uCE68\uC2DD\uC774 \uACE0\uC5EC \uC788\uB2E4."
+  thicknessWeight: 0
   terrainMode: 0
-  baseRock: 2
-  variant: {fileID: 11400000, guid: e26563a911bf1bb4a9a79621abd96bb2, type: 2}
+  baseRock: 1
+  allowVeins: 0
+  variant: {fileID: 0}
   variantNoiseScale: 0.012
   variantShare: 0.45
-  dirtThreshold: 0.6
+  dirtThreshold: 1.01
   dirtNoiseScale: 0.08
-  caveThreshold: 0.63
-  caveNoiseScale: 0.055
+  caveThreshold: 0.58
+  caveNoiseScale: 0.06
   caveStretch: 1
   caveLensSplit: 0
   filamentTile: 2
@@ -33,5 +35,5 @@ MonoBehaviour:
   filamentThickness: 0.2
   filamentWarp: 14
   filamentSecondLayer: 1
-  baseErosion: 0
+  baseErosion: 30
   temperatureOffset: 0

@@ -169,6 +169,7 @@ public static class GameIDRegistry
         public const int POWER_WIRE = 3402;         // 전선 (1x1, 겹쳐 설치)
         public const int WOOD_GENERATOR = 3403;     // 나무 화력 발전기 (연료, 2x2)
         public const int EROSION_GENERATOR = 3404;  // 침식 융해 발전기 (2x2)
+        public const int GAS_GENERATOR = 3405;      // 가스 발전기 (2x2, 분출구 위 전용)
 
         // 오락 건물 (3500~3599) — RecreationBuildingType enum과 값 일치
         public const int DART_BOARD = 3500;         // 다트판 (1x2, 무전력)

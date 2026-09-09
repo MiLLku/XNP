@@ -10,27 +10,29 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 27504165417e2ab4caf42c3ec78806f7, type: 3}
-  m_Name: Tile_Coal
+  m_Name: Tile_GasVent
   m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
-  codeName: Coal
-  id: 9
-  displayName: "\uC11D\uD0C4"
-  description: 
+  codeName: GasVent
+  id: 14
+  displayName: "\uAC00\uC2A4 \uBD84\uCD9C\uAD6C"
+  description: "\uC2EC\uBD80 \uBC14\uB2E5\uC5D0\uC11C \uAC00\uC2A4\uAC00 \uC0C8\uC5B4\uB098\uC624\uB294
+    \uAD6C\uBA4D. \uCE98 \uC218 \uC5C6\uACE0, \uC704\uC5D0 \uAC00\uC2A4 \uBC1C\uC804\uAE30\uB97C
+    \uC9C0\uC744 \uC218 \uC788\uB2E4."
   tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
   isSolid: 1
   isClimbable: 0
   isSpawnableSurface: 0
-  isMineable: 1
-  hardness: 1.2
-  requiredMiningSkillId: 5
-  dropItem: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
+  isMineable: 0
+  hardness: 1
+  requiredMiningSkillId: 0
+  dropItem: {fileID: 0}
   generateAsVein: 1
-  veinShallowOffset: -42
-  veinDeepOffset: -85
-  veinNoiseScale: 0.12
-  veinThreshold: 0.75
-  veinSeedOffset: 5000
-  thermalConductivity: 0.6
+  veinShallowOffset: -112
+  veinDeepOffset: -158
+  veinNoiseScale: 0.16
+  veinThreshold: 0.72
+  veinSeedOffset: 9000
+  thermalConductivity: 1.2
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60

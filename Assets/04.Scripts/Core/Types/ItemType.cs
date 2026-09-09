@@ -28,6 +28,7 @@ public enum ItemType
     Wood      = 7,
     Coal      = 8,
     Crystal   = 9,
+    TitaniumOre = 10,
 
     // ─── 가공 자원 (101~200) ────────────────────
     IronIngot   = 101,

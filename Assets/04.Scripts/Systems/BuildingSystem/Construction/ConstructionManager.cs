@@ -523,7 +523,29 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
             }
         }
 
-        // TODO [건설시스템]: 물 위, 특정 지형 등 특수 배치 조건 추가
+        // 특정 지형 위에만 지을 수 있는 건물 (가스 분출구 발전소 등)
+        // 풋프린트 열 중 하나라도 요구 타일 위면 통과 — 발전소가 분출구를 덮는 그림이다.
+        // 전부를 요구하면 분출구가 1칸만 노출된 경우 아예 못 짓는다.
+        if (selectedBuildingData.requiredTileBelow != TileType.Air)
+        {
+            int required = (int)selectedBuildingData.requiredTileBelow;
+            int groundY = gridPos.y - 1;
+            bool found = false;
+
+            for (int x = 0; x < selectedBuildingData.size.x && !found; x++)
+            {
+                // x 범위는 위 풋프린트 검사(IsSpaceAvailable)에서 이미 걸러졌다
+                int checkX = gridPos.x + x;
+                if (groundY >= 0 && gameMap.TileGrid[checkX, groundY] == required)
+                    found = true;
+            }
+
+            if (!found)
+            {
+                Debug.Log($"[ConstructionManager] CanPlaceAt 실패: 아래에 {selectedBuildingData.requiredTileBelow}가 없음 ({gridPos.x},{groundY}).");
+                return false;
+            }
+        }
 
         return true;
     }

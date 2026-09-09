@@ -21,4 +21,7 @@ public enum PowerBuildingType
 
     /// <summary>침식 융해 발전기 (2x2)</summary>
     ErosionGenerator = 3404,
+
+    /// <summary>가스 발전기 (2x2, 가스 분출구 위에만 건설 가능)</summary>
+    GasGenerator = 3405,
 }

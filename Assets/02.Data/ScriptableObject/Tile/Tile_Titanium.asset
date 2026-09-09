@@ -10,27 +10,28 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 27504165417e2ab4caf42c3ec78806f7, type: 3}
-  m_Name: Tile_GoldOre
+  m_Name: Tile_Titanium
   m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
-  codeName: GoldOre
-  id: 5
-  displayName: "\uAE08 \uAD11\uC11D"
-  description: 
+  codeName: Titanium
+  id: 13
+  displayName: "\uD2F0\uD0C0\uB284 \uAD11\uB9E5"
+  description: "\uC2EC\uBD80\uC5D0\uB9CC \uBB3B\uD78C \uACE0\uAC15\uB3C4 \uAE08\uC18D.
+    \uCC44\uAD11 III \uC790\uACA9\uC774 \uD544\uC694\uD558\uB2E4."
   tileAsset: {fileID: 11400000, guid: a8a2442aaec02f44c87b4794342d6478, type: 2}
   isSolid: 1
   isClimbable: 0
   isSpawnableSurface: 0
   isMineable: 1
-  hardness: 4
+  hardness: 5
   requiredMiningSkillId: 7
-  dropItem: {fileID: 11400000, guid: 588966bd842a65643a3c94860af4ddee, type: 2}
+  dropItem: {fileID: 11400000, guid: f84fa6a62b438d64ca3a339d2f915360, type: 2}
   generateAsVein: 1
-  veinShallowOffset: -98
-  veinDeepOffset: -155
-  veinNoiseScale: 0.2
-  veinThreshold: 0.85
-  veinSeedOffset: 4000
-  thermalConductivity: 2.8
+  veinShallowOffset: -115
+  veinDeepOffset: -158
+  veinNoiseScale: 0.19
+  veinThreshold: 0.88
+  veinSeedOffset: 8000
+  thermalConductivity: 2.4
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60
