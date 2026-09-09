@@ -204,20 +204,24 @@ public class RoomOverlayRenderer : DestroySingleton<RoomOverlayRenderer>
         switch (mode)
         {
             case OverlayMode.Temperature: return GetTemperatureColor(room.Temperature);
-            case OverlayMode.Erosion:     return GetErosionColor(room.Erosion);
+            case OverlayMode.Erosion:     return GetErosionColor(room);
             default:                      return GetRoomColor(room.Id);
         }
     }
 
     /// <summary>
     /// 침식을 색으로 바꿉니다.
-    /// 실외 기본 침식을 기준(회색)으로 두므로, <b>바깥보다 더러운 방만</b> 물듭니다.
+    /// <b>그 방 위치의 실외 침식</b>을 기준(회색)으로 두므로, 바깥보다 더러운 방만 물듭니다.
     /// 세척으로 기준 아래까지 내린 청정실은 청록으로 표시됩니다.
+    ///
+    /// 기준을 전역 실외값 하나로 두면 좌우 그라디언트가 생긴 뒤로는 오해를 부릅니다 —
+    /// 기지에서 먼 방은 원래 더러운 게 정상인데 전부 자홍으로 보이기 때문입니다.
     /// </summary>
-    private Color GetErosionColor(float erosion)
+    private Color GetErosionColor(Room room)
     {
+        float erosion = room.Erosion;
         float baseline = TerrainErosionManager.instance != null
-            ? TerrainErosionManager.instance.OutdoorErosion
+            ? TerrainErosionManager.instance.GetOutdoorErosionAt(room.AverageX)
             : 0f;
 
         Color color;

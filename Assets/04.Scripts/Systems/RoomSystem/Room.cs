@@ -80,8 +80,15 @@ public class Room
     /// </summary>
     public float AverageY => Cells.Count > 0 ? (float)cellYSum / Cells.Count : 0f;
 
-    /// <summary>AddCell에서 누적하는 Y 합. 200×200 맵이면 최대 8백만이라 int로 충분합니다.</summary>
+    /// <summary>
+    /// 이 방 칸들의 평균 X. 기지에서의 좌우 거리를 재는 데 쓰며,
+    /// 실외 침식의 좌우 그라디언트가 이 값을 기준으로 계산됩니다.
+    /// </summary>
+    public float AverageX => Cells.Count > 0 ? (float)cellXSum / Cells.Count : 0f;
+
+    /// <summary>AddCell에서 누적하는 좌표 합. 300×300 맵이면 최대 2700만이라 int로 충분합니다.</summary>
     private int cellYSum;
+    private int cellXSum;
 
     public Room(int id)
     {
@@ -97,6 +104,7 @@ public class Room
 
         Cells.Add(cell);
         cellYSum += cell.y;
+        cellXSum += cell.x;
     }
 
     public override string ToString()

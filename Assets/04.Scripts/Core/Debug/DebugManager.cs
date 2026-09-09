@@ -445,13 +445,16 @@ public class DebugManager : DestroySingleton<DebugManager>
         }
 
         Debug.Log($"[DebugManager] 실외 침식 {erosion.OutdoorErosion:F1} (기본 {erosion.BaseOutdoorErosion:F1}, 모디파이어: {erosion.DescribeOutdoorModifiers()}) / 고정 발원지 {erosion.SourceCount}개 / 개체 발원지 {(EntityErosionField.instance != null ? EntityErosionField.instance.SourceCount : 0)}개");
+        Debug.Log($"  좌우 그라디언트 — {erosion.DescribeHorizontalGradient()}");
 
         foreach (var pair in manager.Rooms)
         {
             Room room = pair.Value;
             if (room.Erosion <= 0f) continue;
 
-            Debug.Log($"  방#{room.Id} {room.CellCount}칸 @{room.Representative} — 침식 {room.Erosion:F1} (활동 중 발원지 {erosion.CountActiveSourcesIn(room)}개)");
+            float outside = erosion.GetOutdoorErosionAt(room.AverageX);
+            Debug.Log($"  방#{room.Id} {room.CellCount}칸 @{room.Representative} — 침식 {room.Erosion:F1} " +
+                      $"(그 위치 실외 {outside:F1} · 활동 중 발원지 {erosion.CountActiveSourcesIn(room)}개)");
         }
     }
 

@@ -387,8 +387,10 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
             ? TemperatureManager.instance.GetAmbientForRoom(room)
             : 20f;
 
+        // 침식도 온도와 같이 위치를 반영한다 — 기지에서 먼 곳을 새로 밀폐하면
+        // 그만큼 더러운 공기를 가둔 채로 출발한다
         float outdoorErosion = TerrainErosionManager.instance != null
-            ? TerrainErosionManager.instance.OutdoorErosion
+            ? TerrainErosionManager.instance.GetOutdoorErosionAt(room.AverageX)
             : 0f;
 
         float temperatureSum = 0f;

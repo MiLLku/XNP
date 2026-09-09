@@ -16,6 +16,10 @@ MonoBehaviour:
   naturalRecoveryPerSecond: 0.06
   naturalRecoveryFloor: 50
   outdoorErosionBase: 5
+  useHorizontalGradient: 1
+  safeZoneRadius: 40
+  erosionPerTileFromBase: 0.35
+  maxOutdoorErosion: 60
   exposurePerErosionPoint: 0.01
   exposureCheckInterval: 1
   purificationItemAmount: 80
