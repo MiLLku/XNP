@@ -27,6 +27,9 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [Header("동굴")]
     [SerializeField] [Range(0.01f, 0.2f)] private float caveNoiseScale = 0.07f;
     [SerializeField] [Range(0f, 1f)] private float caveThreshold = 0.7f;
+    [Header("가스 분출구")]
+    [Tooltip("맵 하나에 남길 가스 분출구의 최대 개소. 노이즈로는 개수를 보장할 수 없어 생성 후 잘라냅니다.")]
+    [SerializeField] [Range(1, 20)] private int maxGasVents = 5;
     [Header("지층 경계")]
     [Tooltip("층 경계가 위아래로 흔들리는 폭(칸). 0이면 자로 그은 듯 일직선이 됩니다.")]
     [SerializeField] [Range(0f, 40f)] private float strataBoundaryAmplitude = 12f;
@@ -62,6 +65,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     private float _dirtOffsetX, _dirtOffsetY;
     private float _veinOffsetBase;
     private float _boundaryOffsetX, _boundaryOffsetY;
+    private float _variantOffsetX, _variantOffsetY;
     private float _filamentOffsetX, _filamentOffsetY;
     private float _warpOffsetX, _warpOffsetY;
 
@@ -200,6 +204,8 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         _filamentOffsetY = SeedOffset(ActiveSeed, 11);
         _warpOffsetX = SeedOffset(ActiveSeed, 12);
         _warpOffsetY = SeedOffset(ActiveSeed, 13);
+        _variantOffsetX = SeedOffset(ActiveSeed, 14);
+        _variantOffsetY = SeedOffset(ActiveSeed, 15);
 
         _rng = new System.Random(ActiveSeed);
 
@@ -575,7 +581,119 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         }
 
         Debug.Log($"[PlaceMineralClusters] 광물 군집 배치 완료. (광맥 {veins.Count}종)");
+
+        ExposeVents();
     }
+
+    /// <summary>
+    /// 가스 분출구를 <b>동굴 바닥에 얼굴을 내민 것만</b> 남깁니다.
+    ///
+    /// 분출구는 광맥 생성을 그대로 타므로(코드 재사용) 바위 속에 묻힌 것도 같이 생깁니다.
+    /// 묻힌 분출구는 파내기 전엔 보이지도 않고 "분출구"라는 말에도 안 맞으므로,
+    /// 바로 위가 빈 칸이 아닌 것은 그 층의 기반 암석으로 되돌립니다.
+    /// </summary>
+    private void ExposeVents()
+    {
+        const int VENT_ID = (int)TileType.GasVent;
+
+        // 1) 바위 속에 묻힌 분출구는 되돌린다 — 바닥에 얼굴을 내민 것만 남긴다
+        int buried = 0;
+        for (int x = 0; x < GameMap.MAP_WIDTH; x++)
+        {
+            for (int y = 0; y < GameMap.MAP_HEIGHT - 1; y++)
+            {
+                if (_gameMap.TileGrid[x, y] != VENT_ID) continue;
+                if (_gameMap.TileGrid[x, y + 1] == AIR_ID) continue;
+
+                RevertVent(x, y);
+                buried++;
+            }
+        }
+
+        // 2) 남은 것을 개소(붙어 있는 덩어리) 단위로 묶는다
+        var clusters = CollectVentClusters();
+
+        // 3) 상한을 넘으면 무작위로 골라 남기고 나머지는 되돌린다.
+        //    스캔 순서대로 자르면 맵 왼쪽에만 몰리므로 시드 난수로 섞는다.
+        int culled = 0;
+        if (clusters.Count > maxGasVents)
+        {
+            for (int i = clusters.Count - 1; i > 0; i--)
+            {
+                int j = _rng.Next(i + 1);
+                var tmp = clusters[i]; clusters[i] = clusters[j]; clusters[j] = tmp;
+            }
+
+            for (int i = maxGasVents; i < clusters.Count; i++)
+            {
+                foreach (var cell in clusters[i]) RevertVent(cell.x, cell.y);
+                culled++;
+            }
+            clusters.RemoveRange(maxGasVents, clusters.Count - maxGasVents);
+        }
+
+        if (clusters.Count == 0)
+            Debug.LogWarning($"[ExposeVents] 노출된 가스 분출구가 없습니다 (묻힌 것 {buried}칸 제거). " +
+                             "Tile_GasVent의 veinThreshold를 낮추세요.");
+        else
+            Debug.Log($"[ExposeVents] 가스 분출구 {clusters.Count}개소 (상한 {maxGasVents}) — " +
+                      $"묻힌 것 {buried}칸 · 초과분 {culled}개소 되돌림");
+    }
+
+    /// <summary>분출구 칸을 그 층의 기반 암석으로 되돌립니다.</summary>
+    private void RevertVent(int x, int y)
+    {
+        StrataDefinition strata = StrataAt(x, y);
+        _gameMap.SetTile(x, y, strata != null ? strata.BaseRockId : STONE_ID);
+    }
+
+    /// <summary>맵에 남은 분출구 칸을 인접한 것끼리 묶어 개소 목록으로 만듭니다.</summary>
+    private List<List<Vector2Int>> CollectVentClusters()
+    {
+        const int VENT_ID = (int)TileType.GasVent;
+
+        var clusters = new List<List<Vector2Int>>();
+        var seen = new bool[GameMap.MAP_WIDTH, GameMap.MAP_HEIGHT];
+        var queue = new Queue<Vector2Int>();
+
+        for (int x = 0; x < GameMap.MAP_WIDTH; x++)
+        {
+            for (int y = 0; y < GameMap.MAP_HEIGHT; y++)
+            {
+                if (seen[x, y] || _gameMap.TileGrid[x, y] != VENT_ID) continue;
+
+                var cluster = new List<Vector2Int>();
+                queue.Clear();
+                queue.Enqueue(new Vector2Int(x, y));
+                seen[x, y] = true;
+
+                while (queue.Count > 0)
+                {
+                    Vector2Int p = queue.Dequeue();
+                    cluster.Add(p);
+
+                    foreach (var dir in NeighborOffsets)
+                    {
+                        int nx = p.x + dir.x, ny = p.y + dir.y;
+                        if (nx < 0 || nx >= GameMap.MAP_WIDTH || ny < 0 || ny >= GameMap.MAP_HEIGHT) continue;
+                        if (seen[nx, ny] || _gameMap.TileGrid[nx, ny] != VENT_ID) continue;
+
+                        seen[nx, ny] = true;
+                        queue.Enqueue(new Vector2Int(nx, ny));
+                    }
+                }
+
+                clusters.Add(cluster);
+            }
+        }
+
+        return clusters;
+    }
+
+    private static readonly Vector2Int[] NeighborOffsets =
+    {
+        Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right
+    };
 
     /// <summary>
     /// 지정 광물을 해당 깊이 범위에 군집으로 배치합니다.
@@ -615,10 +733,10 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     /// 조회에 쓰는 Y를 노이즈만큼 밀어 주면 같은 경계가 굽이치고, 층 사이에 서로 파고든
     /// 주머니도 생겨 훨씬 자연스러워집니다.
     /// </summary>
-    private StrataDefinition StrataAt(int x, int y)
+    public StrataDefinition StrataAt(int x, int y)
     {
         if (_strata == null) return null;
-        if (strataBoundaryAmplitude <= 0f) return _strata.At(y);
+        if (strataBoundaryAmplitude <= 0f) return ApplyVariant(x, _strata.At(y));
 
         // ⚠️ 진폭을 그 층 두께에 맞춰 조인다.
         //    경계층은 15칸뿐이라 ±12칸을 흔들면 위아래 층이 그대로 배어들어
@@ -633,7 +751,19 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         float n = Mathf.PerlinNoise(x * strataBoundaryScale + _boundaryOffsetX,
                                     y * strataBoundaryScale * 0.35f + _boundaryOffsetY);
         int warped = y + Mathf.RoundToInt((n - 0.5f) * 2f * amplitude);
-        return _strata.At(warped);
+        return ApplyVariant(x, _strata.At(warped));
+    }
+
+    /// <summary>
+    /// 같은 층 안에서 가로로 번갈아 나타나는 변종을 고릅니다.
+    /// x 1D 노이즈라 세로 띠가 생깁니다 — "이 구간은 광물층, 저 구간은 침식 동굴".
+    /// </summary>
+    private StrataDefinition ApplyVariant(int x, StrataDefinition def)
+    {
+        if (def == null || def.variant == null || def.variantShare <= 0f) return def;
+
+        float n = Mathf.PerlinNoise(x * def.variantNoiseScale + _variantOffsetX, _variantOffsetY);
+        return n > 1f - def.variantShare ? def.variant : def;
     }
 
     /// <summary>

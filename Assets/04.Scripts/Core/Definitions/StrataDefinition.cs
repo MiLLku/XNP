@@ -51,8 +51,20 @@ public class StrataDefinition : ScriptableObject
     public StrataTerrainMode terrainMode = StrataTerrainMode.SolidWithCaves;
 
     [Tooltip("이 층을 채우는 기반 암석 타일. 하늘처럼 비어 있는 층은 Air로 둡니다.\n" +
-             "⚠️ 광맥은 이 타일 위에만 씨앗을 심으므로, 여기가 Stone이 아니면 그 층에는 광맥이 생기지 않습니다.")]
+             "⚠️ 이걸 Stone에서 바꿔도 광맥은 그대로 생깁니다 — 씨앗 판정은 '그 층 자신의' " +
+             "기반 암석과 비교하므로, 흙 기반 층에는 흙 위에 광맥이 박힙니다.")]
     public TileType baseRock = TileType.Stone;
+
+    [Tooltip("같은 층 안에서 가로로 번갈아 나타날 변종. 비워두면 변종 없이 균일합니다.\n" +
+             "변종도 그냥 지층 정의라 기반 암석·동굴·침식·광맥 허용을 전부 다르게 줄 수 있습니다.")]
+    public StrataDefinition variant;
+
+    [Tooltip("변종 띠의 굵기. 작을수록 넓게 번갈아 나타납니다.")]
+    [Range(0.002f, 0.1f)] public float variantNoiseScale = 0.012f;
+
+    [Tooltip("층에서 변종이 차지하는 대략의 비율(0~1). Perlin 값이 가운데로 몰려 있어 " +
+             "실제 비율은 이 값보다 조금 낮게 나옵니다 (0.45 -> 약 35%).")]
+    [Range(0f, 1f)] public float variantShare = 0.45f;
 
     [Tooltip("기반 암석 대신 흙이 섞여 나오는 비율의 임계값. 낮을수록 흙이 많아집니다. " +
              "1 이상이면 흙이 전혀 섞이지 않습니다.")]
@@ -126,7 +138,7 @@ public class StrataDefinition : ScriptableObject
     /// <summary>줄기 타일의 raw ID</summary>
     public int FilamentTileId => (int)filamentTile;
 
-    /// <summary>광맥 씨앗을 받을 수 있는 층인지 — 덩굴망 층은 기반 암석이 없어 광맥이 생기지 않습니다.</summary>
+    /// <summary>광맥 씨앗을 받을 수 있는 층인지 — 덩굴망 층은 기반 암석이 없어 불가능합니다.</summary>
     public bool HostsVeins => terrainMode == StrataTerrainMode.SolidWithCaves;
 }
 
