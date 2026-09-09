@@ -79,6 +79,12 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
 
     /// <summary>이번 생성에서 시작방이 놓인 X. 자연물 제외 구역도 이 값을 기준으로 잡습니다.</summary>
     private int _startingRoomX = GameMap.MAP_WIDTH / 2;
+
+    /// <summary>
+    /// 시작방(기지)의 X 좌표. 실외 침식의 좌우 그라디언트가 이 지점을 중심으로 계산됩니다 —
+    /// 기지에서 멀어질수록 위험해진다는 축이 여기서 나옵니다.
+    /// </summary>
+    public int StartingRoomX => _startingRoomX;
     
     // 지형 생성이 직접 쓰는 타일 ID. 값은 TileDefinition 에셋에서 생성된 TileType이 정합니다.
     // 광물은 여기 없습니다 — 광맥은 정의 에셋을 훑어 배치합니다(PlaceMineralClusters).
@@ -807,6 +813,11 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         {
             if (def.avoidSpawnArea &&
                 x >= spawnX - spawnAreaPadding && x <= spawnX + spawnAreaPadding) continue;
+
+            // 기지로부터의 거리 띠 — 위험 지대에만 나는 식생을 만든다
+            int distance = Mathf.Abs(x - spawnX);
+            if (def.minDistanceFromBase > 0 && distance < def.minDistanceFromBase) continue;
+            if (def.maxDistanceFromBase > 0 && distance > def.maxDistanceFromBase) continue;
 
             if (def.minSpacing > 0 && lastPlacedX != int.MinValue &&
                 x < lastPlacedX + def.minSpacing) continue;

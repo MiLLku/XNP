@@ -28,5 +28,7 @@ MonoBehaviour:
   minSpacing: 11
   allowedGroundTiles: 06000000
   avoidSpawnArea: 1
+  minDistanceFromBase: 0
+  maxDistanceFromBase: 90
   persistInSave: 1
   hasGrowthState: 0

@@ -108,6 +108,14 @@ public class EntityDefinition : ScriptableObject
     [Tooltip("시작 지점 주변(MapGenerator.spawnAreaPadding)을 피합니다.")]
     public bool avoidSpawnArea = true;
 
+    [Tooltip("기지에서 이 거리(칸) 이상 떨어진 곳에만 배치합니다. 0이면 제한 없음.\n" +
+             "실외 침식이 기지에서 멀수록 오르므로, 이 값으로 '위험 지대에만 나는 식물'을 만듭니다.")]
+    [Min(0)] public int minDistanceFromBase = 0;
+
+    [Tooltip("기지에서 이 거리(칸) 이내에만 배치합니다. 0이면 제한 없음.\n" +
+             "minDistanceFromBase와 함께 쓰면 특정 거리 띠에만 나는 식생을 만들 수 있습니다.")]
+    [Min(0)] public int maxDistanceFromBase = 0;
+
     #endregion
 
     #region 세이브

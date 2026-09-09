@@ -24,9 +24,11 @@ MonoBehaviour:
   stampKey: 
   scanMode: 1
   footprintWidth: 1
-  spawnChance: 0.03
+  spawnChance: 0.05
   minSpacing: 0
   allowedGroundTiles: 
   avoidSpawnArea: 1
+  minDistanceFromBase: 55
+  maxDistanceFromBase: 0
   persistInSave: 1
   hasGrowthState: 0

@@ -94,6 +94,56 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
 
     #endregion
 
+    #region 실외 침식 — 좌우 그라디언트
+
+    /// <summary>
+    /// 기지 중심에서 좌우로 멀어질수록 오르는 실외 침식.
+    ///
+    /// <b>깊이가 온도 축이라면 좌우는 침식 축입니다.</b> 지열(<c>TemperatureManager.GetAmbientAtDepth</c>)과
+    /// 정확히 대칭인 구조로, 안전지대 밖으로 나갈수록 위험하고 보상이 큰 숲이 됩니다.
+    ///
+    /// 이벤트 모디파이어는 <b>거리와 무관하게 전체에 더해집니다</b> — 오염 폭풍은 기지 안팎을 가리지 않습니다.
+    /// </summary>
+    public float GetOutdoorErosionAt(float x)
+    {
+        var config = ErosionManager.instance != null ? ErosionManager.instance.RecoveryConfig : null;
+        if (config == null || !config.useHorizontalGradient) return OutdoorErosion;
+
+        float center = MapGenerator.instance != null
+            ? MapGenerator.instance.StartingRoomX
+            : GameMap.MAP_WIDTH * 0.5f;
+
+        float distance = Mathf.Abs(x - center);
+        float beyond = Mathf.Max(0f, distance - config.safeZoneRadius);
+
+        float value = config.outdoorErosionBase + beyond * config.erosionPerTileFromBase;
+        value = Mathf.Min(value, config.maxOutdoorErosion);
+
+        // 이벤트 모디파이어는 거리와 무관하게 전체에 얹힌다
+        foreach (var pair in outdoorModifiers)
+            value += pair.Value.delta;
+
+        return Mathf.Max(0f, value);
+    }
+
+    /// <summary>디버그용 — 기지에서 거리별 실외 침식 프로파일</summary>
+    public string DescribeHorizontalGradient()
+    {
+        var config = ErosionManager.instance != null ? ErosionManager.instance.RecoveryConfig : null;
+        if (config == null || !config.useHorizontalGradient) return "좌우 그라디언트 꺼짐";
+
+        float center = MapGenerator.instance != null
+            ? MapGenerator.instance.StartingRoomX
+            : GameMap.MAP_WIDTH * 0.5f;
+
+        var sb = new System.Text.StringBuilder($"기지 X {center:F0} · 안전지대 {config.safeZoneRadius:F0}칸 · ");
+        foreach (int d in new[] { 0, 40, 80, 120, 150 })
+            sb.Append($"{d}칸 {GetOutdoorErosionAt(center + d):F1} / ");
+        return sb.ToString().TrimEnd('/', ' ');
+    }
+
+    #endregion
+
     #region 실외 침식 모디파이어
 
     /// <summary>실외 침식 모디파이어. 이벤트(오염 폭풍·정화 등)만 이 값을 건드립니다.</summary>
@@ -271,12 +321,15 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
 
     /// <summary>
     /// 해당 칸의 환경 침식 수치.
-    /// 방 안이면 그 방의 침식, <b>실외면 실외 기본 침식</b>입니다.
+    /// 방 안이면 그 방의 침식, <b>실외면 그 X 위치의 실외 침식</b>입니다.
+    ///
+    /// 환경 노출을 읽는 곳이 여기 하나뿐이라(<c>EmployeeErosionController.UpdateAmbientErosion</c>),
+    /// 좌우 그라디언트는 이 한 줄만 바꾸면 전체에 적용됩니다.
     /// </summary>
     public float GetRoomErosionAt(int x, int y)
     {
         Room room = RoomManager.instance != null ? RoomManager.instance.GetRoom(x, y) : null;
-        return room != null ? room.Erosion : OutdoorErosion;
+        return room != null ? room.Erosion : GetOutdoorErosionAt(x);
     }
 
     /// <summary>

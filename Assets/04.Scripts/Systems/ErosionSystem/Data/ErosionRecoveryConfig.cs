@@ -37,8 +37,22 @@ public class ErosionRecoveryConfig : ScriptableObject
     #region 아이템 즉시 회복
 
     [Header("실외 기본 침식")]
-    [Tooltip("바깥 세상의 기본 침식 수치. 평상시에는 고정이며 이벤트로만 바뀝니다. 밀폐된 방은 여기서 출발하고, 그 뒤로는 실외와 완전히 분리됩니다(전도 없음).")]
+    [Tooltip("기지 바로 바깥의 기본 침식 수치. 평상시에는 고정이며 이벤트로만 바뀝니다. 밀폐된 방은 여기서 출발하고, 그 뒤로는 실외와 완전히 분리됩니다(전도 없음).")]
     [Min(0f)] public float outdoorErosionBase = 10f;
+
+    [Header("실외 침식 — 좌우 그라디언트")]
+    [Tooltip("기지에서 좌우로 멀어질수록 실외 침식이 오르게 할지.\n" +
+             "깊이가 온도 축이라면 좌우는 침식 축입니다 — 멀리 나갈수록 위험하고 보상이 큰 숲이 됩니다.")]
+    public bool useHorizontalGradient = true;
+
+    [Tooltip("기지 주변 안전지대의 반경(칸). 이 안쪽은 기본 침식 그대로입니다.")]
+    [Min(0f)] public float safeZoneRadius = 40f;
+
+    [Tooltip("안전지대 밖으로 한 칸 멀어질 때마다 오르는 침식량")]
+    [Min(0f)] public float erosionPerTileFromBase = 0.35f;
+
+    [Tooltip("좌우 그라디언트로 도달할 수 있는 최대 실외 침식. 맵 끝까지 나갔을 때의 값입니다.")]
+    [Min(0f)] public float maxOutdoorErosion = 60f;
 
     [Header("환경 노출 (방 침식 + 타일 침식)")]
     [Tooltip("유효 침식 1당 초당 받는 침식량. 예: 0.01이면 침식 50인 방에서 초당 0.5씩 오릅니다.")]
