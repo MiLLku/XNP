@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27504165417e2ab4caf42c3ec78806f7, type: 3}
+  m_Name: Tile_Lava
+  m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
+  codeName: Lava
+  id: 15
+  displayName: "\uC6A9\uC554 \uC554\uBC18"
+  description: "\uC2EC\uBD80\uC5D0\uC11C \uC5F4\uC744 \uB0B4\uBFDC\uB294 \uC554\uBC18.
+    \uCE98 \uC218 \uC5C6\uB2E4 \u2014 \uB2E8\uC5F4\uD558\uAC70\uB098 \uB0C9\uBC29\uC73C\uB85C
+    \uC0C1\uB300\uD574\uC57C \uD55C\uB2E4."
+  tileAsset: {fileID: 0}
+  isSolid: 1
+  isClimbable: 0
+  isSpawnableSurface: 0
+  isMineable: 0
+  hardness: 1
+  requiredMiningSkillId: 0
+  dropItem: {fileID: 0}
+  generateAsVein: 1
+  veinShallowOffset: -112
+  veinDeepOffset: -160
+  veinNoiseScale: 0.13
+  veinThreshold: 0.8
+  veinSeedOffset: 11000
+  thermalConductivity: 3
+  heatOutput: 12
+  useHeatTarget: 1
+  heatTargetTemperature: 160

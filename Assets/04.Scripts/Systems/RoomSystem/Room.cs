@@ -71,6 +71,15 @@ public class Room
     /// <summary>방 침식 수치 (Phase 3). 고정 발원지만 여기에 기여하고, 개체 오라는 타일에만 기여합니다.</summary>
     public float Erosion;
 
+    /// <summary>
+    /// 경계 타일이 스스로 뿜는 침식 (초당). 방이 재계산될 때 갱신됩니다.
+    /// 발열(<see cref="EnvironmentHeat"/>)과 같은 방식이며, 오염된 지형에 넓게 맞닿을수록 커집니다.
+    /// </summary>
+    public float TerrainErosionRate;
+
+    /// <summary>지형 침식이 올릴 수 있는 한계치. 0 이하면 한계 없음(시한폭탄).</summary>
+    public float TerrainErosionSaturation;
+
     /// <summary>문으로 이어진 이웃 방 번호. 실외와 이어져 있으면 <see cref="RoomManager.OUTDOOR_ID"/>가 들어갑니다.</summary>
     public readonly HashSet<int> DoorLinks = new HashSet<int>();
 

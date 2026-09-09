@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: EtherExtractor
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 3007
+  buildingName: "\uC5D0\uD14C\uB974 \uCD94\uCD9C\uAE30"
+  icon: {fileID: 0}
+  category: 1
+  description: "\uC5D0\uD14C\uB974 \uBD84\uCD9C\uAD6C \uC704\uC5D0\uB9CC \uAC74\uC124\uD560
+    \uC218 \uC788\uB2E4. \uC804\uB825\uC744 \uC4F0\uBA70 \uC5D0\uD14C\uB974\uB97C
+    \uBF51\uC544 \uBCF4\uAD00\uD568\uC5D0 \uC313\uB294\uB2E4 \u2014 \uC9C1\uC6D0\uC774
+    \uCC3D\uACE0\uB85C \uC62E\uACA8\uC57C \uD55C\uB2E4."
+  buildingPrefab: {fileID: 1000, guid: 16a5f27228783494e939bbfa1b0e741b, type: 3}
+  size: {x: 2, y: 2}
+  pivot: {x: 0, y: 0}
+  workAmount: 15
+  requiredResources: []
+  maxHealth: 350
+  blocksMovement: 1
+  requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
+  destructionDrops: []
+  paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  requiredTileBelow: 16
+  useHeatTarget: 0
+  heatTargetTemperature: 35
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
+  powerConsumption: 400
+  allowOverlap: 0
+  requiresResearch: 0
