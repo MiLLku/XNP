@@ -236,6 +236,72 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
 
     #endregion
 
+    #region 지형 타일 침식
+
+    /// <summary>방 재계산 메시지 구독 핸들</summary>
+    private System.IDisposable roomsRebuiltSubscription;
+
+    private void Start()
+    {
+        roomsRebuiltSubscription = GameMessageBus.Subscribe<RoomsRebuiltMessage>(_ => RefreshTerrainErosion());
+        RefreshTerrainErosion();
+    }
+
+    private void OnDestroy()
+    {
+        roomsRebuiltSubscription?.Dispose();
+        roomsRebuiltSubscription = null;
+    }
+
+    /// <summary>
+    /// 방마다 경계 타일이 뿜는 침식을 다시 구합니다.
+    ///
+    /// 온도의 <c>TemperatureManager.RefreshRoomThermalData</c>와 같은 방식입니다 —
+    /// 접촉면을 훑어 합산하므로 <b>등록·해제가 필요 없고</b>, 캐내거나 벽으로 덮으면
+    /// 다음 재계산에 자동 반영됩니다. 한계치는 접촉한 타일들 중 가장 높은 값을 씁니다.
+    /// </summary>
+    public void RefreshTerrainErosion()
+    {
+        var manager = RoomManager.instance;
+        if (manager == null) return;
+
+        GameMap map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
+        if (map == null) return;
+
+        foreach (var pair in manager.Rooms)
+        {
+            Room room = pair.Value;
+
+            float rate = 0f;
+            float saturation = 0f;
+            bool unbounded = false;
+
+            foreach (var face in room.BoundaryFaces)
+            {
+                // 건물이 덮은 칸은 지형이 가려진 것으로 본다 — 벽으로 오염원을 봉하는 대응이 성립한다
+                if (Building.GetBuildingAt(face) != null) continue;
+
+                int tileId = map.TileGrid[face.x, face.y];
+                float output = TileErosionOutput.Get(tileId);
+                if (output <= 0f) continue;
+
+                rate += output;
+
+                float sat = TileErosionOutput.GetSaturation(tileId);
+                if (sat <= 0f) unbounded = true;
+                else if (sat > saturation) saturation = sat;
+            }
+
+            // 부피로 나눈다 — 침식은 총량이 아니라 농도다.
+            // 안 나누면 접촉면이 많은 거대 공동이 그냥 제일 위험해진다(초당 77까지 나왔다).
+            // 발열이 열용량으로 나누는 것과 같은 자리다.
+            room.TerrainErosionRate = room.CellCount > 0 ? rate / room.CellCount : 0f;
+            room.TerrainErosionSaturation = unbounded ? 0f : saturation;
+        }
+    }
+
+    #endregion
+
     #region 틱
 
     private void Update()
@@ -273,6 +339,19 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
             float cap = unbounded ? roomErosionMax : Mathf.Min(source.SaturationLevel, roomErosionMax);
 
             room.Erosion = Mathf.Min(cap, room.Erosion + added);
+        }
+
+        // 지형 타일이 뿜는 침식 — 발원지 개체와 같은 규칙(포화에서 멈춤, 0이면 무한)
+        foreach (var pair in manager.Rooms)
+        {
+            Room room = pair.Value;
+            if (room.TerrainErosionRate <= 0f) continue;
+
+            bool unbounded = room.TerrainErosionSaturation <= 0f;
+            if (!unbounded && room.Erosion >= room.TerrainErosionSaturation) continue;
+
+            float cap = unbounded ? roomErosionMax : Mathf.Min(room.TerrainErosionSaturation, roomErosionMax);
+            room.Erosion = Mathf.Min(cap, room.Erosion + room.TerrainErosionRate * deltaTime);
         }
 
         if (showDebugLogs && sources.Count > 0)

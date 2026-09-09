@@ -27,9 +27,11 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [Header("동굴")]
     [SerializeField] [Range(0.01f, 0.2f)] private float caveNoiseScale = 0.07f;
     [SerializeField] [Range(0f, 1f)] private float caveThreshold = 0.7f;
-    [Header("가스 분출구")]
+    [Header("분출구")]
     [Tooltip("맵 하나에 남길 가스 분출구의 최대 개소. 노이즈로는 개수를 보장할 수 없어 생성 후 잘라냅니다.")]
     [SerializeField] [Range(1, 20)] private int maxGasVents = 5;
+    [Tooltip("맵 하나에 남길 에테르 분출구의 최대 개소. 최종 티어 재료의 유일한 출처라 희소합니다.")]
+    [SerializeField] [Range(1, 10)] private int maxEtherVents = 3;
     [Header("지층 경계")]
     [Tooltip("층 경계가 위아래로 흔들리는 폭(칸). 0이면 자로 그은 듯 일직선이 됩니다.")]
     [SerializeField] [Range(0f, 40f)] private float strataBoundaryAmplitude = 12f;
@@ -225,6 +227,23 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             h *= 1274126177;
             h ^= h >> 16;
             return ((h & 0x7FFFFFFF) % 1000000) * 0.01f;   // 0 ~ 10000, 0.01 단위
+        }
+    }
+
+    /// <summary>
+    /// 좌표 하나를 0~1 균등 난수로 바꿉니다 — "이 칸이 X% 확률로 무엇이 된다"에 씁니다.
+    /// Perlin을 쓰면 안 됩니다: 값이 0.5 근처로 몰려 0.94 같은 높은 임계를 거의 못 넘습니다
+    /// (확률 6%로 뒀더니 맵 전체에 3칸만 나왔습니다).
+    /// </summary>
+    private static float Hash01(int x, int y, int seed)
+    {
+        unchecked
+        {
+            int h = x * 73856093 ^ y * 19349663 ^ seed * 83492791;
+            h ^= h >> 13;
+            h *= 1274126177;
+            h ^= h >> 16;
+            return (h & 0x7FFFFFFF) / (float)0x7FFFFFFF;
         }
     }
 
@@ -594,7 +613,14 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     /// </summary>
     private void ExposeVents()
     {
-        const int VENT_ID = (int)TileType.GasVent;
+        ExposeVents(TileType.GasVent, maxGasVents, "가스");
+        ExposeVents(TileType.EtherVent, maxEtherVents, "에테르");
+    }
+
+    /// <inheritdoc cref="ExposeVents()"/>
+    private void ExposeVents(TileType type, int max, string label)
+    {
+        int ventId = (int)type;
 
         // 1) 바위 속에 묻힌 분출구는 되돌린다 — 바닥에 얼굴을 내민 것만 남긴다
         int buried = 0;
@@ -602,7 +628,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         {
             for (int y = 0; y < GameMap.MAP_HEIGHT - 1; y++)
             {
-                if (_gameMap.TileGrid[x, y] != VENT_ID) continue;
+                if (_gameMap.TileGrid[x, y] != ventId) continue;
                 if (_gameMap.TileGrid[x, y + 1] == AIR_ID) continue;
 
                 RevertVent(x, y);
@@ -611,12 +637,12 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         }
 
         // 2) 남은 것을 개소(붙어 있는 덩어리) 단위로 묶는다
-        var clusters = CollectVentClusters();
+        var clusters = CollectVentClusters(ventId);
 
         // 3) 상한을 넘으면 무작위로 골라 남기고 나머지는 되돌린다.
         //    스캔 순서대로 자르면 맵 왼쪽에만 몰리므로 시드 난수로 섞는다.
         int culled = 0;
-        if (clusters.Count > maxGasVents)
+        if (clusters.Count > max)
         {
             for (int i = clusters.Count - 1; i > 0; i--)
             {
@@ -624,19 +650,19 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                 var tmp = clusters[i]; clusters[i] = clusters[j]; clusters[j] = tmp;
             }
 
-            for (int i = maxGasVents; i < clusters.Count; i++)
+            for (int i = max; i < clusters.Count; i++)
             {
                 foreach (var cell in clusters[i]) RevertVent(cell.x, cell.y);
                 culled++;
             }
-            clusters.RemoveRange(maxGasVents, clusters.Count - maxGasVents);
+            clusters.RemoveRange(max, clusters.Count - max);
         }
 
         if (clusters.Count == 0)
-            Debug.LogWarning($"[ExposeVents] 노출된 가스 분출구가 없습니다 (묻힌 것 {buried}칸 제거). " +
-                             "Tile_GasVent의 veinThreshold를 낮추세요.");
+            Debug.LogWarning($"[ExposeVents] 노출된 {label} 분출구가 없습니다 (묻힌 것 {buried}칸 제거). " +
+                             $"Tile_{type}의 veinThreshold를 낮추세요.");
         else
-            Debug.Log($"[ExposeVents] 가스 분출구 {clusters.Count}개소 (상한 {maxGasVents}) — " +
+            Debug.Log($"[ExposeVents] {label} 분출구 {clusters.Count}개소 (상한 {max}) — " +
                       $"묻힌 것 {buried}칸 · 초과분 {culled}개소 되돌림");
     }
 
@@ -648,10 +674,8 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     }
 
     /// <summary>맵에 남은 분출구 칸을 인접한 것끼리 묶어 개소 목록으로 만듭니다.</summary>
-    private List<List<Vector2Int>> CollectVentClusters()
+    private List<List<Vector2Int>> CollectVentClusters(int ventId)
     {
-        const int VENT_ID = (int)TileType.GasVent;
-
         var clusters = new List<List<Vector2Int>>();
         var seen = new bool[GameMap.MAP_WIDTH, GameMap.MAP_HEIGHT];
         var queue = new Queue<Vector2Int>();
@@ -660,7 +684,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         {
             for (int y = 0; y < GameMap.MAP_HEIGHT; y++)
             {
-                if (seen[x, y] || _gameMap.TileGrid[x, y] != VENT_ID) continue;
+                if (seen[x, y] || _gameMap.TileGrid[x, y] != ventId) continue;
 
                 var cluster = new List<Vector2Int>();
                 queue.Clear();
@@ -676,7 +700,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                     {
                         int nx = p.x + dir.x, ny = p.y + dir.y;
                         if (nx < 0 || nx >= GameMap.MAP_WIDTH || ny < 0 || ny >= GameMap.MAP_HEIGHT) continue;
-                        if (seen[nx, ny] || _gameMap.TileGrid[nx, ny] != VENT_ID) continue;
+                        if (seen[nx, ny] || _gameMap.TileGrid[nx, ny] != ventId) continue;
 
                         seen[nx, ny] = true;
                         queue.Enqueue(new Vector2Int(nx, ny));
@@ -808,15 +832,24 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         float sx = x + wx * 2f * strata.filamentWarp;
         float sy = y + wy * 2f * strata.filamentWarp;
 
-        if (IsOnRidge(sx * scale + _filamentOffsetX, sy * scale + _filamentOffsetY, band))
-            return strata.FilamentTileId;
+        bool onTrunk = IsOnRidge(sx * scale + _filamentOffsetX, sy * scale + _filamentOffsetY, band);
 
         // 두 번째 겹은 스케일과 오프셋을 달리해 다른 방향으로 흐르게 한다
-        if (strata.filamentSecondLayer &&
-            IsOnRidge(sy * scale * 1.37f + _filamentOffsetY, sx * scale * 1.37f + _filamentOffsetX, band * 0.8f))
-            return strata.FilamentTileId;
+        if (!onTrunk && strata.filamentSecondLayer)
+            onTrunk = IsOnRidge(sy * scale * 1.37f + _filamentOffsetY, sx * scale * 1.37f + _filamentOffsetX, band * 0.8f);
 
-        return AIR_ID;
+        if (!onTrunk) return AIR_ID;
+
+        // 줄기 칸 일부가 열매가 된다.
+        // ⚠️ Perlin을 쓰면 안 된다 — 값이 0.5 근처로 몰려 0.94 같은 높은 임계를 거의 못 넘는다
+        //    (확률 6%로 뒀는데 실제로는 맵 전체에 3칸만 나왔다). 균등 해시를 쓴다.
+        if (strata.filamentFruitTile != TileType.Air && strata.filamentFruitChance > 0f)
+        {
+            if (Hash01(x, y, ActiveSeed) < strata.filamentFruitChance)
+                return (int)strata.filamentFruitTile;
+        }
+
+        return strata.FilamentTileId;
     }
 
     /// <summary>노이즈 값이 0.5 근처(=능선)인지. band가 클수록 두꺼운 띠가 됩니다.</summary>

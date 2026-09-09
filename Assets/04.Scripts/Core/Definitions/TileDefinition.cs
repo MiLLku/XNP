@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Tilemaps;
 
 /// <summary>
@@ -114,6 +114,21 @@ public class TileDefinition : ScriptableObject
 
     [Tooltip("이 타일이 방을 데울 수 있는 한계 온도(℃). 방이 이 온도에 닿으면 더는 올리지 않습니다.")]
     public float heatTargetTemperature = 60f;
+
+    #endregion
+
+    #region 침식
+
+    [Header("침식")]
+    [Tooltip("접촉면 하나가 방에 넣는 초당 침식량. 0이면 침식을 뿜지 않습니다.\n" +
+             "발열(heatOutput)과 같은 방식으로 방 경계를 순회하며 합산됩니다 — 등록·해제가 없고, " +
+             "캐내거나 벽으로 덮으면 다음 방 재계산에 자동 반영됩니다.\n" +
+             "합산값은 방 부피로 나뉩니다(농도) — 접촉면 수만큼 곱해지지 않습니다.")]
+    [Min(0f)] public float erosionOutput = 0f;
+
+    [Tooltip("이 타일이 방 침식을 올릴 수 있는 한계치. 방이 여기 닿으면 더는 올리지 않습니다.\n" +
+             "0 이하면 한계 없음 — 방치하면 방이 죽는 시한폭탄이 됩니다.")]
+    public float erosionSaturation = 60f;
 
     #endregion
 

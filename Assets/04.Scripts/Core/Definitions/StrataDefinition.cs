@@ -115,6 +115,13 @@ public class StrataDefinition : ScriptableObject
     [Tooltip("줄기가 두 겹으로 교차하게 할지. 켜면 서로 다른 방향의 망이 겹쳐 더 얽혀 보입니다.")]
     public bool filamentSecondLayer = true;
 
+    [Tooltip("줄기 사이에 맺히는 열매 타일. 비워두면 줄기만 생깁니다.\n" +
+             "개체가 아니라 타일이라 캐면 떨어지고, 그 전까지는 침식을 뿜습니다.")]
+    public TileType filamentFruitTile = TileType.Air;
+
+    [Tooltip("줄기 칸이 열매가 될 확률(0~1)")]
+    [Range(0f, 0.5f)] public float filamentFruitChance = 0.06f;
+
     #endregion
 
     #region 환경

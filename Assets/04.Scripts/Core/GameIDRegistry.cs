@@ -145,6 +145,7 @@ public static class GameIDRegistry
         public const int WINDMILL = 3004;
         public const int LOOM = 3005;
         public const int TANNERY = 3006;
+        public const int ETHER_EXTRACTOR = 3007;    // 에테르 추출기 (2x2, 전력 소비, 에테르 분출구 위 전용)
 
         // 저장 건물 (3100~3199)
         public const int WOODEN_CHEST = 3100;

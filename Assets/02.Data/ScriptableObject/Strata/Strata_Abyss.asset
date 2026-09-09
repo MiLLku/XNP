@@ -19,14 +19,21 @@ MonoBehaviour:
   thicknessWeight: 4
   terrainMode: 1
   baseRock: 2
+  variant: {fileID: 0}
+  variantNoiseScale: 0.012
+  variantShare: 0.45
   dirtThreshold: 0.9
   dirtNoiseScale: 0.07
   caveThreshold: 0.55
   caveNoiseScale: 0.04
+  caveStretch: 1
+  caveLensSplit: 0
   filamentTile: 12
   filamentScale: 0.048
   filamentThickness: 0.075
   filamentWarp: 14
   filamentSecondLayer: 1
-  baseErosion: 0
+  filamentFruitTile: 17
+  filamentFruitChance: 0.06
+  baseErosion: 45
   temperatureOffset: 0

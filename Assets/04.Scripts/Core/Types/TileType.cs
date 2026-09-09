@@ -53,8 +53,17 @@ public enum TileType
     /// <summary>티타늄 광맥 — 심부에만 묻힌 고강도 금속. 채광 III 자격이 필요하다.</summary>
     Titanium = 13,
 
-    /// <summary>가스 분출구 — 바위 동굴층 바닥에서 가스가 새어나오는 구멍. 캘 수 없고, 위에 가스 발전기를 지을 수 있다.</summary>
+    /// <summary>가스 분출구 — 심부 바닥에서 가스가 새어나오는 구멍. 캘 수 없고, 위에 가스 발전기를 지을 수 있다.</summary>
     GasVent = 14,
+
+    /// <summary>용암 암반 — 심부에서 열을 내뿜는 암반. 캘 수 없다 — 단열하거나 냉방으로 상대해야 한다.</summary>
+    Lava = 15,
+
+    /// <summary>에테르 분출구 — 심부 바닥에서 에테르가 새어나오는 구멍. 캘 수 없고, 위에 에테르 추출기를 지을 수 있다.</summary>
+    EtherVent = 16,
+
+    /// <summary>심연 열매 — 최하층 줄기에 맺힌 열매. 강한 침식을 뿜지만 캐면 최종 티어 재료가 나온다.</summary>
+    AbyssFruit = 17,
 
     /// <summary>특수</summary>
     Special = 99,
