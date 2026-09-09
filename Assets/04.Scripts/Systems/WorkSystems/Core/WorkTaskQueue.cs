@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -204,7 +204,7 @@ public class WorkTaskQueue
 
         var validInZone = pendingTasks.Where(t =>
         {
-            if (!t.CanBeAssigned()) return false;
+            if (!t.CanBeAssignedTo(worker)) return false;   // 자격 검사까지 — 다른 할당 경로와 동일
             if (Time.time < t.nextRetryTime) return false; // 도달불가 재시도 쿨다운 (다른 할당 경로와 동일)
             Vector3 pos = t.GetPosition();
             var tile = new Vector2Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y));

@@ -65,6 +65,9 @@ public enum TileType
     /// <summary>심연 열매 — 최하층 줄기에 맺힌 열매. 강한 침식을 뿜지만 캐면 최종 티어 재료가 나온다.</summary>
     AbyssFruit = 17,
 
+    /// <summary>경계암 — 최하층을 봉인한 암반. 에테리온 각인을 받은 직원만 이 돌에 손댈 수 있다.</summary>
+    Boundstone = 18,
+
     /// <summary>특수</summary>
     Special = 99,
 }

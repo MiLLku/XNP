@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -45,6 +45,14 @@ public class SkillData : ScriptableObject
     [Tooltip("해제에 소모되는 스킬 포인트. 직원의 남은 포인트가 이 값 이상이어야 합니다.")]
     [Min(0)]
     public int pointCost = 1;
+
+    [Tooltip("해제할 때 창고에서 소모하는 아이템. 비워두면 아이템 없이 해제됩니다.\n" +
+             "가공품으로만 얻는 특수 자격을 만들 때 씁니다 — 스킬 포인트로는 살 수 없고, " +
+             "직원 한 명이 각인할 때마다 재고가 줄어듭니다.")]
+    public ItemData requiredItem;
+
+    [Tooltip("소모할 개수")]
+    [Min(1)] public int requiredItemAmount = 1;
 
     [Tooltip("해금에 필요한 현재 스탯 조건. 모두 충족해야 합니다.\n" +
              "모든 직원이 같은 트리를 갖지만, 무작위 생성된 결격·스탯 차이로 찍을 수 있는 스킬이 갈립니다.")]

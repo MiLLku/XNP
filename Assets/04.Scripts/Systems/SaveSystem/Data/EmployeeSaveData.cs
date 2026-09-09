@@ -219,6 +219,9 @@ public class EmployeeSaveData
     /// <summary>근접·원거리 전투 숙련 레벨·경험치 (v9)</summary>
     public List<CombatAptitude.Entry> combatAptitudes = new List<CombatAptitude.Entry>();
 
+    /// <summary>해제된 스킬 ID 목록. 에테리온 각인처럼 아이템을 태워 얻는 자격이 여기 남습니다.</summary>
+    public List<int> unlockedSkillIds = new List<int>();
+
     #endregion
 
     #region 구역 배정

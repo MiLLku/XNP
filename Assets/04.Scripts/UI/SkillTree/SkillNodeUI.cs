@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -222,7 +222,7 @@ public class SkillNodeUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHan
     public void OnPointerClick(PointerEventData eventData)
     {
         if (_currentState != NodeState.Available) return;
-        _skillState.Unlock(_skill.skillId);
+        if (!_skillState.TryUnlock(_skill)) return;   // 요구 아이템 소모까지 여기서 처리된다
         _onTreeChanged?.Invoke();
     }
 

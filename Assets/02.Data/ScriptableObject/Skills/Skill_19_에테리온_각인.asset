@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 362860b58799be746b4d9f872dc2502f, type: 3}
+  m_Name: "Skill_19_\uC5D0\uD14C\uB9AC\uC628_\uAC01\uC778"
+  m_EditorClassIdentifier: Assembly-CSharp::SkillData
+  skillId: 19
+  skillName: "\uC5D0\uD14C\uB9AC\uC628 \uAC01\uC778"
+  description: "\uC5D0\uD14C\uB9AC\uC628\uC744 \uD0DC\uC6CC \uBAB8\uC5D0 \uC0C8\uAE30\uB294
+    \uC790\uACA9. \uCD5C\uD558\uCE35\uC744 \uBD09\uC778\uD55C \uACBD\uACC4\uC554\uC744
+    \uCE98 \uC218 \uC788\uAC8C \uB41C\uB2E4.\n\uC2A4\uD0AC \uD3EC\uC778\uD2B8\uB85C\uB294
+    \uC0B4 \uC218 \uC5C6\uACE0, \uAC01\uC778\uD560 \uB54C\uB9C8\uB2E4 \uC5D0\uD14C\uB9AC\uC628
+    1\uAC1C\uAC00 \uC0AC\uB77C\uC9C4\uB2E4."
+  icon: {fileID: 0}
+  category: 1
+  treePosition: {x: -5.5, y: 1}
+  prerequisiteSkillIds: 07000000
+  requiredAptitudeLevel: 1
+  pointCost: 0
+  requiredItem: {fileID: 11400000, guid: 94bfaf90d1b03aa40a345c881c0bb61f, type: 2}
+  requiredItemAmount: 1
+  requiredStats: []
+  defaultUnlocked: 0
+  grantedTrait: {fileID: 0}

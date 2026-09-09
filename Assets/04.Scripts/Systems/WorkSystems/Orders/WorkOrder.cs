@@ -207,19 +207,6 @@ public class WorkOrder
         taskQueue.EnqueueRange(tasks);
     }
 
-    /// <summary>
-    /// [호환성] 아직 할당되지 않은 할당 가능한 작업 대상을 반환합니다.
-    /// CanBeAssigned: 큐에 머물러야 함(IsValid) + 지금 작업 가능(IsWorkAvailable)
-    /// </summary>
-    /// <returns>대기 중인 할당 가능한 작업 대상 목록</returns>
-    public List<IWorkTarget> GetAvailableTargets()
-    {
-        return taskQueue.PendingTasks
-            .Where(t => t.CanBeAssigned())
-            .Select(t => t.target)
-            .ToList();
-    }
-
     #endregion
 
     #region 작업자 관리
@@ -343,15 +330,16 @@ public class WorkOrder
     }
 
     /// <summary>
-    /// 구역 내에 있는 Pending 태스크 목록을 반환합니다.
+    /// 구역 내에 있는, <b>이 직원이 맡을 수 있는</b> Pending 태스크 목록을 반환합니다.
+    /// 자격을 안 보면 "구역에 일이 있다"고 판단해 할당을 시도했다가 매번 빈손으로 돌아옵니다.
     /// </summary>
-    public List<WorkTask> GetPendingTasksInZone(Zone zone)
+    public List<WorkTask> GetPendingTasksInZone(Zone zone, Employee worker)
     {
         if (zone == null || taskQueue == null) return new List<WorkTask>();
 
         return taskQueue.PendingTasks.Where(t =>
         {
-            if (!t.CanBeAssigned()) return false;
+            if (!t.CanBeAssignedTo(worker)) return false;
             Vector3 pos = t.GetPosition();
             var tile = new Vector2Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y));
             return zone.ContainsTile(tile);
