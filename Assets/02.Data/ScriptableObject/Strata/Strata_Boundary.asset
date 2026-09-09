@@ -17,10 +17,23 @@ MonoBehaviour:
   description: "\uC5D0\uD14C\uB9AC\uC628 \uC7A5\uBE44\uB85C\uB9CC \uB6AB\uB294 \uC554\uBC18.
     \uB3D9\uAD74\uC774 \uC0DD\uAE30\uC9C0 \uC54A\uB294 \uD1B5\uC9DC \uCE35."
   thicknessWeight: 1
-  baseRock: 2
+  terrainMode: 0
+  baseRock: 18
+  variant: {fileID: 0}
+  variantNoiseScale: 0.012
+  variantShare: 0.45
   dirtThreshold: 1.01
   dirtNoiseScale: 0.08
   caveThreshold: 1.01
   caveNoiseScale: 0.07
+  caveStretch: 1
+  caveLensSplit: 0
+  filamentTile: 2
+  filamentScale: 0.055
+  filamentThickness: 0.2
+  filamentWarp: 14
+  filamentSecondLayer: 1
+  filamentFruitTile: 0
+  filamentFruitChance: 0.06
   baseErosion: 0
   temperatureOffset: 0

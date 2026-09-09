@@ -1,4 +1,4 @@
-/// <summary>
+﻿/// <summary>
 /// 아이템 종류 식별자.
 ///
 /// 정수값 규칙:
@@ -40,6 +40,9 @@ public enum ItemType
 
     /// <summary>침식 결정체 — 세척 시설이 직원의 침식을 씻어내며 산출합니다.</summary>
     ErosionCrystal = 105,
+
+    /// <summary>에테리온 — 에테르를 제련한 것. 태워서 직원에게 최하층 경계 채굴 자격을 새깁니다.</summary>
+    Etherion = 106,
 
     // ─── 음식 (201~250) ─────────────────────────
     Berry       = 201,

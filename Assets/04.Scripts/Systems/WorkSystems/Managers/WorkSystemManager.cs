@@ -423,7 +423,7 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
         foreach (var order in candidates)
         {
             // 작업물 내에 구역 내 태스크가 하나라도 있는지 확인
-            int zoneTaskCount = order.GetPendingTasksInZone(zone).Count;
+            int zoneTaskCount = order.GetPendingTasksInZone(zone, employee).Count;
             if (zoneTaskCount == 0)
             {
                 if (showDebugInfo)

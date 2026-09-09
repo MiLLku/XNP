@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -119,7 +119,18 @@ public class EmployeeSkillState : MonoBehaviour
             if (GetStatValue(req.stat, skill.category) < req.minValue) return false;
         }
 
+        if (!HasRequiredItem(skill)) return false;
+
         return true;
+    }
+
+    /// <summary>해제에 필요한 아이템이 창고에 있는지. 요구 아이템이 없으면 항상 true.</summary>
+    private static bool HasRequiredItem(SkillData skill)
+    {
+        if (skill.requiredItem == null || skill.requiredItemAmount <= 0) return true;
+        var inv = InventoryManager.instance;
+        if (inv == null) return false;
+        return inv.GetAvailableAmount(skill.requiredItem) >= skill.requiredItemAmount;
     }
 
     /// <summary>
@@ -239,6 +250,13 @@ public class EmployeeSkillState : MonoBehaviour
                 return $"{req.DisplayName} {req.minValue:0.##} 필요 (현재 {current:0.##})";
         }
 
+        if (!HasRequiredItem(skill))
+        {
+            int have = InventoryManager.instance != null
+                ? InventoryManager.instance.GetAvailableAmount(skill.requiredItem) : 0;
+            return $"{skill.requiredItem.itemName} {skill.requiredItemAmount}개 필요 (보유 {have}개)";
+        }
+
         return null;
     }
 
@@ -257,6 +275,24 @@ public class EmployeeSkillState : MonoBehaviour
             unlockedSkillIds.Add(skillId);
             _statsController?.RecalculateModifiers();
         }
+    }
+
+    /// <summary>
+    /// 조건을 확인하고 <b>요구 아이템을 소모한 뒤</b> 해제합니다. UI는 이걸 부릅니다.
+    /// 소모를 Unlock에 넣지 않은 이유: 세이브 복원도 Unlock을 타므로 거기서 차감하면 이중으로 빠집니다.
+    /// </summary>
+    public bool TryUnlock(SkillData skill)
+    {
+        if (skill == null || !CanUnlock(skill)) return false;
+
+        if (skill.requiredItem != null && skill.requiredItemAmount > 0)
+        {
+            var inv = InventoryManager.instance;
+            if (inv == null || !inv.RemoveItem(skill.requiredItem, skill.requiredItemAmount)) return false;
+        }
+
+        Unlock(skill.skillId);
+        return true;
     }
 
     /// <summary>
@@ -280,6 +316,27 @@ public class EmployeeSkillState : MonoBehaviour
             if (skill != null)
                 unlockedSkillIds.Remove(skill.skillId);
         }
+    }
+
+    #endregion
+
+    #region 세이브
+
+    /// <summary>해제 목록을 세이브에 담습니다.</summary>
+    public void PopulateSaveData(EmployeeSaveData data)
+    {
+        if (data == null) return;
+        data.unlockedSkillIds = new List<int>(unlockedSkillIds);
+    }
+
+    /// <summary>해제 목록을 복원합니다. 구버전 세이브(목록 없음)는 프리팹 기본값을 유지합니다.</summary>
+    public void RestoreFromSaveData(EmployeeSaveData data)
+    {
+        if (data?.unlockedSkillIds == null || data.unlockedSkillIds.Count == 0) return;
+
+        unlockedSkillIds = new List<int>(data.unlockedSkillIds);
+        ApplyDefaultUnlocks();
+        _statsController?.RecalculateModifiers();
     }
 
     #endregion

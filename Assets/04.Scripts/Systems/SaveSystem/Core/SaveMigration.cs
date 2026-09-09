@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// 세이브 파일 버전 마이그레이션
@@ -7,7 +7,7 @@ using UnityEngine;
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 12;
+    public const int CURRENT_VERSION = 13;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -62,6 +62,9 @@ public static class SaveMigration
                     break;
                 case 11:
                     data = MigrateV11ToV12(data);
+                    break;
+                case 12:
+                    data = MigrateV12ToV13(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -534,6 +537,29 @@ public static class SaveMigration
 
         Debug.Log($"[SaveMigration] v12 완료 — 침식 유지 수치를 기본값으로 채운 직원 {count}명");
         data.saveVersion = 12;
+        return data;
+    }
+
+    /// <summary>
+    /// v12 → v13: 직원별 해제 스킬 목록을 세이브에 담기 시작.
+    /// 지금까지 스킬 해제는 저장되지 않아 불러오면 프리팹 기본값으로 되돌아갔습니다.
+    /// 구 세이브에는 목록이 없으므로 빈 목록을 넣어 두면 복원 쪽이 프리팹 기본값을 그대로 씁니다
+    /// (= 예전과 같은 동작).
+    /// </summary>
+    private static SaveData MigrateV12ToV13(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v12 → v13 마이그레이션 시작 (직원 스킬 해제 목록 추가)...");
+
+        if (data.employees != null)
+        {
+            foreach (var emp in data.employees)
+            {
+                if (emp != null && emp.unlockedSkillIds == null)
+                    emp.unlockedSkillIds = new System.Collections.Generic.List<int>();
+            }
+        }
+
+        data.saveVersion = 13;
         return data;
     }
 

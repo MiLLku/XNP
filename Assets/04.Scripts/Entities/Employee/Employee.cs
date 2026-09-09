@@ -648,6 +648,7 @@ public class Employee : MonoBehaviour
         draft?.PopulateSaveData(saveData);
         combat?.PopulateSaveData(saveData);
         zoneAssignment?.PopulateSaveData(saveData);
+        skillState?.PopulateSaveData(saveData);
 
         // 무작위 생성 직원은 GameDatabase로 복원할 수 없으므로 생성 스냅샷을 함께 저장
         if (employeeData != null && RandomEmployeeGenerator.IsGeneratedId(employeeData.employeeID))
@@ -690,6 +691,7 @@ public class Employee : MonoBehaviour
         draft?.RestoreFromSaveData(data);
         combat?.RestoreFromSaveData(data);
         zoneAssignment?.RestoreFromSaveData(data);
+        skillState?.RestoreFromSaveData(data);
 
         UpdateVisualState();
 

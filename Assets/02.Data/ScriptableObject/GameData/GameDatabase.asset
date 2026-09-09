@@ -71,6 +71,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
   - {fileID: 11400000, guid: 09ce745046665d24b87c78a7fc2e7848, type: 2}
   - {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
+  - {fileID: 11400000, guid: 94bfaf90d1b03aa40a345c881c0bb61f, type: 2}
   allRecipeData:
   - {fileID: 11400000, guid: 80b1b536a9aedbb4d8995fb0482a92d3, type: 2}
   - {fileID: 11400000, guid: ae763cc660863294890b8083b261d75f, type: 2}
@@ -79,6 +80,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 64ed58199e79ca04f94c0bdf643b8a94, type: 2}
   - {fileID: 11400000, guid: 9ba52449e339c594b95d3afb84b25097, type: 2}
   - {fileID: 11400000, guid: a5c2840932df63d40b6b2bf29a373099, type: 2}
+  - {fileID: 11400000, guid: 3376dff014c7c2e41a52e8622107c6ca, type: 2}
   allXenopsData:
   - {fileID: 11400000, guid: 085925dc2a0b8564a8e33ec85c9f3b8b, type: 2}
   - {fileID: 11400000, guid: 237e7e935c558ad48a5a1021c4e97292, type: 2}
