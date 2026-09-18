@@ -117,6 +117,46 @@ public class StrataLayout
         return 0;
     }
 
+    /// <summary>
+    /// 실수 높이 <paramref name="y"/>가 속한 층(<paramref name="a"/>)과, 경계에서 <paramref name="halfWidth"/>칸 안이면
+    /// 건너편 층(<paramref name="b"/>)·섞는 비율(<paramref name="t"/>, 0~0.5)을 돌려줍니다.
+    /// 경계 정확히 위에서 t=0.5라 양쪽에서 계산한 값이 이어집니다.
+    ///
+    /// 둘 중 하나라도 <see cref="StrataDefinition.sealedEdges"/>면 섞지 않습니다(t=0).
+    /// 전이 폭은 두 층 중 얇은 쪽 두께의 절반을 넘지 않습니다 — 넘으면 반대편 전이와 겹칩니다.
+    /// </summary>
+    public void Blend(float y, float halfWidth, out StrataDefinition a, out StrataDefinition b, out float t)
+    {
+        int yi = Mathf.RoundToInt(y);
+        a = At(yi);
+        b = a;
+        t = 0f;
+        if (a == null || halfWidth <= 0f) return;
+
+        for (int i = 0; i < bands.Count; i++)
+        {
+            Band band = bands[i];
+            if (yi < band.bottomY || yi > band.topY) continue;
+
+            float toTop = band.topY + 0.5f - y;
+            float toBottom = y - (band.bottomY - 0.5f);
+
+            int other = toTop < toBottom ? i - 1 : i + 1;
+            float dist = toTop < toBottom ? toTop : toBottom;
+            if (other < 0 || other >= bands.Count) return;
+
+            Band neighbor = bands[other];
+            if (band.definition.sealedEdges || neighbor.definition.sealedEdges) return;
+
+            float width = Mathf.Min(halfWidth, Mathf.Min(band.Thickness, neighbor.Thickness) * 0.5f);
+            if (dist >= width) return;
+
+            b = neighbor.definition;
+            t = 0.5f * (1f - Mathf.Max(0f, dist) / width);
+            return;
+        }
+    }
+
     /// <summary>디버그용 한 줄 요약</summary>
     public string Describe()
     {
