@@ -393,12 +393,10 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
             ? TerrainErosionManager.instance.GetOutdoorErosionAt(room.AverageX)
             : 0f;
 
-        // 지층 자체가 더러우면(침식 동굴 변종 등) 그쪽을 따른다
-        var strata = MapGenerator.instance != null
-            ? MapGenerator.instance.StrataAt(Mathf.RoundToInt(room.AverageX), Mathf.RoundToInt(room.AverageY))
-            : null;
-        if (strata != null && strata.baseErosion > outdoorErosion)
-            outdoorErosion = strata.baseErosion;
+        // 지층 자체가 더러우면(침식 동굴 변종 등) 그쪽을 따른다 — 경계에선 두 층 사이 값
+        if (MapGenerator.instance != null)
+            outdoorErosion = Mathf.Max(outdoorErosion, MapGenerator.instance.StrataErosionAt(
+                Mathf.RoundToInt(room.AverageX), Mathf.RoundToInt(room.AverageY)));
 
         float temperatureSum = 0f;
         float erosionSum = 0f;

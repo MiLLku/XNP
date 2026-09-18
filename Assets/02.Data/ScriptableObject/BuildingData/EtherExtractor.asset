@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
   m_Name: EtherExtractor
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  buildingID: 3007
+  buildingID: 3012
   buildingName: "\uC5D0\uD14C\uB974 \uCD94\uCD9C\uAE30"
   icon: {fileID: 0}
   category: 1

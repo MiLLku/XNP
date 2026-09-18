@@ -400,7 +400,8 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
 
     /// <summary>
     /// 해당 칸의 환경 침식 수치.
-    /// 방 안이면 그 방의 침식, <b>실외면 그 X 위치의 실외 침식</b>입니다.
+    /// 방 안이면 그 방의 침식, <b>실외면 그 X 위치의 실외 침식과 그 칸 지층 침식 중 큰 쪽</b>입니다.
+    /// 지표와 뚫린 갱도라도 침식 동굴로 파고들면 그 층만큼 더러워집니다(경계에선 서서히).
     ///
     /// 환경 노출을 읽는 곳이 여기 하나뿐이라(<c>EmployeeErosionController.UpdateAmbientErosion</c>),
     /// 좌우 그라디언트는 이 한 줄만 바꾸면 전체에 적용됩니다.
@@ -408,7 +409,10 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
     public float GetRoomErosionAt(int x, int y)
     {
         Room room = RoomManager.instance != null ? RoomManager.instance.GetRoom(x, y) : null;
-        return room != null ? room.Erosion : GetOutdoorErosionAt(x);
+        if (room != null) return room.Erosion;
+
+        float strata = MapGenerator.instance != null ? MapGenerator.instance.StrataErosionAt(x, y) : 0f;
+        return Mathf.Max(GetOutdoorErosionAt(x), strata);
     }
 
     /// <summary>

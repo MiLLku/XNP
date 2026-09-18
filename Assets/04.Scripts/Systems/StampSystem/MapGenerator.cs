@@ -37,6 +37,10 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [SerializeField] [Range(0f, 40f)] private float strataBoundaryAmplitude = 12f;
     [Tooltip("경계 흔들림의 스케일. 작을수록 완만하게 굽이치고, 크면 잘게 들쭉날쭉해집니다.")]
     [SerializeField] [Range(0.005f, 0.1f)] private float strataBoundaryScale = 0.022f;
+    [Tooltip("층 경계 위아래로 서서히 섞이는 폭(칸, 한쪽). 0이면 딱 끊깁니다. 봉인 경계(sealedEdges) 층은 늘 딱 끊깁니다.")]
+    [SerializeField] [Range(0f, 20f)] private float strataBlendWidth = 8f;
+    [Tooltip("가로 변종 띠 경계가 섞이는 폭(변종 노이즈 값 단위, 한쪽). 0이면 딱 끊깁니다.")]
+    [SerializeField] [Range(0f, 0.2f)] private float variantBlendWidth = 0.05f;
     // ── 광맥·식생물 배치 값은 정의 에셋으로 옮겼습니다 ─────────────────────────
     //   광물 지층(깊이·노이즈·희귀도) → TileDefinition의 "광맥 생성" 항목
     //   나무·베리 덤불·침식 식물     → EntityDefinition의 "맵 생성 배치" 항목
@@ -305,32 +309,47 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     {
         if (y > currentHeight) return AIR_ID;
 
-        StrataDefinition strata = StrataAt(x, y);
+        StrataSample s = SampleStrata(x, y);
 
-        if (strata != null && strata.terrainMode == StrataTerrainMode.FilamentWeb)
-            return GetFilamentTile(x, y, strata);
+        if (s.a == null)
+        {
+            // 지층 미등록 — 인스펙터의 단일 파라미터로 예전처럼
+            if (CaveNoise(x, y, caveNoiseScale, 1f) > caveThreshold) return AIR_ID;
+            if (y >= currentHeight - surfaceDirtDepth) return DIRT_ID;
+            float legacyDirt = Mathf.PerlinNoise(x * dirtNoiseScale + _dirtOffsetX, y * dirtNoiseScale + _dirtOffsetY);
+            return legacyDirt > dirtThreshold ? DIRT_ID : STONE_ID;
+        }
 
-        float caveScale = strata != null ? strata.caveNoiseScale : caveNoiseScale;
-        float caveLimit = strata != null ? strata.caveThreshold  : caveThreshold;
-        float dirtScale = strata != null ? strata.dirtNoiseScale : dirtNoiseScale;
-        float dirtLimit = strata != null ? strata.dirtThreshold  : dirtThreshold;
-        int   baseRock  = strata != null ? strata.BaseRockId     : STONE_ID;
+        StrataDefinition a = s.a, b = s.b;
+        float t = s.t;
 
-        // 가로로 늘이기 — x를 느리게 훑으면 무늬가 그만큼 옆으로 길어진다
-        float stretch = strata != null ? Mathf.Max(1f, strata.caveStretch) : 1f;
-        float lens    = strata != null ? strata.caveLensSplit : 0f;
+        // 덩굴망은 암반+동굴과 섞을 방법이 없다 — 끼어 있으면 우세한 쪽만 쓴다
+        // (실제로는 최하층이 봉인된 경계층 옆이라 섞일 일이 없다)
+        if (a.terrainMode == StrataTerrainMode.FilamentWeb || b.terrainMode == StrataTerrainMode.FilamentWeb)
+        {
+            a = b = s.Dominant;
+            t = 0f;
+            if (a.terrainMode == StrataTerrainMode.FilamentWeb) return GetFilamentTile(x, y, a);
+        }
 
-        if (IsCaveOpen(x, y, caveScale, stretch, caveLimit, lens)) return AIR_ID;
+        // 파라미터가 아니라 "얼마나 열렸나(여유값)"를 섞는다.
+        // 스케일·늘이기를 섞으면 노이즈 좌표가 비틀려 경계에 줄무늬가 생긴다.
+        // 여유값을 섞으면 한쪽 층의 공동이 반대쪽 층의 모양으로 변해 가며 이어진다.
+        float cave = t > 0f
+            ? BlendedMargin(CaveValue(x, y, a), a.caveThreshold, CaveValue(x, y, b), b.caveThreshold, t)
+            : CaveValue(x, y, a) - a.caveThreshold;
+        if (cave > 0f) return AIR_ID;
 
         // 지표 바로 아래는 지층과 무관하게 흙 — 잔디가 덮이는 층이다
         if (y >= currentHeight - surfaceDirtDepth) return DIRT_ID;
 
-        float dirtNoise = Mathf.PerlinNoise((x * dirtScale) + _dirtOffsetX,
-                                             (y * dirtScale) + _dirtOffsetY);
-        if (dirtNoise > dirtLimit) return DIRT_ID;
+        float dirt = t > 0f
+            ? BlendedMargin(DirtValue(x, y, a), a.dirtThreshold, DirtValue(x, y, b), b.dirtThreshold, t)
+            : DirtValue(x, y, a) - a.dirtThreshold;
+        if (dirt > 0f) return DIRT_ID;
 
         // 광물은 PlaceMineralClusters()에서 군집(2~6타일)으로 배치
-        return baseRock;
+        return PickBaseRock(x, y, a, b, t);
     }
     
     private void ConvertSurfaceDirtToGrass(int[] groundHeightMap)
@@ -751,35 +770,88 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     }
 
     /// <summary>
-    /// 이 칸이 속한 지층 — 경계를 노이즈로 <b>흔들어서</b> 찾습니다.
-    ///
-    /// 층 경계를 Y로 딱 자르면 자로 그은 듯한 일직선이 나와 지형이 인공적으로 보입니다.
-    /// 조회에 쓰는 Y를 노이즈만큼 밀어 주면 같은 경계가 굽이치고, 층 사이에 서로 파고든
-    /// 주머니도 생겨 훨씬 자연스러워집니다.
+    /// 칸 하나의 지층 조회 결과 — 경계 근처면 <b>두 층과 섞는 비율</b>입니다.
+    /// t=0이면 a층 그대로, t=1이면 b층 그대로. 경계 한가운데에서 0.5.
     /// </summary>
-    public StrataDefinition StrataAt(int x, int y)
+    private struct StrataSample
     {
-        if (_strata == null) return null;
-        if (strataBoundaryAmplitude <= 0f) return ApplyVariant(x, _strata.At(y));
+        public StrataDefinition a, b;
+        public float t;
 
-        // ⚠️ 진폭을 그 층 두께에 맞춰 조인다.
-        //    경계층은 15칸뿐이라 ±12칸을 흔들면 위아래 층이 그대로 배어들어
-        //    "뚫리지 않는 장벽"이라는 설계가 통째로 무너진다.
-        //    두께의 1/4로 제한하면 층 한가운데 절반은 항상 자기 층으로 남는다.
-        int thickness = _strata.ThicknessAt(y);
-        float amplitude = thickness > 0
-            ? Mathf.Min(strataBoundaryAmplitude, thickness * 0.25f)
-            : strataBoundaryAmplitude;
-
-        // y도 섞되 비중을 낮춘다 — 순수 x 함수면 모든 경계가 똑같은 모양으로 평행하게 굽이친다
-        float n = Mathf.PerlinNoise(x * strataBoundaryScale + _boundaryOffsetX,
-                                    y * strataBoundaryScale * 0.35f + _boundaryOffsetY);
-        int warped = y + Mathf.RoundToInt((n - 0.5f) * 2f * amplitude);
-        return ApplyVariant(x, _strata.At(warped));
+        /// <summary>더 가까운 쪽 층. 층 하나만 필요한 곳(방 초기화·벤트 되돌리기·디버그)이 씁니다.</summary>
+        public StrataDefinition Dominant => t < 0.5f ? a : b;
     }
 
     /// <summary>
-    /// 같은 층 안에서 가로로 번갈아 나타나는 변종을 고릅니다.
+    /// 이 칸이 속한 지층 — 경계 근처에서는 <b>우세한 쪽</b>입니다.
+    /// 침식처럼 경계에서 이어져야 하는 값은 <see cref="StrataErosionAt"/>을 씁니다.
+    /// </summary>
+    public StrataDefinition StrataAt(int x, int y) => SampleStrata(x, y).Dominant;
+
+    /// <summary>
+    /// 층의 기본 침식 — 경계에서 <b>서서히 이어지는</b> 값입니다(바위동굴 0 → 침식동굴 변종 30이 한 칸에 튀지 않음).
+    /// 봉인 경계(경계층↔최하층)에서는 그대로 끊깁니다.
+    /// </summary>
+    public float StrataErosionAt(int x, int y)
+    {
+        StrataSample s = SampleStrata(x, y);
+        if (s.a == null) return 0f;
+        return Mathf.Lerp(s.a.baseErosion, s.b.baseErosion, s.t);
+    }
+
+    /// <summary>
+    /// 칸의 지층과 섞는 비율을 구합니다.
+    ///
+    /// 1) 경계를 노이즈로 <b>흔듭니다</b> — 자로 그은 일직선을 굽이치게.
+    /// 2) 흔들린 경계에서 <see cref="strataBlendWidth"/>칸 안이면 위아래 층을 섞습니다.
+    /// 3) 층 한가운데면 가로 변종 경계를 섞습니다. 위아래 전이와 겹치는 칸은 변종을 딱 고릅니다(드물다).
+    /// </summary>
+    private StrataSample SampleStrata(int x, int y)
+    {
+        var s = new StrataSample();
+        if (_strata == null) return s;
+
+        float warped = y;
+        if (strataBoundaryAmplitude > 0f)
+        {
+            // ⚠️ 진폭을 그 층 두께에 맞춰 조인다.
+            //    경계층은 15칸뿐이라 ±12칸을 흔들면 위아래 층이 그대로 배어들어
+            //    "뚫리지 않는 장벽"이라는 설계가 통째로 무너진다.
+            //    두께의 1/4로 제한하면 층 한가운데 절반은 항상 자기 층으로 남는다.
+            int thickness = _strata.ThicknessAt(y);
+            float amplitude = thickness > 0
+                ? Mathf.Min(strataBoundaryAmplitude, thickness * 0.25f)
+                : strataBoundaryAmplitude;
+
+            // y도 섞되 비중을 낮춘다 — 순수 x 함수면 모든 경계가 똑같은 모양으로 평행하게 굽이친다
+            float n = Mathf.PerlinNoise(x * strataBoundaryScale + _boundaryOffsetX,
+                                        y * strataBoundaryScale * 0.35f + _boundaryOffsetY);
+            warped = y + Mathf.RoundToInt((n - 0.5f) * 2f * amplitude);
+        }
+
+        _strata.Blend(warped, strataBlendWidth, out s.a, out s.b, out s.t);
+        if (s.a == null) return s;
+
+        if (s.t > 0f || variantBlendWidth <= 0f)
+        {
+            s.a = ApplyVariant(x, s.a);
+            s.b = ApplyVariant(x, s.b);
+            return s;
+        }
+
+        // 층 한가운데 — 가로 변종 띠의 경계를 섞는다
+        StrataDefinition def = s.a;
+        if (def.variant == null || def.variantShare <= 0f) return s;
+
+        float v = Mathf.PerlinNoise(x * def.variantNoiseScale + _variantOffsetX, _variantOffsetY);
+        float w = Mathf.Clamp01(0.5f + (v - (1f - def.variantShare)) / (2f * variantBlendWidth));
+        if (w >= 1f) { s.a = s.b = def.variant; return s; }
+        if (w > 0f) { s.b = def.variant; s.t = w; }
+        return s;
+    }
+
+    /// <summary>
+    /// 같은 층 안에서 가로로 번갈아 나타나는 변종을 딱 고릅니다(섞지 않음).
     /// x 1D 노이즈라 세로 띠가 생깁니다 — "이 구간은 광물층, 저 구간은 침식 동굴".
     /// </summary>
     private StrataDefinition ApplyVariant(int x, StrataDefinition def)
@@ -791,21 +863,55 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     }
 
     /// <summary>
-    /// 이 칸이 동굴(빈 공간)인지.
+    /// 두 층의 노이즈 판정을 섞은 여유값 — 0보다 크면 열림(동굴·흙).
     ///
-    /// <paramref name="lens"/>가 0이면 평범한 노이즈 임계 판정입니다.
-    /// 0보다 크면 같은 노이즈를 <b>위아래로 어긋나게 두 번</b> 뽑아 둘 다 열린 곳만 파냅니다 —
+    /// ⚠️ 여유값을 그냥 lerp하면 안 된다. 두 층은 스케일이 달라 사실상 서로 무관한 노이즈라
+    ///    평균을 내면 값이 가운데로 몰린다(t=0.5에서 분산 절반). 그러면 임계를 넘는 칸이 줄어
+    ///    <b>경계마다 동굴 없는 암반 띠</b>가 생긴다(실측: 공기 20% → 5% → 25%).
+    ///    평균(0.5)에서의 편차를 섞은 뒤 줄어든 폭만큼 다시 늘려 분산을 지킨다.
+    /// </summary>
+    private static float BlendedMargin(float va, float limitA, float vb, float limitB, float t)
+    {
+        float spread = 1f / Mathf.Sqrt((1f - t) * (1f - t) + t * t);
+        float value = Mathf.Lerp(va - 0.5f, vb - 0.5f, t) * spread;
+        float limit = Mathf.Lerp(limitA - 0.5f, limitB - 0.5f, t);
+        return value - limit;
+    }
+
+    /// <summary>
+    /// 이 칸의 이 층 동굴 노이즈 값 — 층의 <c>caveThreshold</c>를 넘으면 동굴(빈 공간)입니다.
+    ///
+    /// <c>caveLensSplit</c>이 0보다 크면 같은 노이즈를 <b>위아래로 어긋나게 두 번</b> 뽑아 작은 쪽을 씁니다 —
     /// 두 타원의 교집합이라 위아래가 눌리고 <b>좌우 끝이 뾰족한 눈동자</b>가 됩니다.
-    ///
     /// 임계값만 올리는 방법으로는 이 모양이 안 나옵니다. Perlin은 봉우리 근처가 매끄러워
     /// 등고선이 타원이라, 높게 자를수록 <b>작아질 뿐 여전히 둥급니다</b>(실측 충전율 0.71~0.76 고정).
     /// </summary>
-    private bool IsCaveOpen(int x, float y, float scale, float stretch, float limit, float lens)
+    private float CaveValue(int x, int y, StrataDefinition d)
     {
-        if (lens <= 0f) return CaveNoise(x, y, scale, stretch) > limit;
+        float stretch = Mathf.Max(1f, d.caveStretch);
+        float lens = d.caveLensSplit;
+        return lens <= 0f
+            ? CaveNoise(x, y, d.caveNoiseScale, stretch)
+            : Mathf.Min(CaveNoise(x, y - lens, d.caveNoiseScale, stretch),
+                        CaveNoise(x, y + lens, d.caveNoiseScale, stretch));
+    }
 
-        return CaveNoise(x, y - lens, scale, stretch) > limit
-            && CaveNoise(x, y + lens, scale, stretch) > limit;
+    /// <summary>이 칸의 이 층 흙 노이즈 값 — 층의 <c>dirtThreshold</c>를 넘으면 흙.</summary>
+    private float DirtValue(int x, int y, StrataDefinition d)
+        => Mathf.PerlinNoise(x * d.dirtNoiseScale + _dirtOffsetX, y * d.dirtNoiseScale + _dirtOffsetY);
+
+    /// <summary>
+    /// 두 층의 기반 암석이 다르면(침식동굴 변종의 흙 ↔ 돌) 비율만큼 b층 암석을 섞습니다.
+    /// 칸마다 동전을 던지면 소금·후추처럼 점점이 박히므로 <b>저주파 노이즈</b>로 덩어리째 파고들게 합니다.
+    /// Perlin 값은 0.5 근처로 몰려 있어 0.25~0.75를 0~1로 펴서 비교합니다.
+    /// </summary>
+    private int PickBaseRock(int x, int y, StrataDefinition a, StrataDefinition b, float t)
+    {
+        if (t <= 0f || a.BaseRockId == b.BaseRockId) return a.BaseRockId;
+
+        float n = Mathf.InverseLerp(0.25f, 0.75f,
+            Mathf.PerlinNoise(x * 0.15f + _warpOffsetY, y * 0.15f + _boundaryOffsetX));
+        return n < t ? b.BaseRockId : a.BaseRockId;
     }
 
     private float CaveNoise(float x, float y, float scale, float stretch)
@@ -867,12 +973,17 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     /// </summary>
     private bool IsVeinHost(int x, int y)
     {
-        StrataDefinition strata = StrataAt(x, y);
-        if (strata != null && !strata.HostsVeins) return false;   // 덩굴망 층엔 기반 암석이 없다
+        StrataSample s = SampleStrata(x, y);
+        int tile = _gameMap.TileGrid[x, y];
+        if (s.a == null) return tile == STONE_ID;
 
-        int host = strata != null ? strata.BaseRockId : STONE_ID;
-        return _gameMap.TileGrid[x, y] == host;
+        // 경계에선 두 층의 암석이 섞여 있다 — 어느 쪽 암석이든 받아 준다.
+        // 우세한 쪽만 보면 섞여 들어간 암석 위에서 광맥이 조용히 사라진다.
+        return HostsVeinOn(s.a, tile) || (s.t > 0f && HostsVeinOn(s.b, tile));
     }
+
+    /// <summary>덩굴망 층엔 기반 암석이 없어 광맥을 받지 않는다</summary>
+    private static bool HostsVeinOn(StrataDefinition d, int tile) => d.HostsVeins && tile == d.BaseRockId;
 
     /// <summary>
     /// 씨앗 위치에서 무작위 확장(Random Walk)으로 광물 군집을 형성합니다.

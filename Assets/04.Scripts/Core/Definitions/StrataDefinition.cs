@@ -40,6 +40,9 @@ public class StrataDefinition : ScriptableObject
              "0이면 이 층은 생성되지 않습니다.")]
     [Min(0)] public int thicknessWeight = 4;
 
+    [Tooltip("켜면 위아래 층과 서서히 섞이지 않고 딱 끊깁니다. 뚫리면 안 되는 장벽(경계층)에 씁니다.")]
+    public bool sealedEdges = false;
+
     #endregion
 
     #region 지형
@@ -145,8 +148,11 @@ public class StrataDefinition : ScriptableObject
     /// <summary>줄기 타일의 raw ID</summary>
     public int FilamentTileId => (int)filamentTile;
 
-    /// <summary>광맥 씨앗을 받을 수 있는 층인지 — 덩굴망 층은 기반 암석이 없어 불가능합니다.</summary>
-    public bool HostsVeins => terrainMode == StrataTerrainMode.SolidWithCaves;
+    /// <summary>
+    /// 광맥 씨앗을 받을 수 있는 층인지. 덩굴망 층은 기반 암석이 없어 불가능하고,
+    /// 봉인 층은 광맥이 박히면 그 칸만 낮은 자격으로 뚫려 장벽이 얇아지므로 받지 않습니다.
+    /// </summary>
+    public bool HostsVeins => terrainMode == StrataTerrainMode.SolidWithCaves && !sealedEdges;
 }
 
 /// <summary>지층의 지형 생성 방식</summary>

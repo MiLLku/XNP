@@ -17,6 +17,7 @@ MonoBehaviour:
   description: "\uC5D0\uD14C\uB9AC\uC628 \uC7A5\uBE44\uB85C\uB9CC \uB6AB\uB294 \uC554\uBC18.
     \uB3D9\uAD74\uC774 \uC0DD\uAE30\uC9C0 \uC54A\uB294 \uD1B5\uC9DC \uCE35."
   thicknessWeight: 1
+  sealedEdges: 1
   terrainMode: 0
   baseRock: 18
   variant: {fileID: 0}
