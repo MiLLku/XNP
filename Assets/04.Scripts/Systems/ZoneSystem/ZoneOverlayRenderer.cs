@@ -64,6 +64,8 @@ public class ZoneOverlayRenderer : DestroySingleton<ZoneOverlayRenderer>
             GameMessageBus.Subscribe<ZoneTilesChangedMessage>(m => HandleZoneChanged(m.zoneId)),
             GameMessageBus.Subscribe<ZoneCreatedMessage>(m => HandleZoneCreated(m.zone)),
             GameMessageBus.Subscribe<ZoneDeletedMessage>(m => HandleZoneChanged(m.zoneId)),
+            // 편집 대상이 바뀌면 칠할 구역도 바뀐다 (편집 중엔 그 구역만 보여준다)
+            GameMessageBus.Subscribe<EditingZoneChangedMessage>(m => HandleZoneChanged(m.zoneId)),
             GameMessageBus.Subscribe<InteractionModeChangedMessage>(m => HandleModeChanged(m.mode)));
 
         SetVisible(alwaysVisible);
@@ -120,7 +122,12 @@ public class ZoneOverlayRenderer : DestroySingleton<ZoneOverlayRenderer>
 
     #region 그리기
 
-    /// <summary>모든 구역을 다시 칠합니다.</summary>
+    /// <summary>
+    /// 구역을 다시 칠합니다.
+    ///
+    /// <b>확장/축소로 구역 하나를 편집 중이면 그 구역만 칠합니다.</b>
+    /// 구역은 서로 겹칠 수 있어서 전부 칠하면 지금 고치는 게 어디까지인지 보이지 않습니다.
+    /// </summary>
     public void Redraw()
     {
         Clear();
@@ -128,9 +135,13 @@ public class ZoneOverlayRenderer : DestroySingleton<ZoneOverlayRenderer>
         if (overlayTilemap == null || overlayTile == null) return;
         if (ZoneManager.instance == null) return;
 
+        int editingId = InteractionManager.instance != null
+            ? InteractionManager.instance.EditingZoneId : -1;
+
         foreach (var zone in ZoneManager.instance.GetAllZones())
         {
             if (zone == null) continue;
+            if (editingId >= 0 && zone.zoneId != editingId) continue;
 
             Color color = zone.displayColor;
             color.a = alpha;

@@ -443,8 +443,8 @@ public class TilePathfinder
         // toZoneId == -1 (구역 미지정 = 중립 타일)은 항상 통과 허용
         if (options != null && options.allowedZoneIds != null && ZoneManager.instance != null)
         {
-            int toZoneId = ZoneManager.instance.GetZoneIdAt(to);
-            if (toZoneId >= 0 && !options.allowedZoneIds.Contains(toZoneId))
+            // 구역은 겹칠 수 있으므로 '이 타일의 구역'을 하나로 묻지 않는다
+            if (!ZoneManager.instance.IsTileAllowed(to, options.allowedZoneIds))
                 return float.MaxValue;
         }
 
