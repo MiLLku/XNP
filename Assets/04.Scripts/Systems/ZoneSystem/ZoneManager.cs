@@ -28,8 +28,10 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
     /// <summary>등록된 모든 구역 (zoneId → Zone)</summary>
     private Dictionary<int, Zone> zones = new Dictionary<int, Zone>();
 
-    /// <summary>타일 → 구역ID 매핑 (한 타일은 하나의 구역에만 속함)</summary>
-    private Dictionary<Vector2Int, int> tileToZoneId = new Dictionary<Vector2Int, int>();
+    // 타일 → 구역 역인덱스는 두지 않습니다.
+    // 구역은 서로 <b>겹칠 수 있어야</b> 하므로(구역 2를 구역 1 위에 겹쳐 그려도 구역 1은 그대로)
+    // 타일 하나에 구역 하나를 적어두는 표가 성립하지 않습니다.
+    // 조회는 구역들의 HashSet을 훑습니다 — 구역은 플레이어가 만드는 것이라 수가 적습니다.
 
     /// <summary>다음 구역 ID</summary>
     private int nextZoneId = 1;
@@ -84,13 +86,6 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
     {
         if (!zones.TryGetValue(zoneId, out Zone zone)) return;
 
-        // 타일 매핑 제거
-        foreach (var tile in zone.tiles)
-        {
-            if (tileToZoneId.TryGetValue(tile, out int mappedId) && mappedId == zoneId)
-                tileToZoneId.Remove(tile);
-        }
-
         zones.Remove(zoneId);
         ZoneVersion++;
         GameMessageBus.Publish(new ZoneDeletedMessage(zoneId));
@@ -105,43 +100,26 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
     /// <summary>
     /// 구역에 타일을 추가합니다.
-    /// 타일이 이미 다른 구역에 속해 있으면 기존 구역에서 제거됩니다.
+    /// 그 타일이 다른 구역에도 속해 있으면 <b>양쪽 모두에 속합니다</b> — 구역은 겹칠 수 있습니다.
     /// </summary>
     public void AddTileToZone(int zoneId, Vector2Int tile)
     {
         if (!zones.TryGetValue(zoneId, out Zone zone)) return;
 
-        // 기존 구역에서 제거
-        if (tileToZoneId.TryGetValue(tile, out int existingZoneId) && existingZoneId != zoneId)
-        {
-            if (zones.TryGetValue(existingZoneId, out Zone existingZone))
-            {
-                existingZone.RemoveTile(tile);
-                existingZone.RecalculateBounds();
-                ZoneVersion++;
-                GameMessageBus.Publish(new ZoneTilesChangedMessage(existingZoneId));
-            }
-        }
-
         zone.AddTile(tile);
-        tileToZoneId[tile] = zoneId;
         zone.RecalculateBounds();
         ZoneVersion++;
         GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
     }
 
     /// <summary>
-    /// 구역에서 타일을 제거합니다.
+    /// 구역에서 타일을 제거합니다. 다른 구역의 같은 타일은 그대로 둡니다.
     /// </summary>
     public void RemoveTileFromZone(int zoneId, Vector2Int tile)
     {
         if (!zones.TryGetValue(zoneId, out Zone zone)) return;
 
         zone.RemoveTile(tile);
-
-        if (tileToZoneId.TryGetValue(tile, out int mappedId) && mappedId == zoneId)
-            tileToZoneId.Remove(tile);
-
         zone.RecalculateBounds();
         ZoneVersion++;
         GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
@@ -149,64 +127,17 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
     /// <summary>
     /// 여러 타일을 한 번에 구역에 추가합니다 (드래그 칠하기).
+    /// 겹치는 구역이 있어도 그쪽에서 빼앗지 않습니다.
     /// </summary>
     public void AddTilesToZone(int zoneId, IEnumerable<Vector2Int> tiles)
     {
         if (!zones.TryGetValue(zoneId, out Zone zone)) return;
 
-        foreach (var tile in tiles)
-        {
-            if (tileToZoneId.TryGetValue(tile, out int existingId) && existingId != zoneId)
-            {
-                if (zones.TryGetValue(existingId, out Zone existingZone))
-                    existingZone.RemoveTile(tile);
-            }
-
-            zone.AddTile(tile);
-            tileToZoneId[tile] = zoneId;
-        }
+        foreach (var tile in tiles) zone.AddTile(tile);
 
         zone.RecalculateBounds();
         ZoneVersion++;
         GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
-    }
-
-    /// <summary>
-    /// 여러 타일을 소속 구역에서 한 번에 제거합니다 (드래그 지우기).
-    /// 타일마다 소속 구역이 다를 수 있으므로 구역별로 모아 처리합니다.
-    /// </summary>
-    /// <returns>실제로 제거된 타일 수</returns>
-    public int RemoveTilesFromZones(IEnumerable<Vector2Int> tiles)
-    {
-        var touched = new HashSet<int>();
-        int removed = 0;
-
-        foreach (var tile in tiles)
-        {
-            if (!tileToZoneId.TryGetValue(tile, out int zoneId)) continue;
-
-            if (zones.TryGetValue(zoneId, out Zone zone))
-            {
-                zone.RemoveTile(tile);
-                touched.Add(zoneId);
-                removed++;
-            }
-            tileToZoneId.Remove(tile);
-        }
-
-        if (removed == 0) return 0;
-
-        foreach (int zoneId in touched)
-        {
-            if (zones.TryGetValue(zoneId, out Zone zone))
-                zone.RecalculateBounds();
-        }
-
-        ZoneVersion++;
-        foreach (int zoneId in touched)
-            GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
-
-        return removed;
     }
 
     /// <summary>
@@ -227,10 +158,9 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
         int removed = 0;
         foreach (var tile in tiles)
         {
-            if (!tileToZoneId.TryGetValue(tile, out int mappedId) || mappedId != zoneId) continue;
+            if (!zone.ContainsTile(tile)) continue;
 
             zone.RemoveTile(tile);
-            tileToZoneId.Remove(tile);
             removed++;
         }
 
@@ -244,21 +174,18 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
     /// <summary>
     /// 타일이 파괴되었을 때 호출합니다 (채굴/건설 등).
-    /// 해당 타일의 구역 매핑을 자동 제거합니다.
+    /// 그 타일을 품고 있던 <b>모든</b> 구역에서 빼냅니다.
     /// </summary>
     public void OnTileDestroyed(Vector2Int tile)
     {
-        if (tileToZoneId.TryGetValue(tile, out int zoneId))
+        foreach (var zone in zones.Values)
         {
-            if (zones.TryGetValue(zoneId, out Zone zone))
-            {
-                zone.RemoveTile(tile);
-                zone.RecalculateBounds();
-                ZoneVersion++;
-                GameMessageBus.Publish(new ZoneTilesChangedMessage(zoneId));
-            }
+            if (!zone.ContainsTile(tile)) continue;
 
-            tileToZoneId.Remove(tile);
+            zone.RemoveTile(tile);
+            zone.RecalculateBounds();
+            ZoneVersion++;
+            GameMessageBus.Publish(new ZoneTilesChangedMessage(zone.zoneId));
         }
     }
 
@@ -273,18 +200,39 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
         return zone;
     }
 
-    /// <summary>타일 좌표에 있는 구역을 반환합니다 (없으면 null).</summary>
-    public Zone GetZoneAt(Vector2Int tile)
-    {
-        if (tileToZoneId.TryGetValue(tile, out int zoneId))
-            return GetZone(zoneId);
-        return null;
-    }
-
-    /// <summary>타일 좌표의 구역 ID를 반환합니다 (없으면 -1).</summary>
+    /// <summary>
+    /// 타일 좌표의 구역 ID를 반환합니다 (없으면 -1).
+    /// 구역이 겹친 타일이면 <b>그중 하나</b>만 나옵니다 — 통행 판정에는
+    /// <see cref="IsTileAllowed"/>를 쓰세요.
+    /// </summary>
     public int GetZoneIdAt(Vector2Int tile)
     {
-        return tileToZoneId.TryGetValue(tile, out int zoneId) ? zoneId : -1;
+        foreach (var zone in zones.Values)
+            if (zone.ContainsTile(tile)) return zone.zoneId;
+        return -1;
+    }
+
+    /// <summary>
+    /// 이 타일을 허용 구역만 쓰는 직원이 밟아도 되는지.
+    ///
+    ///   · 어느 구역에도 없는 타일 — 통과 (중립)
+    ///   · 구역에 속한 타일 — 그중 하나라도 허용 목록에 있으면 통과
+    ///
+    /// 구역이 겹칠 수 있으므로 '이 타일의 구역'을 하나로 물어선 안 됩니다.
+    /// </summary>
+    public bool IsTileAllowed(Vector2Int tile, HashSet<int> allowedZoneIds)
+    {
+        if (allowedZoneIds == null) return true;
+
+        bool inAnyZone = false;
+        foreach (var zone in zones.Values)
+        {
+            if (!zone.ContainsTile(tile)) continue;
+            inAnyZone = true;
+            if (allowedZoneIds.Contains(zone.zoneId)) return true;
+        }
+
+        return !inAnyZone;
     }
 
     /// <summary>등록된 모든 구역을 반환합니다.</summary>
@@ -352,7 +300,6 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
 
         nextZoneId = data.zoneSystem.nextZoneId;
         zones.Clear();
-        tileToZoneId.Clear();
 
         if (data.zoneSystem.zones == null) return;
 
@@ -360,9 +307,6 @@ public class ZoneManager : DestroySingleton<ZoneManager>, ISaveModule
         {
             zone.RestoreFromLoad();
             zones[zone.zoneId] = zone;
-
-            foreach (var tile in zone.tiles)
-                tileToZoneId[tile] = zone.zoneId;
         }
 
         ZoneVersion++; // 로드로 구역 구성이 통째로 바뀜

@@ -36,6 +36,7 @@ public class RoomErosionAlertEvaluator : IAlertEvaluator
         {
             Room room = pair.Value;
             if (room.Erosion < cfg.cautionThreshold) continue;
+            if (!IsRevealed(room)) continue;
 
             overThreshold++;
             if (worst == null || room.Erosion > worst.Erosion) worst = room;
@@ -63,6 +64,25 @@ public class RoomErosionAlertEvaluator : IAlertEvaluator
             label = label,
             focusPosition = new Vector3(worst.Representative.x + 0.5f, worst.Representative.y + 0.5f, 0f)
         };
+    }
+
+    /// <summary>
+    /// 한 칸이라도 안개가 걷힌 방만 경고 대상입니다.
+    ///
+    /// 아직 못 본 지하의 방까지 세면 플레이어가 손쓸 수 없는 경고가 계속 떠 있게 됩니다
+    /// (배너를 눌러 이동해도 안개뿐입니다).
+    /// </summary>
+    private static bool IsRevealed(Room room)
+    {
+        var fog = FogOfWarManager.instance;
+        if (fog == null) return true;   // 안개 시스템이 없으면 전부 보이는 것으로 친다
+
+        // ponytail: 방 칸을 전부 훑는다. 안 보이는 큰 방이 최악이지만 방 개수 × 칸 수 정도라
+        // 경고 평가 주기에서 문제된 적 없음. 느려지면 방에 '공개됨' 플래그를 캐시할 것
+        foreach (var cell in room.Cells)
+            if (fog.IsRevealed(cell.x, cell.y)) return true;
+
+        return false;
     }
 
     private void TryPushLetter(Room worst)

@@ -194,12 +194,12 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     private void InitializeWorkPriorities()
     {
         workPriorities = new List<WorkPriority>();
-        foreach (WorkType type in WorkTypeDefaults.BaseOrder)
+        for (int i = 0; i < WorkTypeDefaults.BaseOrder.Length; i++)
         {
             workPriorities.Add(new WorkPriority
             {
-                workType = type,
-                priority = WorkTypeDefaults.GetBasePriority(type),
+                workType = WorkTypeDefaults.BaseOrder[i],
+                priority = i,        // 우선순위 = 줄에서의 위치
                 enabled  = true
             });
         }
@@ -209,8 +209,12 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
     #region 비자격 시스템
 
+    // 결격은 직원이 생성될 때 타고나는 영구 속성입니다 (EmployeeData.initialDisqualifications).
+    // 게임 도중에 붙거나 풀리지 않습니다 — 직원 UI가 이를 '해제되지 않는 고정 박스'로 그립니다.
+    // 일시적인 작업 방해가 필요하면 결격이 아니라 정신(무드) 디버프로 표현하세요.
+
     /// <summary>
-    /// 동적 비자격을 추가합니다 (특성/이벤트/부상 등).
+    /// 비자격을 추가합니다 (생성 시 초기 결격 적용 경로).
     /// </summary>
     /// <param name="workType">비자격 작업 타입</param>
     /// <param name="reason">비자격 사유 (UI 표시용)</param>
@@ -1806,15 +1810,63 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
     #region 작업 우선순위
 
-    public void SetWorkPriority(WorkType type, int priority, bool enabled)
+    /// <summary>
+    /// 작업 순서를 통째로 다시 씁니다 (직원 UI에서 박스를 드래그한 결과).
+    ///
+    /// active에 있는 작업만 수행하고, <b>목록에서의 위치가 곧 우선순위</b>입니다 (앞일수록 먼저).
+    /// 목록에 없는 작업은 '작업 하지 않음'으로 내려갑니다 — 결격 작업도 여기로 옵니다.
+    /// </summary>
+    public void SetWorkOrder(IList<WorkType> active)
     {
-        var work = workPriorities?.FirstOrDefault(w => w.workType == type);
-        if (work != null)
+        if (workPriorities == null) InitializeWorkPriorities();
+
+        foreach (var wp in workPriorities)
         {
-            work.priority = priority;
-            work.enabled = enabled;
+            int index = active != null ? active.IndexOf(wp.workType) : -1;
+            wp.enabled  = index >= 0;
+            wp.priority = index >= 0 ? index : DEFAULT_MAX_PRIORITY;
         }
     }
+
+    /// <summary>
+    /// 활성 작업의 priority를 0..N-1로 다시 매깁니다.
+    ///
+    /// 우선순위가 '유일한 인덱스'라는 전제를 세이브 복원 직후에도 지키기 위한 것입니다.
+    /// (옛 세이브 + 새 작업 종류 백필이 겹치면 값이 충돌할 수 있습니다)
+    /// </summary>
+    private void NormalizeOrder()
+    {
+        if (workPriorities == null) return;
+
+        var active = workPriorities.Where(w => w.enabled).OrderBy(w => w.priority).ToList();
+        for (int i = 0; i < active.Count; i++) active[i].priority = i;
+
+        foreach (var wp in workPriorities)
+            if (!wp.enabled) wp.priority = DEFAULT_MAX_PRIORITY;
+    }
+
+    /// <summary>UI용 — 저장된 순서 그대로의 전체 작업 목록 (활성 먼저, '하지 않음'이 뒤).</summary>
+    public List<WorkType> GetWorkTypesInOrder()
+    {
+        if (workPriorities == null) InitializeWorkPriorities();
+
+        return workPriorities
+            .OrderBy(w => w.enabled ? 0 : 1)
+            .ThenBy(w => w.priority)
+            .Select(w => w.workType)
+            .ToList();
+    }
+
+    /// <summary>UI용 — 우선순위 목록에서 켜져 있는지 (능력·결격은 보지 않는 날것의 플래그).</summary>
+    public bool IsWorkEnabled(WorkType type)
+        => workPriorities?.FirstOrDefault(w => w.workType == type)?.enabled ?? false;
+
+    /// <summary>
+    /// UI용 — 이 직원이 영구히 못 하는 작업인지 (타고난 결격 · 애초에 없는 능력).
+    /// '작업 하지 않음' 칸에 다른 색으로 고정되는 박스의 판정입니다.
+    /// </summary>
+    public bool IsPermanentlyBlocked(WorkType type)
+        => IsDisqualified(type) || Abilities == null || !Abilities.CanPerformWork(type);
 
     public List<WorkType> GetEnabledWorkTypes()
     {
@@ -2287,17 +2339,16 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                 });
             }
 
-            // 저장 이후 새로 생긴 작업 종류(예: 요양)는 기본값으로 채운다
-            foreach (WorkType type in WorkTypeDefaults.BaseOrder)
+            // 저장 이후 새로 생긴 작업 종류(예: 요양)는 기본 순서상의 자리에 끼워 넣는다
+            for (int i = 0; i < WorkTypeDefaults.BaseOrder.Length; i++)
             {
+                WorkType type = WorkTypeDefaults.BaseOrder[i];
                 if (workPriorities.Any(w => w.workType == type)) continue;
-                workPriorities.Add(new WorkPriority
-                {
-                    workType = type,
-                    priority = WorkTypeDefaults.GetBasePriority(type),
-                    enabled  = true
-                });
+                workPriorities.Add(new WorkPriority { workType = type, priority = i, enabled = true });
             }
+
+            // 백필로 값이 겹칠 수 있으므로 0..N-1로 다시 매긴다
+            NormalizeOrder();
         }
         else
         {

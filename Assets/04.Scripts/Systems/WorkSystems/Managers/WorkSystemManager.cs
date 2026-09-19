@@ -483,10 +483,12 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     /// - 전용 할당 작업(연구/제작 등): 미리 명시적으로 등록된 직원만 후보.
     ///
     /// 정렬 규칙:
-    ///   1) 직원이 설정한 작업별 우선순위 (1~9, 낮을수록 먼저)
-    ///   2) 동률이면 작업 종류의 기본 우선순위 (WorkTypeDefaults.BaseOrder)
-    ///   3) 같은 작업 종류 안에서는 작업물 우선순위 (order.priority)
-    ///   4) 그래도 같으면 먼저 만들어진 작업물부터
+    ///   1) 직원이 설정한 작업 순서 (직원 UI의 박스 위치 = 0..N-1, 낮을수록 먼저)
+    ///   2) 같은 작업 종류 안에서는 작업물 우선순위 (order.priority)
+    ///   3) 그래도 같으면 먼저 만들어진 작업물부터
+    ///
+    /// 1)은 작업 종류마다 유일한 인덱스라 동률이 생기지 않습니다
+    /// (EmployeeWork.NormalizeOrder가 복원 직후에도 이를 보장).
     /// </summary>
     private IEnumerable<WorkOrder> GetCandidateOrders(Employee employee, List<WorkType> enabledTypes)
     {
@@ -498,7 +500,6 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                 (o.IsAutoPickup || o.IsWorkerAssigned(employee))
             ))
             .OrderBy(o => employee.GetWorkPriority(o.workType))
-            .ThenBy(o => WorkTypeDefaults.GetBasePriority(o.workType))
             .ThenBy(o => o.priority)
             .ThenBy(o => o.createdTime);
     }

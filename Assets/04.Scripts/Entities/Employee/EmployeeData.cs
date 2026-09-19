@@ -76,7 +76,7 @@ public class EmployeeData : ScriptableObject
     #region 초기 결격 작업
 
     [Header("초기 결격 작업")]
-    [Tooltip("생성 시 비자격 상태로 시작할 작업 목록. 런타임에 AddDisqualification/RemoveDisqualification으로 변경 가능.")]
+    [Tooltip("이 직원이 평생 하지 못하는 작업 (결격). 생성 시 정해지고 게임 중에 바뀌지 않습니다.")]
     public List<WorkType> initialDisqualifications = new List<WorkType>();
 
     #endregion

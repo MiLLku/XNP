@@ -386,9 +386,9 @@ public class Employee : MonoBehaviour
     public float GetWorkSpeed(WorkType type)
         => work != null ? work.GetWorkSpeed(type) : 0f;
 
-    /// <summary>작업 우선순위 설정</summary>
-    public void SetWorkPriority(WorkType type, int priority, bool enabled)
-        => work?.SetWorkPriority(type, priority, enabled);
+    /// <summary>작업 순서 설정 (목록에서의 위치 = 우선순위, 목록 밖 = 작업 안 함)</summary>
+    public void SetWorkOrder(System.Collections.Generic.IList<WorkType> active)
+        => work?.SetWorkOrder(active);
 
     /// <summary>활성화된 작업 타입 목록 (우선순위순)</summary>
     public List<WorkType> GetEnabledWorkTypes()

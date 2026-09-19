@@ -91,6 +91,14 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     /// <summary>구역 모드에서 지금 편집 중인 구역 ID (-1 = 없음)</summary>
     public int EditingZoneId => _editingZoneId;
 
+    /// <summary>구역 편집 의도 — 드래그가 칸을 넣을지 뺄지</summary>
+    public enum ZoneEditIntent { Expand, Shrink }
+
+    private ZoneEditIntent _zoneEditIntent = ZoneEditIntent.Expand;
+
+    /// <summary>지금 구역 드래그가 확장인지 축소인지</summary>
+    public ZoneEditIntent ZoneIntent => _zoneEditIntent;
+
     /// <summary>
     /// 편집할 구역을 지정합니다. 이후 좌드래그는 이 구역을 확장하고, 우드래그는 축소합니다.
     /// </summary>
@@ -100,6 +108,15 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         _editingZoneId = zoneId;
         GameMessageBus.Publish(new EditingZoneChangedMessage(zoneId));
         UpdateSelectionBoxColor();
+    }
+
+    /// <summary>
+    /// 좌드래그의 뜻을 바꿉니다 — 확장이면 칸을 넣고, 축소면 뺍니다.
+    /// 우드래그는 의도와 무관하게 언제나 뺍니다 (지우개는 항상 있는 편이 편합니다).
+    /// </summary>
+    public void SetZoneEditIntent(ZoneEditIntent intent)
+    {
+        _zoneEditIntent = intent;
     }
 
     /// <summary>현재 선택된 직원 (없으면 null)</summary>
@@ -384,33 +401,13 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         return false;
     }
 
+    /// <summary>
+    /// 포인터가 UI 위면 월드 클릭을 흘리지 않습니다.
+    /// 판단은 UIManager가 합니다 — UI를 아는 쪽이 한 곳이어야 패널이 늘어도 새지 않습니다.
+    /// </summary>
     private bool IsPointerOverInteractiveUI()
     {
-        if (EventSystem.current == null) return false;
-
-        var eventData = new PointerEventData(EventSystem.current)
-        {
-            position = Input.mousePosition
-        };
-
-        var results = new List<RaycastResult>();
-        EventSystem.current.RaycastAll(eventData, results);
-
-        foreach (var result in results)
-        {
-            if (result.gameObject.GetComponent<UnityEngine.UI.Selectable>() != null)
-            {
-                return true;
-            }
-
-            // 버튼이 아닌 패널 배경도 UI 클릭으로 취급 (태세 바 등 — 월드 클릭 새는 것 방지)
-            if (result.gameObject.GetComponentInParent<UIClickBlocker>() != null)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return UIManager.instance != null && UIManager.instance.IsPointerOverUI();
     }
     
     private void HandleNormalModeClick(GameObject clickedObject)
@@ -936,7 +933,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
 
         if ((Input.GetMouseButtonUp(0) || Input.GetMouseButtonUp(1)) && _isDragging)
         {
-            bool isPainting = Input.GetMouseButtonUp(0);
+            // 좌드래그의 뜻은 '확장/축소' 버튼이 정한다. 우드래그는 언제나 지우개
+            bool isPainting = Input.GetMouseButtonUp(0) && _zoneEditIntent == ZoneEditIntent.Expand;
             ApplyZoneDragArea(isPainting);
 
             _isDragging = false;

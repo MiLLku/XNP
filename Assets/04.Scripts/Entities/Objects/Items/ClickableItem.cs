@@ -51,6 +51,9 @@ public class ClickableItem : MonoBehaviour
 
     private void OnMouseDown()
     {
+        // UI 위 클릭은 월드로 흘리지 않는다 (OnMouseDown은 EventSystem을 거치지 않는다)
+        if (UIManager.PointerOverUI) return;
+
         if (itemData == null)
         {
             Debug.LogError($"아이템 {name}에 ItemData가 없습니다!", this.gameObject);
