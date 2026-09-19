@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 /// <summary>
 /// UI 패널 등록 데이터.
@@ -27,6 +28,9 @@ public class UIManager : DestroySingleton<UIManager>
 
     private Dictionary<UIPanelType, BasePanel> _uiDictionary;
     private List<BasePanel> _activePopupList = new List<BasePanel>();
+
+    /// <summary>IsPointerOverUI가 매 클릭마다 재사용하는 버퍼</summary>
+    private readonly List<RaycastResult> _raycastResults = new List<RaycastResult>();
 
     protected override void Awake()
     {
@@ -84,6 +88,44 @@ public class UIManager : DestroySingleton<UIManager>
         {
             return panel.gameObject.activeSelf;
         }
+        return false;
+    }
+
+    /// <summary>
+    /// 포인터가 UI 위에 있는지 — <b>월드 클릭을 막아야 하는지 묻는 단일 창구</b>입니다.
+    /// InteractionManager가 모든 클릭 처리 앞에서 이것을 봅니다.
+    ///
+    /// raycastTarget이 켜진 UI 그래픽에 하나라도 맞으면 UI로 칩니다.
+    /// 예전에는 버튼(Selectable)과 UIClickBlocker만 UI로 쳐서, 패널의 빈 배경을 누르면
+    /// 클릭이 월드로 새 뒤에 있던 창고가 열리는 일이 있었습니다.
+    ///
+    /// 화면을 덮는 장식용 이미지를 새로 넣을 때는 <b>raycastTarget을 꺼야 합니다</b> —
+    /// 켜두면 맵 클릭이 전부 막힙니다.
+    /// </summary>
+    /// <summary>
+    /// 포인터가 UI 위인지 (UIManager가 없어도 안전).
+    ///
+    /// Unity의 <c>OnMouseDown</c>류는 EventSystem을 거치지 않아 UI에 가려져도 그대로 불립니다.
+    /// 그런 콜백 첫 줄에서 이걸 보고 빠져나와야 패널 위를 눌렀는데 뒤의 건물이 열리지 않습니다.
+    /// </summary>
+    public static bool PointerOverUI => instance != null && instance.IsPointerOverUI();
+
+    public bool IsPointerOverUI()
+    {
+        if (EventSystem.current == null) return false;
+
+        var eventData = new PointerEventData(EventSystem.current) { position = Input.mousePosition };
+
+        _raycastResults.Clear();
+        EventSystem.current.RaycastAll(eventData, _raycastResults);
+
+        foreach (var result in _raycastResults)
+        {
+            // 카메라에 PhysicsRaycaster가 붙어 있으면 월드 콜라이더도 결과에 섞인다.
+            // 그래픽이 붙은 것만 UI로 친다
+            if (result.gameObject.GetComponent<UnityEngine.UI.Graphic>() != null) return true;
+        }
+
         return false;
     }
 

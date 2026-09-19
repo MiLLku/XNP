@@ -89,6 +89,9 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
     
     private void OnMouseDown()
     {
+        // UI 위 클릭은 월드로 흘리지 않는다 (OnMouseDown은 EventSystem을 거치지 않는다)
+        if (UIManager.PointerOverUI) return;
+
         // Building이 비활성화 상태인지 확인
         Building building = GetComponent<Building>();
         if (building != null && !building.IsFunctional)

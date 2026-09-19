@@ -179,6 +179,9 @@ public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource
     /// </summary>
     void OnMouseDown()
     {
+        // UI 위 클릭은 월드로 흘리지 않는다 (OnMouseDown은 EventSystem을 거치지 않는다)
+        if (UIManager.PointerOverUI) return;
+
         if (!IsOperational)
         {
             if (showDebugInfo)

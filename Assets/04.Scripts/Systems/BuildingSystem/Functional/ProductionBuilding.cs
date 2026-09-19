@@ -161,6 +161,9 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
 
     private void OnMouseDown()
     {
+        // UI 위 클릭은 월드로 흘리지 않는다 (OnMouseDown은 EventSystem을 거치지 않는다)
+        if (UIManager.PointerOverUI) return;
+
         if (_building != null && !_building.IsFunctional)
         {
             Debug.LogWarning($"[{GetBuildingName()}] 건물이 비활성화 상태입니다. 기반을 복구하세요.");
