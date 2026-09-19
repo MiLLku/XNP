@@ -33,21 +33,20 @@ public enum WorkType
 }
 
 /// <summary>
-/// 작업 종류의 기본(내재) 우선순위 — 단일 출처.
+/// 작업 종류의 기본 순서 — 단일 출처.
 ///
-/// 용도:
-///   1) 직원 작업 우선순위의 초기값 (EmployeeWork.InitializeWorkPriorities)
-///   2) 직원이 설정한 우선순위가 동률일 때의 작업 종류 간 타이브레이크
-///      (WorkSystemManager.GetCandidateOrders)
+/// 플레이어가 직원 UI에서 박스를 드래그해 바꾸기 전까지의 초기 순서입니다.
+/// 우선순위는 '줄에서의 위치'이고, 저장되는 값은 그 인덱스입니다
+/// (EmployeeWork.InitializeWorkPriorities / NormalizeOrder).
 ///
-/// 낮은 값 = 먼저 수행. 순서를 바꾸면 두 용도 모두에 일괄 반영됩니다.
+/// 앞에 있을수록 먼저 수행. 여기 순서를 바꾸면 새 직원의 초기값이 바뀝니다.
 /// </summary>
 public static class WorkTypeDefaults
 {
     /// <summary>자동 픽업 작업의 기본 우선순위 순서 (앞에 있을수록 먼저).</summary>
     public static readonly WorkType[] BaseOrder =
     {
-        WorkType.Recuperation,   // 맨 앞: 같은 우선순위 값이면 요양이 이긴다
+        WorkType.Recuperation,   // 맨 앞: 기본값에선 요양이 가장 먼저
         WorkType.Mining,
         WorkType.Chopping,
         WorkType.Crafting,
@@ -58,14 +57,4 @@ public static class WorkTypeDefaults
         WorkType.Building,
         WorkType.Demolish,
     };
-
-    /// <summary>기본 우선순위 값 (1부터). BaseOrder에 없는 타입은 99.</summary>
-    public static int GetBasePriority(WorkType type)
-    {
-        for (int i = 0; i < BaseOrder.Length; i++)
-        {
-            if (BaseOrder[i] == type) return i + 1;
-        }
-        return 99;
-    }
 }

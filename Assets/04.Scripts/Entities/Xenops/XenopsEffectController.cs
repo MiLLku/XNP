@@ -216,14 +216,8 @@ public class XenopsEffectController : MonoBehaviour
                 break;
 
             case XenopsEffectType.BlockWorkType:
-                // targetId를 WorkType으로 캐스팅하여 비자격 적용.
-                // Xenops가 해제(Unequip/제거)될 때 RemoveDisqualification 호출 필요.
-                if (System.Enum.IsDefined(typeof(WorkType), targetId))
-                {
-                    var workComp = employee.GetComponent<EmployeeWork>();
-                    if (workComp != null)
-                        workComp.AddDisqualification((WorkType)targetId, "제노프스 효과");
-                }
+                // 비활성 — 결격은 직원이 타고나는 영구 속성이라 런타임에 붙이지 않는다.
+                // 제놉스의 작업 방해는 추후 정신(무드) 디버프로 다시 구현한다.
                 break;
 
             // 영구 modifier 시스템 필요 — EmployeeStatsController 확장 시 연동
