@@ -2286,6 +2286,18 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                     enabled = wp.enabled
                 });
             }
+
+            // 저장 이후 새로 생긴 작업 종류(예: 요양)는 기본값으로 채운다
+            foreach (WorkType type in WorkTypeDefaults.BaseOrder)
+            {
+                if (workPriorities.Any(w => w.workType == type)) continue;
+                workPriorities.Add(new WorkPriority
+                {
+                    workType = type,
+                    priority = WorkTypeDefaults.GetBasePriority(type),
+                    enabled  = true
+                });
+            }
         }
         else
         {

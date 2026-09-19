@@ -59,12 +59,6 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IM
 
     #region 상수
 
-    /// <summary>예약만 하고 이 시간 안에 도착하지 않으면 슬롯을 회수합니다 (초).</summary>
-    private const float RESERVE_TIMEOUT = 90f;
-
-    /// <summary>도착한 직원이 이 거리 밖으로 나가면 반납으로 간주합니다 (타일).</summary>
-    private const float ABANDON_DISTANCE = 3f;
-
     /// <summary>자가 청소 스윕 주기 (초).</summary>
     private const float SWEEP_INTERVAL = 1f;
 
@@ -72,9 +66,7 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IM
 
     #region 필드
 
-    private Employee[] occupants;
-    private float[] reservedAt;
-    private bool[] arrived;
+    private FacilitySlots slots;
 
     private bool buildingEnabled = true;
     private PowerConsumer powerConsumer;
@@ -127,26 +119,9 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IM
     }
 
     /// <summary>현재 슬롯을 잡고 있는 직원 수.</summary>
-    public int OccupiedCount
-    {
-        get
-        {
-            int count = 0;
-            for (int i = 0; i < occupants.Length; i++)
-                if (occupants[i] != null) count++;
-            return count;
-        }
-    }
+    public int OccupiedCount => slots.OccupiedCount;
 
-    public bool HasFreeSlot
-    {
-        get
-        {
-            for (int i = 0; i < occupants.Length; i++)
-                if (occupants[i] == null) return true;
-            return false;
-        }
-    }
+    public bool HasFreeSlot => slots.HasFreeSlot;
 
     #endregion
 
@@ -175,9 +150,7 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IM
     private void Awake()
     {
         capacity = Mathf.Max(1, capacity);
-        occupants  = new Employee[capacity];
-        reservedAt = new float[capacity];
-        arrived    = new bool[capacity];
+        slots    = new FacilitySlots(capacity);
 
         powerConsumer  = GetComponent<PowerConsumer>();
         spriteRenderer = GetComponent<SpriteRenderer>();
@@ -218,23 +191,7 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IM
         if (sweepTimer > 0f) return;
         sweepTimer = SWEEP_INTERVAL;
 
-        float now = Time.time;
-        for (int i = 0; i < occupants.Length; i++)
-        {
-            Employee emp = occupants[i];
-            if (emp == null) { ClearSlot(i); continue; }          // 파괴된 직원 (Unity null 비교)
-
-            if (emp.State == EmployeeState.Dead) { ClearSlot(i); continue; }
-
-            if (!arrived[i])
-            {
-                if (now - reservedAt[i] > RESERVE_TIMEOUT) ClearSlot(i);
-                continue;
-            }
-
-            float dist = Vector2.Distance(emp.transform.position, GetSlotPosition(i));
-            if (dist > ABANDON_DISTANCE) ClearSlot(i);
-        }
+        slots.Sweep(GetSlotPosition);
     }
 
     #endregion
@@ -247,7 +204,7 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IM
     public bool CanUse(Employee employee)
     {
         if (!IsOperating) return false;
-        return HasFreeSlot || IndexOf(employee) >= 0;
+        return HasFreeSlot || slots.IndexOf(employee) >= 0;
     }
 
     /// <summary>
@@ -256,37 +213,15 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IM
     /// </summary>
     public int TryReserveSlot(Employee employee)
     {
-        if (employee == null || !IsOperating) return -1;
-
-        int existing = IndexOf(employee);
-        if (existing >= 0) return existing;
-
-        for (int i = 0; i < occupants.Length; i++)
-        {
-            if (occupants[i] != null) continue;
-
-            occupants[i]  = employee;
-            reservedAt[i] = Time.time;
-            arrived[i]    = false;
-            return i;
-        }
-
-        return -1;
+        if (!IsOperating) return -1;
+        return slots.TryReserve(employee);
     }
 
     /// <summary>슬롯 위치에 도착했음을 표시합니다 (예약 타임아웃 해제).</summary>
-    public void MarkArrived(Employee employee)
-    {
-        int idx = IndexOf(employee);
-        if (idx >= 0) arrived[idx] = true;
-    }
+    public void MarkArrived(Employee employee) => slots.MarkArrived(employee);
 
     /// <summary>슬롯을 반납합니다. 잡고 있지 않아도 안전합니다 (멱등).</summary>
-    public void ReleaseSlot(Employee employee)
-    {
-        int idx = IndexOf(employee);
-        if (idx >= 0) ClearSlot(idx);
-    }
+    public void ReleaseSlot(Employee employee) => slots.Release(employee);
 
     /// <summary>i번째 슬롯의 월드 좌표. 앵커가 지정돼 있으면 그것을, 없으면 폭을 나눠 계산합니다.</summary>
     public Vector3 GetSlotPosition(int slotIndex)
@@ -306,26 +241,7 @@ public class WashStation : MonoBehaviour, IBuildingFunction, IBuildingOutput, IM
         return transform.position + new Vector3((slotIndex + 0.5f) * step, 0.5f, 0f);
     }
 
-    private int IndexOf(Employee employee)
-    {
-        if (employee == null) return -1;
-        for (int i = 0; i < occupants.Length; i++)
-            if (occupants[i] == employee) return i;
-        return -1;
-    }
-
-    private void ClearSlot(int i)
-    {
-        occupants[i]  = null;
-        arrived[i]    = false;
-        reservedAt[i] = 0f;
-    }
-
-    private void ReleaseAllSlots()
-    {
-        if (occupants == null) return;
-        for (int i = 0; i < occupants.Length; i++) ClearSlot(i);
-    }
+    private void ReleaseAllSlots() => slots?.ReleaseAll();
 
     #endregion
 

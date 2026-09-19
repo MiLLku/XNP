@@ -27,7 +27,9 @@ public enum WorkType
     /// <summary>휴식</summary>
     Resting,
     /// <summary>식사</summary>
-    Eating
+    Eating,
+    /// <summary>요양 — 체력이 낮으면 요양 시설에서 회복 (작업물 없이 EmployeeAI가 직접 수행)</summary>
+    Recuperation
 }
 
 /// <summary>
@@ -45,6 +47,7 @@ public static class WorkTypeDefaults
     /// <summary>자동 픽업 작업의 기본 우선순위 순서 (앞에 있을수록 먼저).</summary>
     public static readonly WorkType[] BaseOrder =
     {
+        WorkType.Recuperation,   // 맨 앞: 같은 우선순위 값이면 요양이 이긴다
         WorkType.Mining,
         WorkType.Chopping,
         WorkType.Crafting,

@@ -365,8 +365,9 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     /// AI가 호출: 직원에게 적합한 작업을 자동으로 찾아 할당합니다.
     /// workZoneId가 유효하면 해당 구역 내 태스크를 우선 탐색합니다.
     /// 구역 내 태스크가 없으면 구역 미할당 상태에서 전체 탐색으로 fallback합니다.
+    /// priorityBelow를 주면 직원 우선순위 값이 그보다 작은(=더 급한) 작업만 후보로 삼습니다 (요양 판정용).
     /// </summary>
-    public bool TryAssignWorkToEmployee(Employee employee, int workZoneId = -1)
+    public bool TryAssignWorkToEmployee(Employee employee, int workZoneId = -1, int priorityBelow = int.MaxValue)
     {
         if (employee == null)
         {
@@ -389,6 +390,8 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
         }
 
         List<WorkType> enabledTypes = employee.GetEnabledWorkTypes();
+        if (priorityBelow != int.MaxValue)
+            enabledTypes.RemoveAll(t => employee.GetWorkPriority(t) >= priorityBelow);
         if (showDebugInfo)
         {
             Debug.Log($"[WorkSystemManager] {employee.Data?.employeeName} 작업 할당 시작. " +

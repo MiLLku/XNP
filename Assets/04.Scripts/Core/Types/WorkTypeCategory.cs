@@ -73,6 +73,7 @@ public static class WorkTypeCategory
             case WorkType.Cleaning:  return "세척";
             case WorkType.Resting:   return "휴식";
             case WorkType.Eating:    return "식사";
+            case WorkType.Recuperation: return "요양";
             default:                 return type.ToString();
         }
     }

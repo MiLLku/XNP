@@ -80,6 +80,13 @@ public class EmployeeAI : MonoBehaviour
              "기본 true: 직원이 우선순위에 맞춰 자유롭게 자동 픽업 작업을 수행합니다.")]
     [SerializeField] private bool autoAssignWork = true;
 
+    [Header("요양")]
+    [Tooltip("체력이 최대치의 이 비율 미만이면 요양 대기 (작업 우선순위의 '요양'에 따라 요양 시설로 감)")]
+    [SerializeField, Range(0f, 1f)] private float recuperateStartRatio = 0.5f;
+
+    [Tooltip("요양 중 체력이 최대치의 이 비율에 닿으면 요양을 마침")]
+    [SerializeField, Range(0f, 1f)] private float recuperateEndRatio = 1f;
+
     /// <summary>Idle 상태 재평가 간격 (초). 작업 완료 후 새 작업 탐색 주기.</summary>
     private const float WORK_REEVALUATE_INTERVAL = 2f;
     private float workReevaluateTimer;
@@ -124,6 +131,12 @@ public class EmployeeAI : MonoBehaviour
     /// <summary>세척 시간대 재시도 타이머</summary>
     private float washRetryTimer;
 
+    /// <summary>진행 중인 요양 루프의 취소원 (null이면 요양 중 아님)</summary>
+    private CancellationTokenSource recuperateCts;
+
+    /// <summary>점유 중인 요양 시설 (없으면 null)</summary>
+    private RecuperationBed currentBed;
+
     // 컴포넌트 참조
     private Employee employee;
     private EmployeeMovement movement;
@@ -160,8 +173,9 @@ public class EmployeeAI : MonoBehaviour
         hourSubscription?.Dispose();
         hourSubscription = null;
 
-        // 비활성화 중에는 세척 슬롯을 계속 물고 있을 수 없다 (시설이 영구 만석이 된다)
+        // 비활성화 중에는 세척·요양 슬롯을 계속 물고 있을 수 없다 (시설이 영구 만석이 된다)
         ReleaseWashSlot();
+        ReleaseBedSlot();
 
         if (employee != null)
             employee.OnStateChanged -= OnEmployeeStateChanged;
@@ -184,6 +198,10 @@ public class EmployeeAI : MonoBehaviour
         washCts?.Cancel();
         DisposeWashTask();
         ReleaseWashSlot();
+
+        recuperateCts?.Cancel();
+        DisposeRecuperateTask();
+        ReleaseBedSlot();
 
         if (employee != null)
             employee.OnStateChanged -= OnEmployeeStateChanged;
@@ -417,6 +435,12 @@ public class EmployeeAI : MonoBehaviour
             StopWashing();
         }
 
+        // 요양은 작업 우선순위의 일부라 Work/Anything 시간대에만 이어간다
+        if (activity != ScheduleActivity.Work && activity != ScheduleActivity.Anything)
+        {
+            StopRecuperating();
+        }
+
         currentExecutingActivity = activity;
 
         switch (activity)
@@ -443,6 +467,19 @@ public class EmployeeAI : MonoBehaviour
 
         if (employee.State == EmployeeState.Idle)
         {
+            // 요양 — 체력이 낮으면 요양보다 우선순위가 높은 작업만 먼저 하고, 없으면 요양 시설로 간다
+            if (NeedsRecuperation())
+            {
+                int recPriority = employee.GetWorkPriority(WorkType.Recuperation);
+                int zoneId = zoneAssignment != null ? zoneAssignment.AssignedZoneId : -1;
+
+                if (autoAssignWork &&
+                    (WorkSystemManager.instance?.TryAssignWorkToEmployee(employee, zoneId, recPriority) ?? false))
+                    return;
+
+                if (TryRecuperate()) return;
+            }
+
             // ★ 자동 할당이 비활성화된 경우 플레이어 수동 할당만 허용
             if (!autoAssignWork)
             {
@@ -810,6 +847,177 @@ public class EmployeeAI : MonoBehaviour
         currentWashStation = null;
     }
 
+    // ─── Recuperation ───
+
+    /// <summary>
+    /// 요양이 필요한지 — '요양' 작업이 켜져 있고 체력이 기준 미만이며 요양 시설이 하나라도 있을 때.
+    /// </summary>
+    private bool NeedsRecuperation()
+    {
+        if (!employee.CanPerformWork(WorkType.Recuperation)) return false;
+
+        var stats = employee.Stats;
+        if (stats.health >= stats.maxHealth * recuperateStartRatio) return false;
+
+        return RecuperationBed.All.Count > 0;
+    }
+
+    /// <summary>
+    /// 요양 시설로 이동해 체력을 회복합니다. 세척과 같은 흐름:
+    ///   시설 선택(만석 제외) → 슬롯 예약 → 슬롯 좌표로 이동 → 도착 → 초당 체력 회복
+    /// 만석이면 false — 호출부가 평소 작업으로 넘어가고, 다음 재평가 때 다시 시도합니다.
+    /// </summary>
+    private bool TryRecuperate()
+    {
+        if (recuperateCts != null) return true; // 이미 요양 중
+
+        // 주의: CancelCurrentAction은 반드시 슬롯 예약 '전'에 부른다 (ExecuteWash와 같은 이유)
+        CancelCurrentAction();
+
+        RecuperationBed best = SelectBestBed();
+        if (best == null) return false;
+
+        int slot = best.TryReserveSlot(employee);
+        if (slot < 0) return false;
+
+        currentBed = best;
+        GoUseBed(best, slot);
+        return true;
+    }
+
+    /// <summary>지금 쓸 수 있는 요양 시설 중 최선(우선순위 → 거리). 구역이 배정돼 있으면 구역 내만.</summary>
+    private RecuperationBed SelectBestBed()
+    {
+        Zone zone = zoneAssignment != null ? zoneAssignment.AssignedZone : null;
+
+        RecuperationBed best = null;
+        float bestDist = float.MaxValue;
+
+        foreach (var bed in RecuperationBed.All)
+        {
+            if (bed == null || !bed.CanUse(employee)) continue;
+
+            if (zone != null)
+            {
+                var tile = new Vector2Int(
+                    Mathf.FloorToInt(bed.transform.position.x),
+                    Mathf.FloorToInt(bed.transform.position.y));
+                if (!zone.ContainsTile(tile)) continue;
+            }
+
+            float dist = Vector2.Distance(transform.position, bed.transform.position);
+
+            if (best == null ||
+                bed.Priority > best.Priority ||
+                (bed.Priority == best.Priority && dist < bestDist))
+            {
+                best = bed;
+                bestDist = dist;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>예약한 슬롯 좌표로 이동해 요양을 시작합니다.</summary>
+    private void GoUseBed(RecuperationBed bed, int slot)
+    {
+        if (movement == null || bed == null) { ReleaseBedSlot(); return; }
+
+        employee.SetState(EmployeeState.Moving);
+
+        PathOptions pathOpts = zoneAssignment != null ? zoneAssignment.GetPathOptions() : null;
+
+        Action onArrive = () =>
+        {
+            // 이동 중 수면·오락 등으로 활동이 바뀌었으면 요양하지 않는다
+            if (currentExecutingActivity != ScheduleActivity.Work &&
+                currentExecutingActivity != ScheduleActivity.Anything)
+            {
+                ReleaseBedSlot();
+                employee.SetState(EmployeeState.Idle);
+                return;
+            }
+
+            bed.MarkArrived(employee);
+            recuperateCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
+            RecuperateTickAsync(bed, recuperateCts.Token).Forget();
+        };
+
+        Action onFailed = () =>
+        {
+            ReleaseBedSlot();
+            OnActionFailed();
+        };
+
+        Vector3 slotPos = bed.GetSlotPosition(slot);
+
+        if (pathOpts != null)
+            movement.MoveTo(slotPos, pathOpts, onComplete: onArrive, onFailed: onFailed);
+        else
+            movement.MoveTo(slotPos, onComplete: onArrive, onFailed: onFailed);
+    }
+
+    /// <summary>요양 루프 — 가만히 서서 초당 체력을 회복합니다. 목표 도달·시설 사용 불가·상태 변화 시 종료.</summary>
+    private async UniTaskVoid RecuperateTickAsync(RecuperationBed bed, CancellationToken ct)
+    {
+        employee.SetState(EmployeeState.Resting);
+
+        var stats = employee.StatsController;
+
+        if (showDebugLogs)
+            Debug.Log($"[AI] {employee.DisplayName}: 요양 시작 ({bed.name}, 체력 {employee.Stats.health:F0}/{employee.Stats.maxHealth:F0})");
+
+        while (employee != null &&
+               employee.State == EmployeeState.Resting &&
+               bed != null && bed.IsOperating &&
+               stats != null &&
+               stats.Stats.health < stats.Stats.maxHealth * recuperateEndRatio)
+        {
+            stats.ModifyHealth(bed.HealPerSecond * Time.deltaTime);
+            await UniTask.Yield(GameLoop.Frame, ct);
+        }
+
+        if (showDebugLogs && employee != null)
+            Debug.Log($"[AI] {employee.DisplayName}: 요양 종료 (체력 {employee.Stats.health:F0})");
+
+        DisposeRecuperateTask();
+        ReleaseBedSlot();
+
+        if (employee != null && employee.State == EmployeeState.Resting)
+            employee.SetState(EmployeeState.Idle);
+    }
+
+    /// <summary>진행 중인 요양을 중단하고 슬롯을 반납합니다 (StopWashing과 같은 이유로 반납은 여기서 명시적으로).</summary>
+    private void StopRecuperating()
+    {
+        if (recuperateCts != null)
+        {
+            recuperateCts.Cancel();
+            DisposeRecuperateTask();
+        }
+
+        bool held = currentBed != null;
+        ReleaseBedSlot();
+
+        if (held && employee != null && employee.State == EmployeeState.Resting)
+            employee.SetState(EmployeeState.Idle);
+    }
+
+    private void DisposeRecuperateTask()
+    {
+        recuperateCts?.Dispose();
+        recuperateCts = null;
+    }
+
+    private void ReleaseBedSlot()
+    {
+        if (currentBed != null)
+            currentBed.ReleaseSlot(employee);
+
+        currentBed = null;
+    }
+
     // ─── Free Time ───
 
     private void ExecuteFreeTime()
@@ -971,6 +1179,7 @@ public class EmployeeAI : MonoBehaviour
     {
         StopRecreation(); // 오락 이용 중이었다면 중단 (아니면 no-op)
         StopWashing();    // 세척 중이었다면 중단하고 슬롯 반납 (아니면 no-op)
+        StopRecuperating(); // 요양 중이었다면 중단하고 슬롯 반납 (아니면 no-op)
 
         if (employee.State == EmployeeState.Working)
             employee.CancelWork();
