@@ -181,6 +181,9 @@ public static class GameIDRegistry
         public const int MEDIUM_WASH_STATION = 3601; // 세척실 (6x3, 전력 소비, 동시 2명)
         public const int LARGE_WASH_STATION  = 3602; // 정화 세척실 (8x3, 전력 소비, 동시 4명)
 
+        // 의료 건물 (3700~3799) — MedicalBuildingType enum과 값 일치
+        public const int TEMP_RECUPERATION_BED = 3700; // 임시 요양소 (2x2, 무전력, 동시 1명)
+
         public const int MIN = 3000;
         public const int MAX = 3999;
 

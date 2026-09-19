@@ -171,6 +171,7 @@ public class WorkAbilities
             case WorkType.Cleaning: return canClean;
             case WorkType.Resting: return true;
             case WorkType.Eating: return true;
+            case WorkType.Recuperation: return true;
             default: return false;
         }
     }
@@ -196,6 +197,7 @@ public class WorkAbilities
             case WorkType.Cleaning: return canClean ? cleaningSpeed : 0f;
             case WorkType.Resting: return 1f;
             case WorkType.Eating: return 1f;
+            case WorkType.Recuperation: return 1f;
             default: return 0f;
         }
     }
