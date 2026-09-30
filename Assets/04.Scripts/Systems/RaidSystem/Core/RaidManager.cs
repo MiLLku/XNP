@@ -353,7 +353,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
                 + raid.multiplierPerDay * day
                 + raid.multiplierPerEmployee * employees;
 
-        return Mathf.Clamp(m, 0.1f, raid.maxMultiplier);
+        // 정화 가동 중 강화는 상한 뒤에 곱한다 — 레이드별 상한에 잘리면 14일째 압박이 평소와 같아진다
+        return Mathf.Clamp(m, 0.1f, raid.maxMultiplier) * PurificationThreat.RaidMultiplierScale;
     }
 
     private void CompleteRaid()

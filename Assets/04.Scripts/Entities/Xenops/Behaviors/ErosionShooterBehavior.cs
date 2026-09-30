@@ -382,7 +382,8 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
             {
                 if (b == null) continue;
                 if (excludeBlacklisted && IsBlacklisted(b)) continue;
-                float d = Vector2.Distance((Vector2)b.transform.position, myPos);
+                // 정화 가동 중인 장치는 가깝게 여겨 우선 노린다
+                float d = Vector2.Distance((Vector2)b.transform.position, myPos) * PurificationThreat.TargetDistanceScale(b);
                 if (d < bestDist) { bestDist = d; nearest = b; }
             }
         }

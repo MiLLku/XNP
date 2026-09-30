@@ -32,6 +32,7 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
     private Dictionary<int, int> _eventTriggerCounts;       // 이벤트별 발생 횟수
     private Dictionary<int, float> _eventLastTriggerTime;   // 이벤트별 마지막 발생 시간
     private HashSet<int> _triggeredEventIds;                // 한번이라도 발생한 이벤트
+    private IDisposable _purificationSubscription;          // 정화 가동 상태 구독
 
     #region Unity 생명주기
 
@@ -80,6 +81,18 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
 
         if (showDebugLogs && loaded.Length > 0)
             Debug.Log($"[EventManager] Resources/Events 에서 {loaded.Length}개 이벤트 자동 로드 (등록 {allEvents.Count}개)");
+    }
+
+    private void Start()
+    {
+        // 정화가 시작·중단되면 다음 이벤트를 새 간격으로 즉시 다시 잡는다 (가동 직후 긴 대기 없이 압박 시작)
+        _purificationSubscription = GameMessageBus.Subscribe<PurificationStateChangedMessage>(_ => ScheduleNextEvent());
+    }
+
+    private void OnDestroy()
+    {
+        _purificationSubscription?.Dispose();
+        _purificationSubscription = null;
     }
 
     private void Update()
@@ -343,7 +356,8 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
 
     private void ScheduleNextEvent()
     {
-        float interval = UnityEngine.Random.Range(minInterval, maxInterval);
+        // 정화 가동 중에는 간격이 점점 짧아진다
+        float interval = UnityEngine.Random.Range(minInterval, maxInterval) * PurificationThreat.IntervalScale;
         _nextEventTime = Time.time + interval;
 
         if (showDebugLogs)
@@ -363,20 +377,25 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
         if (validEvents.Count == 0)
             return null;
 
-        // 2. 가중치 기반 랜덤 선택
-        int totalWeight = validEvents.Sum(e => e.weight);
-        int randomValue = UnityEngine.Random.Range(0, totalWeight);
+        // 2. 가중치 기반 랜덤 선택 — 정화 가동 중에는 위협 분류로 쏠린다
+        float totalWeight = validEvents.Sum(EffectiveWeight);
+        if (totalWeight <= 0f) return null;
+        float randomValue = UnityEngine.Random.Range(0f, totalWeight);
 
-        int cumulative = 0;
+        float cumulative = 0f;
         foreach (var evt in validEvents)
         {
-            cumulative += evt.weight;
+            cumulative += EffectiveWeight(evt);
             if (randomValue < cumulative)
                 return evt;
         }
 
         return validEvents.Last();
     }
+
+    /// <summary>이벤트 선택 가중치 — 기본 가중치 × 정화 가동 중 분류별 배수</summary>
+    private static float EffectiveWeight(EventData e)
+        => e.weight * PurificationThreat.WeightMultiplier(e.category);
 
     /// <summary>
     /// 이벤트 발동 가능 여부 확인
