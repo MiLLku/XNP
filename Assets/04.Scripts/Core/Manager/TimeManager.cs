@@ -92,13 +92,15 @@ public class TimeManager : DestroySingleton<TimeManager>
     {
         speed = Mathf.Clamp(speed, 1, 3);
 
+        bool wasPaused = _isPaused;
         if (_isPaused)
         {
             _isPaused = false;
             GameMessageBus.Publish(new GamePauseStateChangedMessage(false));
         }
 
-        if (currentSpeed == speed && !_isPaused) return;
+        // 일시정지 중엔 같은 배속이어도 timeScale을 다시 적용해야 풀린다
+        if (currentSpeed == speed && !wasPaused) return;
 
         currentSpeed = speed;
         _previousSpeed = speed;
