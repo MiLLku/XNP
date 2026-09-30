@@ -42,6 +42,26 @@ public class StockpileManager : DestroySingleton<StockpileManager>
             .FirstOrDefault();
     }
 
+    /// <summary>
+    /// from에서 닿을 수 있는 가장 가까운 운영 중 Stockpile. 창고는 있어도 전부 닿을 수 없으면 null.
+    /// (GetNearestStockpile의 null은 "창고 자체가 없음"이라 인벤토리 직행 폴백과 구분해야 한다)
+    /// </summary>
+    public Stockpile GetNearestReachableStockpile(Vector2Int from)
+    {
+        return _stockpiles
+            .Where(s => s != null && s.IsOperational && ReachabilityMap.CanReach(from, s.GetDepositPosition()))
+            .OrderBy(s => Vector2Int.Distance(from,
+                new Vector2Int(
+                    Mathf.FloorToInt(s.transform.position.x),
+                    Mathf.FloorToInt(s.transform.position.y)
+                )))
+            .FirstOrDefault();
+    }
+
+    /// <summary>from에서 닿을 수 있는 운영 중 Stockpile이 하나라도 있는지.</summary>
+    public bool HasReachableStockpile(Vector2Int from)
+        => _stockpiles.Any(s => s != null && s.IsOperational && ReachabilityMap.CanReach(from, s.GetDepositPosition()));
+
     public bool HasAnyStockpile => _stockpiles.Any(s => s != null && s.IsOperational);
 
     /// <summary>
@@ -63,8 +83,10 @@ public class StockpileManager : DestroySingleton<StockpileManager>
     {
         if (item == null || amount <= 0) return null;
 
+        // 닿을 수 없는 창고는 후보에서 뺀다 — 가장 가까워도 못 가면 헛걸음 후 실패만 반복한다
         return _stockpiles
-            .Where(s => s != null && s.IsOperational && s.HasItem(item, amount))
+            .Where(s => s != null && s.IsOperational && s.HasItem(item, amount)
+                        && ReachabilityMap.CanReach(from, s.GetDepositPosition()))
             .OrderBy(s => Vector2Int.Distance(from,
                 new Vector2Int(
                     Mathf.FloorToInt(s.transform.position.x),

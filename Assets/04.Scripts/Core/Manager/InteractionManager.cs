@@ -714,7 +714,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
 
     /// <summary>
     /// 현재 드래그 영역(_dragStartPos~_dragEndPos)을 순회하여 채광 가능 타일을 모으고
-    /// 즉시 단일 WorkOrder + WorkOrderVisual을 생성합니다.
+    /// 즉시 단일 WorkOrder를 생성합니다.
     /// </summary>
     private void CreateMiningWorkOrderFromDragArea()
     {
@@ -805,6 +805,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
 
             if (overlaps)
             {
+                foreach (var task in order.taskQueue.PendingTasks.Concat(order.taskQueue.AssignedTasks))
+                    (task.target as MiningOrder)?.SetDesignated(false);
                 _workSystemManager.RemoveWorkOrder(order);
                 cancelled++;
             }
@@ -833,37 +835,29 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     {
         if (_workSystemManager == null) return;
 
-        WorkOrderVisual visual = _workSystemManager.CreateWorkOrderWithVisual(
+        // 배정 UI가 없어졌으므로 외곽선·라벨 비주얼 없이 작업물만 만든다
+        WorkOrder workOrder = _workSystemManager.CreateWorkOrder(
             $"채광 작업 ({tiles.Count}개)",
             WorkType.Mining,
             maxWorkers: 0, // 자동 픽업 — 인원 제한 없음
-            tiles: tiles,
             priority: 3
         );
 
-        if (visual != null)
+        List<IWorkTarget> targets = new List<IWorkTarget>();
+        foreach (var tile in tiles)
         {
-            WorkOrder workOrder = visual.WorkOrder;
-            List<IWorkTarget> targets = new List<IWorkTarget>();
-
-            foreach (var tile in tiles)
+            var miningOrder = new MiningOrder
             {
-                MiningOrder miningOrder = new MiningOrder
-                {
-                    position = tile,
-                    tileID = _gameMap.TileGrid[tile.x, tile.y],
-                    priority = 3,
-                    completed = false,
-                    assignedWorker = null
-                };
-                targets.Add(miningOrder);
-            }
-            workOrder.AddTargets(targets);
+                position = tile,
+                tileID = _gameMap.TileGrid[tile.x, tile.y],
+                priority = 3,
+                completed = false,
+                assignedWorker = null
+            };
+            miningOrder.SetDesignated(true); // 채광 예약 블럭은 빨간 필터 — 채굴 완료·취소 시 해제
+            targets.Add(miningOrder);
         }
-        else
-        {
-            Debug.LogError("[Interaction] WorkOrderVisual 생성 실패 — WorkSystemManager 인스펙터에 workOrderVisualPrefab이 할당됐는지 확인하세요.");
-        }
+        workOrder.AddTargets(targets);
     }
 
     #endregion
