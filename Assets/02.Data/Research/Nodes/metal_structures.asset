@@ -15,7 +15,8 @@ MonoBehaviour:
   nodeId: metal_structures
   nodeName: "\uAE08\uC18D \uAD6C\uC870\uBB3C"
   description: "\uC548\uC815\uC131 \xB7 \uAE08\uC18D \uACE8\uC870\uB85C \uB354 \uB2E8\uB2E8\uD55C
-    \uAC74\uBB3C\uC744 \uC9D3\uC2B5\uB2C8\uB2E4."
+    \uAC74\uBB3C\uC744 \uC9D3\uC2B5\uB2C8\uB2E4. \uC804\uAE30 \uC2A4\uD1A0\uBE0C\uB97C
+    \uD574\uAE08\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - construction_basics
@@ -25,4 +26,5 @@ MonoBehaviour:
   researchPointCost: 150
   unlockEffects:
   - {fileID: 11400000, guid: b4c9c17bf48d24e4681ce26aac981ce6, type: 2}
+  - {fileID: 11400000, guid: b50b7f05066e2174d8a88a7655e8d165, type: 2}
   treePosition: {x: -4, y: -2}
