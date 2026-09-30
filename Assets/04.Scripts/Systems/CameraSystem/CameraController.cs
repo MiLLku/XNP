@@ -72,9 +72,9 @@ public class CameraController : MonoBehaviour
         Vector3 moveDirection = (Vector3.right * horizontalInput) + (Vector3.up * verticalInput);
         transform.Translate(moveDirection.normalized * moveSpeed * Time.deltaTime);
 
-        // 마우스 휠 줌
+        // 마우스 휠 줌 — UI 위에서는 패널 스크롤에 양보한다
         float scrollInput = Input.GetAxis("Mouse ScrollWheel");
-        if (scrollInput != 0f)
+        if (scrollInput != 0f && !UIManager.PointerOverUI)
         {
             float currentZoom = _cam.orthographicSize;
             currentZoom -= scrollInput * zoomSpeed;

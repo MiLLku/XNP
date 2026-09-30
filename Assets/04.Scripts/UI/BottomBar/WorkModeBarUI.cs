@@ -4,13 +4,15 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 작업 모드 선택 바.
-/// 하단 바 위에 표시되며, 채광/수확/건설/철거/세척 모드를 선택하고 취소할 수 있습니다.
+/// 하단 바 위에 표시되며, 채광/수확/벌목/제초/건설/철거/세척 모드를 선택하고 취소할 수 있습니다.
 /// </summary>
 public class WorkModeBarUI : MonoBehaviour
 {
     [Header("모드 버튼")]
     [SerializeField] private Button mineButton;
     [SerializeField] private Button harvestButton;
+    [SerializeField] private Button chopButton;
+    [SerializeField] private Button weedButton;
     [SerializeField] private Button buildButton;
     [SerializeField] private Button demolishButton;
     [SerializeField] private Button cleanButton;
@@ -28,6 +30,8 @@ public class WorkModeBarUI : MonoBehaviour
     {
         mineButton?.onClick.AddListener(()     => EnterMode(InteractionManager.InteractMode.Mine));
         harvestButton?.onClick.AddListener(()  => EnterMode(InteractionManager.InteractMode.Harvest));
+        chopButton?.onClick.AddListener(()     => EnterMode(InteractionManager.InteractMode.Chop));
+        weedButton?.onClick.AddListener(()     => EnterMode(InteractionManager.InteractMode.Weed));
         buildButton?.onClick.AddListener(()    => EnterMode(InteractionManager.InteractMode.Build));
         demolishButton?.onClick.AddListener(() => EnterMode(InteractionManager.InteractMode.Demolish));
         cleanButton?.onClick.AddListener(()    => EnterMode(InteractionManager.InteractMode.Clean));
@@ -89,6 +93,8 @@ public class WorkModeBarUI : MonoBehaviour
                    ?? InteractionManager.InteractMode.Normal;
         SetHighlight(mineButton,     mode == InteractionManager.InteractMode.Mine);
         SetHighlight(harvestButton,  mode == InteractionManager.InteractMode.Harvest);
+        SetHighlight(chopButton,     mode == InteractionManager.InteractMode.Chop);
+        SetHighlight(weedButton,     mode == InteractionManager.InteractMode.Weed);
         SetHighlight(buildButton,    mode == InteractionManager.InteractMode.Build);
         SetHighlight(demolishButton, mode == InteractionManager.InteractMode.Demolish);
         SetHighlight(cleanButton,    mode == InteractionManager.InteractMode.Clean);

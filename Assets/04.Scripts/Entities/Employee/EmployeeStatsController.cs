@@ -271,6 +271,12 @@ public class EmployeeStatsController : MonoBehaviour
     /// <summary>
     /// 매 프레임 욕구(배고픔, 피로)를 갱신하고 파생 효과를 적용합니다.
     /// </summary>
+    /// <summary>잘 때 피로 회복 배율 — EmployeeAI가 침대/바닥에 맞춰 바꿈 (평소 1)</summary>
+    public float RestRecoveryMultiplier { get; set; } = 1f;
+
+    /// <summary>자는 중인지 (EmployeeAI가 설정) — 피로는 자는 동안만 회복, 깨어 있으면 줄어듦</summary>
+    public bool IsSleeping { get; set; }
+
     private void UpdateNeeds(float deltaTime)
     {
         EmployeeData data = employee.Data;
@@ -287,16 +293,16 @@ public class EmployeeStatsController : MonoBehaviour
             currentNeeds.hunger = Mathf.Clamp(currentNeeds.hunger, 0f, 100f);
         }
 
-        // 피로: 작업 중 증가, 휴식 중 회복
-        if (employee.State == EmployeeState.Working && !needsFrozen)
+        // 피로: 깨어 있는 동안 줄고, 자는 동안만 회복 (오락·세척·요양의 '쉬는 상태'는 잠이 아님)
+        if (!IsSleeping && !needsFrozen)
         {
             float fatigueIncrease = data.fatigueIncreaseRate * cachedFatigueRateModifier;
             currentNeeds.fatigue -= fatigueIncrease * deltaTime;
             currentNeeds.fatigue = Mathf.Clamp(currentNeeds.fatigue, 0f, 100f);
         }
-        else if (employee.State == EmployeeState.Resting)
+        else if (IsSleeping)
         {
-            currentNeeds.fatigue += REST_FATIGUE_RECOVERY * deltaTime;
+            currentNeeds.fatigue += REST_FATIGUE_RECOVERY * RestRecoveryMultiplier * deltaTime;
             currentNeeds.fatigue = Mathf.Clamp(currentNeeds.fatigue, 0f, 100f);
         }
 

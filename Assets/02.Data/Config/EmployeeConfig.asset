@@ -80,14 +80,14 @@ MonoBehaviour:
   traitCountMax: 3
   baseMaxHealth: 100
   baseMaxMental: 100
-  baseAttackPower: 10
+  baseMentalValue: 50
+  baseMeleeLevel: 1
+  baseRangedLevel: 1
   baseHungerDecayRate: 0.09
-  baseFatigueIncreaseRate: 0.2
+  baseFatigueIncreaseRate: 0.1
   defaultCanMine: 1
-  defaultCanChop: 1
   defaultCanHaul: 1
   defaultCanBuild: 1
-  defaultCanDemolish: 1
   defaultCanCraft: 1
   defaultCanResearch: 1
   defaultCanGarden: 1

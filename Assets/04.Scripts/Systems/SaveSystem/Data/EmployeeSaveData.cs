@@ -3,10 +3,6 @@ using System.Collections.Generic;
 
 /// <summary>
 /// 직원 저장 데이터.
-///
-/// 직원 유형:
-///   유니크 직원(isUnique=true): 템플릿 기반 + 성장 시스템
-///   일반 직원(isUnique=false): 랜덤 생성 (추후 구현)
 /// </summary>
 [Serializable]
 public class EmployeeSaveData
@@ -18,9 +14,6 @@ public class EmployeeSaveData
 
     /// <summary>EmployeeData ScriptableObject ID (외형/프리팹용)</summary>
     public int templateId;
-
-    /// <summary>유니크 직원 여부</summary>
-    public bool isUnique;
 
     #endregion
 
@@ -52,12 +45,6 @@ public class EmployeeSaveData
 
     /// <summary>현재 레벨</summary>
     public int level;
-
-    /// <summary>현재 경험치</summary>
-    public int experience;
-
-    /// <summary>다음 레벨까지 필요 경험치</summary>
-    public int experienceToNextLevel;
 
     /// <summary>레벨업으로 누적된 운반 용량 보너스</summary>
     public int carryCapacityBonus;
@@ -137,6 +124,8 @@ public class EmployeeSaveData
 
     /// <summary>필수 소지 식량 개수 설정 (v5 — 구 세이브는 마이그레이션에서 1로 보정)</summary>
     public int desiredFoodCount;
+    /// <summary>미리 챙길 음식 기준 (FoodCarryPolicy, 구 세이브 0 = 조리 음식만)</summary>
+    public int foodCarryPolicy;
 
     /// <summary>필수 소지 약물 개수 설정 (v5)</summary>
     public int desiredDrugCount;
@@ -260,8 +249,6 @@ public class EmployeeSaveData
         activeMentalEvents = new List<MentalEventSaveData>();
         equippedItems = new List<EquipmentSlotSaveData>();
         level = 1;
-        experience = 0;
-        experienceToNextLevel = 100;
         assignedZoneId = -1;
         sleepZoneId = -1;
         recreationZoneId = -1;
@@ -280,12 +267,14 @@ public class WorkAbilitiesSaveData
     #region 작업 가능 여부
 
     public bool canMine;
+    /// <summary>[구 세이브 전용] 벌목 능력. 로드 시 원예(canGarden)로 흡수되며 새로 저장하지 않습니다.</summary>
     public bool canChop;
     public bool canResearch;
     public bool canCraft;
     public bool canGarden;
     public bool canBuild;
     public bool canHaul;
+    /// <summary>[구 세이브 전용] 철거 능력. 로드 시 건설(canBuild)로 흡수되며 새로 저장하지 않습니다.</summary>
     public bool canDemolish;
 
     #endregion
@@ -293,13 +282,13 @@ public class WorkAbilitiesSaveData
     #region 작업 속도
 
     public float miningSpeed;
-    public float choppingSpeed;
     public float researchSpeed;
     public float craftingSpeed;
     public float gardeningSpeed;
     public float buildingSpeed;
     public float haulingSpeed;
-    public float demolishSpeed;
+    public float cleaningSpeed;
+    public float cookingSpeed;
 
     #endregion
 
@@ -313,13 +302,11 @@ public class WorkAbilitiesSaveData
     public WorkAbilitiesSaveData()
     {
         miningSpeed = 1f;
-        choppingSpeed = 1f;
         researchSpeed = 1f;
         craftingSpeed = 1f;
         gardeningSpeed = 1f;
         buildingSpeed = 1f;
         haulingSpeed = 1f;
-        demolishSpeed = 1f;
     }
 
     /// <summary>
@@ -334,21 +321,19 @@ public static WorkAbilitiesSaveData FromWorkAbilities(WorkAbilities source)
         return new WorkAbilitiesSaveData
         {
             canMine = source.canMine,
-            canChop = source.canChop,
             canResearch = source.canResearch,
             canCraft = source.canCraft,
             canGarden = source.canGarden,
             canBuild = source.canBuild,
             canHaul = source.canHaul,
-            canDemolish = source.canDemolish,
             miningSpeed = source.miningSpeed,
-            choppingSpeed = source.choppingSpeed,
             researchSpeed = source.researchSpeed,
             craftingSpeed = source.craftingSpeed,
             gardeningSpeed = source.gardeningSpeed,
             buildingSpeed = source.buildingSpeed,
             haulingSpeed = source.haulingSpeed,
-            demolishSpeed = source.demolishSpeed,
+            cleaningSpeed = source.cleaningSpeed,
+            cookingSpeed = source.cookingSpeed,
             baseCarryCapacity = source.baseCarryCapacity
         };
     }
@@ -362,21 +347,20 @@ public WorkAbilities ToWorkAbilities()
         return new WorkAbilities
         {
             canMine = canMine,
-            canChop = canChop,
             canResearch = canResearch,
             canCraft = canCraft,
-            canGarden = canGarden,
-            canBuild = canBuild,
+            canGarden = canGarden || canChop, // 벌목이 제초(원예)로 통합됨
+            canBuild = canBuild || canDemolish, // 철거가 건설로 통합됨
             canHaul = canHaul,
-            canDemolish = canDemolish,
             miningSpeed = miningSpeed,
-            choppingSpeed = choppingSpeed,
             researchSpeed = researchSpeed,
             craftingSpeed = craftingSpeed,
             gardeningSpeed = gardeningSpeed,
             buildingSpeed = buildingSpeed,
             haulingSpeed = haulingSpeed,
-            demolishSpeed = demolishSpeed,
+            // 구 세이브엔 없던 값(0) → 기본 1
+            cleaningSpeed = cleaningSpeed > 0f ? cleaningSpeed : 1f,
+            cookingSpeed = cookingSpeed > 0f ? cookingSpeed : 1f,
             baseCarryCapacity = baseCarryCapacity > 0 ? baseCarryCapacity : 5
         };
     }

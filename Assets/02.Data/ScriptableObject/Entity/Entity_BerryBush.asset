@@ -30,5 +30,29 @@ MonoBehaviour:
   avoidSpawnArea: 1
   minDistanceFromBase: 0
   maxDistanceFromBase: 90
+  spawnConditions:
+    erosion:
+      use: 1
+      min: 0
+      max: 25
+    temperature:
+      use: 0
+      min: 0
+      max: 0
+    habitat: 1
+  neighborRadius: 8
+  maxNeighbors: 1
+  spawnAtRuntime: 1
+  runtimeSpawnInterval: 240
+  growthConditions:
+    erosion:
+      use: 1
+      min: 0
+      max: 50
+    temperature:
+      use: 0
+      min: 0
+      max: 0
+    habitat: 0
   persistInSave: 1
-  hasGrowthState: 0
+  hasGrowthState: 1

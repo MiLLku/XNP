@@ -1,292 +1,114 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 벌목 가능한 나무.
-/// 성장 단계(묘목→어린 나무→성목)를 거치며, 다 자란 나무만 벌목할 수 있습니다.
-/// IHarvestable, IWorkTarget을 구현하여 작업 시스템과 연동됩니다.
+/// 나무 — 재성장 부류. 벌목하면 목재를 떨어뜨리고 뿌리가 남아 다시 자랍니다.
+/// 제초하면 뿌리까지 뽑혀 묘목이 나옵니다.
+///
+/// <b>단계별 크기</b> — 성장도에 따라 <see cref="stageScales"/> 단계로 커집니다.
+/// 스프라이트 피벗이 좌하단이라 크기는 발밑 칸에서 위·오른쪽으로 늘어납니다.
+///
+/// <b>공간 부족 시 정지</b> — 다음 단계 크기만큼 위쪽 칸이 비어 있지 않으면 그 단계에서 멈춥니다.
+/// 심는 것 자체는 막지 않습니다 — 좁은 곳에 심은 결과는 플레이어 몫입니다.
 /// </summary>
-public class ChoppableTree : MonoBehaviour, IHarvestable, IWorkTarget
+public class ChoppableTree : PlantBase
 {
-    [Header("나무 설정")]
-    [SerializeField] private float growthTime = 60f; // 성장 시간
-    [SerializeField] private float chopTime = 5f; // 벌목 시간
-    
-    [Header("수확물")]
-    [SerializeField] private ItemData woodItem;
-    [SerializeField] private int woodYield = 5;
-    [SerializeField] private ItemData seedItem;
-    [SerializeField] private int seedYield = 2;
-    
-    [Header("성장 단계 스프라이트")]
+    [Header("나무 — 단계")]
+    [Tooltip("단계별 배율 (다 자란 크기 대비). 마지막이 성체(1). 칸 수는 올림으로 계산합니다.")]
+    [SerializeField] private float[] stageScales = { 0.34f, 0.67f, 1f };
+
+    [Header("나무 — 단계 스프라이트 (비어 있으면 성체 스프라이트)")]
     [SerializeField] private Sprite seedlingSprite;
     [SerializeField] private Sprite youngSprite;
     [SerializeField] private Sprite matureSprite;
-    
+
     private SpriteRenderer spriteRenderer;
-    private float currentGrowth = 0f;
-    private bool isFullyGrown = false;
-    private bool isBeingChopped = false;
 
-    /// <summary>세이브에서 복원된 경우 true — Start()의 랜덤 초기화를 건너뜁니다.</summary>
-    private bool _isRestoredFromSave = false;
+    /// <summary>다 자란 나무의 칸 크기 (성체 스프라이트 크기)</summary>
+    private Vector2 matureSize = new Vector2(2f, 3f);
 
-    /// <summary>성장 진행도 (0~1)</summary>
-    public float GrowthProgress => growthTime > 0 ? Mathf.Clamp01(currentGrowth / growthTime) : 1f;
+    private int LastStage => stageScales.Length - 1;
 
-    /// <summary>다 자란 상태인지</summary>
-    public bool IsFullyGrown => isFullyGrown;
+    /// <summary>현재 단계 (0 ~ LastStage)</summary>
+    public int Stage => LastStage <= 0 ? 0 : Mathf.Min(LastStage, Mathf.FloorToInt(Growth * LastStage + 0.0001f));
 
-    private enum TreeStage
-    {
-        Seedling,   // 묘목
-        Young,      // 어린 나무
-        Mature      // 다 자란 나무
-    }
-    
-    private TreeStage currentStage = TreeStage.Seedling;
-    
-    void Awake()
+    protected override void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
-        if (spriteRenderer == null)
-        {
-            spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
-        }
+        if (spriteRenderer == null) spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
 
-        // 수확(벌목) 드래그 선택(Physics2D.OverlapBox)에 잡히도록 Collider 보장.
-        // 프리팹에 콜라이더가 없어도 런타임에 스프라이트 크기에 맞춰 자동 부착된다.
-        if (GetComponent<Collider2D>() == null)
-            gameObject.AddComponent<BoxCollider2D>();
-    }
-    
-    void Start()
-    {
-        UpdateVisual();
+        Sprite mature = matureSprite != null ? matureSprite : spriteRenderer.sprite;
+        if (mature != null) matureSize = mature.bounds.size;
 
-        // 세이브 복원 시에는 랜덤 초기화 생략 (RestoreGrowthState에서 이미 설정됨)
-        if (!_isRestoredFromSave)
-        {
-            // 테스트용: 50% 확률로 이미 다 자란 나무로 시작
-            if (Random.Range(0f, 1f) < 0.5f)
-            {
-                currentGrowth = growthTime;
-                isFullyGrown = true;
-                currentStage = TreeStage.Mature;
-                UpdateVisual();
-            }
-        }
-    }
-    
-    void Update()
-    {
-        if (!isFullyGrown)
-        {
-            Grow(Time.deltaTime);
-        }
-    }
-    
-    private void Grow(float deltaTime)
-    {
-        currentGrowth += deltaTime;
-        
-        // 성장 단계 업데이트
-        float growthPercent = currentGrowth / growthTime;
-        
-        TreeStage newStage = TreeStage.Seedling;
-        if (growthPercent >= 1f)
-        {
-            newStage = TreeStage.Mature;
-            isFullyGrown = true;
-        }
-        else if (growthPercent >= 0.5f)
-        {
-            newStage = TreeStage.Young;
-        }
-        
-        if (newStage != currentStage)
-        {
-            currentStage = newStage;
-            UpdateVisual();
-        }
-    }
-    
-    private void UpdateVisual()
-    {
-        switch (currentStage)
-        {
-            case TreeStage.Seedling:
-                if (seedlingSprite != null) spriteRenderer.sprite = seedlingSprite;
-                transform.localScale = Vector3.one * 0.5f;
-                break;
-                
-            case TreeStage.Young:
-                if (youngSprite != null) spriteRenderer.sprite = youngSprite;
-                transform.localScale = Vector3.one * 0.75f;
-                break;
-                
-            case TreeStage.Mature:
-                if (matureSprite != null) spriteRenderer.sprite = matureSprite;
-                transform.localScale = Vector3.one;
-                break;
-        }
-    }
-    
-    #region IHarvestable 구현
-    
-    public bool CanHarvest()
-    {
-        return isFullyGrown && !isBeingChopped;
-    }
-    
-    public void Harvest()
-    {
-        if (!CanHarvest()) return;
-        
-        Debug.Log($"[Tree] 나무 벌목됨!");
-
-        // 자원 드롭 — 채광과 동일하게 바닥에 떨어뜨려 직원이 창고로 운반 (Haul 루프)
-        if (woodItem != null)
-        {
-            DropHarvestItem(woodItem, woodYield);
-        }
-        if (seedItem != null && Random.Range(0f, 1f) < 0.5f) // 50% 확률로 씨앗
-        {
-            DropHarvestItem(seedItem, seedYield);
-        }
-
-        // 그루터기로 변경하거나 제거
-        CreateStump();
-        Destroy(gameObject);
-    }
-    
-    /// <summary>
-    /// 수확물을 나무 밑동 주변 바닥에 떨어뜨립니다.
-    /// DroppedItemManager가 없으면 인벤토리로 직접 반납 (폴백).
-    /// </summary>
-    private void DropHarvestItem(ItemData item, int amount)
-    {
-        if (item == null || amount <= 0) return;
-
-        if (DroppedItemManager.instance == null)
-        {
-            InventoryManager.instance?.AddItem(item, amount);
-            return;
-        }
-
-        for (int i = 0; i < amount; i++)
-        {
-            Vector3 dropPos = transform.position + new Vector3(Random.Range(-0.5f, 0.5f), 0.25f, 0f);
-            DroppedItemManager.instance.SpawnItem(item, 1, dropPos);
-        }
+        base.Awake();
     }
 
-    public float GetHarvestTime()
+    protected override void OnGrowthChanged()
     {
-        return chopTime;
-    }
-    
-    public WorkType GetHarvestType()
-    {
-        return WorkType.Chopping;
-    }
-    
-    #endregion
-    
-    #region IWorkTarget 구현
-    
-    public Vector3 GetWorkPosition()
-    {
-        return transform.position + new Vector3(0, -0.5f, 0); // 나무 앞 위치
-    }
-    
-    public WorkType GetWorkType()
-    {
-        return WorkType.Chopping;
-    }
-    
-    public float GetWorkTime()
-    {
-        return chopTime;
-    }
-    
-    public bool IsWorkAvailable()
-    {
-        return CanHarvest();
-    }
-    
-    public void CompleteWork(Employee worker)
-    {
-        isBeingChopped = true;
-        Harvest();
-    }
-    
-    public void CancelWork(Employee worker)
-    {
-        isBeingChopped = false;
-    }
-    
-    #endregion
-    
-    /// <summary>
-    /// 세이브에서 성장 상태를 복원합니다.
-    /// Instantiate 직후, Start() 실행 전에 호출해야 합니다.
-    /// </summary>
-    /// <param name="growthProgress">저장된 성장 진행도 (0~1)</param>
-    public void RestoreGrowthState(float growthProgress)
-    {
-        _isRestoredFromSave = true;
-        currentGrowth = Mathf.Clamp01(growthProgress) * growthTime;
+        if (spriteRenderer == null) return;
 
-        float pct = growthTime > 0 ? currentGrowth / growthTime : 1f;
-        if (pct >= 1f)
-        {
-            isFullyGrown = true;
-            currentStage = TreeStage.Mature;
-        }
-        else if (pct >= 0.5f)
-        {
-            currentStage = TreeStage.Young;
-        }
-        else
-        {
-            currentStage = TreeStage.Seedling;
-        }
+        int stage = Stage;
+        Sprite s = stage == LastStage ? matureSprite
+                 : stage == 0 ? seedlingSprite
+                 : youngSprite;
+        if (s == null) s = matureSprite;
+        if (s != null) spriteRenderer.sprite = s;
 
-        // spriteRenderer는 Awake()에서 이미 할당됨
-        if (spriteRenderer != null) UpdateVisual();
+        transform.localScale = Vector3.one * stageScales[stage];
     }
 
-    private void CreateStump()
+    /// <summary>다음 단계 크기가 들어갈 공간이 있어야 자랍니다.</summary>
+    protected override bool CheckExtraGrowth(List<string> failures)
     {
-        // 나무 그루터기 생성 (선택사항)
-        // GameObject stump = Instantiate(stumpPrefab, transform.position, Quaternion.identity);
+        int next = Mathf.Min(Stage + 1, LastStage);
+        Vector2Int size = FootprintAt(next);
+        if (HasSpace(size)) return true;
+
+        failures?.Add($"공간 부족 (높이 {size.y}칸 필요)");
+        return false;
     }
-    
-    void OnMouseEnter()
+
+    /// <summary>묘목 단계 모습 — 첫 단계 배율, 묘목 스프라이트가 없으면 성체 스프라이트.</summary>
+    public override void GetPreview(out Sprite sprite, out float scale)
     {
-        if (CanHarvest())
-        {
-            spriteRenderer.color = new Color(1.2f, 1.2f, 1f);
-        }
+        base.GetPreview(out sprite, out scale);
+        if (seedlingSprite != null) sprite = seedlingSprite;
+        else if (matureSprite != null) sprite = matureSprite;
+        scale = stageScales.Length > 0 ? stageScales[0] : 1f;
     }
-    
-    void OnMouseExit()
+
+    /// <summary>다 자라려면 필요한 공간. 프리팹에서도 호출되므로 스프라이트에서 직접 크기를 읽는다.</summary>
+    public override string DescribeSpaceNeed()
     {
-        spriteRenderer.color = Color.white;
+        Sprite mature = matureSprite;
+        if (mature == null && TryGetComponent(out SpriteRenderer sr)) mature = sr.sprite;
+        Vector2 size = mature != null ? (Vector2)mature.bounds.size : matureSize;
+        return $"위쪽 빈 공간 {Mathf.CeilToInt(size.x - 0.01f)}×{Mathf.CeilToInt(size.y - 0.01f)}칸 (좁으면 그 단계에서 멈춤)";
     }
-    
-    // 디버그용
-    void OnDrawGizmos()
+
+    /// <summary>단계의 칸 크기 (올림).</summary>
+    private Vector2Int FootprintAt(int stage)
     {
-        if (isFullyGrown)
+        float s = stageScales[stage];
+        return new Vector2Int(
+            Mathf.Max(1, Mathf.CeilToInt(matureSize.x * s - 0.01f)),
+            Mathf.Max(1, Mathf.CeilToInt(matureSize.y * s - 0.01f)));
+    }
+
+    // ponytail: 지형 타일(공기)만 본다 — 건물이 자리를 막는 경우는 건물 점유 그리드가 필요해지면 추가
+    private bool HasSpace(Vector2Int size)
+    {
+        var map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
+        if (map == null) return true;
+
+        Vector2Int origin = Cell;
+        for (int dx = 0; dx < size.x; dx++)
+        for (int dy = 0; dy < size.y; dy++)
         {
-            Gizmos.color = Color.green;
+            int x = origin.x + dx, y = origin.y + dy;
+            if (x < 0 || x >= GameMap.MAP_WIDTH || y < 0 || y >= GameMap.MAP_HEIGHT) return false;
+            if (map.TileGrid[x, y] != (int)TileType.Air) return false;
         }
-        else
-        {
-            Gizmos.color = Color.yellow;
-        }
-        
-        Gizmos.DrawWireCube(transform.position, Vector3.one * 0.5f);
+        return true;
     }
 }

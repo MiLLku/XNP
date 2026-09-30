@@ -45,7 +45,7 @@ public class DemolishOrder : IWorkTarget, IProgressiveWork
     public Vector3 GetWorkPosition() => position;
 
     /// <inheritdoc/>
-    public WorkType GetWorkType() => WorkType.Demolish;
+    public WorkType GetWorkType() => WorkType.Building; // 철거는 건설 작업에 합쳐짐
 
     /// <inheritdoc/>
     public float GetWorkTime() => DEMOLISH_WORK_AMOUNT;

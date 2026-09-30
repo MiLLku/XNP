@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -26,6 +27,12 @@ public class MapEntityIdentity : MonoBehaviour
     public EntityDefinition Definition => DefinitionDatabase.Instance != null
         ? DefinitionDatabase.Instance.GetEntity(entityId)
         : null;
+
+    /// <summary>활성화된 모든 개체 (주변 동일 식생물 개수 판정용).</summary>
+    public static readonly HashSet<MapEntityIdentity> All = new HashSet<MapEntityIdentity>();
+
+    private void OnEnable() => All.Add(this);
+    private void OnDisable() => All.Remove(this);
 
     /// <summary>생성 직후 ID를 새깁니다.</summary>
     public void Assign(int id) => entityId = id;

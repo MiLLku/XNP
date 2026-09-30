@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: TrainingGround
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 3710
+  buildingName: "\uB2E8\uB828\uC7A5"
+  icon: {fileID: 21300000, guid: 2c50641ff3c5efa41b5258a4da673968, type: 3}
+  category: 2
+  description: "\uC2B5\uACA9 \uC804\uB9AC\uD488\uC73C\uB85C \uC9C1\uC6D0\uC744 \uB2E8\uB828\uD558\uB294
+    \uACF3. \uD558\uB098\uB77C\uB3C4 \uC788\uC73C\uBA74 \uB808\uBCA8\uC5C5\uD560
+    \uC218 \uC788\uACE0, \uD074\uB9AD\uD558\uBA74 \uC9C1\uC6D0\uBCC4 \uB808\uBCA8\uC5C5
+    \uCC3D\uC774 \uC5F4\uB9BD\uB2C8\uB2E4. \uB808\uBCA8\uB9C8\uB2E4 \uC2A4\uD0AC
+    \uD3EC\uC778\uD2B8 1."
+  buildingPrefab: {fileID: 6829916977556707050, guid: 9c35b3de0b05a4543b282d71d5d15821, type: 3}
+  size: {x: 2, y: 2}
+  pivot: {x: 0, y: 0}
+  workAmount: 30
+  requiredResources:
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 15
+  - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
+    amount: 10
+  maxHealth: 100
+  blocksMovement: 0
+  requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
+  destructionDrops: []
+  paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 22
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
+  powerConsumption: 0
+  allowOverlap: 0
+  requiresResearch: 1

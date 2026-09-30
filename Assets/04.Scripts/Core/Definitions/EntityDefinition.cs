@@ -118,6 +118,41 @@ public class EntityDefinition : ScriptableObject
 
     #endregion
 
+    #region 생성·성장 조건 (식생물)
+
+    [Header("생성 조건 (자연 생성)")]
+    [Tooltip("자연 생성 시 만족해야 하는 환경. 플레이어 파종에는 적용되지 않습니다.")]
+    public PlantConditions spawnConditions = new PlantConditions();
+
+    [Tooltip("주변 동일 식생물을 세는 반경(칸). 0이면 검사하지 않습니다.")]
+    [Min(0)] public float neighborRadius = 0f;
+
+    [Tooltip("반경 안 동일 식생물이 이 수 이하일 때만 생성합니다 (플레이어가 심은 것 포함).")]
+    [Min(0)] public int maxNeighbors = 0;
+
+    [Header("게임 중 자연 생성")]
+    [Tooltip("체크하면 게임 도중 PlantSpawner가 주기마다 생성 조건에 맞는 곳에 하나씩 생성합니다.\n" +
+             "1회성은 다 자란 상태로, 재성장 부류는 묘목 단계(성장도 0)로 생성됩니다.")]
+    public bool spawnAtRuntime = false;
+
+    [Tooltip("생성 시도 주기(초).")]
+    [Min(1f)] public float runtimeSpawnInterval = 120f;
+
+    [Header("성장 조건")]
+    [Tooltip("만족하지 않으면 성장이 멈춥니다 (시들지 않음).")]
+    public PlantConditions growthConditions = new PlantConditions();
+
+    [Tooltip("적정 온도 ℃. 이 범위 안이면 최대 속도로, 벗어날수록 느리게 자랍니다 (멈추지는 않음, 수경재배기는 무시).")]
+    public ConditionRange optimalTemperature;
+
+    [Tooltip("적정 온도에서 이만큼(℃) 벗어나면 성장 속도가 최저치가 됩니다.")]
+    [Min(0.1f)] public float temperatureFalloff = 10f;
+
+    [Tooltip("적정 온도에서 크게 벗어났을 때의 최저 성장 속도 배율 (0이면 사실상 멈춤).")]
+    [Range(0f, 1f)] public float minTemperatureRate = 0.1f;
+
+    #endregion
+
     #region 세이브
 
     [Header("세이브")]

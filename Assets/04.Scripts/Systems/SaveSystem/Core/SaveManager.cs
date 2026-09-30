@@ -407,24 +407,10 @@ public class SaveManager : DontDestroySingleton<SaveManager>
             Destroy(site.gameObject);
         }
 
-        // 자연물 제거
-        var trees = FindObjectsByType<ChoppableTree>();
-        foreach (var tree in trees)
-        {
-            Destroy(tree.gameObject);
-        }
-
-        var plants = FindObjectsByType<HarvestablePlant>();
-        foreach (var plant in plants)
+        // 자연물 제거 (나무·덤불·침식 식물 — 모두 PlantBase)
+        foreach (var plant in FindObjectsByType<PlantBase>())
         {
             Destroy(plant.gameObject);
-        }
-
-        // 침식 식물 제거
-        var erosionPlants = FindObjectsByType<ErosionPlantEntity>();
-        foreach (var ep in erosionPlants)
-        {
-            Destroy(ep.gameObject);
         }
 
         // 드롭 아이템 제거

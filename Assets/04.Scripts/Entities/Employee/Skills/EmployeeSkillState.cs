@@ -189,7 +189,10 @@ public class EmployeeSkillState : MonoBehaviour
 
     /// <summary>사용 가능한 총 스킬 포인트 = 직원 고정값 + 전역 해금 보너스.</summary>
     public int TotalSkillPoints
-        => baseSkillPoints + (SkillPointManager.instance != null ? SkillPointManager.instance.GlobalBonusPoints : 0);
+        => baseSkillPoints + LevelPoints;
+
+    /// <summary>레벨로 얻은 포인트 (1레벨당 1 — Lv1은 0)</summary>
+    private int LevelPoints => _growth != null ? Mathf.Max(0, _growth.Level - 1) : 0;
 
     /// <summary>이미 사용한 스킬 포인트 (해제된 스킬들의 pointCost 합).</summary>
     public int UsedSkillPoints
@@ -387,10 +390,10 @@ public class EmployeeSkillState : MonoBehaviour
         return category switch
         {
             SkillCategory.Mining    => WorkType.Mining,
-            SkillCategory.Chopping  => WorkType.Chopping,
+            SkillCategory.Weeding  => WorkType.Weeding,
             SkillCategory.Research  => WorkType.Research,
             SkillCategory.Crafting  => WorkType.Crafting,
-            SkillCategory.Gardening => WorkType.Gardening,
+            SkillCategory.Sowing => WorkType.Sowing,
             SkillCategory.Hauling   => WorkType.Hauling,
             SkillCategory.Building  => WorkType.Building,
             _                       => (WorkType?)null,

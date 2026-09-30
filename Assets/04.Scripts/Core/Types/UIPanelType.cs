@@ -44,4 +44,22 @@ public enum UIPanelType
 
     /// <summary>냉난방기 목표 온도 설정 패널</summary>
     ClimateControlUI,
+
+    /// <summary>아이템 정보 오버레이 (설명·파종조건·파종 버튼)</summary>
+    ItemInfo,
+
+    /// <summary>재배 창 (밭·수경재배기 칸별 작물 선택)</summary>
+    CropPlotUI,
+
+    /// <summary>침식 배양기 목표 침식 설정</summary>
+    ErosionIncubatorUI,
+
+    /// <summary>생산 계획 창 (스토브 등 — 계획 목록·반복·재료 필터)</summary>
+    ProductionPlanUI,
+
+    /// <summary>침대 주인 배정 창</summary>
+    BedAssignUI,
+
+    /// <summary>단련장 — 직원 레벨업 창</summary>
+    LevelUpUI,
 }

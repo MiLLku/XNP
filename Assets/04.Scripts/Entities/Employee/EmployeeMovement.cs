@@ -43,7 +43,6 @@ public class EmployeeMovement : MonoBehaviour
     #region 필드 및 설정
 
     [Header("이동 설정")]
-    [SerializeField] private float baseSpeed = 3f;
     [SerializeField] private float stoppingDistance = 0.1f;
     [SerializeField] private float tileTransitionSpeed = 5f;
 
@@ -169,7 +168,16 @@ public class EmployeeMovement : MonoBehaviour
         {
             Debug.LogWarning("[EmployeeMovement] Collider2D가 없습니다.");
         }
+        else
+        {
+            foreach (var other in AllColliders)
+                if (other != null) Physics2D.IgnoreCollision(col, other);
+            AllColliders.Add(col);
+        }
     }
+
+    /// <summary>직원 충돌체 전체 — 새 직원이 기존 직원 전부와 충돌을 끄는 데 씀</summary>
+    private static readonly List<Collider2D> AllColliders = new List<Collider2D>();
 
     void Start()
     {
@@ -202,6 +210,7 @@ public class EmployeeMovement : MonoBehaviour
     private void OnDestroy()
     {
         CancelMoveTask();
+        AllColliders.Remove(col);
 
         if (_hasSightCenter)
             FogOfWarManager.instance?.RemoveEmployeeSight(_lastSightCenter);
@@ -712,6 +721,8 @@ public class EmployeeMovement : MonoBehaviour
             // ─────────────────────────────────────────────────────────────────────
 
             await MoveToTileAsync(nextTile, heightDiff, ct);
+            lastSafePosition = transform.position; // 경로 칸은 통과 가능한 칸 — 되돌아갈 자리
+            hasSafePosition = true;
 
             // 문 통과 완료 → 요청 카운터 감소
             doorAtNext?.ReleaseOpen();
@@ -719,7 +730,11 @@ public class EmployeeMovement : MonoBehaviour
             currentPathIndex++;
         }
 
-        if (isMoving && Vector3.Distance(transform.position, targetPosition) > stoppingDistance)
+        // 마무리 직선 이동은 목표 칸에 실제로 도착했을 때만 — 목표가 막혀 있으면 길찾기는 가장 가까운 칸까지만
+        // 경로를 주는데, 여기서 원래 좌표로 직선 이동하면 벽·바위를 뚫고 들어가 갇힌다.
+        bool reachedGoalTile = currentPath == null || currentPath.Count == 0 ||
+                               currentPath[currentPath.Count - 1] == WorldToFootTile(targetPosition);
+        if (isMoving && reachedGoalTile && Vector3.Distance(transform.position, targetPosition) > stoppingDistance)
         {
             await MoveToPositionAsync(targetPosition, ct);
         }
@@ -866,6 +881,7 @@ public class EmployeeMovement : MonoBehaviour
     /// </summary>
     private void ReachDestination()
     {
+        ValidateAndFixPosition();
         isMoving = false;
         currentPath = null;
         currentPathIndex = 0;
@@ -889,6 +905,7 @@ public class EmployeeMovement : MonoBehaviour
     public void StopMoving()
     {
         CancelMoveTask();
+        ValidateAndFixPosition();
 
         isMoving  = false;
         isClimbing = false;
@@ -1086,11 +1103,21 @@ public class EmployeeMovement : MonoBehaviour
             int tileId = gameMap.TileGrid[footTile.x, footTile.y];
             if (tileId != 0)
             {
-                Debug.LogWarning($"[EmployeeMovement] 직원이 고체 안에 있음! 위치 보정 시도: {footTile}");
-                AdjustPositionIfInsideSolid();
+                // 안전망 — 이동이 끝났는데 발이 고체 안이면 마지막으로 밟은 경로 칸으로 되돌린다.
+                // (위·좌우 1칸만 찾는 AdjustPositionIfInsideSolid로는 옆으로 여러 칸 박힌 경우를 못 빠져나옴)
+                Debug.LogWarning($"[EmployeeMovement] {name} 고체 안에서 멈춤 {footTile} → 마지막 안전 위치로 복귀");
+                Vector2Int safeTile = WorldToFootTile(lastSafePosition);
+                if (hasSafePosition && gameMap.TileGrid[safeTile.x, safeTile.y] == 0)
+                    transform.position = lastSafePosition;
+                else
+                    AdjustPositionIfInsideSolid();
             }
         }
     }
+
+    /// <summary>마지막으로 밟은 경로 칸의 위치 (고체에 박혔을 때 복귀용)</summary>
+    private Vector3 lastSafePosition;
+    private bool hasSafePosition;
 
     #endregion
 

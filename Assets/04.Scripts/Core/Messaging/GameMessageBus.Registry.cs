@@ -74,7 +74,6 @@ public static partial class GameMessageBus
         builder.AddMessageBroker<RecipeUnlockedMessage>();
 
         // 스킬
-        builder.AddMessageBroker<SkillPointCapIncreasedMessage>();
 
         // 디버그
         builder.AddMessageBroker<DebugFlagsChangedMessage>();

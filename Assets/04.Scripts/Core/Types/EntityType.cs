@@ -58,4 +58,16 @@ public enum EntityType
 
     /// <summary>은 바닥</summary>
     SilverFloor = 2016,
+
+    /// <summary>쌀 — 작물 — 야생에서 자라며 밭·수경재배기에서 재배</summary>
+    Rice = 2020,
+
+    /// <summary>감자 — 작물 — 야생에서 자라며 밭·수경재배기에서 재배</summary>
+    Potato = 2021,
+
+    /// <summary>침식 쌀 — 작물 — 야생에서 자라며 밭·수경재배기에서 재배</summary>
+    ErosionRice = 2022,
+
+    /// <summary>침식 감자 — 작물 — 야생에서 자라며 밭·수경재배기에서 재배</summary>
+    ErosionPotato = 2023,
 }

@@ -73,6 +73,7 @@ public class EmployeeWork : MonoBehaviour
 
     /// <summary>필수 소지 설정 — 자유시간에 이 개수까지 미리 챙겨둔다 (직원 관리창에서 조정)</summary>
     private int desiredFoodCount = 1;
+    private FoodCarryPolicy foodCarryPolicy = FoodCarryPolicy.CookedOnly;
     private int desiredDrugCount = 0;
 
     // 컴포넌트 참조
@@ -150,6 +151,7 @@ public class EmployeeWork : MonoBehaviour
         {
             foreach (WorkType wt in data.initialDisqualifications)
             {
+                if (!CanBeDisqualified(wt)) continue;
                 disqualifications.Add(new DisqualificationEntry
                 {
                     workType = wt,
@@ -169,21 +171,19 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         return new WorkAbilities
         {
             canMine = source.canMine,
-            canChop = source.canChop,
             canResearch = source.canResearch,
             canCraft = source.canCraft,
             canGarden = source.canGarden,
             canBuild = source.canBuild,
             canHaul = source.canHaul,
-            canDemolish = source.canDemolish,
             miningSpeed = source.miningSpeed,
-            choppingSpeed = source.choppingSpeed,
             researchSpeed = source.researchSpeed,
             craftingSpeed = source.craftingSpeed,
             gardeningSpeed = source.gardeningSpeed,
             buildingSpeed = source.buildingSpeed,
             haulingSpeed = source.haulingSpeed,
-            demolishSpeed = source.demolishSpeed,
+            cleaningSpeed = source.cleaningSpeed,
+            cookingSpeed = source.cookingSpeed,
             baseCarryCapacity = source.baseCarryCapacity
         };
     }
@@ -220,7 +220,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     /// <param name="reason">비자격 사유 (UI 표시용)</param>
     public void AddDisqualification(WorkType workType, string reason = "")
     {
-        if (IsDisqualified(workType)) return;
+        if (!CanBeDisqualified(workType) || IsDisqualified(workType)) return;
 
         disqualifications.Add(new DisqualificationEntry { workType = workType, reason = reason });
         Debug.Log($"[Work] {employee?.DisplayName}: {workType} 비자격 추가 ({reason})");
@@ -231,6 +231,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             CancelWork();
         }
     }
+
+    /// <summary>결격이 될 수 있는 작업인지 — 세척은 누구나 해야 하는 일이라 예외, 철거는 건설에 합쳐져 없어짐.</summary>
+    public static bool CanBeDisqualified(WorkType type) => type != WorkType.Cleaning && type != WorkType.Demolish && type != WorkType.Training;
 
     /// <summary>
     /// 동적 비자격을 제거합니다.
@@ -326,8 +329,8 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                 return rt.GetStatBonus(ResearchStatType.ConstructionSpeedBonus);
             case WorkType.Crafting:
                 return rt.GetStatBonus(ResearchStatType.CraftingSpeedBonus);
-            case WorkType.Chopping:
-            case WorkType.Gardening:
+            case WorkType.Weeding:
+            case WorkType.Sowing:
                 return rt.GetStatBonus(ResearchStatType.HarvestSpeedBonus);
             default:
                 return 0f;
@@ -395,6 +398,24 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         set => desiredFoodCount = Mathf.Clamp(value, 0, 5);
     }
 
+    /// <summary>미리 챙겨 다닐 음식 기준 (직원 관리창에서 설정)</summary>
+    public FoodCarryPolicy FoodPolicy
+    {
+        get => foodCarryPolicy;
+        set => foodCarryPolicy = value;
+    }
+
+    /// <summary>
+    /// 소지 슬롯에 넣을 수 있는 음식인지 — 한 종류만 들 수 있으므로 이미 든 게 있으면 같은 종류만.
+    /// forCarry=true면 소지 기준(조리 음식만 등)도 봅니다. 배고파서 바로 먹을 때는 false.
+    /// </summary>
+    public bool CanHoldFood(ItemData food, bool forCarry)
+    {
+        if (food == null || !food.isFood) return false;
+        if (_heldFood != null && _heldFood != food) return false;
+        return !forCarry || foodCarryPolicy == FoodCarryPolicy.Any || food.IsMeal;
+    }
+
     /// <summary>필수 소지 약물 개수 (직원 관리창에서 설정, 0~5)</summary>
     public int DesiredDrugCount
     {
@@ -441,7 +462,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     {
         if (!HasFood) return 0;
 
-        int nutrition = _heldFood.nutrition;
+        int nutrition = InventoryManager.instance != null
+            ? InventoryManager.instance.GetNutrition(_heldFood, consume: true)
+            : _heldFood.nutrition;
         _heldFoodCount--;
         if (_heldFoodCount <= 0) _heldFood = null;
         return nutrition;
@@ -1080,7 +1103,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
         currentWorkOrder  = workOrder;
         currentWorkTarget = withdrawOrder;
-        currentWork       = WorkType.Hauling;
+        currentWork       = workOrder.workType; // 보통 운반, 조리 재료는 조리
 
         employee.SetState(EmployeeState.Moving);
         WithdrawWorkAsync(workOrder, withdrawOrder, RestartWorkTask()).Forget();
@@ -1507,8 +1530,6 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     {
         float visualTimer = 0f;
         const float VISUAL_CYCLE = 10f;   // 진행 바 1사이클 시간 (초)
-        float xpAccumulator = 0f;
-        const float XP_INTERVAL = 5f;     // XP 지급 주기 (초)
 
         while (bench != null &&
                bench.IsWorkAvailable() &&
@@ -1523,14 +1544,6 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
             // 연구 포인트 누적
             bench.OnResearchTick(speed, Time.deltaTime);
-
-            // 경험치 주기적 지급
-            xpAccumulator += Time.deltaTime;
-            if (xpAccumulator >= XP_INTERVAL)
-            {
-                if (growth != null) growth.GainExperience(Mathf.CeilToInt(XP_INTERVAL * speed));
-                xpAccumulator -= XP_INTERVAL;
-            }
 
             // 시각적 진행도 (무한 반복 사이클)
             visualTimer += Time.deltaTime;
@@ -1692,9 +1705,6 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
             if (craftingOrder.CraftingProgress >= 1f)
             {
-                int expGain = Mathf.CeilToInt(craftingOrder.GetWorkTime() * 2f);
-                if (growth != null) growth.GainExperience(expGain);
-
                 currentWorkTarget = null;
                 currentWorkOrder = null;
                 currentWork = WorkType.None;
@@ -2313,6 +2323,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         data.heldDrugItemId = _heldDrug != null ? _heldDrug.itemID : 0;
         data.heldDrugCount  = _heldDrugCount;
         data.desiredFoodCount = desiredFoodCount;
+        data.foodCarryPolicy = (int)foodCarryPolicy;
         data.desiredDrugCount = desiredDrugCount;
     }
 
@@ -2339,6 +2350,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                 });
             }
 
+            // 기본 목록에서 빠진 종류(철거 → 건설에 합쳐짐)는 버린다
+            workPriorities.RemoveAll(w => System.Array.IndexOf(WorkTypeDefaults.BaseOrder, w.workType) < 0);
+
             // 저장 이후 새로 생긴 작업 종류(예: 요양)는 기본 순서상의 자리에 끼워 넣는다
             for (int i = 0; i < WorkTypeDefaults.BaseOrder.Length; i++)
             {
@@ -2362,6 +2376,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         {
             foreach (var wt in data.disqualifiedWorkTypes)
             {
+                if (!CanBeDisqualified((WorkType)wt)) continue;
                 disqualifications.Add(new DisqualificationEntry
                 {
                     workType = (WorkType)wt,
@@ -2383,6 +2398,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             }
         }
         desiredFoodCount = Mathf.Clamp(data.desiredFoodCount, 0, 5);
+        foodCarryPolicy = (FoodCarryPolicy)data.foodCarryPolicy;
         desiredDrugCount = Mathf.Clamp(data.desiredDrugCount, 0, 5);
 
         _heldFood = null;

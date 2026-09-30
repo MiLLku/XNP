@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7bf4af0a018b1c4bb9016e3783a71e3, type: 3}
+  m_Name: RiceSeed
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemType: 403
+  itemName: "\uC300 \uC528\uC557"
+  itemIcon: {fileID: 1688306315, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
+  description: "\uC57C\uC0DD \uC300\uC744 \uC81C\uCD08\uD558\uAC70\uB098 \uC300\uC744
+    \uC218\uD655\uD558\uBA74(70%) \uC5BB\uC2B5\uB2C8\uB2E4. \uBC2D\xB7\uC218\uACBD\uC7AC\uBC30\uAE30\uC5D0
+    \uC2EC\uAC70\uB098 \uC9C1\uC811 \uD30C\uC885\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+  plantEntity: {fileID: 11400000, guid: 50c5502b1ad031842b1dce0bc5737243, type: 2}
+  dropPrefab: {fileID: 0}
+  isFood: 0
+  nutrition: 0
+  erosionOnEat: 0
+  moodOnEat: 0
+  moodOnEatHours: 3
+  moodOnEatLabel: 
+  isDrug: 0
+  funValue: 0

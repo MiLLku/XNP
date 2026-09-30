@@ -19,3 +19,6 @@ MonoBehaviour:
   maxMentalOffset: 20
   recreationTargetFun: 90
   freeTimeFunThreshold: 40
+  wanderFunPerSecond: 0.25
+  wanderFunCap: 50
+  wanderRadius: 6

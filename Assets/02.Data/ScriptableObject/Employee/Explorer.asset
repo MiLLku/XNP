@@ -26,7 +26,7 @@ MonoBehaviour:
     canChop: 1
     canResearch: 0
     canCraft: 0
-    canGarden: 0
+    canGarden: 1
     canBuild: 1
     canHaul: 1
     canDemolish: 1
@@ -47,4 +47,4 @@ MonoBehaviour:
     hairColor: {r: 0, g: 0, b: 0, a: 1}
   initialDisqualifications: 
   hungerDecayRate: 1.3
-  fatigueIncreaseRate: 0.5
+  fatigueIncreaseRate: 0.1

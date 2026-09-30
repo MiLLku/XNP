@@ -49,6 +49,19 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1d8d2a6a86f233c428fc088844c1b28b, type: 2}
   - {fileID: 11400000, guid: d196bf16a305a7e4c9433fb387a3f8ae, type: 2}
   - {fileID: 11400000, guid: 8336903138e720740b5ccfdc3f41d22d, type: 2}
+  - {fileID: 11400000, guid: c1d2e3f4a5b60000c1d2e3f4a5b60001, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a60000b1c2d3e4f5a60008, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a60000b1c2d3e4f5a60009, type: 2}
+  - {fileID: 11400000, guid: b1c2d3e4f5a60000b1c2d3e4f5a60010, type: 2}
+  - {fileID: 11400000, guid: 8be24b99ea4793c4ea89222e43db5df8, type: 2}
+  - {fileID: 11400000, guid: 3c68829000157d74d9aa37338e5aa5b8, type: 2}
+  - {fileID: 11400000, guid: 6ec422957ac46f94795778b29abbb2f1, type: 2}
+  - {fileID: 11400000, guid: 745b32d4a22e97f48adf4034f41ccaf2, type: 2}
+  - {fileID: 11400000, guid: cf18fe07ce60dd84ebe717dd0d6b3d69, type: 2}
+  - {fileID: 11400000, guid: 12fd3033accca094ca1a3f1f2359a812, type: 2}
+  - {fileID: 11400000, guid: 95e38c8a9606c654898c6c2164e67548, type: 2}
+  - {fileID: 11400000, guid: d43e9bd09b1bf65478ad2d5afeccd0c1, type: 2}
+  - {fileID: 11400000, guid: 51e51c1181b6a524e9c52bccc2eb1029, type: 2}
   allItemData:
   - {fileID: 11400000, guid: 3824590cd90a121418efa5c76787ea7b, type: 2}
   - {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
@@ -73,6 +86,19 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 09ce745046665d24b87c78a7fc2e7848, type: 2}
   - {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
   - {fileID: 11400000, guid: 94bfaf90d1b03aa40a345c881c0bb61f, type: 2}
+  - {fileID: 11400000, guid: 0b9f0785b66053b4686261b489bd1e0e, type: 2}
+  - {fileID: 11400000, guid: 79c8a13b1f75d5a4496e20c0d7abdb71, type: 2}
+  - {fileID: 11400000, guid: d0dce4f310750ad48a6aa45bfaec815a, type: 2}
+  - {fileID: 11400000, guid: c4c88184bdd87294ea3c833a9e2c650c, type: 2}
+  - {fileID: 11400000, guid: 4f38bb9d67ddacb42a00d5b2508a1b20, type: 2}
+  - {fileID: 11400000, guid: f6428276fff9d36409be468a3b7edc67, type: 2}
+  - {fileID: 11400000, guid: 1084f0b2dba4fa74aa165f3849d20fc9, type: 2}
+  - {fileID: 11400000, guid: d5796d620e761744d868a4d665bd8364, type: 2}
+  - {fileID: 11400000, guid: 5c13d5343d6197d47b6d81977d9903ff, type: 2}
+  - {fileID: 11400000, guid: 11ab2ae88505203419c509209c40bd05, type: 2}
+  - {fileID: 11400000, guid: 0ad4d990f3ad69347bb05a7a00afc93e, type: 2}
+  - {fileID: 11400000, guid: c5dfc701a4fd41943ac55ce651705769, type: 2}
+  - {fileID: 11400000, guid: 7274cc85cab12fa4583b6295b786b047, type: 2}
   allRecipeData:
   - {fileID: 11400000, guid: 80b1b536a9aedbb4d8995fb0482a92d3, type: 2}
   - {fileID: 11400000, guid: ae763cc660863294890b8083b261d75f, type: 2}

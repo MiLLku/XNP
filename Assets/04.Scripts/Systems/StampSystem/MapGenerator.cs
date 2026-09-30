@@ -53,8 +53,6 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [SerializeField] [Range(1, 6)] private int clusterMinSize = 2;
     [Tooltip("군집당 최대 광물 타일 수")]
     [SerializeField] [Range(1, 10)] private int clusterMaxSize = 6;
-    [Header("스폰 지점")]
-    [SerializeField] private string spawnChestKey = "SPAWN_CHEST_3X2"; 
 
     // --- 내부 시스템 변수 ---
     private GameMap _gameMap;
@@ -1299,7 +1297,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         var entities = new List<MapEntitySaveData>();
         var db = DefinitionDatabase.Instance;
 
-        foreach (var identity in FindObjectsByType<MapEntityIdentity>(FindObjectsSortMode.None))
+        foreach (var identity in FindObjectsByType<MapEntityIdentity>())
         {
             var def = db?.GetEntity(identity.EntityId);
             if (def == null || !def.persistInSave) continue;
@@ -1307,8 +1305,8 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             float growth = 0f;
             if (def.hasGrowthState)
             {
-                var tree = identity.GetComponentInChildren<ChoppableTree>();
-                if (tree != null) growth = tree.IsFullyGrown ? 1f : tree.GrowthProgress;
+                var plant = identity.GetComponentInChildren<PlantBase>();
+                if (plant != null) growth = plant.Growth;
             }
 
             entities.Add(new MapEntitySaveData
@@ -1348,20 +1346,16 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         var db = DefinitionDatabase.Instance;
 
         // 1. 기존 자연물 제거 — 꼬리표가 붙은 저장 대상만
-        foreach (var identity in FindObjectsByType<MapEntityIdentity>(FindObjectsSortMode.None))
+        foreach (var identity in FindObjectsByType<MapEntityIdentity>())
         {
             var def = db?.GetEntity(identity.EntityId);
             if (def != null && def.persistInSave) Destroy(identity.gameObject);
         }
 
         // 1-1. 꼬리표 없이 씬에 남아 있던 구 자연물도 정리 (리팩터링 이전 경로 대비)
-        foreach (var tree in FindObjectsByType<ChoppableTree>(FindObjectsSortMode.None))
+        foreach (var plant in FindObjectsByType<PlantBase>())
         {
-            if (tree.GetComponent<MapEntityIdentity>() == null) Destroy(tree.gameObject);
-        }
-        foreach (var plant in FindObjectsByType<ErosionPlantEntity>(FindObjectsSortMode.None))
-        {
-            if (plant.GetComponent<MapEntityIdentity>() == null) Destroy(plant.gameObject);
+            if (plant.GetComponentInParent<MapEntityIdentity>() == null) Destroy(plant.gameObject);
         }
 
         // 2. _gameMap.Entities 클리어 — GenerateWorld()에서 쌓인 항목 제거
@@ -1409,7 +1403,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     private void ApplyGrowthStates(List<MapEntitySaveData> entities)
     {
         var db = DefinitionDatabase.Instance;
-        var spawnedTrees = FindObjectsByType<ChoppableTree>(FindObjectsSortMode.None);
+        var spawnedPlants = FindObjectsByType<PlantBase>();
         int restored = 0;
 
         foreach (var saved in entities)
@@ -1417,13 +1411,13 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             var def = db?.GetEntity(ResolveEntityId(saved.variantId));
             if (def == null || !def.hasGrowthState) continue;
 
-            var tree = System.Array.Find(spawnedTrees, t =>
+            var plant = System.Array.Find(spawnedPlants, t =>
                 Mathf.FloorToInt(t.transform.position.x) == saved.x &&
                 Mathf.FloorToInt(t.transform.position.y) == saved.y);
 
-            if (tree != null)
+            if (plant != null)
             {
-                tree.RestoreGrowthState(saved.remainingResource);
+                plant.SetGrowth(saved.remainingResource);
                 restored++;
             }
         }

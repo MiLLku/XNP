@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7bf4af0a018b1c4bb9016e3783a71e3, type: 3}
+  m_Name: Potato
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemType: 203
+  itemName: "\uAC10\uC790"
+  itemIcon: {fileID: 198984507, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
+  description: "\uBC2D\uC774\uB098 \uC218\uACBD\uC7AC\uBC30\uAE30\uC5D0\uC11C \uAE30\uB978
+    \uAC10\uC790. \uBA39\uC73C\uBA74 \uBC30\uACE0\uD514\uC744 \uCC44\uC6C1\uB2C8\uB2E4."
+  plantEntity: {fileID: 0}
+  dropPrefab: {fileID: 0}
+  isFood: 1
+  nutrition: 30
+  foodKind: 0
+  ingredientCategory: 0
+  rawPenalty: 1
+  rawMood: -3
+  rawMoodHours: 3
+  erosionOnEat: 0
+  moodOnEat: 0
+  moodOnEatHours: 3
+  moodOnEatLabel: 
+  isDrug: 0
+  funValue: 0

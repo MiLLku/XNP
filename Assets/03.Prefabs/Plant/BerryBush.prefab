@@ -35,6 +35,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &1159630327182801515
 SpriteRenderer:
+  serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -53,6 +54,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -74,9 +77,11 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 1
+  m_MaskInteraction: 0
   m_Sprite: {fileID: 1090381399, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -86,8 +91,8 @@ SpriteRenderer:
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
-  m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+  m_BlendShapeWeights: []
 --- !u!114 &754064829546514324
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -100,10 +105,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8466a7fcbb420b5498f96b21b292e67f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  lifecycle: 1
+  growthTime: 50
+  regrowFrom: 0
+  harvestTime: 2
+  weedTime: 3
+  yields:
+  - item: {fileID: 11400000, guid: deb0f62de7e0436bb9fc8a85f2cf9d23, type: 2}
+    amount: 3
+    chance: 1
+  saplingItem: {fileID: 11400000, guid: 79c8a13b1f75d5a4496e20c0d7abdb71, type: 2}
+  saplingAmount: 1
   emptySprite: {fileID: 1090381399, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
   halfSprite: {fileID: 1688306315, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
   fullSprite: {fileID: 198984507, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  itemToProduce: {fileID: 11400000, guid: deb0f62de7e0436bb9fc8a85f2cf9d23, type: 2}
-  harvestAmount: 3
-  growthTime: 50
-  harvestTime: 2

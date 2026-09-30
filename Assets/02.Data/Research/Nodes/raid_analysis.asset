@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: raid_analysis
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: raid_analysis
+  nodeName: "\uC2B5\uACA9 \uBD84\uC11D"
+  description: "\uC131\uC7A5 \xB7 \uC2B5\uACA9\uD574 \uC628 \uC801\uC758 \uC804\uB9AC\uD488\uC744
+    \uBD84\uC11D\uD569\uB2C8\uB2E4. \uB2E8\uB828\uC7A5\uC744 \uD574\uAE08\uD569\uB2C8\uB2E4
+    \u2014 \uB2E8\uB828\uC7A5\uC5D0\uC11C \uC2B5\uACA9 \uC804\uB9AC\uD488\uC73C\uB85C
+    \uC9C1\uC6D0\uC758 \uB808\uBCA8\uC744 \uC62C\uB9B4 \uC218 \uC788\uC2B5\uB2C8\uB2E4
+    (\uB808\uBCA8\uB9C8\uB2E4 \uC2A4\uD0AC \uD3EC\uC778\uD2B8 1)."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - survival_basics
+  resourceCosts: []
+  researchPointCost: 100
+  unlockEffects:
+  - {fileID: 11400000, guid: 3de872a5cafcdf34d890181c59a7b4cb, type: 2}
+  treePosition: {x: 3, y: -1}

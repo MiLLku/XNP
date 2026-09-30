@@ -82,6 +82,8 @@ public class ScreenOverlay : MonoBehaviour
                 targetColor = miningOverlayColor;
                 break;
             case InteractionManager.InteractMode.Harvest:
+            case InteractionManager.InteractMode.Chop:
+            case InteractionManager.InteractMode.Weed:
                 targetColor = harvestOverlayColor;
                 break;
             case InteractionManager.InteractMode.Demolish:

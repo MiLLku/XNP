@@ -80,7 +80,8 @@ public class SkillTreePanel : BasePanel, IBeginDragHandler, IDragHandler
         // 인스펙터 연결이 없으면 계층 이름으로 자동 탐색
         AutoWireReferences();
 
-        gameObject.SetActive(false);
+        // 여기서 자신을 끄면 안 된다 — 비활성으로 시작한 패널은 첫 OnOpen 때 Awake가 돌아
+        // 켜지자마자 다시 꺼진다 (열리지 않는 버그). 시작 시 닫힘은 UIManager 초기화가 보장한다.
 
         if (closeButton != null)
             closeButton.onClick.AddListener(OnClose);

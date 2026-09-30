@@ -15,7 +15,7 @@ MonoBehaviour:
   nodeId: field_medicine
   nodeName: "\uC57C\uC804 \uC758\uD559"
   description: "\uC131\uC7A5 \xB7 \uCD5C\uB300 \uCCB4\uB825 \uC99D\uAC00\uC640 \uCE68\uC2DD
-    \uC644\uD654."
+    \uC644\uD654. \uACE0\uAE09 \uCE68\uB300\uB97C \uD574\uAE08\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - survival_basics
@@ -26,4 +26,5 @@ MonoBehaviour:
   unlockEffects:
   - {fileID: 11400000, guid: fddc8ba5cab431c4eaf739c24fd37e25, type: 2}
   - {fileID: 11400000, guid: f6f038e72cf0c7e4ba8c49c21291cd25, type: 2}
+  - {fileID: 11400000, guid: f24374f651d7a5b4ab525dbb7646dee4, type: 2}
   treePosition: {x: 2, y: -2}

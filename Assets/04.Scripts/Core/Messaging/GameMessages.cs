@@ -400,19 +400,6 @@ public readonly struct RecipeUnlockedMessage
 
 #endregion
 
-#region 스킬 — SkillPointManager
-
-/// <summary>전역 스킬 포인트 상한이 올라감</summary>
-public readonly struct SkillPointCapIncreasedMessage
-{
-    /// <summary>늘어난 뒤의 전역 보너스 포인트</summary>
-    public readonly int globalBonusPoints;
-
-    public SkillPointCapIncreasedMessage(int globalBonusPoints) => this.globalBonusPoints = globalBonusPoints;
-}
-
-#endregion
-
 #region 디버그 — DebugManager
 
 /// <summary>디버그 차단 플래그가 바뀜</summary>

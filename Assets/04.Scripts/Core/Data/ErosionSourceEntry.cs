@@ -56,6 +56,9 @@ public static class ErosionSource
     /// <summary>오염 구체 폭발</summary>
     public const string CONTAMINATION = "contamination";
 
+    /// <summary>침식된 음식 섭취</summary>
+    public const string FOOD = "food";
+
     /// <summary>출처 미상 (치트·디버그 등)</summary>
     public const string UNKNOWN = "unknown";
 

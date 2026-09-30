@@ -49,4 +49,14 @@ public class FunConfig : ScriptableObject
 
     [Tooltip("자유 시간에 이 수치 미만이면 스스로 오락거리를 찾음")]
     [Range(0f, 100f)] public float freeTimeFunThreshold = 40f;
+
+    [Header("어슬렁거리기 (할 일이 없을 때)")]
+    [Tooltip("할 일 없이 어슬렁거리는 동안 초당 재미 회복 (오락 시설보다 한참 낮게 — 다트판 4). 감소(decayPerSecond)는 따로 계속 적용됨")]
+    [Min(0f)] public float wanderFunPerSecond = 0.25f;
+
+    [Tooltip("어슬렁거리기로는 재미가 이 수치까지만 찬다 (기준점 50이면 정신 보너스는 생기지 않음)")]
+    [Range(0f, 100f)] public float wanderFunCap = 50f;
+
+    [Tooltip("한 번에 걸어갈 최대 거리 (칸, 좌우)")]
+    [Min(1)] public int wanderRadius = 6;
 }

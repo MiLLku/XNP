@@ -1,8 +1,8 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 /// <summary>
-/// 수확 작업 명령 (나무, 식물 등).
-/// IHarvestable을 구현한 대상에 대해 수확 작업을 수행합니다.
+/// 식생물 작업 명령 — 수확·벌목(<see cref="weed"/>=false)과 제초(<see cref="weed"/>=true).
+/// IHarvestable을 구현한 대상에 대해 수행하며, 제초는 <see cref="PlantBase"/> 대상만 가능합니다.
 /// </summary>
 [System.Serializable]
 public class HarvestOrder : IWorkTarget
@@ -30,6 +30,9 @@ public class HarvestOrder : IWorkTarget
     /// <summary>배정된 직원</summary>
     public Employee assignedWorker;
 
+    /// <summary>true면 제초(뿌리까지 제거), false면 수확·벌목</summary>
+    public bool weed;
+
     #endregion
 
     #region IWorkTarget 구현
@@ -38,13 +41,24 @@ public class HarvestOrder : IWorkTarget
     public Vector3 GetWorkPosition() => position;
 
     /// <inheritdoc/>
-    public WorkType GetWorkType() => target?.GetHarvestType() ?? WorkType.Gardening;
+    public WorkType GetWorkType() => weed ? WorkType.Weeding : (target?.GetHarvestType() ?? WorkType.Weeding);
 
     /// <inheritdoc/>
-    public float GetWorkTime() => target?.GetHarvestTime() ?? DEFAULT_HARVEST_TIME;
+    public float GetWorkTime()
+    {
+        if (!IsTargetAlive) return DEFAULT_HARVEST_TIME;
+        return weed && target is PlantBase p ? p.WeedTime : target.GetHarvestTime();
+    }
 
     /// <inheritdoc/>
-    public bool IsWorkAvailable() => !completed && target != null && target.CanHarvest();
+    public bool IsWorkAvailable()
+    {
+        if (completed || !IsTargetAlive) return false;
+        return weed ? target is PlantBase : target.CanHarvest();
+    }
+
+    /// <summary>대상이 파괴되지 않았는지 — 파괴된 Unity 객체는 인터페이스 null 비교를 통과하므로 따로 본다.</summary>
+    private bool IsTargetAlive => target != null && !(target is UnityEngine.Object o && o == null);
 
     /// <inheritdoc/>
     public void CompleteWork(Employee worker)
@@ -60,9 +74,10 @@ public class HarvestOrder : IWorkTarget
                 hazard.HazardDisplayName);
         }
 
-        if (target != null)
+        if (IsTargetAlive)
         {
-            target.Harvest();
+            if (weed && target is PlantBase plant) plant.Weed();
+            else target.Harvest();
         }
         completed = true;
         assignedWorker = null;

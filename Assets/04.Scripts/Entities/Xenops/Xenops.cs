@@ -26,9 +26,6 @@ public class Xenops : MonoBehaviour
     [Header("디버그")]
     [SerializeField] private bool showDebugInfo = false;
 
-    /// <summary>초기화 완료 여부</summary>
-    private bool _isInitialized = false;
-
     // 서브 컴포넌트 참조
     private XenopsInterpretation interpretation;
     private XenopsEffectController effectController;
@@ -180,8 +177,6 @@ public class Xenops : MonoBehaviour
     /// </summary>
     public void Initialize(XenopsData data, int newInstanceId)
     {
-        _isInitialized = true;
-
         xenopsData = data;
         instanceId = newInstanceId;
         currentState = XenopsState.Idle;
@@ -490,8 +485,6 @@ public class Xenops : MonoBehaviour
     /// </summary>
     public void RestoreFromSaveData(XenopsSaveData data)
     {
-        _isInitialized = true;
-
         instanceId = data.instanceId;
         currentState = (XenopsState)data.state;
         transform.position = new Vector3(data.posX, data.posY, 0f);

@@ -256,6 +256,8 @@ public class WorkTask
         if (!CanBeAssigned()) return false;
         if (target is MiningOrder mining)
             return MiningSkillGate.CanMine(worker, mining.tileID);
+        if (target is TrainingOrder training)
+            return training.trainee == worker; // 단련은 지정된 직원만
         return true;
     }
 

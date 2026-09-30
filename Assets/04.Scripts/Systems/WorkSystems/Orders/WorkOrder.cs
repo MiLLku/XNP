@@ -153,11 +153,12 @@ public class WorkOrder
         switch (type)
         {
             case WorkType.Mining:
-            case WorkType.Chopping:
-            case WorkType.Gardening:
+            case WorkType.Weeding:
+            case WorkType.Sowing:
             case WorkType.Hauling:
             case WorkType.Demolish:
             case WorkType.Cleaning:
+            case WorkType.Cooking:
                 return true;
 
             case WorkType.Crafting:
@@ -300,7 +301,7 @@ public class WorkOrder
             return null;
 
         // 채광·벌목은 글로벌 선택기로 최적 순서 보장 (범위 제한 없이)
-        if (workType == WorkType.Mining || workType == WorkType.Chopping)
+        if (workType == WorkType.Mining || workType == WorkType.Weeding)
         {
             return taskQueue.AssignNextTask(worker);
         }

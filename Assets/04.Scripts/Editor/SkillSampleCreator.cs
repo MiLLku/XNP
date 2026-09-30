@@ -78,9 +78,9 @@ public static class SkillSampleCreator
 
             // ── 원예 (왼쪽 아래)
             (13, "원예 I: 기초",     "식물 재배의 기초를 익힌다.",
-                SkillCategory.Gardening, -3.5f, -1,    new[]{ 4 },    false ),
+                SkillCategory.Sowing, -3.5f, -1,    new[]{ 4 },    false ),
             (14, "원예 II: 숙련",    "수확량과 작물 성장 속도가 향상된다.",
-                SkillCategory.Gardening, -5,    -2,    new[]{ 13 },   false ),
+                SkillCategory.Sowing, -5,    -2,    new[]{ 13 },   false ),
 
             // ── 운반 (아래쪽)
             (15, "운반 I: 기초",     "효율적인 화물 운반 기법을 익힌다.",

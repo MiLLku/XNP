@@ -41,9 +41,6 @@ public static class RandomEmployeeGenerator
         // ID: 고정 SO와 범위 분리
         data.employeeID = RANDOM_ID_OFFSET + Random.Range(0, 90_000);
 
-        // 성장 시스템 활성 (채용 직원은 유니크 취급)
-        data.isUnique = true;
-
         // 기본 스탯 고정
         data.maxHealth           = config.baseMaxHealth;
         data.maxMental           = config.baseMaxMental;
@@ -57,10 +54,8 @@ public static class RandomEmployeeGenerator
         data.abilities = new WorkAbilities
         {
             canMine     = config.defaultCanMine,
-            canChop     = config.defaultCanChop,
             canHaul     = config.defaultCanHaul,
             canBuild    = config.defaultCanBuild,
-            canDemolish = config.defaultCanDemolish,
             canCraft    = config.defaultCanCraft,
             canResearch = config.defaultCanResearch,
             canGarden   = config.defaultCanGarden,
@@ -157,7 +152,6 @@ public static class RandomEmployeeGenerator
 
         data.employeeName        = snap.employeeName;
         data.employeeID          = employeeId;
-        data.isUnique            = true;
         data.maxHealth           = snap.maxHealth;
         data.maxMental           = snap.maxMental;
         data.baseMental          = snap.baseMental > 0 ? snap.baseMental : 50;
@@ -308,13 +302,13 @@ public static class RandomEmployeeGenerator
 
         // 수행 가능(canXxx=true)하면서 결격되지 않은 작업에만 보정 적용
         if (ab.canMine     && !d.Contains(WorkType.Mining))    ab.miningSpeed    *= bonus;
-        if (ab.canChop     && !d.Contains(WorkType.Chopping))  ab.choppingSpeed  *= bonus;
         if (ab.canBuild    && !d.Contains(WorkType.Building))  ab.buildingSpeed  *= bonus;
         if (ab.canHaul     && !d.Contains(WorkType.Hauling))   ab.haulingSpeed   *= bonus;
-        if (ab.canDemolish && !d.Contains(WorkType.Demolish))  ab.demolishSpeed  *= bonus;
         if (ab.canCraft    && !d.Contains(WorkType.Crafting))  ab.craftingSpeed  *= bonus;
         if (ab.canResearch && !d.Contains(WorkType.Research))  ab.researchSpeed  *= bonus;
-        if (ab.canGarden   && !d.Contains(WorkType.Gardening)) ab.gardeningSpeed *= bonus;
+        // 원예 능력은 제초·파종이 공유 — 둘 중 하나라도 결격이 아니면 보정
+        if (ab.canGarden   && !(d.Contains(WorkType.Sowing) && d.Contains(WorkType.Weeding))) ab.gardeningSpeed *= bonus;
+        if (!d.Contains(WorkType.Cooking)) ab.cookingSpeed *= bonus;
     }
 
     private static EmployeeAppearance GenerateAppearance(EmployeeGenerationConfig config)

@@ -7,7 +7,7 @@
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 13;
+    public const int CURRENT_VERSION = 14;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -65,6 +65,9 @@ public static class SaveMigration
                     break;
                 case 12:
                     data = MigrateV12ToV13(data);
+                    break;
+                case 13:
+                    data = MigrateV13ToV14(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -266,8 +269,6 @@ public static class SaveMigration
                     employee.workAptitudes = new System.Collections.Generic.List<WorkAptitude.Entry>();
             }
         }
-
-        data.skillPointTierCount = 0;
 
         data.saveVersion = 7;
         return data;
@@ -560,6 +561,27 @@ public static class SaveMigration
         }
 
         data.saveVersion = 13;
+        return data;
+    }
+
+    /// <summary>
+    /// v13 → v14: 피로가 '작업 중'이 아니라 '깨어 있는 동안' 줄도록 바뀜 → 생성 직원의 피로 감소 속도 절반.
+    /// (프리셋 직원은 에셋 값을 읽으므로 대상 아님)
+    /// </summary>
+    private static SaveData MigrateV13ToV14(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v13 → v14 마이그레이션 시작 (피로 감소 속도 조정)...");
+
+        if (data.employees != null)
+        {
+            foreach (var emp in data.employees)
+            {
+                if (emp != null && emp.generated != null)
+                    emp.generated.fatigueIncreaseRate *= 0.5f;
+            }
+        }
+
+        data.saveVersion = 14;
         return data;
     }
 

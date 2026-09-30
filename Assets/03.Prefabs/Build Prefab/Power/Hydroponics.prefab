@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4000}
   - component: {fileID: 5000}
   - component: {fileID: 2484924060347177268}
-  - component: {fileID: 9057865704854381757}
+  - component: {fileID: 1605808958164568161}
   m_Layer: 0
   m_Name: Hydroponics
   m_TagString: Untagged
@@ -38,7 +38,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &3000
 SpriteRenderer:
-  serializedVersion: 2
+  serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -95,6 +95,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+  m_BlendShapeWeights: []
 --- !u!61 &4000
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -169,7 +170,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConsumer
   consumptionOverride: 0
---- !u!114 &9057865704854381757
+--- !u!114 &1605808958164568161
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -178,9 +179,23 @@ MonoBehaviour:
   m_GameObject: {fileID: 1000}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed411f29d48b7bf449fa84c368249798, type: 3}
+  m_Script: {fileID: 11500000, guid: 5761702712dd41f4fac1bee5af3e1f4d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HydroponicsGrower
-  cropItem: {fileID: 0}
-  cropAmount: 1
-  growTime: 10
+  m_EditorClassIdentifier: Assembly-CSharp::CropPlot
+  hydroponic: 1
+  slotCount: 4
+  firstSlotOffset: {x: 0.1, y: 1}
+  slotSpacing: {x: 1, y: 0}
+  workOffsetFromCrop: {x: 0.4, y: 0}
+  cropScale: 0.8
+  allowedSeeds:
+  - {fileID: 11400000, guid: 1084f0b2dba4fa74aa165f3849d20fc9, type: 2}
+  - {fileID: 11400000, guid: d5796d620e761744d868a4d665bd8364, type: 2}
+  - {fileID: 11400000, guid: 5c13d5343d6197d47b6d81977d9903ff, type: 2}
+  - {fileID: 11400000, guid: 11ab2ae88505203419c509209c40bd05, type: 2}
+  crystalSupply:
+    item: {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
+    capacity: 5
+    refillBelow: 2
+    priority: 3
+    stock: 0

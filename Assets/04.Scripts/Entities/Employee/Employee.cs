@@ -35,7 +35,6 @@ public class Employee : MonoBehaviour
     [Header("직원 정보")]
     [SerializeField] private EmployeeData employeeData;
     [SerializeField] private int instanceId;
-    [SerializeField] private bool isUnique;
     [SerializeField] private string customName;
 
     [Header("상태")]
@@ -106,9 +105,6 @@ public class Employee : MonoBehaviour
     /// <summary>런타임 고유 ID</summary>
     public int InstanceId => instanceId;
 
-    /// <summary>유니크 직원 여부</summary>
-    public bool IsUnique => isUnique;
-
     /// <summary>표시 이름 (커스텀 이름 우선)</summary>
     public string DisplayName => string.IsNullOrEmpty(customName) ? employeeData?.employeeName : customName;
 
@@ -151,11 +147,8 @@ public class Employee : MonoBehaviour
     /// <summary>현재 레벨</summary>
     public int Level => growth != null ? growth.Level : 1;
 
-    /// <summary>현재 경험치</summary>
-    public int Experience => growth != null ? growth.Experience : 0;
-
-    /// <summary>다음 레벨까지 필요한 경험치</summary>
-    public int ExperienceToNextLevel => growth != null ? growth.ExperienceToNextLevel : 100;
+    /// <summary>성장 (레벨업·적성·전투 숙련)</summary>
+    public EmployeeGrowth Growth => growth;
 
     #endregion
 
@@ -262,7 +255,6 @@ public class Employee : MonoBehaviour
 
         employeeData = data;
         instanceId = newInstanceId;
-        isUnique = data.isUnique;
         customName = null;
 
         name = $"Employee_{data.employeeName}_{instanceId}";
@@ -270,7 +262,7 @@ public class Employee : MonoBehaviour
         // 서브 컴포넌트 초기화
         statsController.Initialize(data);
         work.Initialize(data);
-        growth.Initialize(isUnique);
+        growth.Initialize();
         growth.ApplyInitialCombatLevels(data.initialMeleeLevel, data.initialRangedLevel);
         erosionController.Initialize(
             ErosionManager.instance?.StageConfig,
@@ -484,33 +476,6 @@ public class Employee : MonoBehaviour
 
     #endregion
 
-    #region 파사드 — 성장 (Growth 위임)
-
-    /// <summary>경험치 획득</summary>
-    public void GainExperience(int amount) => growth?.GainExperience(amount);
-
-    /// <summary>작업 능력 향상</summary>
-    public void ImproveAbility(WorkType workType, float amount)
-    {
-        if (!isUnique) return;
-
-        var abilities = work?.Abilities;
-        if (abilities == null) return;
-
-        switch (workType)
-        {
-            case WorkType.Mining: abilities.miningSpeed += amount; break;
-            case WorkType.Chopping: abilities.choppingSpeed += amount; break;
-            case WorkType.Research: abilities.researchSpeed += amount; break;
-            case WorkType.Crafting: abilities.craftingSpeed += amount; break;
-            case WorkType.Gardening: abilities.gardeningSpeed += amount; break;
-            case WorkType.Building: abilities.buildingSpeed += amount; break;
-            case WorkType.Hauling: abilities.haulingSpeed += amount; break;
-            case WorkType.Demolish: abilities.demolishSpeed += amount; break;
-        }
-    }
-
-    #endregion
 
     #region 파사드 — 비자격 (Work 위임)
 
@@ -630,7 +595,6 @@ public class Employee : MonoBehaviour
         {
             instanceId = instanceId,
             templateId = employeeData?.employeeID ?? 0,
-            isUnique = isUnique,
             customName = customName,
             posX = transform.position.x,
             posY = transform.position.y,
@@ -667,9 +631,12 @@ public class Employee : MonoBehaviour
         _isInitialized = true;
 
         instanceId = data.instanceId;
-        isUnique = data.isUnique;
         customName = data.customName;
         currentState = (EmployeeState)data.state;
+        // 이동·작업·휴식·식사는 되살리지 않는 행동이다 — 상태만 복원하면 AI가 Idle만 보고 판단하므로 영원히 멈춘다
+        if (currentState == EmployeeState.Moving || currentState == EmployeeState.Working ||
+            currentState == EmployeeState.Resting || currentState == EmployeeState.Eating)
+            currentState = EmployeeState.Idle;
         transform.position = new Vector3(data.posX, data.posY, 0f);
 
         name = $"Employee_{DisplayName}_{instanceId}";
@@ -683,7 +650,7 @@ public class Employee : MonoBehaviour
         // 서브 컴포넌트 복원
         statsController?.RestoreFromSaveData(data);
         work?.RestoreFromSaveData(data);
-        growth?.RestoreFromSaveData(data, isUnique);
+        growth?.RestoreFromSaveData(data);
         mental?.RestoreFromSaveData(data);
         equipment?.RestoreFromSaveData(data);
         erosionController?.RestoreFromSaveData(data);
