@@ -88,6 +88,21 @@ public class InteractionModePanel : BasePanel
                 modeColor = harvestColor;
                 break;
 
+            case InteractionManager.InteractMode.Chop:
+                modeName = "벌목 모드";
+                modeColor = harvestColor;
+                break;
+
+            case InteractionManager.InteractMode.Weed:
+                modeName = "제초 모드";
+                modeColor = harvestColor;
+                break;
+
+            case InteractionManager.InteractMode.Sow:
+                modeName = "파종 모드";
+                modeColor = harvestColor;
+                break;
+
             case InteractionManager.InteractMode.Build:
                 modeName = "건설 모드";
                 modeColor = buildColor;

@@ -176,6 +176,7 @@ public void Remove()
     public void OnDespawn()
     {
         MaterialSourceRegistry.instance?.Unregister(this);
+        if (TryGetComponent(out SpriteOutline outline)) outline.SetVisible(false); // 호버 중 회수돼도 외곽선이 남지 않게
 
         IsClaimed = false;
         itemData  = null;

@@ -169,6 +169,15 @@ public class ResourceInventoryUI : BasePanel
 
         GameObject row = Instantiate(itemRowPrefab, contentContainer);
 
+        // 행 클릭 → 아이템 정보 창 (행 오른쪽 우선, 공간 없으면 왼쪽)
+        if (!row.TryGetComponent(out Button rowButton))
+        {
+            rowButton = row.AddComponent<Button>();
+            rowButton.transition = Selectable.Transition.None;
+        }
+        var rowRect = (RectTransform)row.transform;
+        rowButton.onClick.AddListener(() => ItemInfoPopup.ShowForRect(itemData, rowRect));
+
         int reserved = InventoryManager.instance.GetReservedAmount(itemData);
         string countLabel = reserved > 0 ? $"x{count} ({reserved} 예약됨)" : $"x{count}";
 
