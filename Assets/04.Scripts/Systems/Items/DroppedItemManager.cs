@@ -21,6 +21,9 @@ public class DroppedItemManager : DestroySingleton<DroppedItemManager>
 {
     #region 설정
 
+    /// <summary>프리팹 없이 코드로 만든 드롭 아이템의 표시 크기 (긴 변, 칸)</summary>
+    private const float DROP_ICON_SIZE = 0.5f;
+
     [Header("드롭 아이템 프리팹")]
     [Tooltip("DroppedItem 컴포넌트가 붙은 프리팹. null이면 코드로 생성합니다.")]
     [SerializeField] private GameObject droppedItemPrefab;
@@ -261,12 +264,20 @@ public DroppedItem SpawnItem(ItemData data, int qty, Vector3 worldPos)
         GameObject obj = new GameObject($"Drop_{data.itemName}");
         obj.transform.position = pos;
 
-        // SpriteRenderer — 원형 스프라이트
+        // SpriteRenderer — 아이템 아이콘 우선, 없으면 원형 스프라이트
+        // (내장 'UI/Skin/Knob.psd'는 이 Unity 버전에서 로드되지 않아 에러만 남겼다)
         SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
-        sr.sprite = circleSprite != null ? circleSprite
-                    : Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+        sr.sprite = data.itemIcon != null ? data.itemIcon : circleSprite;
         sr.color = Color.white;
         sr.sortingOrder = 3;
+
+        // UI 아이콘은 월드에서 제각각 크다 — 긴 변을 DROP_ICON_SIZE 칸에 맞춘다
+        if (sr.sprite != null)
+        {
+            Vector2 size = sr.sprite.bounds.size;
+            float longest = Mathf.Max(size.x, size.y);
+            if (longest > 0f) obj.transform.localScale = Vector3.one * (DROP_ICON_SIZE / longest);
+        }
 
         // 트리거용 콜라이더 (옵션: 직원 도착 감지용)
         CircleCollider2D col = obj.AddComponent<CircleCollider2D>();
