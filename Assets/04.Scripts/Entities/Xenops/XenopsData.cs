@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -35,6 +35,15 @@ public class XenopsData : ScriptableObject
 
     [Tooltip("프리팹 (타입별 Behavior 컴포넌트가 부착된 상태)")]
     public GameObject prefab;
+
+    #endregion
+
+    #region 처치 드롭
+
+    [Header("처치 드롭")]
+    [Tooltip("처치하면 확정으로 바닥에 떨구는 심장 아이템 (비워 두면 떨구지 않음). " +
+             "습격 전리품(레벨업 재료)의 확률 드롭과는 별개로 함께 떨어진다")]
+    public ItemData heartItem;
 
     #endregion
 

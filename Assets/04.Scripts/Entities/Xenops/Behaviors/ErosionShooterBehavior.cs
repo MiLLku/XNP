@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -19,13 +19,15 @@ public enum TrackTargetType
 /// 침식 투사체 발사형 적 행동 컴포넌트 (IXenopsBehavior 구현).
 ///
 /// 동작:
-///   1. 가장 가까운 공격 대상(직원/건설물)을 주기적으로 선정해 그쪽으로 전진
-///   2. 박스 사정거리(좌우 attackRangeX·상하 attackRangeY) 안 + 시야 확보 시 정지 후 발사
-///   3. 진행 경로에 넘을 수 없는 벽이 사정거리 안에 들어오면, 부딪히기 전에 멈춰서
+///   1. 원형 사거리(hostileStats.attackRange) 안에 공격 대상이 있으면 그것을 노린다
+///      — 가동 중인 정화 장치 > 직원 순. 위아래 방향도 가리지 않는다
+///   2. 사거리 안이면 정지 후 발사 — 시야가 막혀도 쏜다 (투사체가 지형을 부수며 뚫고 들어간다)
+///   3. 사거리 안에 없으면 가장 가까운 추적 대상(직원/건설물)을 주기적으로 선정해 그쪽으로 전진
+///   4. 진행 경로에 넘을 수 없는 벽이 사정거리 안에 들어오면, 부딪히기 전에 멈춰서
 ///      그 벽을 공격해 파괴한다 (지형 타일·건설물 모두 파괴)
-///   4. 수직 장애물은 최대 3칸까지 도약 돌파 (비행·사다리 불가)
-///   5. 일정 시간 어떤 공격도 못 하면 대상을 '도달 불가'로 일시 제외하고 다음 대상으로 전환
-///   6. 범위 침식 오라는 HostileErosionAura가 독립적으로 처리
+///   5. 수직 장애물은 최대 3칸까지 도약 돌파 (비행·사다리 불가)
+///   6. 일정 시간 어떤 공격도 못 하면 대상을 '도달 불가'로 일시 제외하고 다음 대상으로 전환
+///   7. 범위 침식 오라는 HostileErosionAura가 독립적으로 처리
 ///
 /// 필요 컴포넌트 (프리팹):
 ///   Xenops, XenopsHealth, HostileErosionAura, Rigidbody2D, CircleCollider2D
@@ -41,12 +43,6 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
     [Tooltip("이 적이 추적·공격할 대상 종류 (복수 선택 가능)")]
     [SerializeField] private TrackTargetType trackingTargets = TrackTargetType.Building;
 
-    [Header("공격 사정거리 (박스)")]
-    [Tooltip("좌우(가로) 사정거리 — 칸 수")]
-    [SerializeField] private float attackRangeX = 4f;
-    [Tooltip("상하(세로) 사정거리 — 칸 수")]
-    [SerializeField] private float attackRangeY = 3f;
-
     [Header("디버그")]
     [Tooltip("AI 동작 디버그 로그 출력 (1초 간격)")]
     [SerializeField] private bool debugLog = true;
@@ -54,6 +50,9 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
     // ─── IXenopsBehavior ──────────────────────────
     public XenopsType BehaviorType => XenopsType.Hostile;
     public bool IsActive => _isActive;
+
+    /// <summary>지금 노리는 대상 — 호위병이 이쪽을 막아서는 데 씁니다</summary>
+    public Component CurrentTarget => _lockedTarget;
 
     // ─── 컴포넌트 참조 ───────────────────────────
     private Xenops             _xenops;
@@ -75,6 +74,11 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
     private float _erosionOnHit;
     private float _healthDamageOnHit;
     private float _unreachableTimeout;
+    /// <summary>원형 사거리 (칸) — hostileStats.attackRange</summary>
+    private float _attackRadius;
+
+    /// <summary>attackRange가 비어 있을 때의 사거리</summary>
+    private const float DEFAULT_ATTACK_RADIUS = 6f;
 
     // ─── 타겟 시스템 ─────────────────────────────
     /// <summary>현재 공격 대상 (Employee 또는 Building)</summary>
@@ -148,6 +152,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         var s           = _data.hostileStats;
         _moveSpeed      = s.moveSpeed;
         _attackInterval = s.attackSpeed > 0f ? 1f / s.attackSpeed : 2f;
+        _attackRadius   = s.attackRange > 0f ? s.attackRange : DEFAULT_ATTACK_RADIUS;
 
         _projectileSpeed    = _data.projectileSpeed;
         _projectileLifetime = _data.projectileLifetime;
@@ -169,7 +174,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
 
         if (debugLog)
             Debug.Log($"[ErosionShooter:{name}] Start 완료 — isActive={_isActive}, " +
-                      $"moveSpeed={_moveSpeed}, 사정거리=({attackRangeX}x{attackRangeY}), " +
+                      $"moveSpeed={_moveSpeed}, 사정거리(원형)={_attackRadius}, " +
                       $"건물피해(침식+체력)={_erosionOnHit + _healthDamageOnHit}, xenopsState={_xenops.State}");
     }
 
@@ -265,24 +270,22 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
             return;
         }
 
-        // ── 3. 거리·시야 평가 (박스 사정거리) ──
+        // ── 3. 거리 평가 (원형 사정거리) ──
         Vector2 myPos   = transform.position;
-        Vector2 tgtPos  = _lockedTarget.transform.position;
-        float   dx      = Mathf.Abs(tgtPos.x - myPos.x);
-        float   dy      = Mathf.Abs(tgtPos.y - myPos.y);
-        bool    inRange = dx <= attackRangeX && dy <= attackRangeY;
-        bool    los     = inRange && HasLineOfSight(_lockedTarget);
+        Vector2 tgtPos  = TargetPoint(_lockedTarget);
+        float   dist    = Vector2.Distance(myPos, tgtPos);
+        bool    inRange = dist <= _attackRadius;
 
         _engageTimer += dt;
 
         if (doLog)
-            Debug.Log($"[ErosionShooter:{name}] target={_lockedTarget.name}, dx={dx:F2}, dy={dy:F2}, " +
-                      $"사정거리=({attackRangeX}x{attackRangeY}), inRange={inRange}, los={los}, " +
+            Debug.Log($"[ErosionShooter:{name}] target={_lockedTarget.name}, dist={dist:F2}, " +
+                      $"사정거리={_attackRadius}, inRange={inRange}, " +
                       $"vel={_rb.linearVelocity}, pos={myPos}, engage={_engageTimer:F1}");
 
-        if (inRange && los)
+        if (inRange)
         {
-            // ── 4a. 공격 — 정지 후 타겟에 발사 ──
+            // ── 4a. 공격 — 정지 후 타겟에 발사. 시야가 막혀도 쏜다 (투사체가 지형을 부수며 뚫는다) ──
             _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
             if (_cooldownTimer <= 0f)
                 FireProjectile(tgtPos);
@@ -343,7 +346,8 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
     /// </summary>
     private void AcquireNearestTarget()
     {
-        Component next = FindNearestTarget(excludeBlacklisted: true)
+        Component next = FindTargetInRange()
+                      ?? FindNearestTarget(excludeBlacklisted: true)
                       ?? FindNearestTarget(excludeBlacklisted: false);
 
         if (next != _lockedTarget)
@@ -353,6 +357,45 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
             _lockedTarget = next;
             _engageTimer  = 0f;
         }
+    }
+
+    /// <summary>
+    /// 원형 사거리 안에서 바로 공격할 대상을 고릅니다 — 가동 중인 정화 장치 우선, 그다음 직원.
+    /// 추적 마스크와 무관하다 (사거리에 들어온 직원·장치는 항상 공격 대상).
+    /// </summary>
+    private Component FindTargetInRange()
+    {
+        Vector2 myPos = transform.position;
+
+        var device = PurificationManager.instance != null ? PurificationManager.instance.ActiveDevice : null;
+        if (device != null)
+        {
+            var building = device.GetComponent<Building>();
+            if (building != null && Vector2.Distance(myPos, TargetPoint(building)) <= _attackRadius)
+                return building;
+        }
+
+        Employee best = null;
+        float bestDist = float.MaxValue;
+        if (EmployeeManager.instance != null)
+        {
+            foreach (var emp in EmployeeManager.instance.AllEmployees)
+            {
+                if (emp == null || emp.State == EmployeeState.Dead) continue;
+                if (Vector2.Distance(myPos, emp.transform.position) > _attackRadius) continue;
+                float d = CombatTargeting.EffectiveDistance(myPos, emp); // 방어 태세 어그로 가중
+                if (d < bestDist) { bestDist = d; best = emp; }
+            }
+        }
+        return best;
+    }
+
+    /// <summary>조준점 — 건물은 발밑(피벗)이 아니라 몸통 중앙을 노린다</summary>
+    private static Vector2 TargetPoint(Component target)
+    {
+        if (target is Building && target.TryGetComponent(out Collider2D col) && col.enabled)
+            return col.bounds.center;
+        return target.transform.position;
     }
 
     /// <summary>
@@ -431,7 +474,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
     #region 전방 벽 스캔
 
     /// <summary>
-    /// 이동 방향 attackRangeX 칸 안에 '넘을 수 없는'(4칸 이상) 벽이 있으면 true.
+    /// 이동 방향 사정거리 안에 '넘을 수 없는'(4칸 이상) 벽이 있으면 true.
     /// 부딪히기 전에 사정거리에서 멈춰 벽을 공격하기 위한 판정입니다.
     /// </summary>
     /// <param name="wallPoint">가로막은 벽의 충돌 지점 (공격 목표)</param>
@@ -443,8 +486,8 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         Vector2 forward = new Vector2(Mathf.Sign(dir), 0f);
         float   skin    = (_collider != null ? _collider.radius : 0.3f) + 0.05f;
 
-        // 몸 높이 전방 — 사정거리(attackRangeX) 안의 솔리드 벽 탐지
-        var bodyHit = Physics2D.Raycast(center + forward * skin, forward, attackRangeX);
+        // 몸 높이 전방 — 사정거리 안의 솔리드 벽 탐지
+        var bodyHit = Physics2D.Raycast(center + forward * skin, forward, _attackRadius);
         if (!IsSolidWall(bodyHit.collider)) return false;
 
         // 스텝 한계 위 — 같은 거리까지 막혀 있으면 4칸+ (도약으로 못 넘음)
@@ -548,51 +591,6 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         _stepUpCooldown    = STEP_UP_COOLDOWN;
         if (log) Debug.Log($"[ErosionShooter:{name}] StepUp 도약! clearHeight={clearHeight}, jumpSpeed={jumpSpeed:F2}");
         return StepResult.Stepped;
-    }
-
-    #endregion
-
-    // ─────────────────────────────────────────────
-    #region 시야 판정
-
-    /// <summary>
-    /// 타겟까지 직선 경로에 장애물이 없는지 확인합니다.
-    /// solid 콜라이더(건물, 타일맵 등)가 먼저 감지되면 false.
-    /// </summary>
-    private bool HasLineOfSight(Component target)
-    {
-        Vector2 origin = transform.position;
-        Vector2 targetPos = target.transform.position;
-        Vector2 dir = targetPos - origin;
-        float   dist = dir.magnitude;
-
-        // 자신 콜라이더를 무시하기 위해 약간 앞에서 시작
-        Vector2 start = origin + dir.normalized * 0.6f;
-
-        RaycastHit2D[] hits = Physics2D.RaycastAll(start, dir.normalized, dist);
-        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
-
-        foreach (var hit in hits)
-        {
-            if (hit.collider == null) continue;
-            if (hit.collider.gameObject == gameObject) continue;         // 자신
-            if (hit.collider.isTrigger) continue;                        // 트리거 무시
-            if (IsColliderOf(hit.collider, target)) return true;         // 타겟 도달 = LOS OK
-            return false; // 다른 물체 먼저 감지 = 시야 차단
-        }
-
-        return true; // 아무것도 없으면 LOS OK
-    }
-
-    /// <summary>콜라이더가 지정 타겟(Employee/Building)에 속하는지 확인합니다.</summary>
-    private static bool IsColliderOf(Collider2D col, Component target)
-    {
-        if (target == null) return false;
-        if (target is Employee)
-            return col.GetComponentInParent<Employee>() == target;
-        if (target is Building)
-            return col.GetComponentInParent<Building>() == target;
-        return false;
     }
 
     #endregion

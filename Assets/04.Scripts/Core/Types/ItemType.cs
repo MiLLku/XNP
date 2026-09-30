@@ -11,7 +11,8 @@
 ///   - 351 ~ 400  : 방어구 (Armor) — 장비 (EquipmentData 연동)
 ///   - 401 ~ 450  : 식물 (Plant) — 묘목·씨앗. ItemData.plantEntity로 심을 개체를 지정
 ///   - 451 ~ 500  : 성장 (Growth) — 레벨업 재료 등
-///   - 501 ~      : 향후 확장 (도구·부품 등)
+///   - 501 ~ 550  : 침식체 부산물 — 처치한 침식체의 심장 (XenopsData.heartItem)
+///   - 551 ~      : 향후 확장 (도구·부품 등)
 ///
 /// 정수값은 SaveSystem과 외부 통신에서 사용됩니다. 한 번 정한 값은 가급적 바꾸지 마세요
 /// (저장 파일 호환성이 깨집니다).
@@ -82,4 +83,14 @@ public enum ItemType
     // ─── 성장 (451~500) ─────────────────────────
     /// <summary>습격 전리품 — 습격 적이 확률로 떨굼. 연구 후 직원 레벨업에 사용</summary>
     RaidTrophy        = 451,
+
+    // ─── 침식체 부산물 (501~550) ────────────────
+    /// <summary>침식 사수의 심장 — 처치 시 확정 드롭</summary>
+    ErosionShooterHeart = 501,
+    /// <summary>그래플러의 심장 — 처치 시 확정 드롭</summary>
+    GrapplerHeart       = 502,
+    /// <summary>스피터의 심장 — 처치 시 확정 드롭</summary>
+    SpitterHeart        = 503,
+    /// <summary>침식 호위병의 심장 — 처치 시 확정 드롭</summary>
+    EscortHeart         = 504,
 }

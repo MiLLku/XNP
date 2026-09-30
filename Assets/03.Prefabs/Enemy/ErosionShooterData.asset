@@ -21,6 +21,7 @@ MonoBehaviour:
   xenopsType: 1
   grade: 2
   prefab: {fileID: 5663392544619772851, guid: 7a3f9ef8c49193d4882c9acbf13f5abb, type: 3}
+  heartItem: {fileID: 11400000, guid: 5f1ca24d708699c4c8cf7371005fa62d, type: 2}
   benefits: []
   drawbacks: []
   maxInterpretationLevel: 10

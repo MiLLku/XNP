@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
 /// 개체형(Hostile) 제놉스 체력 컴포넌트.
@@ -117,6 +117,7 @@ public class XenopsHealth : MonoBehaviour
 
         // 드랍 처리
         TryDrop();
+        TryDropHeart();
         TryDropRaidTrophy();
 
         // XenopsManager에 제거 위임
@@ -138,6 +139,16 @@ public class XenopsHealth : MonoBehaviour
             if (item != null)
                 InventoryManager.instance.AddItem(item, stats.subdueDropAmount);
         }
+    }
+
+    /// <summary>심장이 지정된 침식체면 확정으로 바닥에 떨굽니다 — 습격·안개 출현 구분 없이.</summary>
+    private void TryDropHeart()
+    {
+        var heart = _xenops?.Data != null ? _xenops.Data.heartItem : null;
+        if (heart == null) return;
+
+        ItemRefundHelper.SpawnRefunds(new System.Collections.Generic.Dictionary<ItemData, int> { { heart, 1 } },
+            transform.position, Vector2Int.one);
     }
 
     /// <summary>습격으로 온 적이면 확률로 전리품(레벨업 재료)을 바닥에 떨굽니다 — 직원이 창고로 운반.</summary>

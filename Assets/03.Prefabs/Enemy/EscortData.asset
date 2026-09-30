@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36eb533e745d02f428366b38cc9fab5d, type: 3}
+  m_Name: EscortData
+  m_EditorClassIdentifier: Assembly-CSharp::XenopsData
+  xenopsID: 6103
+  xenopsName: "\uCE68\uC2DD \uD638\uC704\uBCD1"
+  description: "\uCE68\uC2DD \uC0AC\uC218 \uACC1\uC744 \uC9C0\uD0A4\uB294 \uADFC\uC811
+    \uCE68\uC2DD\uCCB4. \uBA3C\uC800 \uB2EC\uB824\uB4E4\uC9C0 \uC54A\uC9C0\uB9CC,
+    \uC0AC\uC218\uC5D0\uAC8C \uB2E4\uAC00\uC624\uB294 \uC9C1\uC6D0\uC744 \uB9C9\uC544\uC120\uB2E4.
+    \uC0AC\uC218\uB97C \uC783\uC73C\uBA74 \uB3CC\uC9C4\uD55C\uB2E4."
+  icon: {fileID: -444769877, guid: 87dca31d0a40bff45ae4612cc4113c61, type: 3}
+  xenopsType: 1
+  grade: 2
+  prefab: {fileID: 4465952956501963786, guid: 38f9a1152ebac1f4aa29a0f695f0637a, type: 3}
+  heartItem: {fileID: 11400000, guid: b63680f4b8bfc6a438701a1fbd0b89be, type: 2}
+  benefits: []
+  drawbacks: []
+  maxInterpretationLevel: 10
+  baseExpRequired: 50
+  expPerInteraction: 10
+  equipmentSlot: 0
+  effectRadius: 3
+  infiltrateInterval: 30
+  hostileStats:
+    moveSpeed: 3
+    maxHealth: 160
+    defense: 0.2
+    attackSpeed: 0.8
+    attackDamage: 6
+    attackRange: 1.5
+    size: 1
+    aoeErosionPerSecond: 8
+    aoeErosionRange: 2
+    subdueDropItemId: 0
+    subdueDropAmount: 1
+  chargeSearchRadius: 25
+  followDistance: 1.5
+  guardRadius: 4
+  leashRadius: 6
