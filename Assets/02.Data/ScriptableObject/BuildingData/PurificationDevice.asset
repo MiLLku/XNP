@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: PurificationDevice
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 4003
+  buildingName: "\uC644\uC804 \uC815\uD654 \uC7A5\uCE58"
+  icon: {fileID: 21300000, guid: 2c50641ff3c5efa41b5258a4da673968, type: 3}
+  category: 4
+  description: "\uC2EC\uC5F0 \uC5F4\uB9E4\uB85C \uAC00\uB3D9\uD558\uB294 \uC815\uD654
+    \uC7A5\uCE58. \uAC00\uB3D9\uD558\uBA74 14\uC77C \uB4A4 \uC815\uD654\uAC00 \uC644\uB8CC\uB41C\uB2E4(\uC2B9\uB9AC).
+    \uADF8\uB3D9\uC548 \uD30C\uAD34\uB418\uBA74 \uC9C4\uD589\uC774 \uC0AC\uB77C\uC9C4\uB2E4."
+  buildingPrefab: {fileID: 6829916977556707050, guid: 397cba8635346414ab2d2afd03755f75, type: 3}
+  size: {x: 2, y: 2}
+  pivot: {x: 0, y: 0}
+  workAmount: 60
+  requiredResources:
+  - item: {fileID: 11400000, guid: 1f90f5658fc69bd4f8d3888531d57aa8, type: 2}
+    amount: 10
+  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+    amount: 20
+  maxHealth: 500
+  blocksMovement: 0
+  requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
+  destructionDrops: []
+  paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 22
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
+  powerConsumption: 0
+  allowOverlap: 0
+  requiresResearch: 0

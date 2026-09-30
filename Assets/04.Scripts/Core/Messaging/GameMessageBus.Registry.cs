@@ -63,6 +63,10 @@ public static partial class GameMessageBus
         builder.AddMessageBroker<RaidWaveStartedMessage>();
         builder.AddMessageBroker<RaidCompletedMessage>();
 
+        // 정화 · 승패
+        builder.AddMessageBroker<PurificationStateChangedMessage>();
+        builder.AddMessageBroker<GameOverMessage>();
+
         // 연구
         builder.AddMessageBroker<ResearchPointsChangedMessage>();
         builder.AddMessageBroker<ResearchStartedMessage>();

@@ -319,6 +319,29 @@ public readonly struct RaidCompletedMessage
 
 #endregion
 
+#region 정화 · 승패 — PurificationManager
+
+/// <summary>
+/// 정화 가동 상태가 바뀜 — 가동 시작(true) 또는 장치 파괴·철거로 중단(false).
+/// 가동 중 위협 이벤트 가중 등이 이것을 구독합니다.
+/// </summary>
+public readonly struct PurificationStateChangedMessage
+{
+    public readonly bool isRunning;
+
+    public PurificationStateChangedMessage(bool isRunning) => this.isRunning = isRunning;
+}
+
+/// <summary>한 판이 끝남 — 정화 완료(승리) 또는 멀쩡한 직원 0명(패배)</summary>
+public readonly struct GameOverMessage
+{
+    public readonly bool isVictory;
+
+    public GameOverMessage(bool isVictory) => this.isVictory = isVictory;
+}
+
+#endregion
+
 #region 연구 — ResearchManager / ResearchTreeManager
 
 /// <summary>보유 연구 포인트가 바뀜</summary>
