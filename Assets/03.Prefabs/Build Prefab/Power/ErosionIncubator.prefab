@@ -13,9 +13,9 @@ GameObject:
   - component: {fileID: 4000}
   - component: {fileID: 5000}
   - component: {fileID: 2484924060347177268}
-  - component: {fileID: 1605808958164568161}
+  - component: {fileID: 5163316864178794993}
   m_Layer: 0
-  m_Name: Hydroponics
+  m_Name: ErosionIncubator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -86,7 +86,7 @@ SpriteRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Sprite: {fileID: -2131944227, guid: 285236373450b8f409a444d56b1a7e10, type: 3}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 0.7, g: 0.35, b: 0.95, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -130,7 +130,7 @@ BoxCollider2D:
   m_UsedByEffector: 0
   m_CompositeOperation: 0
   m_CompositeOrder: 0
-  m_Offset: {x: 2, y: 0.5}
+  m_Offset: {x: 0.5, y: 0.5}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
@@ -140,7 +140,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 4, y: 1}
+  m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
 --- !u!114 &5000
 MonoBehaviour:
@@ -170,7 +170,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PowerConsumer
   consumptionOverride: 0
---- !u!114 &1605808958164568161
+--- !u!114 &5163316864178794993
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -179,20 +179,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1000}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5761702712dd41f4fac1bee5af3e1f4d, type: 3}
+  m_Script: {fileID: 11500000, guid: 0f7e9e2be2610e34b8b26f8263c1cf7c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CropPlot
-  hydroponic: 1
-  slotCount: 4
-  firstSlotOffset: {x: 0.1, y: 1}
-  slotSpacing: {x: 1, y: 0}
-  workOffsetFromCrop: {x: 0.4, y: 0}
-  cropScale: 0.8
-  allowedSeeds:
-  - {fileID: 11400000, guid: 1084f0b2dba4fa74aa165f3849d20fc9, type: 2}
-  - {fileID: 11400000, guid: d5796d620e761744d868a4d665bd8364, type: 2}
-  - {fileID: 11400000, guid: 5c13d5343d6197d47b6d81977d9903ff, type: 2}
-  - {fileID: 11400000, guid: 11ab2ae88505203419c509209c40bd05, type: 2}
+  m_EditorClassIdentifier: Assembly-CSharp::ErosionIncubator
+  targetErosion: 50
+  erosionPerCrystal: 2
+  interval: 10
   crystalSupply:
     item: {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
     capacity: 5

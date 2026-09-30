@@ -16,17 +16,31 @@ MonoBehaviour:
   buildingName: "\uC218\uACBD \uC7AC\uBC30\uAE30"
   icon: {fileID: 0}
   category: 1
-  description: "\uC804\uB825\uC744 \uC18C\uBE44\uD574 \uC791\uBB3C\uC744 \uC7AC\uBC30\uD558\uB294
-    \uC124\uBE44. \uC815\uC804 \uC2DC \uAC00\uB3D9\uC774 \uC77C\uC2DC\uC815\uC9C0\uB429\uB2C8\uB2E4."
+  description: "\uC804\uB825\uACFC \uCE68\uC2DD \uACB0\uC815\uCCB4\uB85C \uC791\uBB3C\uC744
+    \uAE30\uB985\uB2C8\uB2E4. \uBC29 \uD658\uACBD\uACFC \uBB34\uAD00\uD558\uAC8C
+    \uC790\uB77C\uBA70, \uCE78\uB9C8\uB2E4 \uC2EC\uC744 \uB54C \uCE68\uC2DD \uACB0\uC815\uCCB4
+    1\uAC1C\uB97C \uC501\uB2C8\uB2E4. \uC528\uC557\uC740 \uC9C1\uC6D0\uC774 \uC2EC\uACE0,
+    \uB2E4 \uC790\uB77C\uBA74 \uC9C1\uC6D0\uC774 \uAC70\uB461\uB2C8\uB2E4."
   buildingPrefab: {fileID: 1000, guid: cee3db632f6b4014886b57a41d61712d, type: 3}
   size: {x: 4, y: 1}
   pivot: {x: 0, y: 0}
-  constructionTime: 12
+  workAmount: 12
   requiredResources: []
   maxHealth: 150
   blocksMovement: 1
   requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
   destructionDrops: []
   paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 22
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
   powerConsumption: 800
   allowOverlap: 0
+  requiresResearch: 1
