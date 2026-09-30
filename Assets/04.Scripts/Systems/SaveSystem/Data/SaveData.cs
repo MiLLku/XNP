@@ -73,7 +73,6 @@ public class SaveData
     public ResearchTreeSaveData researchTree;
 
     /// <summary>스킬 포인트 상한 확장 해금 단계 수 (v7)</summary>
-    public int skillPointTierCount;
 
     /// <summary>다음 발급할 인스턴스 ID (로드 후 이어서 발급)</summary>
     public int nextInstanceId;
@@ -95,6 +94,9 @@ public class SaveData
 
     /// <summary>방 환경 상태 (온도·침식). 방 구조 자체는 지형에서 재계산됩니다.</summary>
     public RoomSystemSaveData roomSystem;
+
+    /// <summary>파종 예정지 (PlantSpawner가 저장). 구 세이브엔 없음 → 빈 목록</summary>
+    public List<SowSiteSaveData> sowSites = new List<SowSiteSaveData>();
 
     #endregion
 

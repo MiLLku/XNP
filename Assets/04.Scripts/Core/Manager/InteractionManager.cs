@@ -26,7 +26,13 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         Demolish,
         Clean,
         /// <summary>구역 칠하기 — 좌드래그로 지정, 우드래그로 해제</summary>
-        Zone
+        Zone,
+        /// <summary>벌목 — 다 자란 나무를 드래그 지정 (뿌리는 남아 재성장)</summary>
+        Chop,
+        /// <summary>제초 — 식생물을 뿌리까지 제거 (재성장 부류는 묘목 드롭)</summary>
+        Weed,
+        /// <summary>파종 — 아이템 정보 창의 파종 버튼으로 진입. 클릭한 칸에 파종 예정지 생성</summary>
+        Sow
     }
 
     [Header("필수 연결 (씬)")]
@@ -42,11 +48,6 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     [SerializeField] private Color harvestSelectionColor = new Color(0, 1, 0, 0.3f);
     [SerializeField] private Color demolishSelectionColor = new Color(1, 0, 0, 0.3f);
     [SerializeField] private Color zoneSelectionColor = new Color(0.3f, 0.8f, 1f, 0.3f);
-    
-    [Header("작업 설정")]
-    [SerializeField] private int defaultMiningWorkers = 3;
-    [SerializeField] private int defaultHarvestWorkers = 2;
-    [SerializeField] private int defaultDemolishWorkers = 1;
     
     [Header("최적화 설정")]
     [SerializeField] private int maxTilesPerOrder = 200;
@@ -76,6 +77,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     
     // Normal 모드 호버링
     private GameObject _hoveredObject;
+    /// <summary>외곽선이 켜진 바닥 아이템</summary>
+    private DroppedItem _hoveredItem;
     private Color _originalColor;
     private SpriteRenderer _hoveredRenderer;
     
@@ -180,6 +183,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
                 HandleMineMode();
                 break;
             case InteractMode.Harvest:
+            case InteractMode.Chop:
+            case InteractMode.Weed:
                 HandleHarvestMode();
                 break;
             case InteractMode.Build:
@@ -194,8 +199,13 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             case InteractMode.Zone:
                 HandleZoneMode();
                 break;
+            case InteractMode.Sow:
+                HandleSowMode();
+                break;
         }
         
+        UpdateItemHover();
+
         if (_isDragging && _selectionBox != null &&
             _currentMode != InteractMode.Mine && _currentMode != InteractMode.Zone)
         {
@@ -263,6 +273,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     {
         CancelDrag();
 
+        if (_currentMode == InteractMode.Sow) EndSow();
+
         if (_currentMode == InteractMode.Zone)
             SetEditingZone(-1);
 
@@ -291,7 +303,9 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         switch (_currentMode)
         {
             case InteractMode.Mine: sr.color = miningSelectionColor; break;
-            case InteractMode.Harvest: sr.color = harvestSelectionColor; break;
+            case InteractMode.Harvest:
+            case InteractMode.Chop:
+            case InteractMode.Weed: sr.color = harvestSelectionColor; break;
             case InteractMode.Demolish: sr.color = demolishSelectionColor; break;
             case InteractMode.Zone:
             {
@@ -363,7 +377,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
 
     /// <summary>
     /// 겹친 모든 콜라이더 중 우선순위 순으로 클릭 처리.
-    /// 우선순위: WorkOrderVisual > ConstructionSite > Employee > Building > Harvestable
+    /// 우선순위: WorkOrderVisual > 바닥 아이템 > ConstructionSite > Employee > Building > Harvestable
     /// </summary>
     /// <returns>클릭이 오브젝트에 소비되었는지 (false = 빈 곳 클릭)</returns>
     private bool HandleNormalModeClickAll(Collider2D[] hits)
@@ -373,6 +387,17 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         {
             WorkOrderVisual workVisual = col.GetComponent<WorkOrderVisual>();
             if (workVisual != null) { DeselectEmployee(); workVisual.OnClicked(); return true; }
+        }
+        // 우선순위 1-1: 바닥 아이템 — 작은 대상이라 건물·직원보다 먼저 (정보 창)
+        foreach (var col in hits)
+        {
+            DroppedItem item = col.GetComponent<DroppedItem>();
+            if (item != null && item.itemData != null)
+            {
+                DeselectEmployee();
+                ItemInfoPopup.ShowForWorld(item.itemData, item.transform.position);
+                return true;
+            }
         }
         // 우선순위 2: ConstructionSite
         foreach (var col in hits)
@@ -471,6 +496,96 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         }
     }
     
+    #region 파종 모드
+
+    /// <summary>파종할 묘목 (파종 모드 동안만 유효)</summary>
+    private ItemData _sowItem;
+    private SpriteRenderer _sowGhost;
+
+    private static readonly Color SowOkColor = new Color(0.3f, 1f, 0.3f, 0.7f);
+    private static readonly Color SowBadColor = new Color(1f, 0.25f, 0.25f, 0.7f);
+
+    /// <summary>파종 모드로 들어갑니다 (아이템 정보 창의 파종 버튼).</summary>
+    public void BeginSow(ItemData sapling)
+    {
+        if (sapling == null || !sapling.IsSowable) return;
+
+        // 파종 중 다른 묘목으로 바꾸면 SetMode가 같은 모드라 무시하므로 고스트만 새로 만든다
+        if (_currentMode == InteractMode.Sow && _sowGhost != null)
+        {
+            Destroy(_sowGhost.gameObject);
+            _sowGhost = null;
+        }
+        _sowItem = sapling;
+        SetMode(InteractMode.Sow);
+    }
+
+    /// <summary>
+    /// 커서 칸에 묘목 모양 고스트 — 설치 가능하면 초록, 아니면 빨강.
+    /// 좌클릭: 파종 예정지 생성 (이미 예정지가 있으면 취소). 우클릭·ESC: 모드 종료.
+    /// 파종은 블록 설치 조건만 봅니다 — 자라는지는 플레이어 몫.
+    /// </summary>
+    private void HandleSowMode()
+    {
+        if (_sowItem == null) { SetMode(InteractMode.Normal); return; }
+
+        if (_sowGhost == null)
+        {
+            var go = new GameObject("SowGhost");
+            _sowGhost = go.AddComponent<SpriteRenderer>();
+            PlantPreview.Apply(_sowGhost, _sowItem.plantEntity);
+        }
+
+        Vector2Int cell = Vector2Int.FloorToInt(_cameraController.GetMouseWorldPosition());
+        _sowGhost.transform.position = new Vector3(cell.x, cell.y, 0f);
+
+        SowSite existing = SowSite.At(cell);
+        bool ok = existing == null && PlantPlacement.CanPlaceAt(_sowItem.plantEntity, cell) && SowSite.HasStock(_sowItem);
+        _sowGhost.color = ok ? SowOkColor : SowBadColor;
+        _sowGhost.enabled = !UIManager.PointerOverUI;
+
+        if (Input.GetMouseButtonDown(1)) { SetMode(InteractMode.Normal); return; }
+        if (!Input.GetMouseButtonDown(0) || IsPointerOverInteractiveUI()) return;
+
+        if (existing != null) existing.Cancel();
+        else if (ok) SowSite.Create(_sowItem, cell);
+        else if (!SowSite.HasStock(_sowItem)) Debug.Log($"[Interaction] {_sowItem.itemName} 재고가 없습니다.");
+    }
+
+    private void EndSow()
+    {
+        if (_sowGhost != null) Destroy(_sowGhost.gameObject);
+        _sowGhost = null;
+        _sowItem = null;
+    }
+
+    #endregion
+
+    /// <summary>
+    /// 바닥 아이템 호버 외곽선. 일반 모드이고 UI 위가 아닐 때만 켭니다.
+    /// 첫 히트만 보는 일반 호버와 달리 겹친 콜라이더를 모두 훑는다 — 타일맵 콜라이더가 아이템을 가리지 않도록.
+    /// </summary>
+    private void UpdateItemHover()
+    {
+        DroppedItem item = null;
+        if (_currentMode == InteractMode.Normal && !UIManager.PointerOverUI)
+        {
+            foreach (var col in Physics2D.OverlapPointAll(_cameraController.GetMouseWorldPosition()))
+            {
+                item = col.GetComponent<DroppedItem>();
+                if (item != null) break;
+            }
+        }
+
+        // 풀로 돌아간(비활성) 아이템은 없는 것으로 본다
+        if (_hoveredItem != null && !_hoveredItem.gameObject.activeInHierarchy) _hoveredItem = null;
+        if (item == _hoveredItem) return;
+
+        if (_hoveredItem != null) SpriteOutline.For(_hoveredItem)?.SetVisible(false);
+        _hoveredItem = item;
+        if (item != null) SpriteOutline.For(item)?.SetVisible(true);
+    }
+
     private void ClearHover()
     {
         if (_hoveredObject != null && _hoveredRenderer != null)
@@ -506,14 +621,6 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     private void OnBuildingClicked(Building building)
     {
         Debug.Log($"[Interaction] OnBuildingClicked 호출됨: {building.gameObject.name}");
-
-        // 훈련소: 클릭 시 스킬 포인트 상한 확장 시도
-        var trainingHall = building.GetComponent<TrainingHall>();
-        if (trainingHall != null)
-        {
-            trainingHall.TryUpgrade();
-            return;
-        }
 
         // 직원 채용 건물 처리
         HiringOffice hiringOffice = building.GetComponent<HiringOffice>();
@@ -729,7 +836,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         WorkOrderVisual visual = _workSystemManager.CreateWorkOrderWithVisual(
             $"채광 작업 ({tiles.Count}개)",
             WorkType.Mining,
-            maxWorkers: defaultMiningWorkers,
+            maxWorkers: 0, // 자동 픽업 — 인원 제한 없음
             tiles: tiles,
             priority: 3
         );
@@ -800,8 +907,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         foreach (var collider in colliders)
         {
             if (count >= maxSelection) break;
-            IHarvestable harvestable = collider.GetComponent<IHarvestable>();
-            if (harvestable != null && harvestable.CanHarvest())
+            if (IsSelectableForCurrentMode(collider.gameObject))
             {
                 _selectedObjects.Add(collider.gameObject);
                 SetObjectHighlight(collider.gameObject, true);
@@ -814,7 +920,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     {
         if (_selectedObjects.Count == 0) return;
 
-        WorkType workType = DetermineHarvestWorkType(_selectedObjects[0]);
+        bool weed = _currentMode == InteractMode.Weed;
+        string label = _currentMode == InteractMode.Chop ? "벌목" : weed ? "제초" : "수확";
         
         List<Vector3Int> objectTiles = _selectedObjects
             .Select(obj => new Vector3Int(
@@ -823,9 +930,9 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             .ToList();
         
         WorkOrderVisual visual = _workSystemManager.CreateWorkOrderWithVisual(
-            $"{GetWorkTypeName(workType)} 작업 ({_selectedObjects.Count}개)", 
-            workType, 
-            defaultHarvestWorkers, 
+            $"{label} 작업 ({_selectedObjects.Count}개)", 
+            WorkType.Weeding, // 수확·벌목·제초 모두 제초 작업
+            0, // 자동 픽업 — 인원 제한 없음
             objectTiles, 
             4
         );
@@ -843,7 +950,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
                     { 
                         target = harvestable, 
                         position = obj.transform.position, 
-                        priority = 4 
+                        priority = 4,
+                        weed = weed
                     });
                 }
                 SetObjectHighlight(obj, false);
@@ -853,19 +961,25 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         _selectedObjects.Clear();
     }
     
-    private WorkType DetermineHarvestWorkType(GameObject obj)
+    /// <summary>
+    /// 현재 명령 모드에서 드래그로 고를 수 있는 대상인지.
+    ///   수확: 나무가 아닌 식생물 중 다 자라 수확물이 있는 것
+    ///   벌목: 다 자란 나무
+    ///   제초: 모든 식생물 (성장 단계 무관)
+    /// 같은 식물에 주문이 겹쳐도 먼저 끝난 쪽이 대상을 바꾸면 나머지는 무효가 되어 정리된다.
+    /// (칸 단위 IsTileUnderWork는 운반 작업까지 잡으므로 쓰지 않는다)
+    /// </summary>
+    private bool IsSelectableForCurrentMode(GameObject obj)
     {
-        if (obj.GetComponent<ChoppableTree>() != null) return WorkType.Chopping;
-        return WorkType.Gardening;
-    }
-    
-    private string GetWorkTypeName(WorkType type)
-    {
-        switch (type) 
-        { 
-            case WorkType.Chopping: return "벌목"; 
-            case WorkType.Mining: return "채광"; 
-            default: return "작업"; 
+        var plant = obj.GetComponent<PlantBase>();
+        if (plant == null) return false;
+
+        switch (_currentMode)
+        {
+            case InteractMode.Harvest: return !(plant is ChoppableTree) && plant.CanHarvest();
+            case InteractMode.Chop:    return plant is ChoppableTree && plant.CanHarvest();
+            case InteractMode.Weed:    return true;
+            default:                   return false;
         }
     }
     
@@ -1091,8 +1205,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             {
                 WorkOrder workOrder = _workSystemManager.CreateWorkOrder(
                     $"철거: {building.buildingData.buildingName}", 
-                    WorkType.Demolish, 
-                    defaultDemolishWorkers, 
+                    WorkType.Building, // 철거는 건설 작업에 합쳐짐
+                    0, // 자동 픽업 — 인원 제한 없음
                     6
                 );
                 workOrder.AddTarget(new DemolishOrder 

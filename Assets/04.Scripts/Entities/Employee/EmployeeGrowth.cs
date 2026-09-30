@@ -1,32 +1,22 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 /// <summary>
-/// 직원 성장 시스템 컴포넌트 (유니크 직원 전용).
-/// 경험치 획득, 레벨업, 능력치 향상을 담당합니다.
-///
-/// 성장 공식:
-///   - 레벨업 필요 경험치: level^1.5 × 100
-///   - 레벨업 시: 체력 +(5+level), 정신력 +(3+level/2), 3레벨마다 공격력 +1
+/// 직원 성장 — 모든 직원.
+///   - <b>레벨</b>: 작업으로 오르지 않고 단련장에서 습격 전리품으로 단련해야 오름(<see cref="LevelUpStation"/>). 1레벨 = 스킬 포인트 1,
+///     그 외 보상은 최대 체력·운반 용량(<see cref="LevelUpConfig"/>).
+///   - <b>작업 적성</b>: 해당 작업을 하면 오름 — 스킬 해금 조건.
+///   - <b>전투 숙련</b>: 전투로 오름.
 /// </summary>
 public class EmployeeGrowth : MonoBehaviour
 {
-    #region 상수
-
-    /// <summary>초기 필요 경험치</summary>
-    private const int INITIAL_EXP_REQUIRED = 100;
-
-    #endregion
-
     #region 필드
 
-    [Header("성장 시스템")]
+    [Header("레벨 (습격 전리품으로만 오름)")]
     [SerializeField] private int level = 1;
-    [SerializeField] private int experience = 0;
-    [SerializeField] private int experienceToNextLevel = INITIAL_EXP_REQUIRED;
 
     [Header("운반 성장 보너스")]
-    [Tooltip("레벨업으로 누적된 운반 용량 보너스 (5레벨마다 +1)")]
+    [Tooltip("레벨업으로 누적된 운반 용량 보너스")]
     [SerializeField] private int carryCapacityBonus = 0;
 
     [Header("작업 적성 (작업별 숙련)")]
@@ -42,9 +32,6 @@ public class EmployeeGrowth : MonoBehaviour
 
     /// <summary>스탯 컨트롤러 참조</summary>
     private EmployeeStatsController statsController;
-
-    /// <summary>성장 활성화 여부 (유니크 직원만)</summary>
-    private bool growthEnabled = false;
 
     #endregion
 
@@ -66,12 +53,6 @@ public class EmployeeGrowth : MonoBehaviour
     /// <summary>현재 레벨</summary>
     public int Level => level;
 
-    /// <summary>현재 경험치</summary>
-    public int Experience => experience;
-
-    /// <summary>다음 레벨까지 필요한 경험치</summary>
-    public int ExperienceToNextLevel => experienceToNextLevel;
-
     /// <summary>레벨업으로 누적된 운반 용량 보너스</summary>
     public int CarryCapacityBonus => carryCapacityBonus;
 
@@ -85,78 +66,49 @@ public class EmployeeGrowth : MonoBehaviour
         statsController = GetComponent<EmployeeStatsController>();
     }
 
-    /// <summary>
-    /// 성장 시스템을 초기화합니다.
-    /// </summary>
-    /// <param name="isUnique">유니크 직원 여부 (유니크만 성장)</param>
-public void Initialize(bool isUnique)
+    /// <summary>성장 시스템을 초기화합니다 (새 직원).</summary>
+    public void Initialize()
     {
-        growthEnabled = isUnique;
         level = 1;
-        experience = 0;
-        experienceToNextLevel = INITIAL_EXP_REQUIRED;
         carryCapacityBonus = 0;
         combatAptitude = new CombatAptitude();
     }
 
     #endregion
 
-    #region 경험치 및 레벨업
+    #region 레벨업 (습격 전리품)
 
-    /// <summary>
-    /// 경험치를 획득합니다.
-    /// </summary>
-    /// <param name="amount">획득 경험치량</param>
-    public void GainExperience(int amount)
+    private static LevelUpConfig Config => EmployeeManager.instance != null ? EmployeeManager.instance.LevelUpConfig : null;
+
+    /// <summary>다음 레벨 비용 (전리품 개수)</summary>
+    public int NextLevelCost => Config != null ? Config.CostFor(level) : 0;
+
+    /// <summary>다음 레벨 단련 시간(초)</summary>
+    public float NextTrainingSeconds => Config != null ? Config.TrainingSecondsFor(level) : 0f;
+
+    /// <summary>단련을 시작할 수 없는 이유 (가능하면 null) — 전리품이 모자라는지만 봄 (단련장 상태는 단련장이 봄)</summary>
+    public string TrainingBlockReason()
     {
-        if (!growthEnabled) return;
-
-        float gainMult = statsController != null ? statsController.CachedSkillGainRateModifier : 1f;
-        experience += Mathf.Max(1, Mathf.RoundToInt(amount * gainMult));
-
-        Debug.Log($"[Growth] {employee?.DisplayName} 경험치 획득: +{amount} ({experience}/{experienceToNextLevel})");
-
-        while (experience >= experienceToNextLevel)
-        {
-            LevelUp();
-        }
+        var cfg = Config;
+        if (cfg == null || cfg.growthItem == null) return "설정 없음";
+        int have = InventoryManager.instance != null ? InventoryManager.instance.GetAvailableAmount(cfg.growthItem) : 0;
+        return have < NextLevelCost ? $"{cfg.growthItem.itemName} {have}/{NextLevelCost}" : null;
     }
 
-    /// <summary>
-    /// 레벨업을 수행합니다.
-    /// </summary>
-private void LevelUp()
+    /// <summary>단련 완료 — 레벨을 1 올립니다 (전리품 소모는 단련장이 함).</summary>
+    public void ApplyLevelUp()
     {
-        experience -= experienceToNextLevel;
+        var cfg = Config;
+        if (cfg == null) return;
+
         level++;
-
-        experienceToNextLevel = CalculateExperienceToNextLevel(level);
-
-        // 스탯 증가 (공격력은 더 이상 직원 스탯이 아니다 — 전투력은 무기 + 전투 숙련이 결정)
-        int healthGain = 5 + level;
-        int mentalGain = 3 + level / 2;
-
-        // 운반 용량 증가 (5레벨마다 +1)
-        int carryGain = level % 5 == 0 ? 1 : 0;
+        int healthGain = cfg.healthPerLevel;
+        int carryGain = (level - 1) % cfg.carryEveryLevels == 0 ? 1 : 0;
         carryCapacityBonus += carryGain;
+        if (statsController != null) statsController.IncreaseMaxStats(healthGain, 0);
 
-        if (statsController != null)
-        {
-            statsController.IncreaseMaxStats(healthGain, mentalGain);
-        }
-
-        string carryLog = carryGain > 0 ? $", Carry+{carryGain}(총 +{carryCapacityBonus})" : "";
-        Debug.Log($"[Growth] {employee?.DisplayName} 레벨업! Lv.{level} (HP+{healthGain}, Mental+{mentalGain}{carryLog})");
-
+        Debug.Log($"[Growth] {employee?.DisplayName} 레벨업! Lv.{level} (HP+{healthGain}, 운반+{carryGain}, 스킬 포인트 +1)");
         OnLevelUp?.Invoke(level);
-    }
-
-    /// <summary>
-    /// 다음 레벨 필요 경험치를 계산합니다.
-    /// </summary>
-    private int CalculateExperienceToNextLevel(int currentLevel)
-    {
-        return Mathf.RoundToInt(Mathf.Pow(currentLevel, 1.5f) * 100);
     }
 
     #endregion
@@ -169,8 +121,6 @@ private void LevelUp()
 public void PopulateSaveData(EmployeeSaveData data)
     {
         data.level = level;
-        data.experience = experience;
-        data.experienceToNextLevel = experienceToNextLevel;
         data.carryCapacityBonus = carryCapacityBonus;
         data.workAptitudes = new System.Collections.Generic.List<WorkAptitude.Entry>(aptitude.Entries);
         data.combatAptitudes = new System.Collections.Generic.List<CombatAptitude.Entry>(combatAptitude.Entries);
@@ -179,12 +129,9 @@ public void PopulateSaveData(EmployeeSaveData data)
     /// <summary>
     /// 저장 데이터에서 성장 정보를 복원합니다.
     /// </summary>
-public void RestoreFromSaveData(EmployeeSaveData data, bool isUnique)
+public void RestoreFromSaveData(EmployeeSaveData data)
     {
-        growthEnabled = isUnique;
-        level = data.level;
-        experience = data.experience;
-        experienceToNextLevel = data.experienceToNextLevel;
+        level = Mathf.Max(1, data.level);
         carryCapacityBonus = data.carryCapacityBonus;
         aptitude.Restore(data.workAptitudes);
         combatAptitude.Restore(data.combatAptitudes);
@@ -202,8 +149,7 @@ public void RestoreFromSaveData(EmployeeSaveData data, bool isUnique)
 
     /// <summary>
     /// 작업 적성 경험치를 획득합니다. 해당 작업을 실제로 수행할 때만 호출됩니다.
-    /// 통합 레벨(GainExperience)과 달리 성장 비활성 직원도 적성은 오릅니다 —
-    /// 적성은 스킬 해금 조건이라 모든 직원에게 필요합니다.
+    /// 적성은 스킬 해금 조건입니다.
     /// </summary>
     public void GainWorkExperience(WorkType type, int amount)
     {
@@ -227,8 +173,7 @@ public void RestoreFromSaveData(EmployeeSaveData data, bool isUnique)
 
     /// <summary>
     /// 전투 숙련 경험치를 획득합니다. 실제로 적을 공격했을 때만 호출됩니다.
-    /// 작업 적성과 마찬가지로 성장 비활성 직원(비유니크)도 전투 숙련은 오릅니다.
-    /// </summary>
+    ///     /// </summary>
     public void GainCombatExperience(CombatSkillType type, int amount)
     {
         int newLevel = combatAptitude.GainExperience(type, amount);

@@ -1,4 +1,4 @@
-﻿/// <summary>
+/// <summary>
 /// 작업 타입 카테고리 헬퍼.
 /// 작업 할당 방식을 결정합니다.
 ///
@@ -19,12 +19,13 @@ public static class WorkTypeCategory
         switch (type)
         {
             case WorkType.Mining:
-            case WorkType.Chopping:
+            case WorkType.Weeding:
             case WorkType.Building:
-            case WorkType.Demolish:
             case WorkType.Cleaning:
             case WorkType.Hauling:
-            case WorkType.Gardening:
+            case WorkType.Sowing:
+            case WorkType.Cooking:
+            case WorkType.Training:
                 return true;
 
             case WorkType.Crafting:
@@ -63,10 +64,10 @@ public static class WorkTypeCategory
         {
             case WorkType.None:      return "없음";
             case WorkType.Mining:    return "채광";
-            case WorkType.Chopping:  return "벌목";
+            case WorkType.Weeding:  return "제초";
             case WorkType.Research:  return "연구";
             case WorkType.Crafting:  return "제작";
-            case WorkType.Gardening: return "원예";
+            case WorkType.Sowing:    return "파종";
             case WorkType.Hauling:   return "운반";
             case WorkType.Building:  return "건설";
             case WorkType.Demolish:  return "철거";
@@ -74,6 +75,8 @@ public static class WorkTypeCategory
             case WorkType.Resting:   return "휴식";
             case WorkType.Eating:    return "식사";
             case WorkType.Recuperation: return "요양";
+            case WorkType.Cooking:   return "조리";
+            case WorkType.Training:  return "단련";
             default:                 return type.ToString();
         }
     }

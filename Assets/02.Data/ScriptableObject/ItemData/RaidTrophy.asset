@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7bf4af0a018b1c4bb9016e3783a71e3, type: 3}
+  m_Name: RaidTrophy
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemType: 451
+  itemName: "\uC2B5\uACA9 \uC804\uB9AC\uD488"
+  itemIcon: {fileID: -103710428, guid: fd59d6577824a024caef876e46b0618f, type: 3}
+  description: "\uC2B5\uACA9\uD574 \uC628 \uC801\uC5D0\uAC8C\uC11C \uC5BB\uC740 \uC804\uB9AC\uD488.
+    '\uC2B5\uACA9 \uBD84\uC11D' \uC5F0\uAD6C\uB97C \uB9C8\uCE58\uBA74 \uC9C1\uC6D0
+    \uAD00\uB9AC\uCC3D\uC5D0\uC11C \uC9C1\uC6D0\uC758 \uB808\uBCA8\uC744 \uC62C\uB9AC\uB294
+    \uB370 \uC501\uB2C8\uB2E4."
+  plantEntity: {fileID: 0}
+  dropPrefab: {fileID: 0}
+  isFood: 0
+  nutrition: 0
+  foodKind: 0
+  ingredientCategory: 0
+  rawPenalty: 0
+  rawMood: -3
+  rawMoodHours: 3
+  erosionOnEat: 0
+  moodOnEat: 0
+  moodOnEatHours: 3
+  moodOnEatLabel: 
+  isDrug: 0
+  funValue: 0

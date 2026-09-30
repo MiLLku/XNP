@@ -45,6 +45,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     [Header("재미(오락) 시스템 설정")]
     [Tooltip("재미 감소율·효과 구간 기준값. 미할당 시 재미 효과는 중립으로 동작")]
     [SerializeField] private FunConfig funConfig;
+    [Tooltip("레벨업(습격 전리품) 기준값")]
+    [SerializeField] private LevelUpConfig levelUpConfig;
 
     [Tooltip("전투 태세 기준값. 미할당 시 코드 기본값으로 동작")]
     [SerializeField] private CombatConfig combatConfig;
@@ -77,6 +79,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     /// <summary>재미 시스템 기준값 (StatsController/AI에서 참조, null 허용)</summary>
     public FunConfig FunConfig => funConfig;
+    public LevelUpConfig LevelUpConfig => levelUpConfig;
 
     /// <summary>전투 태세 기준값 (EmployeeCombat에서 참조, null 허용)</summary>
     public CombatConfig CombatConfig => combatConfig;
@@ -212,7 +215,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         var work = employee.GetComponent<EmployeeWork>();
         if (work == null) return;
 
-        ItemData food = InventoryManager.instance.TakeAnyFood(1);
+        ItemData food = InventoryManager.instance.TakeBestFood(); // 시작 식량은 소지 기준과 무관하게 지급
         if (food != null && work.StoreFood(food, 1) && showDebugInfo)
             Debug.Log($"[EmployeeManager] '{employee.Data?.employeeName}'에게 시작 식량 지급: {food.itemName}");
     }

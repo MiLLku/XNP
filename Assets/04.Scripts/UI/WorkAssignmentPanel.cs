@@ -108,8 +108,22 @@ public class WorkAssignmentPanel : BasePanel
         if (currentOrder == null) return;
 
         UpdateHeader();
+
+        // 자동 픽업 작업물은 직원 지정이 없다 — 헤더와 취소 버튼만 보인다
+        bool showList = !currentOrder.IsAutoPickup;
+        SetEmployeeListVisible(showList);
+        if (!showList) return;
+
         UpdateEmployeeList();
         UpdateNavigationButtons();
+    }
+
+    private void SetEmployeeListVisible(bool visible)
+    {
+        if (listContainer != null) listContainer.gameObject.SetActive(visible);
+        if (prevButton != null) prevButton.gameObject.SetActive(visible);
+        if (nextButton != null) nextButton.gameObject.SetActive(visible);
+        if (pageText != null) pageText.gameObject.SetActive(visible);
     }
 
     private void UpdateHeader()

@@ -128,6 +128,8 @@ public class HarvestTargetData
     public int entityX;
     public int entityY;
     public int entityType;
+    /// <summary>제초 명령 여부 (구 세이브엔 없음 → false = 수확)</summary>
+    public bool weed;
 }
 
 /// <summary>

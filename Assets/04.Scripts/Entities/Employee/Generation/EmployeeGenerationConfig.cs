@@ -92,8 +92,9 @@ public class EmployeeGenerationConfig : ScriptableObject
     [Range(0.1f, 5f)]
     public float baseHungerDecayRate = 0.09f;
 
-    [Range(0.1f, 5f)]
-    public float baseFatigueIncreaseRate = 0.2f;
+    [Tooltip("깨어 있는 동안 초당 피로 감소 (기본 하루 1000초 기준 0.1 ≈ 깨어 있는 17시간에 -70)")]
+    [Range(0.01f, 5f)]
+    public float baseFatigueIncreaseRate = 0.1f;
 
     #endregion
 
@@ -101,10 +102,8 @@ public class EmployeeGenerationConfig : ScriptableObject
 
     [Header("기본 작업 능력 (무작위 생성 직원 공통)")]
     public bool defaultCanMine      = true;
-    public bool defaultCanChop      = true;
     public bool defaultCanHaul      = true;
     public bool defaultCanBuild     = true;
-    public bool defaultCanDemolish  = true;
     public bool defaultCanCraft     = false;
     public bool defaultCanResearch  = false;
     public bool defaultCanGarden    = false;
@@ -131,13 +130,13 @@ public class EmployeeGenerationConfig : ScriptableObject
     public List<WorkTypeDisqualChance> disqualChances = new List<WorkTypeDisqualChance>
     {
         new WorkTypeDisqualChance { workType = WorkType.Mining,    chance = 30f },
-        new WorkTypeDisqualChance { workType = WorkType.Chopping,  chance = 25f },
+        new WorkTypeDisqualChance { workType = WorkType.Weeding,  chance = 25f },
         new WorkTypeDisqualChance { workType = WorkType.Building,  chance = 20f },
         new WorkTypeDisqualChance { workType = WorkType.Hauling,   chance = 15f },
-        new WorkTypeDisqualChance { workType = WorkType.Demolish,  chance = 20f },
         new WorkTypeDisqualChance { workType = WorkType.Crafting,  chance = 10f },
         new WorkTypeDisqualChance { workType = WorkType.Research,  chance =  5f },
-        new WorkTypeDisqualChance { workType = WorkType.Gardening, chance = 15f },
+        new WorkTypeDisqualChance { workType = WorkType.Sowing, chance = 15f },
+        new WorkTypeDisqualChance { workType = WorkType.Cooking, chance = 15f },
     };
 
     [Tooltip("확률 롤 결과로 나온 결격 수가 이 값을 초과하면 초과분을 무작위 제거합니다. (최대 4)")]

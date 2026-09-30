@@ -47,4 +47,4 @@ MonoBehaviour:
     hairColor: {r: 0, g: 0, b: 0, a: 1}
   initialDisqualifications: 
   hungerDecayRate: 1
-  fatigueIncreaseRate: 0.5
+  fatigueIncreaseRate: 0.1

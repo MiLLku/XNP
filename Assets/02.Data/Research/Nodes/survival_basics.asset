@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: survival_basics
   nodeName: "\uC0DD\uC874 \uAE30\uCD08"
-  description: "\uC131\uC7A5 \xB7 \uC9C1\uC6D0 \uCD5C\uB300 \uCCB4\uB825 \uC99D\uAC00."
+  description: "\uC131\uC7A5 \xB7 \uC9C1\uC6D0 \uCD5C\uB300 \uCCB4\uB825 \uC99D\uAC00.
+    \uAE30\uBCF8 \uCE68\uB300\uB97C \uD574\uAE08\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - research_basics
@@ -24,4 +25,5 @@ MonoBehaviour:
   researchPointCost: 80
   unlockEffects:
   - {fileID: 11400000, guid: 4b3e098f658ec8e49a6bcba9adf96ed9, type: 2}
+  - {fileID: 11400000, guid: fc491469881e4b149a21eeeeb9ae1323, type: 2}
   treePosition: {x: 2, y: -1}

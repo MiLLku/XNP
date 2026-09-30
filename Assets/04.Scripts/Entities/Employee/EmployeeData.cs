@@ -17,9 +17,6 @@ public class EmployeeData : ScriptableObject
     public string employeeName;
     public Sprite portrait;
 
-    [Header("직원 유형")]
-    [Tooltip("유니크 직원은 성장 시스템이 적용됩니다")]
-    public bool isUnique = true;
 
     #endregion
 
@@ -88,9 +85,9 @@ public class EmployeeData : ScriptableObject
     [Tooltip("배고픔이 감소하는 속도 (포인트/초)")]
     public float hungerDecayRate = 1f;
 
-    [Range(0.1f, 5f)]
-    [Tooltip("피로가 증가하는 속도 (포인트/초)")]
-    public float fatigueIncreaseRate = 0.5f;
+    [Range(0.01f, 5f)]
+    [Tooltip("깨어 있는 동안 피로가 줄어드는 속도 (포인트/초)")]
+    public float fatigueIncreaseRate = 0.1f;
 
     #endregion
 }
@@ -106,14 +103,11 @@ public class WorkAbilities
 
     [Header("작업 능력 (체크된 항목만 수행 가능)")]
     public bool canMine = false;
-    public bool canChop = false;
     public bool canResearch = false;
     public bool canCraft = false;
     public bool canGarden = false;
     public bool canBuild = false;
     public bool canHaul = false;
-    public bool canDemolish = false;
-    public bool canClean = false;
 
     #endregion
 
@@ -132,8 +126,6 @@ public class WorkAbilities
     [Range(0.5f, 2f)]
     public float miningSpeed = 1f;
     [Range(0.5f, 2f)]
-    public float choppingSpeed = 1f;
-    [Range(0.5f, 2f)]
     public float researchSpeed = 1f;
     [Range(0.5f, 2f)]
     public float craftingSpeed = 1f;
@@ -143,9 +135,9 @@ public class WorkAbilities
     public float buildingSpeed = 1f;
     [Range(0.5f, 2f)]
     public float haulingSpeed = 1f;
-    [Range(0.5f, 2f)]
-    public float demolishSpeed = 1f;
     public float cleaningSpeed = 1f;
+    [Range(0.5f, 2f)]
+    public float cookingSpeed = 1f;
 
     #endregion
 
@@ -161,17 +153,19 @@ public class WorkAbilities
         switch (type)
         {
             case WorkType.Mining: return canMine;
-            case WorkType.Chopping: return canChop;
+            case WorkType.Weeding: return canGarden; // 제초·파종 모두 원예 능력
             case WorkType.Research: return canResearch;
             case WorkType.Crafting: return canCraft;
-            case WorkType.Gardening: return canGarden;
+            case WorkType.Sowing: return canGarden;
             case WorkType.Building: return canBuild;
             case WorkType.Hauling: return canHaul;
-            case WorkType.Demolish: return canDemolish;
-            case WorkType.Cleaning: return canClean;
+            case WorkType.Demolish: return canBuild; // 철거는 건설 작업에 합쳐짐 (구 주문 호환)
+            case WorkType.Cleaning: return true;     // 세척은 누구나 — 능력·결격 대상이 아님
             case WorkType.Resting: return true;
             case WorkType.Eating: return true;
             case WorkType.Recuperation: return true;
+            case WorkType.Cooking: return true; // 누구나 가능 — 못 하게 하려면 결격으로
+            case WorkType.Training: return true; // 누구나 — 결격·능력 무관
             default: return false;
         }
     }
@@ -187,17 +181,19 @@ public class WorkAbilities
         switch (type)
         {
             case WorkType.Mining: return canMine ? miningSpeed : 0f;
-            case WorkType.Chopping: return canChop ? choppingSpeed : 0f;
+            case WorkType.Weeding: return canGarden ? gardeningSpeed : 0f;
             case WorkType.Research: return canResearch ? researchSpeed : 0f;
             case WorkType.Crafting: return canCraft ? craftingSpeed : 0f;
-            case WorkType.Gardening: return canGarden ? gardeningSpeed : 0f;
+            case WorkType.Sowing: return canGarden ? gardeningSpeed : 0f;
             case WorkType.Building: return canBuild ? buildingSpeed : 0f;
             case WorkType.Hauling: return canHaul ? haulingSpeed : 0f;
-            case WorkType.Demolish: return canDemolish ? demolishSpeed : 0f;
-            case WorkType.Cleaning: return canClean ? cleaningSpeed : 0f;
+            case WorkType.Demolish: return canBuild ? buildingSpeed : 0f;
+            case WorkType.Cleaning: return cleaningSpeed;
             case WorkType.Resting: return 1f;
             case WorkType.Eating: return 1f;
             case WorkType.Recuperation: return 1f;
+            case WorkType.Cooking: return cookingSpeed;
+            case WorkType.Training: return 1f;
             default: return 0f;
         }
     }

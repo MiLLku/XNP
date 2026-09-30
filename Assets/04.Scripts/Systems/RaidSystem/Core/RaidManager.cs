@@ -301,6 +301,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     #region 내부 유틸
 
+    /// <summary>습격으로 온 적인지 (처치 시 전리품 드롭 판정)</summary>
+    public bool IsRaider(Xenops xenops) => xenops != null && spawnedEntities.Contains(xenops);
+
     private void SpawnRaidXenops(RaidSpawnEntry entry)
     {
         if (XenopsManager.instance == null) return;

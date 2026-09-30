@@ -16,6 +16,9 @@ public class InventorySaveData
     /// <summary>다음 예약 ID (로드 후 이어서 발급)</summary>
     public int nextReservationId;
 
+    /// <summary>요리 종류별 영양 풀 (구 세이브엔 없음 → null)</summary>
+    public List<MealNutritionSaveData> mealNutrition = new List<MealNutritionSaveData>();
+
     public InventorySaveData()
     {
         items = new List<ItemStackSaveData>();
@@ -75,4 +78,15 @@ public class DroppedItemSaveData
 
     /// <summary>월드 Y 좌표</summary>
     public float posY;
+}
+
+/// <summary>
+/// 요리 영양 풀 저장 데이터 (종류별 합계/개수).
+/// </summary>
+[Serializable]
+public class MealNutritionSaveData
+{
+    public int itemId;
+    public float total;
+    public int count;
 }

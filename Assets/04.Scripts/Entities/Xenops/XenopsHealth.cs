@@ -117,6 +117,7 @@ public class XenopsHealth : MonoBehaviour
 
         // 드랍 처리
         TryDrop();
+        TryDropRaidTrophy();
 
         // XenopsManager에 제거 위임
         if (XenopsManager.instance != null)
@@ -137,6 +138,18 @@ public class XenopsHealth : MonoBehaviour
             if (item != null)
                 InventoryManager.instance.AddItem(item, stats.subdueDropAmount);
         }
+    }
+
+    /// <summary>습격으로 온 적이면 확률로 전리품(레벨업 재료)을 바닥에 떨굽니다 — 직원이 창고로 운반.</summary>
+    private void TryDropRaidTrophy()
+    {
+        var cfg = EmployeeManager.instance != null ? EmployeeManager.instance.LevelUpConfig : null;
+        if (cfg == null || cfg.growthItem == null) return;
+        if (RaidManager.instance == null || !RaidManager.instance.IsRaider(_xenops)) return;
+        if (Random.value >= cfg.raidDropChance) return;
+
+        ItemRefundHelper.SpawnRefunds(new System.Collections.Generic.Dictionary<ItemData, int> { { cfg.growthItem, 1 } },
+            transform.position, Vector2Int.one);
     }
 
     #endregion

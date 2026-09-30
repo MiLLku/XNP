@@ -24,10 +24,8 @@ public class EmployeeAI : MonoBehaviour
 {
     #region 상수
 
-    private const float FREE_FATIGUE_THRESHOLD  = 40f;
     private const float FREE_MENTAL_RATIO        = 0.5f;
     private const float FREE_HUNGER_THRESHOLD    = 50f;
-    private const float FATIGUE_FULL_THRESHOLD   = 90f;
     private const float HUNGER_FULL_THRESHOLD    = 80f;
 
     /// <summary>자유 시간 중 욕구 재확인 간격 (초). 스케줄 체크와 분리.</summary>
@@ -75,7 +73,7 @@ public class EmployeeAI : MonoBehaviour
     [Header("AI 설정")]
     [SerializeField] private bool enableAutonomousBehavior = true;
 
-    [Tooltip("스케줄이 Work일 때 자동 픽업 작업(채광/건설/벌목/운반/철거/원예)을 자동으로 가져올지 여부. " +
+    [Tooltip("스케줄이 Work일 때 자동 픽업 작업(채광/건설/제초/운반/철거/파종)을 자동으로 가져올지 여부. " +
              "전용 할당 작업(연구/제작)은 항상 플레이어가 명시적으로 등록한 직원만 수행합니다. " +
              "기본 true: 직원이 우선순위에 맞춰 자유롭게 자동 픽업 작업을 수행합니다.")]
     [SerializeField] private bool autoAssignWork = true;
@@ -136,6 +134,26 @@ public class EmployeeAI : MonoBehaviour
 
     /// <summary>점유 중인 요양 시설 (없으면 null)</summary>
     private RecuperationBed currentBed;
+
+    /// <summary>자는 중 — 수면 시간대가 끝날 때까지 다른 판단을 하지 않는다</summary>
+    private bool isSleeping;
+
+    [Header("수면")]
+    [Tooltip("침대 없이 바닥에서 잘 때 피로 회복 배율")]
+    [SerializeField, Min(0.1f)] private float floorRecovery = 0.8f;
+    [Tooltip("바닥에서 잠 — 기분 변화 (하루 동안)")]
+    [SerializeField] private float floorSleepMood = -5f;
+
+    /// <summary>배고파서 음식 찾으러 가는 중 (이 시각까지) — 도중에 또 보내지 않게. 콜백이 끊겨도 풀리도록 시각으로 둠</summary>
+    private float seekingFoodUntil;
+    private float hungerCheckTimer;
+
+    /// <summary>할 일이 없어 어슬렁거리는 중 (걷는 동안 재미가 조금 참)</summary>
+    private bool isWandering;
+    /// <summary>한 번 걷고 나서 이 시각까지 서서 쉼</summary>
+    private float wanderRestUntil;
+    /// <summary>어슬렁거리기를 시작한 칸 — 이 둘레(반경)에서만 걸어 멀리 흘러가지 않게. 할 일이 생기면 풀림</summary>
+    private Vector2Int? wanderAnchor;
 
     // 컴포넌트 참조
     private Employee employee;
@@ -265,6 +283,23 @@ public class EmployeeAI : MonoBehaviour
         if (employee.State == EmployeeState.MentalBreak)   return;
         if (draft != null && draft.IsDrafted)              return;
 
+        // 수면은 순수하게 일정대로 — 수면 시간대가 끝나야(MakeDecision) 깬다. 그 전엔 욕구 판단도 하지 않는다
+        if (isSleeping)
+        {
+            if (employee.State != EmployeeState.Resting) StopSleeping(); // 다른 이유로 깨움(징집·정신 이상 등)
+            return;
+        }
+
+        TickWanderFun();
+
+        // 배고픔은 스케줄과 무관하게 본다 — 소지 음식은 제자리에서, 없으면 찾아 먹고 하던 일로 복귀
+        hungerCheckTimer -= Time.deltaTime;
+        if (hungerCheckTimer <= 0f)
+        {
+            hungerCheckTimer = NEEDS_CHECK_INTERVAL;
+            if (CheckHunger()) return;
+        }
+
         // 자유 시간 중일 때만 욕구 소주기 재확인
         if (currentExecutingActivity == ScheduleActivity.Anything)
         {
@@ -332,6 +367,14 @@ public class EmployeeAI : MonoBehaviour
             ? schedule.GetCurrentActivity()
             : ScheduleActivity.Anything;
 
+        // 자는 중이면 수면 시간대가 끝날 때만 깬다 (피로가 덜 찼어도 — 부족분은 플레이어 몫)
+        if (isSleeping)
+        {
+            if (scheduledActivity == ScheduleActivity.Sleep) return;
+            StopSleeping();
+            if (employee.State == EmployeeState.Resting) employee.SetState(EmployeeState.Idle);
+        }
+
         // 수행 가능 여부 확인 → 불가 시 Anything 대체
         ScheduleActivity actualActivity = CanExecuteActivity(scheduledActivity)
             ? scheduledActivity
@@ -368,8 +411,7 @@ public class EmployeeAI : MonoBehaviour
         switch (activity)
         {
             case ScheduleActivity.Sleep:
-                if (employee.Needs.fatigue >= FATIGUE_FULL_THRESHOLD) return false;
-                return HasFacility(FacilityTag.Bed);
+                return true; // 침대가 없으면 제자리에서 잔다
 
             case ScheduleActivity.Recreation:
             {
@@ -409,7 +451,6 @@ public class EmployeeAI : MonoBehaviour
     ///
     /// 배정 구역 안에 없어도 전체 탐색으로 폴백하므로(FindNearestFacility),
     /// 여기서 구역으로 걸러내면 직원이 아무것도 못 하고 멈춥니다.
-    /// 구역 우선 선택은 실제 이동 시점(MoveToFacility)에서 처리합니다.
     /// </summary>
     private bool HasFacility(string tag)
     {
@@ -480,6 +521,9 @@ public class EmployeeAI : MonoBehaviour
                 if (TryRecuperate()) return;
             }
 
+            // 소지 음식이 모자라고 창고에 챙길 음식이 있으면 작업보다 먼저 챙긴다
+            if (TryStockUpFood()) return;
+
             // ★ 자동 할당이 비활성화된 경우 플레이어 수동 할당만 허용
             if (!autoAssignWork)
             {
@@ -498,19 +542,122 @@ public class EmployeeAI : MonoBehaviour
 
             if (showDebugLogs)
                 Debug.Log($"[AI] {employee.DisplayName}: 자동 작업 할당 결과={assigned}");
+
+            // 할 일이 없으면 근처를 어슬렁거린다 — 짧게 걷고 잠깐 서기를 반복하므로 서 있는 틈에 일이 생기면 바로 잡는다
+            if (!assigned) Wander();
         }
+    }
+
+    // ─── Wander ───
+
+    /// <summary>근처(구역이 있으면 구역 안)의 아무 칸으로 조금 걸어갑니다. 못 가면 잠깐 쉬고 다음에 다시.</summary>
+    private void Wander()
+    {
+        if (movement == null || Time.time < wanderRestUntil) return;
+
+        FunConfig cfg = EmployeeManager.instance?.FunConfig;
+        int radius = cfg != null ? cfg.wanderRadius : 6;
+        Zone zone = zoneAssignment != null ? zoneAssignment.AssignedZone : null;
+        var here = new Vector2Int(Mathf.FloorToInt(transform.position.x), Mathf.FloorToInt(transform.position.y));
+        if (wanderAnchor == null) wanderAnchor = here;
+        var anchor = wanderAnchor.Value;
+
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            var tile = new Vector2Int(anchor.x + UnityEngine.Random.Range(-radius, radius + 1), anchor.y);
+            if (tile == here) continue;
+            if (zone != null && !zone.ContainsTile(tile)) continue;
+            var map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
+            if (map != null && !map.IsPassableTile(tile.x, tile.y)) continue; // 벽·바위 칸은 고르지 않음
+
+            isWandering = true;
+            employee.SetState(EmployeeState.Moving);
+            var target = new Vector3(tile.x + 0.5f, tile.y, 0f);
+            PathOptions opts = zoneAssignment != null ? zoneAssignment.GetPathOptions() : null;
+            if (opts != null) movement.MoveTo(target, opts, onComplete: EndWander, onFailed: EndWander);
+            else              movement.MoveTo(target, onComplete: EndWander, onFailed: EndWander);
+            return;
+        }
+        wanderRestUntil = Time.time + 2f;
+    }
+
+    private void EndWander()
+    {
+        isWandering = false;
+        wanderRestUntil = Time.time + UnityEngine.Random.Range(2f, 5f);
+        if (employee.State == EmployeeState.Moving) employee.SetState(EmployeeState.Idle);
+    }
+
+    /// <summary>
+    /// 할 일 없이 어슬렁거리는 동안(걷기 + 잠깐 서 있기) 재미가 조금 찬다 (상한까지).
+    /// '할 일 없음' = 작업/자유 시간대에 작업 없이 서 있거나 어슬렁 걸음 중.
+    /// </summary>
+    private void TickWanderFun()
+    {
+        bool hasWork = employee.TryGetComponent(out EmployeeWork w) && w.CurrentWork != WorkType.None;
+        if (isWandering && (employee.State != EmployeeState.Moving || hasWork))
+            isWandering = false; // 걷는 도중 작업이 잡혀 새 이동으로 바뀜(이전 콜백은 버려짐)
+
+        bool idleTime = currentExecutingActivity == ScheduleActivity.Work || currentExecutingActivity == ScheduleActivity.Anything;
+        bool loafing = employee.State == EmployeeState.Idle || (employee.State == EmployeeState.Moving && isWandering);
+        if (!idleTime || hasWork || isSleeping) wanderAnchor = null; // 할 일이 생기면 다음 어슬렁거리기는 그 자리에서 새로
+        if (!idleTime || !loafing || hasWork || isSleeping) return;
+
+        FunConfig cfg = EmployeeManager.instance?.FunConfig;
+        if (cfg == null || employee.Needs.fun >= cfg.wanderFunCap) return;
+        employee.ModifyFun(Mathf.Min(cfg.wanderFunPerSecond * Time.deltaTime, cfg.wanderFunCap - employee.Needs.fun));
     }
 
     // ─── Sleep ───
 
+    /// <summary>
+    /// 자기 침대로 가서 잡니다. 침대가 없거나 못 가면 제자리에서 잡니다('바닥에서 잠' 디버프).
+    /// 침대는 플레이어가 직접 배정한 것이라 구역 제한 없이 찾아갑니다.
+    /// </summary>
     private void ExecuteSleep()
     {
-        if (employee.State == EmployeeState.Resting) return;
+        if (isSleeping) return;
 
         CancelCurrentAction();
-        MoveToFacility(ScheduleActivity.Sleep, FacilityTag.Bed, () =>
-            employee.SetState(EmployeeState.Resting));
+        var bed = SleepingBed.FindOwnedBy(employee);
+        if (bed == null || movement == null) { StartSleeping(null); return; }
+
+        employee.SetState(EmployeeState.Moving);
+        movement.MoveTo(bed.SleepPosition,
+            onComplete: () => StartSleeping(bed),
+            onFailed:   () => StartSleeping(null));
     }
+
+    private void StartSleeping(SleepingBed bed)
+    {
+        isSleeping = true;
+        var stats = employee.StatsController;
+        if (stats != null)
+        {
+            stats.IsSleeping = true;
+            stats.RestRecoveryMultiplier = bed != null ? bed.RecoveryMultiplier : floorRecovery;
+            if (bed == null && !Mathf.Approximately(floorSleepMood, 0f))
+            {
+                const string FLOOR_KEY = "sleep_floor";
+                float dayLength = DayCycle.instance != null ? DayCycle.instance.DayLengthInSeconds : 1000f;
+                stats.RemoveMentalModifier(FLOOR_KEY);
+                stats.ModifyMental(floorSleepMood, FLOOR_KEY, "바닥에서 잠", dayLength);
+            }
+        }
+        employee.SetState(EmployeeState.Resting);
+    }
+
+    /// <summary>수면 상태만 푼다 (상태 전환은 호출부가)</summary>
+    private void StopSleeping()
+    {
+        isSleeping = false;
+        if (employee.StatsController != null)
+        {
+            employee.StatsController.IsSleeping = false;
+            employee.StatsController.RestRecoveryMultiplier = 1f;
+        }
+    }
+
 
     // ─── Recreation ───
 
@@ -584,7 +731,7 @@ public class EmployeeAI : MonoBehaviour
         CancelCurrentAction();
         employee.SetState(EmployeeState.Moving);
 
-        // 구역 배정 시 구역 내 경로만 허용 (MoveToFacility와 동일 규칙)
+        // 구역 배정 시 구역 내 경로만 허용 
         PathOptions pathOpts = zoneAssignment != null ? zoneAssignment.GetPathOptions() : null;
 
         Action onArrive = () =>
@@ -1029,14 +1176,7 @@ public class EmployeeAI : MonoBehaviour
             if (HandleHunger()) return;
         }
 
-        // 2. 피로
-        if (employee.Needs.fatigue < FREE_FATIGUE_THRESHOLD &&
-            employee.State != EmployeeState.Resting &&
-            HasFacility(FacilityTag.Bed))
-        {
-            ExecuteSleep();
-            return;
-        }
+        // 2. 피로 — 수면은 일정의 수면 시간대에만 (자유 시간에 낮잠 없음)
 
         // 3. 정신력
         if (employee.Stats.mental < employee.Stats.maxMental * FREE_MENTAL_RATIO &&
@@ -1095,6 +1235,26 @@ public class EmployeeAI : MonoBehaviour
     }
 
     /// <summary>
+    /// 스케줄과 무관한 배고픔 확인 (자는 중 제외).
+    /// 소지 음식이 있으면 하던 일을 그대로 두고 제자리에서 먹고,
+    /// 없으면 하던 일을 멈추고 창고에서 찾아 먹은 뒤 지금 시간대의 활동으로 돌아갑니다.
+    /// </summary>
+    /// <returns>음식을 찾으러 떠났으면 true.</returns>
+    private bool CheckHunger()
+    {
+        if (employee.Needs.hunger >= FREE_HUNGER_THRESHOLD || Time.time < seekingFoodUntil) return false;
+        var work = employee.GetComponent<EmployeeWork>();
+        if (work == null) return false;
+
+        if (work.HasFood)
+        {
+            EatHeldFood(work, keepState: true);
+            return false;
+        }
+        return GoToStockpileForFood(work, eatAfterStocking: true);
+    }
+
+    /// <summary>
     /// 식량 미소지 시 자유시간에 미리 1개 챙겨두는 '유도'. 작업 전에 호출합니다.
     /// 평소에 식량을 확보해 두면 작업 중 배고파질 때 창고 왕복 없이 즉시 먹을 수 있습니다.
     /// </summary>
@@ -1119,7 +1279,9 @@ public class EmployeeAI : MonoBehaviour
     /// <returns>이동 행동을 시작했으면 true.</returns>
     private bool GoToStockpileForFood(EmployeeWork work, bool eatAfterStocking)
     {
-        if (InventoryManager.instance == null || !InventoryManager.instance.HasAnyFood())
+        // 미리 챙길 때는 소지 기준(조리 음식만 등), 배고파서 먹을 때는 아무 음식 — 좋은 것부터 고름
+        System.Predicate<ItemData> accept = f => work.CanHoldFood(f, forCarry: !eatAfterStocking);
+        if (InventoryManager.instance == null || !InventoryManager.instance.HasFood(accept))
             return false; // 먹을 음식이 없음 (창고/식량 확보 필요)
 
         if (StockpileManager.instance == null) return false;
@@ -1133,30 +1295,75 @@ public class EmployeeAI : MonoBehaviour
 
         CancelCurrentAction();
         employee.SetState(EmployeeState.Moving);
+        if (eatAfterStocking) seekingFoodUntil = Time.time + 60f;
 
         movement.MoveTo(target.GetDepositPosition(),
             onComplete: () =>
             {
+                seekingFoodUntil = 0f;
                 // 도착 후 창고(전역 저장소)에서 음식 1개를 꺼내 소지
-                ItemData food = InventoryManager.instance.TakeAnyFood(1);
-                if (food != null && work.StoreFood(food, 1))
+                ItemData food = InventoryManager.instance.TakeBestFood(accept);
+                if (food != null && work.StoreFood(food, 1) && eatAfterStocking)
                 {
-                    if (eatAfterStocking) EatHeldFood(work);
-                    else                  employee.SetState(EmployeeState.Idle);
+                    EatHeldFood(work);
+                    // 창고에 온 김에 소지 설정만큼 채운다 (소지 기준에 맞는 음식만)
+                    while (work.HeldFoodCount < work.DesiredFoodCount)
+                    {
+                        ItemData more = InventoryManager.instance.TakeBestFood(f => work.CanHoldFood(f, forCarry: true));
+                        if (more == null) break;
+                        work.StoreFood(more, 1);
+                    }
                 }
-                else
-                {
-                    employee.SetState(EmployeeState.Idle);
-                }
+                employee.SetState(EmployeeState.Idle);
+
+                // 먹으러 왔으면 하던 활동으로 복귀 (자유 시간은 Update 주기가 알아서 이어감)
+                if (eatAfterStocking && currentExecutingActivity != ScheduleActivity.Anything)
+                    ExecuteActivity(currentExecutingActivity);
             },
-            onFailed: OnActionFailed);
+            onFailed: () =>
+            {
+                seekingFoodUntil = 0f;
+                OnActionFailed();
+            });
 
         return true;
     }
 
-    /// <summary>소지 식량 1개를 소비해 배고픔을 회복합니다.</summary>
-    private void EatHeldFood(EmployeeWork work)
+    /// <summary>
+    /// 음식의 부가 효과 — 침식 작물처럼 침식이 조금 오르고 기분이 잠시 떨어집니다.
+    /// 기분 효과는 겹치지 않습니다: 같은 음식을 또 먹으면 값은 그대로, 지속 시간만 새로 시작합니다.
+    /// </summary>
+    private void ApplyFoodSideEffects(ItemData food)
     {
+        if (food == null) return;
+
+        if (food.erosionOnEat > 0f && employee.ErosionController != null)
+            employee.ErosionController.AddErosion(food.erosionOnEat, ErosionSource.FOOD, food.itemName);
+
+        var stats = employee.StatsController;
+        if (!Mathf.Approximately(food.moodOnEat, 0f) && stats != null)
+        {
+            string key = "food_" + food.itemID;
+            float dayLength = DayCycle.instance != null ? DayCycle.instance.DayLengthInSeconds : 1000f;
+            string label = string.IsNullOrEmpty(food.moodOnEatLabel) ? $"{food.itemName}을(를) 먹음" : food.moodOnEatLabel;
+            stats.RemoveMentalModifier(key);
+            stats.ModifyMental(food.moodOnEat, key, label, food.moodOnEatHours * dayLength / 24f);
+        }
+
+        // 생식 — 조리해야 하는 재료를 날로 먹음 (요리는 해당 없음). 재료가 달라도 하나로 갱신
+        if (food.rawPenalty && !food.IsMeal && stats != null && !Mathf.Approximately(food.rawMood, 0f))
+        {
+            const string RAW_KEY = "food_raw";
+            float dayLength = DayCycle.instance != null ? DayCycle.instance.DayLengthInSeconds : 1000f;
+            stats.RemoveMentalModifier(RAW_KEY);
+            stats.ModifyMental(food.rawMood, RAW_KEY, "생식함", food.rawMoodHours * dayLength / 24f);
+        }
+    }
+
+    /// <summary>소지 식량 1개를 소비해 배고픔을 회복합니다. keepState면 하던 일(작업·오락 등)을 그대로 둡니다.</summary>
+    private void EatHeldFood(EmployeeWork work, bool keepState = false)
+    {
+        ItemData food = work.HeldFood; // 소비 전에 읽어 둔다 (마지막 1개면 소비 후 null)
         int nutrition = work.ConsumeOneFood();
         if (nutrition <= 0)
         {
@@ -1165,7 +1372,8 @@ public class EmployeeAI : MonoBehaviour
         }
 
         employee.Eat(nutrition);
-        employee.SetState(EmployeeState.Idle);
+        ApplyFoodSideEffects(food);
+        if (!keepState) employee.SetState(EmployeeState.Idle);
 
         if (showDebugLogs)
             Debug.Log($"[AI] {employee.DisplayName}: 식사 (회복 +{nutrition}, 배고픔 {employee.Needs.hunger:F0}%, 남은 식량 {work.HeldFoodCount})");
@@ -1181,52 +1389,20 @@ public class EmployeeAI : MonoBehaviour
         StopWashing();    // 세척 중이었다면 중단하고 슬롯 반납 (아니면 no-op)
         StopRecuperating(); // 요양 중이었다면 중단하고 슬롯 반납 (아니면 no-op)
 
+        if (isSleeping)
+        {
+            StopSleeping();
+            if (employee.State == EmployeeState.Resting) employee.SetState(EmployeeState.Idle);
+        }
+        seekingFoodUntil = 0f;
+
         if (employee.State == EmployeeState.Working)
             employee.CancelWork();
 
         if (employee.State == EmployeeState.Moving && movement != null)
             movement.StopMoving();
-    }
-
-    /// <summary>
-    /// 스케줄 활동에 맞는 시설로 이동 후 콜백을 실행합니다.
-    /// 구역이 할당됐으면 구역 내 시설 우선 탐색 + 구역 내 경로만 허용.
-    /// 구역 미할당이면 전체 맵에서 가장 가까운 시설 탐색.
-    /// </summary>
-    private void MoveToFacility(ScheduleActivity activity, string facilityTag, Action onArrive)
-    {
-        GameObject target  = null;
-        PathOptions pathOpts = null;
-
-        if (zoneAssignment != null)
-        {
-            target   = zoneAssignment.FindNearestFacility(facilityTag, transform.position);
-            pathOpts = zoneAssignment.GetPathOptions();
-        }
-
-        if (target == null)
-        {
-            var objects = FindWithTagCached(facilityTag);
-            target = objects
-                .Where(o => o != null)
-                .OrderBy(o => Vector2.Distance(transform.position, o.transform.position))
-                .FirstOrDefault();
-        }
-
-        if (target == null || movement == null) return;
-
-        if (pathOpts != null)
-        {
-            movement.MoveTo(target.transform.position, pathOpts,
-                onComplete: onArrive,
-                onFailed:   OnActionFailed);
-        }
-        else
-        {
-            movement.MoveTo(target.transform.position,
-                onComplete: onArrive,
-                onFailed:   OnActionFailed);
-        }
+        isWandering = false;
+        wanderAnchor = null;
     }
 
     #endregion

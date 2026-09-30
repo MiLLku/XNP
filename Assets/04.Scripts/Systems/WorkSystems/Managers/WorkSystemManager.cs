@@ -873,7 +873,8 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     
     private void OnWorkerToggled(Employee employee)
     {
-        if (currentUIOrder == null) return;
+        // 자동 픽업 작업물은 직원 지정 대상이 아니다
+        if (currentUIOrder == null || currentUIOrder.IsAutoPickup) return;
 
         // 작업물이 이미 비활성/완료 상태면 UI를 닫고 무시 (잔존 패널 정리)
         if (!currentUIOrder.isActive || currentUIOrder.IsCompleted())
@@ -1015,6 +1016,10 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
             // DroppedItemSaveModule이 아이템 위치를 저장하고,
             // 복원 시 DroppedItem.Start() → DroppedItemManager.Register() → HaulOrder 자동 재생성됩니다.
             if (order.workType == WorkType.Hauling) continue;
+            // 조리 작업물도 저장하지 않습니다 — 스토브(CookingStation)가 상태를 저장했다가 로드 후 다시 만듭니다.
+            if (order.workType == WorkType.Cooking) continue;
+            // 단련 작업물도 — 단련장(LevelUpStation)이 진행도와 함께 저장했다가 다시 만듭니다.
+            if (order.workType == WorkType.Training) continue;
 
             var orderData = new WorkOrderSaveData
             {
@@ -1082,7 +1087,8 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                 {
                     orderId = orderData.orderId,
                     orderName = orderData.orderName,
-                    workType = (WorkType)orderData.workType,
+                    // 구 세이브의 철거 작업물은 건설로 (철거가 건설에 합쳐짐)
+                    workType = (WorkType)orderData.workType == WorkType.Demolish ? WorkType.Building : (WorkType)orderData.workType,
                     priority = orderData.priority,
                     createdTime = orderData.createdTime,
                     maxAssignedWorkers = orderData.maxWorkers,
@@ -1238,7 +1244,8 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
             {
                 entityX = Mathf.FloorToInt(harvest.position.x),
                 entityY = Mathf.FloorToInt(harvest.position.y),
-                entityType = 0
+                entityType = 0,
+                weed = harvest.weed
             });
         }
         else if (task.target is DemolishOrder demolish)
@@ -1309,6 +1316,7 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                 {
                     target = harvestable,
                     position = new Vector3(td.entityX, td.entityY, 0),
+                    weed = td.weed,
                     completed = false
                 };
             }
