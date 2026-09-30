@@ -410,7 +410,9 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
     }
 
     /// <summary>
-    /// 사용 가능한 수량 기준으로 재료가 모두 있는지 확인 (예약분 제외)
+    /// 사용 가능한 수량 기준으로 재료가 모두 있는지 확인 (예약분 제외).
+    /// 창고 밖 재고(바닥 더미·건물 산출물)까지 합산 — TryReserve와 같은 기준이어야
+    /// "예약은 되는데 배치 판정에서 막히는" 불일치가 생기지 않습니다.
     /// </summary>
     /// <param name="requiredMaterials">필요한 재료 목록</param>
     /// <returns>모든 재료가 사용 가능한지 여부</returns>
@@ -420,7 +422,7 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
 
         foreach (var cost in requiredMaterials)
         {
-            if (GetAvailableAmount(cost.item) < cost.amount)
+            if (GetWorldAvailable(cost.item) < cost.amount)
                 return false;
         }
         return true;

@@ -226,6 +226,17 @@ public class ReachabilityMap
         return fromLabel == toLabel;
     }
 
+    /// <summary>
+    /// from 타일에서 월드 좌표 지점에 닿을 가능성이 있는지 (현재 맵 기준, 준비 전이면 true).
+    /// 창고·자재 지점처럼 월드 좌표로 주어지는 목적지를 거를 때 씁니다.
+    /// </summary>
+    public static bool CanReach(Vector2Int from, Vector3 worldPos)
+    {
+        var map = Current;
+        if (map == null) return true;
+        return map.IsReachable(from, new Vector2Int(Mathf.FloorToInt(worldPos.x), Mathf.FloorToInt(worldPos.y)));
+    }
+
     /// <summary>특정 위치에 서 있을 수 있는지 확인합니다.</summary>
     public bool CanStandAtPosition(Vector2Int pos)
     {

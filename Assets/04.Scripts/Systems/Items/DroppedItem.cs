@@ -27,6 +27,9 @@ public class DroppedItem : MonoBehaviour, IPoolable, IMaterialSource
     /// <summary>충돌 반경 (월드 단위)</summary>
     private const float COLLIDER_RADIUS = 0.25f;
 
+    /// <summary>렌더 순서 — 지형·벽 타일맵(0) 위, 하이라이트(10)·안개(20) 아래</summary>
+    private const int SORTING_ORDER = 3;
+
     #endregion
 
     #region 필드
@@ -202,6 +205,9 @@ public void Remove()
         // 또는 dropPrefab의 SpriteRenderer가 비어있는 경우에 한해 itemIcon으로 채웁니다.
         if (_spriteRenderer.sprite == null && itemData?.itemIcon != null)
             _spriteRenderer.sprite = itemData.itemIcon;
+
+        // 지형·배경 벽 타일맵(order 0)과 같으면 벽 뒤에 묻혀 안 보인다 — 프리팹 값과 무관하게 위로 올린다
+        _spriteRenderer.sortingOrder = SORTING_ORDER;
 
         // 색상은 prefab이 가진 값을 유지 (덮어쓰지 않음)
     }
