@@ -28,5 +28,5 @@ MonoBehaviour:
   minSpacing: 0
   allowedGroundTiles: 
   avoidSpawnArea: 1
-  persistInSave: 0
+  persistInSave: 1
   hasGrowthState: 0
