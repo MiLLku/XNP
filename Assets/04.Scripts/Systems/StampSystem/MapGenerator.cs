@@ -93,6 +93,9 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     /// 기지에서 멀어질수록 위험해진다는 축이 여기서 나옵니다.
     /// </summary>
     public int StartingRoomX => _startingRoomX;
+
+    /// <summary>시작 방 바닥의 Y (방이 아직 배치되지 않았으면 0)</summary>
+    public int StartingRoomY { get; private set; }
     
     // 지형 생성이 직접 쓰는 타일 ID. 값은 TileDefinition 에셋에서 생성된 TileType이 정합니다.
     // 광물은 여기 없습니다 — 광맥은 정의 에셋을 훑어 배치합니다(PlaceMineralClusters).
@@ -169,6 +172,9 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
 
         Debug.Log("--- 맵 데이터 생성 완료 ---");
         MapRendererInstance.RenderMap(GameMapInstance);
+
+        // 화면을 시작 방에 맞춘다 — 탐색하지 않은 곳은 새까맣기 때문에 다른 곳에서 시작하면 검은 화면뿐이다
+        CameraController.Instance?.FocusOn(new Vector3(StartingRoomX + 0.5f, StartingRoomY + 4f, 0f));
 
         // 타일 렌더링 완료 후 안개 초기화
         // (로드 시에도 항상 전체 안개로 채움 → FogOfWarManager.Restore()가 이후에 덮어씀)
@@ -406,18 +412,19 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     /// </summary>
     private void PlaceStartingRoom(int[] groundHeightMap)
     {
-        const int roomWidth  = 13;
+        const int roomWidth  = 15;
         const int roomHeight = 9;
 
         int spawnX = GameMap.MAP_WIDTH / 2;
         _startingRoomX = spawnX;   // 자연물 제외 구역이 이 값을 공유한다
-        const int ladderLX   = 8;   // 사다리 열 (local x)
+        const int ladderLX   = 9;   // 사다리 열 (local x) — 채용 사무소·상자(lx=6~8) 바로 오른쪽
         const int dividerY   = 4;   // 층 구분 (1줄, local y) — 기존 y=3 구분선 제거
         const int ladderMinY = 1;   // 사다리 시작 (하층 바닥, local y)
         const int ladderMaxY = dividerY; // 사다리 끝 (층 구분, local y)
 
         int groundY  = groundHeightMap[spawnX];
         int roomLeft = spawnX - roomWidth / 2;
+        StartingRoomY = groundY;
 
         // 방 좌우로 이만큼 더 정리한다 — 문 앞과 직원 스폰 지점이 묻히지 않도록
         const int CLEAR_MARGIN = 3;
@@ -486,9 +493,9 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             }
         }
 
-        // ── 3. 사다리 엔티티 배치 (lx=8, ly=1~4) ────────────────────────────────
+        // ── 3. 사다리 엔티티 배치 (lx=ladderLX, ly=1~4) ─────────────────────────
         //    - ly=1,2,3: 하층 내부 사다리 (하층 바닥에서 층 구분까지 연결)
-        //    - ly=4   : 층 구분(단일) 안의 사다리 → IsFloorSupport(8,4)=true 설정
+        //    - ly=4   : 층 구분(단일) 안의 사다리 → IsFloorSupport(ladderLX,4)=true 설정
         //    ly=4 FloorSupport가 지지대가 되어 상층(ly=5) 진입이 가능해집니다.
         int ladderWorldX = roomLeft + ladderLX;
         for (int ly = ladderMinY; ly <= ladderMaxY; ly++)
@@ -503,7 +510,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
 
         // ── 4. 나무 문 (좌우 벽 하단, 1×2) ─────────────────────────────────────
         //    ly=1 이 하단 타일, ly=2 가 상단 타일 (타일은 2단계 위에서 AIR로 비워둠)
-        //    왼쪽 문: lx=0 / 오른쪽 문: lx=roomWidth-1(=12)
+        //    왼쪽 문: lx=0 / 오른쪽 문: lx=roomWidth-1
         _gameMap.AddEntity(new MapEntity
         {
             position = new Vector2Int(roomLeft,                  groundY + 1),
@@ -518,9 +525,9 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         });
 
         // ── 5. 채용 사무소 (상층 중앙, BuildingData size=3×3) ─────────────────
-        //    상층 내부: lx=1~11, ly=5~7
-        //    배치: lx=5,6,7 (중앙 기준) / ly=5,6,7 (상층 전체 높이)
-        int officeWX = roomLeft + 5;
+        //    상층 내부: lx=1~13, ly=5~7
+        //    배치: lx=6,7,8 (중앙 기준) / ly=5,6,7 (상층 전체 높이)
+        int officeWX = roomLeft + 6;
         int officeWY = groundY  + 5;
         _gameMap.AddEntity(new MapEntity
         {
@@ -534,12 +541,30 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             _gameMap.MarkTileOccupied(officeWX + dx, officeWY + dy);
 
         // ── 5. 상자 (하층 중앙, 3×2 시각 오브젝트) ──────────────────────────────
-        //    배치: lx=5,6,7 / ly=1 (하층 바닥)
+        //    배치: lx=6,7,8 / ly=1 (하층 바닥)
+        _gameMap.AddEntity(new MapEntity
+        {
+            position = new Vector2Int(roomLeft + 6, groundY + 1),
+            type     = TypeObjectTile.Building,
+            id       = (int)EntityType.Chest
+        });
+
+        // ── 5-b. 장비 보관소 (상자 바로 왼쪽, 1×2) ──────────────────────────────
+        //    배치: lx=5 / ly=1,2. 시작 지급 장비를 넣어 둘 곳이자, 장비를 갈아입는 곳.
         _gameMap.AddEntity(new MapEntity
         {
             position = new Vector2Int(roomLeft + 5, groundY + 1),
             type     = TypeObjectTile.Building,
-            id       = (int)EntityType.Chest
+            id       = (int)EntityType.Armory
+        });
+
+        // ── 5-c. 기본 침대 (장비 보관소 왼쪽, 2×1) ──────────────────────────────
+        //    배치: lx=3,4 / ly=1 (하층 바닥)
+        _gameMap.AddEntity(new MapEntity
+        {
+            position = new Vector2Int(roomLeft + 3, groundY + 1),
+            type     = TypeObjectTile.Building,
+            id       = (int)EntityType.BasicBed
         });
 
         // ── 6. 직원 스폰 포인트 (방 오른쪽 바깥) ─────────────────────────────────

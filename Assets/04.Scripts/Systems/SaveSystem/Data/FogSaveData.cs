@@ -9,7 +9,7 @@ using System;
 public class FogSaveData
 {
     /// <summary>
-    /// 탐색된 타일 비트마스크 (미사용 — 하위 호환 유지용).
+    /// 한 번이라도 시야에 들어온(탐색한) 타일 비트마스크. 구 세이브에는 없을 수 있습니다(null).
     /// </summary>
     public byte[] revealedBitmask;
 

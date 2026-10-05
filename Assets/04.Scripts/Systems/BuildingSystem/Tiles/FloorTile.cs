@@ -91,6 +91,7 @@ public class FloorTile : MonoBehaviour
         if (!floorTileRegistry.ContainsKey(gridPosition))
         {
             floorTileRegistry[gridPosition] = this;
+            SetTerrainStructureCell(true);
             Debug.Log($"[FloorTile] 바닥 타일 등록: {tileType} at {gridPosition}");
         }
     }
@@ -100,8 +101,23 @@ public class FloorTile : MonoBehaviour
         if (floorTileRegistry.ContainsKey(gridPosition))
         {
             floorTileRegistry.Remove(gridPosition);
+            SetTerrainStructureCell(false);
             Debug.Log($"[FloorTile] 바닥 타일 제거: {tileType} at {gridPosition}");
         }
+    }
+
+    // 칸을 꽉 채우는 바닥만 지형과 직각으로 맞닿게 한다. 사다리(통과형)는 지형이 둥근 채로 둔다.
+    private void SetTerrainStructureCell(bool occupied)
+    {
+        var def = Definition;
+        if (def != null ? def.isPassable : isPassable) return;
+        if (MapGenerator.instance == null) return; // 종료·씬 전환 중
+        var mapRenderer = MapGenerator.instance.MapRendererInstance;
+        if (mapRenderer == null) return;
+
+        // 텍스처가 있는 바닥은 지형 셰이더가 이웃과 이어서 그린다 — 프리팹 스프라이트는 끈다
+        bool drawnByTerrain = mapRenderer.SetStructureCell(gridPosition.x, gridPosition.y, occupied, tileType);
+        if (drawnByTerrain && TryGetComponent(out SpriteRenderer sprite)) sprite.enabled = false;
     }
 
     /// <summary>
@@ -146,6 +162,20 @@ public class FloorTile : MonoBehaviour
             if (definition == null)
                 definition = DefinitionDatabase.Instance?.GetFloor(tileType);
             return definition;
+        }
+    }
+
+    /// <summary>
+    /// 이 타일이 방의 벽일 때 침식이 스며드는 정도.
+    /// 건물 데이터가 있으면 그 값, 없으면(스탬프로 놓인 타일 등) 바닥 타일 정의의 값을 씁니다.
+    /// </summary>
+    public float ErosionPermeability
+    {
+        get
+        {
+            if (building != null && building.buildingData != null) return Mathf.Max(0f, building.buildingData.erosionPermeability);
+            var def = Definition;
+            return def != null ? Mathf.Max(0f, def.erosionPermeability) : 0.5f;
         }
     }
 

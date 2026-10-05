@@ -31,6 +31,20 @@ public class FloorTileDefinition : ScriptableObject
 
     #endregion
 
+    #region 시각
+
+    [Header("시각")]
+    [Tooltip("이음매 없는(seamless) 반복 텍스처. 넣으면 이 바닥 타일을 지형 셰이더가 그립니다 —\n" +
+             "이웃한 건설 타일과 그림이 이어지고, 건설 타일이 아닌 쪽 가장자리에만 테두리가 그려집니다.\n" +
+             "비우면 프리팹의 스프라이트를 칸마다 그대로 그립니다.")]
+    public Texture2D blendTexture;
+
+    [Tooltip("이 바닥 타일이 방의 벽일 때 침식이 스며드는 정도. 0 = 완전 차단, 1 = 흙 기준. 낮을수록 방을 잘 지킵니다.\n" +
+             "건물 데이터(BuildingData)가 연결된 타일은 그쪽 값을 씁니다.")]
+    [Min(0f)] public float erosionPermeability = 0.5f;
+
+    #endregion
+
     #region 이동
 
     [Header("이동")]
