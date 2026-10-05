@@ -98,6 +98,9 @@ public class SaveData
     /// <summary>파종 예정지 (PlantSpawner가 저장). 구 세이브엔 없음 → 빈 목록</summary>
     public List<SowSiteSaveData> sowSites = new List<SowSiteSaveData>();
 
+    /// <summary>가이드라인 진행 (구 세이브에는 없음 — null이면 처음부터 다시 판정)</summary>
+    public GuidelineSaveData guideline;
+
     #endregion
 
     public SaveData()
