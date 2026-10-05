@@ -20,17 +20,32 @@ MonoBehaviour:
   buildingPrefab: {fileID: 0}
   size: {x: 1, y: 2}
   pivot: {x: 0, y: 0}
-  constructionTime: 3
+  workAmount: 3
   requiredResources:
   - item: {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
     amount: 3
   maxHealth: 80
   blocksMovement: 0
   requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
   destructionDrops: []
   paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  erosionPermeability: 0.6
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 22
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
+  powerConsumption: 0
+  allowOverlap: 0
+  requiresResearch: 0
   openTime: 0.5
   closeTime: 0.5
   closeDelay: 2
+  heatExchangeRate: 0
   openSprite: {fileID: 0}
   closedSprite: {fileID: 0}

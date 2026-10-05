@@ -17,6 +17,8 @@ MonoBehaviour:
   displayName: "\uB3CC"
   description: 
   tileAsset: {fileID: 11400000, guid: 4c53772f81754d14bb3a939339f592d8, type: 2}
+  blendTexture: {fileID: 2800000, guid: 28cc536d82897e34b9eb9bbba871ce99, type: 3}
+  blendPriority: 2
   isSolid: 1
   isClimbable: 0
   isSpawnableSurface: 0
@@ -32,3 +34,7 @@ MonoBehaviour:
   veinSeedOffset: 0
   thermalConductivity: 1
   heatOutput: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 60
+  erosionOutput: 0
+  erosionSaturation: 60

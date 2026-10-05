@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: IronSwordEquip
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   itemData: {fileID: 11400000, guid: 91c553b3ebf802d4cba14d69caa37fdd, type: 2}
-  description: "\uAE30\uBCF8 \uCCA0\uC81C \uBB34\uAE30. \uACF5\uACA9\uB825 +5."
+  description: "2\uB2E8\uACC4 \uADFC\uC811 \uBB34\uAE30. \uD53C\uD574 12, \uAD00\uD1B5
+    15%."
   slot: 2
   weaponClass: 0
   baseDamage: 12
@@ -22,6 +23,8 @@ MonoBehaviour:
   attackRange: 1.5
   attackInterval: 1.2
   isDefensiveGear: 0
+  coldProtectionLevel: 0
+  heatProtectionLevel: 0
   maxDurability: 100
   indestructible: 0
   workWearPerSecond: 0.02

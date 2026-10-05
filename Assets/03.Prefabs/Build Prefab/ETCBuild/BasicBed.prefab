@@ -153,7 +153,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8a4a515eb760f0348aca3e03293b65b1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Building
-  buildingData: {fileID: 0}
+  buildingData: {fileID: 11400000, guid: 95e38c8a9606c654898c6c2164e67548, type: 2}
   manualFunctionalScripts: []
   showDebugInfo: 0
 --- !u!114 &2778911376559124618

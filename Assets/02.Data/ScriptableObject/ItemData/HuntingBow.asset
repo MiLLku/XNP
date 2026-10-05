@@ -15,8 +15,20 @@ MonoBehaviour:
   itemType: 302
   itemName: "\uC0AC\uB0E5 \uD65C"
   itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
+  description: "\uB098\uBB34\uC640 \uB3CC\uB85C \uB9CC\uB4E0 1\uB2E8\uACC4 \uC6D0\uAC70\uB9AC
+    \uBB34\uAE30."
+  plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
   nutrition: 0
+  foodKind: 0
+  ingredientCategory: 0
+  rawPenalty: 0
+  rawMood: -3
+  rawMoodHours: 3
+  erosionOnEat: 0
+  moodOnEat: 0
+  moodOnEatHours: 3
+  moodOnEatLabel: 
   isDrug: 0
   funValue: 0

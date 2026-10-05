@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: ErosionVent
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 4103
+  buildingName: "\uB2E8\uBC29\uD5A5 \uD658\uD48D\uAD6C"
+  icon: {fileID: 21300000, guid: 2de11768763a5f545b39405a3e7ae046, type: 3}
+  category: 3
+  description: "\uB098\uBB34\uB97C \uD0DC\uC6CC \uD654\uC0B4\uD45C \uBC29\uD5A5\uC73C\uB85C
+    \uCE68\uC2DD\uC744 \uC62E\uAE41\uB2C8\uB2E4. \uAC74\uBB3C\uC744 \uD074\uB9AD\uD558\uBA74
+    \uBC29\uD5A5\uC774 \uBC14\uB01D\uB2C8\uB2E4. \uC55E\uC774 \uC2E4\uC678\uBA74
+    \uCE68\uC2DD\uC774 \uBE60\uC838\uB098\uAC00\uACE0, \uBC00\uD3D0\uB41C \uACF5\uAC04\uC774\uBA74
+    \uADF8\uACF3\uC5D0 \uC313\uC785\uB2C8\uB2E4."
+  buildingPrefab: {fileID: 674978558292382470, guid: a8064c8988d01ea44808b242f9a4ebbc, type: 3}
+  size: {x: 1, y: 1}
+  pivot: {x: 0, y: 0}
+  workAmount: 5
+  requiredResources:
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 5
+  maxHealth: 60
+  blocksMovement: 1
+  requiresFloorSupport: 0
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
+  destructionDrops: []
+  paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  erosionPermeability: 0.3
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 24
+  climateIdleWatts: 0
+  climateWattsPerDegree: 0
+  climateMaxWatts: 0
+  powerConsumption: 0
+  allowOverlap: 0
+  requiresResearch: 0

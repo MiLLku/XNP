@@ -19,6 +19,7 @@ MonoBehaviour:
     \uCE68\uC2DD\uC744 \uBFDC\uC73C\uBA70, \uC5F4\uB9E4\uAC00 \uC5EC\uAE30\uC11C
     \uC790\uB780\uB2E4."
   tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
+  blendPriority: 3
   isSolid: 1
   isClimbable: 0
   isSpawnableSurface: 0

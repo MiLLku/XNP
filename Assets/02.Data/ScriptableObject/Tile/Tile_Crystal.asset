@@ -17,6 +17,7 @@ MonoBehaviour:
   displayName: "\uC218\uC815"
   description: 
   tileAsset: {fileID: 0}
+  blendPriority: 4
   isSolid: 1
   isClimbable: 0
   isSpawnableSurface: 0
@@ -34,3 +35,5 @@ MonoBehaviour:
   heatOutput: 3
   useHeatTarget: 1
   heatTargetTemperature: 80
+  erosionOutput: 0
+  erosionSaturation: 60

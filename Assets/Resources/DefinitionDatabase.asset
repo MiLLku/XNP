@@ -54,6 +54,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7a3dc2124305f154780510d278cadb92, type: 2}
   - {fileID: 11400000, guid: a7e43e45bd27e144c9467392435c85c8, type: 2}
   - {fileID: 11400000, guid: c491143ef020aaa45bff7c50c4dda132, type: 2}
+  - {fileID: 11400000, guid: 8b38c0a23a29656438a5455684928875, type: 2}
+  - {fileID: 11400000, guid: 27064b133ef04c842859535c87a679cd, type: 2}
   floorTiles:
   - {fileID: 11400000, guid: 5cfb40947a06d6044948abe49f88b449, type: 2}
   - {fileID: 11400000, guid: 5f1a5cbc14e85494f9f6e30f2106bfe4, type: 2}

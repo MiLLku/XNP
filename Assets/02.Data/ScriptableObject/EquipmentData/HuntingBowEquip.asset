@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: HuntingBowEquip
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   itemData: {fileID: 11400000, guid: 4b42179b4ac9b534a928df6e3d1ad15b, type: 2}
-  description: "\uAE30\uBCF8 \uC6D0\uAC70\uB9AC \uBB34\uAE30. \uC0AC\uAC70\uB9AC
-    7, \uACF5\uACA9\uB825 +3. \uCE74\uC774\uD305 \uD0DC\uC138 \uC0AC\uC6A9 \uAC00\uB2A5."
+  description: "1\uB2E8\uACC4 \uC6D0\uAC70\uB9AC \uBB34\uAE30. \uD53C\uD574 7, \uC0AC\uAC70\uB9AC
+    7. \uCE74\uC774\uD305 \uD0DC\uC138 \uC0AC\uC6A9 \uAC00\uB2A5."
   slot: 2
   weaponClass: 1
   baseDamage: 7
@@ -23,6 +23,8 @@ MonoBehaviour:
   attackRange: 7
   attackInterval: 1.6
   isDefensiveGear: 0
+  coldProtectionLevel: 0
+  heatProtectionLevel: 0
   maxDurability: 80
   indestructible: 0
   workWearPerSecond: 0.02

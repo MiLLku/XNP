@@ -69,7 +69,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &1855875051459862870
 SpriteRenderer:
-  serializedVersion: 2
+  serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -126,6 +126,7 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+  m_BlendShapeWeights: []
 --- !u!61 &4640908555604311140
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -202,6 +203,12 @@ MonoBehaviour:
   availableRecipes:
   - {fileID: 11400000, guid: 64ed58199e79ca04f94c0bdf643b8a94, type: 2}
   - {fileID: 11400000, guid: 9ba52449e339c594b95d3afb84b25097, type: 2}
+  - {fileID: 11400000, guid: 545aa57ab574c84449a0c1462979b0df, type: 2}
+  - {fileID: 11400000, guid: 032e5a646a0c78b4d9d69b9b03e89d80, type: 2}
+  - {fileID: 11400000, guid: 18f7d4cf06d15774593868969d6fb70d, type: 2}
+  - {fileID: 11400000, guid: b90ee373b279e5245802e6d17e335f3e, type: 2}
+  - {fileID: 11400000, guid: d4540626f73405944a8a2ec280cbfd10, type: 2}
+  - {fileID: 11400000, guid: 8eaba0ec95aa870408282d058ba38b61, type: 2}
   workPosition: {fileID: 0}
   workingEffectPrefab: {fileID: 0}
   effectOffset: {x: 0, y: 0.5, z: 0}

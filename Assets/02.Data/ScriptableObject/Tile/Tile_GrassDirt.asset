@@ -17,6 +17,8 @@ MonoBehaviour:
   displayName: "\uC794\uB514\uD759"
   description: 
   tileAsset: {fileID: 11400000, guid: 6550851fc5c607448ab09881f934ea61, type: 2}
+  blendTexture: {fileID: 2800000, guid: cee027faa1f018a4e9110ad2fce82062, type: 3}
+  blendPriority: 2
   isSolid: 1
   isClimbable: 0
   isSpawnableSurface: 1
@@ -32,3 +34,7 @@ MonoBehaviour:
   veinSeedOffset: 0
   thermalConductivity: 0.5
   heatOutput: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 60
+  erosionOutput: 0
+  erosionSaturation: 60
