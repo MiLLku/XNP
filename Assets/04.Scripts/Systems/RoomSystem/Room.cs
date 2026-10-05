@@ -35,6 +35,18 @@ public class Room
     public readonly List<Vector2Int> BoundaryFaces = new List<Vector2Int>();
 
     /// <summary>
+    /// 방 테두리에 있는 흙(흙·잔디흙) 칸 수 — 접촉면이 아니라 <b>칸 단위</b>(같은 칸은 한 번만).
+    /// 침식 동굴 환경 판정(<c>RoomManager.IsErodedHabitat</c>)에 쓰이며 방이 재계산될 때 갱신됩니다.
+    /// </summary>
+    public int DirtBorderCount;
+
+    /// <summary>
+    /// 벽을 통해 침식이 스며드는 정도 — 접촉면 투과율 합 ÷ 칸 수. 방이 재계산될 때 갱신됩니다.
+    /// 0이면 완전 차단. 넓은 방일수록, 벽 재질이 좋을수록 작습니다.
+    /// </summary>
+    public float ErosionLeak;
+
+    /// <summary>
     /// 경계를 통해 열이 새는 정도. 접촉면들의 전도율 합이며 방이 재계산될 때 갱신됩니다.
     /// 0이면 완전 밀폐 — 목표 온도가 없는 열원만 있으면 온도가 끝없이 오릅니다.
     /// (목표 온도를 가진 열원이 하나라도 있으면 그 목표에서 멈춥니다.)
@@ -95,7 +107,7 @@ public class Room
     /// </summary>
     public float AverageX => Cells.Count > 0 ? (float)cellXSum / Cells.Count : 0f;
 
-    /// <summary>AddCell에서 누적하는 좌표 합. 300×300 맵이면 최대 2700만이라 int로 충분합니다.</summary>
+    /// <summary>AddCell에서 누적하는 좌표 합. 450×300 맵이면 최대 약 6000만이라 int로 충분합니다.</summary>
     private int cellYSum;
     private int cellXSum;
 

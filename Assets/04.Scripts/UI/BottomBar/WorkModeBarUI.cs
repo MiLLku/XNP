@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 /// <summary>
 /// 작업 모드 선택 바.
-/// 하단 바 위에 표시되며, 채광/수확/벌목/제초/건설/철거/세척 모드를 선택하고 취소할 수 있습니다.
+/// 하단 바 위에 표시되며, 채광/수확/벌목/제초/건설/철거 모드를 선택하고 취소할 수 있습니다.
 /// </summary>
 public class WorkModeBarUI : MonoBehaviour
 {
@@ -15,7 +15,6 @@ public class WorkModeBarUI : MonoBehaviour
     [SerializeField] private Button weedButton;
     [SerializeField] private Button buildButton;
     [SerializeField] private Button demolishButton;
-    [SerializeField] private Button cleanButton;
 
     [Header("취소")]
     [SerializeField] private Button cancelButton;
@@ -34,7 +33,6 @@ public class WorkModeBarUI : MonoBehaviour
         weedButton?.onClick.AddListener(()     => EnterMode(InteractionManager.InteractMode.Weed));
         buildButton?.onClick.AddListener(()    => EnterMode(InteractionManager.InteractMode.Build));
         demolishButton?.onClick.AddListener(() => EnterMode(InteractionManager.InteractMode.Demolish));
-        cleanButton?.onClick.AddListener(()    => EnterMode(InteractionManager.InteractMode.Clean));
         cancelButton?.onClick.AddListener(Hide);
 
         // 여기서 자신을 끄면 안 된다.
@@ -97,7 +95,6 @@ public class WorkModeBarUI : MonoBehaviour
         SetHighlight(weedButton,     mode == InteractionManager.InteractMode.Weed);
         SetHighlight(buildButton,    mode == InteractionManager.InteractMode.Build);
         SetHighlight(demolishButton, mode == InteractionManager.InteractMode.Demolish);
-        SetHighlight(cleanButton,    mode == InteractionManager.InteractMode.Clean);
     }
 
     private static void SetHighlight(Button btn, bool active)

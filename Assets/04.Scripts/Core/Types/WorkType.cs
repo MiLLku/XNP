@@ -58,7 +58,7 @@ public static class WorkTypeDefaults
         WorkType.Crafting,
         WorkType.Research,
         WorkType.Sowing,
-        WorkType.Cleaning,
+        // Cleaning(방 세척 명령)은 삭제됐다 — 세척은 직원 전용(세척대). enum 값은 세이브 정수 호환용으로만 남는다.
         WorkType.Hauling,
         WorkType.Building,
     };

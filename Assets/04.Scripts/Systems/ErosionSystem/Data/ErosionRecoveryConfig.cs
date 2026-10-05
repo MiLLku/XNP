@@ -67,6 +67,26 @@ public class ErosionRecoveryConfig : ScriptableObject
 
     #endregion
 
+    #region 방 침식 유입
+
+    [Header("방 침식 유입 — 침식된 직원")]
+    [Tooltip("직원의 침식이 이 값 이상이면 자기가 있는 방의 침식을 올리는 발원지가 됩니다.")]
+    [Min(0f)] public float employeeEmitThreshold = 30f;
+
+    [Tooltip("발원지가 된 직원 한 명이 방에 넣는 초당 침식량.\n방 침식은 그 직원의 침식 수치를 넘지 않습니다.")]
+    [Min(0f)] public float employeeEmitPerSecond = 0.03f;
+
+    [Header("방 침식 유입 — 문")]
+    [Tooltip("문이 여닫히는 순간 양쪽 공간의 침식이 섞이는 비율 (0~1). 한쪽이 실외면 방만 바깥 값으로 끌려갑니다.")]
+    [Range(0f, 1f)] public float doorErosionExchangeRate = 0.05f;
+
+    [Header("방 침식 유입 — 벽")]
+    [Tooltip("벽을 통해 방 침식이 바깥(그 자리의 실외·지층 침식) 쪽으로 끌려가는 속도 배율.\n" +
+             "실제 속도 = 이 값 × (벽 접촉면들의 침식 투과율 합 ÷ 방 칸 수). 0이면 벽으로는 스며들지 않습니다.")]
+    [Min(0f)] public float wallSeepRate = 0.003f;
+
+    #endregion
+
     #region 전파 오라
 
     [Header("침식 전파 오라 (4단계)")]

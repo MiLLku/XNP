@@ -25,7 +25,7 @@ using UnityEngine;
 ///   이 플래그를 통해 "오라 밖에서 20초 경과" 회복 조건을 관리합니다.
 /// </summary>
 [RequireComponent(typeof(Employee))]
-public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource
+public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, ITerrainErosionSource
 {
     #region 상수
 
@@ -177,12 +177,43 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource
     {
         // IsEmitting이 단계를 보고 판단하므로 항상 등록해 두어도 안전하다
         EntityErosionField.instance?.RegisterSource(this);
+        // IsActive가 침식 수치를 보고 판단하므로 방 침식 발원지로도 항상 등록해 둔다
+        TerrainErosionManager.instance?.RegisterSource(this);
     }
 
     private void OnDisable()
     {
         EntityErosionField.instance?.UnregisterSource(this);
+        TerrainErosionManager.instance?.UnregisterSource(this);
     }
+
+    #endregion
+
+    #region ITerrainErosionSource — 침식된 직원은 자기가 있는 방을 오염시킨다
+
+    // 침식이 employeeEmitThreshold 이상이면 발원지가 되어, TerrainErosionManager의 틱마다 방 침식을 올린다.
+    // 방 침식은 그 직원의 침식 수치를 넘지 않는다(포화) — 더 더러운 사람이 들어와야 더 오른다.
+    // 실외에서는 아무 일도 없다. 세척대로 직원 침식을 기준 아래로 낮추면 멈춘다.
+
+    public Vector2Int TilePosition => new Vector2Int(
+        Mathf.FloorToInt(transform.position.x),
+        Mathf.FloorToInt(transform.position.y));
+
+    public float ErosionPerSecond => recoveryConfig != null ? recoveryConfig.employeeEmitPerSecond : 0f;
+
+    public float SaturationLevel => statsController != null ? Mathf.Max(0.01f, statsController.ErosionLevel) : 0.01f;
+
+    public bool IsActive
+        => isActiveAndEnabled
+        && employee != null && employee.State != EmployeeState.Dead && !hasMutated
+        && recoveryConfig != null && statsController != null
+        && statsController.ErosionLevel >= recoveryConfig.employeeEmitThreshold;
+
+    public string SourceDisplayName => $"{(employee != null ? employee.DisplayName : "직원")} (침식됨)";
+
+    #endregion
+
+    #region 틱
 
     private void Update()
     {
