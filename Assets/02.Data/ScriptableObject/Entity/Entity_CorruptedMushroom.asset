@@ -40,6 +40,7 @@ MonoBehaviour:
       min: 0
       max: 0
     habitat: 0
+    orErodedHabitat: 1
   neighborRadius: 5
   maxNeighbors: 2
   spawnAtRuntime: 1
@@ -54,5 +55,12 @@ MonoBehaviour:
       min: 0
       max: 0
     habitat: 0
+    orErodedHabitat: 1
+  optimalTemperature:
+    use: 0
+    min: 0
+    max: 0
+  temperatureFalloff: 10
+  minTemperatureRate: 0.1
   persistInSave: 1
   hasGrowthState: 0

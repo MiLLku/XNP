@@ -70,4 +70,10 @@ public enum EntityType
 
     /// <summary>침식 감자 — 작물 — 야생에서 자라며 밭·수경재배기에서 재배</summary>
     ErosionPotato = 2023,
+
+    /// <summary>기본 침대</summary>
+    BasicBed = 7001,
+
+    /// <summary>장비 보관소</summary>
+    Armory = 7002,
 }

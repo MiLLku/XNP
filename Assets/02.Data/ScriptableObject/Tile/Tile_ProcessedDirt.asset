@@ -17,6 +17,7 @@ MonoBehaviour:
   displayName: "\uAC00\uACF5\uB41C \uD759"
   description: 
   tileAsset: {fileID: 0}
+  blendPriority: 1
   isSolid: 1
   isClimbable: 0
   isSpawnableSurface: 0
@@ -32,3 +33,7 @@ MonoBehaviour:
   veinSeedOffset: 0
   thermalConductivity: 0.4
   heatOutput: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 60
+  erosionOutput: 0
+  erosionSaturation: 60

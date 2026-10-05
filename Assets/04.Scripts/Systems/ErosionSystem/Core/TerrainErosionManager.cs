@@ -65,11 +65,11 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
     /// <summary>
     /// 지금의 실외 침식 = 기본값 + 이벤트 모디파이어 합.
     ///
-    /// 평상시에는 <b>고정</b>입니다. 온도와 달리 방으로 새어 들어가지 않습니다 —
-    /// 침식에는 전도라는 개념이 없어서 벽으로 막으면 완전히 차단됩니다.
-    /// 실외 침식이 관여하는 곳은 두 군데뿐입니다:
+    /// 평상시에는 <b>고정</b>입니다. 실외 침식이 관여하는 곳:
     ///   · 실외에 서 있는 직원이 받는 노출
     ///   · 새로 밀폐된 공간의 시작값 (바깥 공기를 가둔 셈이므로)
+    ///   · 벽을 통한 스며듦 — 벽 재질의 침식 투과율에 따라 방이 바깥 값 쪽으로 서서히 끌려간다
+    ///   · 실외로 난 문을 여닫는 순간의 섞임
     /// </summary>
     public float OutdoorErosion
     {
@@ -275,13 +275,30 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
             float rate = 0f;
             float saturation = 0f;
             bool unbounded = false;
+            float permeability = 0f;
 
             foreach (var face in room.BoundaryFaces)
             {
-                // 건물이 덮은 칸은 지형이 가려진 것으로 본다 — 벽으로 오염원을 봉하는 대응이 성립한다
-                if (Building.GetBuildingAt(face) != null) continue;
+                // 건물이 덮은 칸은 지형이 가려진 것으로 본다 — 벽으로 오염원을 봉하는 대응이 성립한다.
+                // 투과율도 건물 값을 쓴다(좋은 벽 재료로 방을 지킨다).
+                Building building = Building.GetBuildingAt(face);
+                if (building != null)
+                {
+                    if (building.buildingData != null) permeability += Mathf.Max(0f, building.buildingData.erosionPermeability);
+                    continue;
+                }
+
+                // 스탬프로 놓인 바닥 타일은 건물 목록에 없다 — 바닥 타일 쪽에서 읽는다
+                FloorTile floor = FloorTile.GetFloorTileAt(face);
+                if (floor != null)
+                {
+                    permeability += floor.ErosionPermeability;
+                    continue;
+                }
 
                 int tileId = map.TileGrid[face.x, face.y];
+                var tileDef = TileDefinitionLookup.Find((TileType)tileId);
+                permeability += tileDef != null ? Mathf.Max(0f, tileDef.erosionPermeability) : 1f;
                 float output = TileErosionOutput.Get(tileId);
                 if (output <= 0f) continue;
 
@@ -297,6 +314,7 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
             // 발열이 열용량으로 나누는 것과 같은 자리다.
             room.TerrainErosionRate = room.CellCount > 0 ? rate / room.CellCount : 0f;
             room.TerrainErosionSaturation = unbounded ? 0f : saturation;
+            room.ErosionLeak = room.CellCount > 0 ? permeability / room.CellCount : 0f;
         }
     }
 
@@ -354,8 +372,63 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
             room.Erosion = Mathf.Min(cap, room.Erosion + room.TerrainErosionRate * deltaTime);
         }
 
+        // 벽을 통한 스며듦 — 방이 그 자리의 바깥 침식 쪽으로 서서히 끌려간다 (오를 수도, 빠질 수도 있다)
+        var recovery = ErosionManager.instance != null ? ErosionManager.instance.RecoveryConfig : null;
+        float seepRate = recovery != null ? recovery.wallSeepRate : 0f;
+        if (seepRate > 0f)
+        {
+            foreach (var pair in manager.Rooms)
+            {
+                Room room = pair.Value;
+                if (room.ErosionLeak <= 0f) continue;
+
+                float pull = 1f - Mathf.Exp(-room.ErosionLeak * seepRate * deltaTime);
+                room.Erosion = Mathf.Clamp(room.Erosion + (GetAmbientErosionFor(room) - room.Erosion) * pull, 0f, roomErosionMax);
+            }
+        }
+
         if (showDebugLogs && sources.Count > 0)
             Debug.Log($"[TerrainErosionManager] 발원지 {sources.Count}개 갱신");
+    }
+
+    /// <summary>
+    /// 그 방 자리의 '바깥' 침식 — 그 X 위치의 실외 침식과 그 자리 지층 침식 중 큰 쪽.
+    /// 벽으로 스며드는 목표치이자, 실외로 난 문이 섞이는 상대값입니다.
+    /// </summary>
+    public float GetAmbientErosionFor(Room room)
+    {
+        if (room == null) return OutdoorErosion;
+
+        float strata = MapGenerator.instance != null
+            ? MapGenerator.instance.StrataErosionAt(Mathf.RoundToInt(room.AverageX), Mathf.RoundToInt(room.AverageY))
+            : 0f;
+        return Mathf.Max(GetOutdoorErosionAt(room.AverageX), strata);
+    }
+
+    /// <summary>
+    /// 문이 여닫히는 순간 좌우 공간의 침식을 섞습니다 (온도의 <c>TemperatureManager.MixThroughDoor</c>와 같은 규칙).
+    ///
+    /// 칸 수 가중 평균 쪽으로 <paramref name="exchangeRate"/>만큼만 당기므로 작은 방일수록 크게 흔들립니다.
+    /// 한쪽이 실외면 방만 바깥 값으로 끌려갑니다 — 이중문을 두면 중간 방이 완충합니다.
+    /// </summary>
+    public void MixThroughDoor(int roomIdA, int roomIdB, float exchangeRate)
+    {
+        var manager = RoomManager.instance;
+        if (manager == null || roomIdA == roomIdB) return;
+
+        exchangeRate = Mathf.Clamp01(exchangeRate);
+        if (exchangeRate <= 0f) return;
+
+        Room a = manager.GetRoomById(roomIdA);
+        Room b = manager.GetRoomById(roomIdB);
+        if (a == null && b == null) return;
+
+        if (a == null) { b.Erosion += (GetAmbientErosionFor(b) - b.Erosion) * exchangeRate; return; }
+        if (b == null) { a.Erosion += (GetAmbientErosionFor(a) - a.Erosion) * exchangeRate; return; }
+
+        float mixed = (a.Erosion * a.CellCount + b.Erosion * b.CellCount) / (a.CellCount + b.CellCount);
+        a.Erosion += (mixed - a.Erosion) * exchangeRate;
+        b.Erosion += (mixed - b.Erosion) * exchangeRate;
     }
 
     /// <summary>
@@ -416,14 +489,33 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
     }
 
     /// <summary>
-    /// 방의 침식을 줄입니다 (세척 작업·정화 아이템).
-    /// 실외 기본 침식보다 아래로도 내려갈 수 있습니다 — 밀폐해서 관리하면 바깥보다 깨끗한 공간을 만들 수 있습니다.
+    /// 환풍 — <paramref name="from"/> 칸의 공간에서 <paramref name="to"/> 칸의 공간으로 공기 <paramref name="airCells"/>칸 분량을 옮깁니다.
+    ///
+    /// 옮겨지는 침식 총량은 <c>보내는 쪽 농도 × 공기량</c>이고, 각 방의 수치는 그 총량을 <b>자기 칸 수로 나눈 만큼</b> 변합니다.
+    /// 그래서 넓은 방에서 좁은 방으로 밀어 넣으면 받는 쪽이 급격히 치솟습니다(의도된 동작 — 상한은 roomErosionMax뿐).
+    ///   · 받는 쪽이 실외면 침식은 사라집니다. 실외보다 깨끗하게도 만들 수 있습니다.
+    ///   · 보내는 쪽이 실외면 그 자리 실외 침식을 방 안으로 끌어들입니다(실외는 줄지 않습니다).
     /// </summary>
-    public void ReduceRoomErosion(Room room, float amount)
+    public void PumpErosion(Vector2Int from, Vector2Int to, float airCells)
     {
-        if (room == null || amount <= 0f) return;
+        var manager = RoomManager.instance;
+        if (manager == null || airCells <= 0f) return;
 
-        room.Erosion = Mathf.Max(0f, room.Erosion - amount);
+        Room source = manager.GetRoom(from);
+        Room target = manager.GetRoom(to);
+        if (source == target) return; // 같은 방이거나 둘 다 실외
+
+        float concentration = source != null ? source.Erosion : GetRoomErosionAt(from.x, from.y);
+        float amount = concentration * airCells; // 침식 × 칸
+
+        if (source != null)
+        {
+            amount = Mathf.Min(amount, source.Erosion * source.CellCount);
+            source.Erosion = Mathf.Max(0f, source.Erosion - amount / source.CellCount);
+        }
+
+        if (target != null)
+            target.Erosion = Mathf.Min(roomErosionMax, target.Erosion + amount / target.CellCount);
     }
 
     /// <inheritdoc cref="GetRoomErosionAt(int,int)"/>

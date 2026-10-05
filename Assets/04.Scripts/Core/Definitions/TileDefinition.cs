@@ -39,6 +39,12 @@ public class TileDefinition : ScriptableObject
     [Tooltip("Tilemap에 그려질 TileBase 에셋. 비워두면 그려지지 않습니다(공기).")]
     public TileBase tileAsset;
 
+    [Tooltip("지형 블렌드용 이음매 없는(seamless) 반복 텍스처. 칸 경계와 무관하게 월드 좌표로 이어 붙습니다.\n비워두면 tileAsset의 스프라이트를 칸마다 반복합니다.")]
+    public Texture2D blendTexture;
+
+    [Tooltip("지형 블렌드에서 다른 타일과 만날 때 누가 덮는지. 높을수록 경계가 상대 칸 쪽으로 번집니다.")]
+    public int blendPriority = 0;
+
     #endregion
 
     #region 통행
@@ -129,6 +135,14 @@ public class TileDefinition : ScriptableObject
     [Tooltip("이 타일이 방 침식을 올릴 수 있는 한계치. 방이 여기 닿으면 더는 올리지 않습니다.\n" +
              "0 이하면 한계 없음 — 방치하면 방이 죽는 시한폭탄이 됩니다.")]
     public float erosionSaturation = 60f;
+
+    #endregion
+
+    #region 침식 투과
+
+    [Tooltip("이 타일이 방의 벽일 때 침식이 스며드는 정도. 0 = 완전 차단, 1 = 흙 기준.\n" +
+             "스며드는 속도는 접촉면 투과율 합 ÷ 방 칸 수에 비례합니다.")]
+    [Min(0f)] public float erosionPermeability = 1f;
 
     #endregion
 

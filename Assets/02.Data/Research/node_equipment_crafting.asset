@@ -13,18 +13,22 @@ MonoBehaviour:
   m_Name: node_equipment_crafting
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: equipment_crafting
-  nodeName: "\uC7A5\uBE44 \uC81C\uC791"
-  description: "\uC548\uC815\uC131 \xB7 \uBB34\uAE30\uC640 \uBC29\uC5B4\uAD6C \uC81C\uC791\uBC95\uC744
-    \uD574\uAE08\uD569\uB2C8\uB2E4."
+  nodeName: "\uC7A5\uBE44 \uC81C\uC791 I"
+  description: "\uC548\uC815\uC131 \xB7 \uB098\uBB34\uC640 \uB3CC\uB85C \uB9CC\uB4DC\uB294
+    1\uB2E8\uACC4 \uBB34\uAE30\xB7\uBC29\uC5B4\uAD6C\xB7\uCE68\uC2DD \uBC29\uC5B4
+    \uC7A5\uBE44 \uC81C\uC791\uBC95\uC744 \uD574\uAE08\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - construction_basics
   resourceCosts:
-  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
-    amount: 3
-  researchPointCost: 150
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 10
+  - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
+    amount: 10
+  researchPointCost: 80
   unlockEffects:
-  - {fileID: 11400000, guid: e4137444605777448abed028b5c5d606, type: 2}
-  - {fileID: 11400000, guid: a42b1ffa3916b9d4c99df5a88e8f15f4, type: 2}
+  - {fileID: 11400000, guid: 5cd23e84241d1494db43284febaedde1, type: 2}
   - {fileID: 11400000, guid: 6fc1c8aa81938fd4eab0f6fadb04db2f, type: 2}
+  - {fileID: 11400000, guid: 5857b5fb925605f438efc402dc068bd7, type: 2}
+  - {fileID: 11400000, guid: e350c7821d70f7d4399fbcb20f7abb70, type: 2}
   treePosition: {x: -2, y: -2}

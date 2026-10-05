@@ -10,6 +10,9 @@ public class StockpileManager : DestroySingleton<StockpileManager>
 {
     private readonly List<Stockpile> _stockpiles = new();
 
+    /// <summary>등록된 창고 (등록 순서). 보관 칸을 앞에서부터 채워 보여 줄 때 이 순서를 씁니다.</summary>
+    public IReadOnlyList<Stockpile> All => _stockpiles;
+
     // ── 등록 ────────────────────────────────────────────────────────────────
 
     public void Register(Stockpile stockpile)

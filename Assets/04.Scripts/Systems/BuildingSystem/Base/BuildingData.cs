@@ -111,6 +111,9 @@ public class BuildingData : ScriptableObject
     [Tooltip("이 건물이 방의 벽일 때의 열 전도율. 낮을수록 단열재입니다. (돌=1.0 기준)")]
     public float heatConductivity = 0.8f;
 
+    [Tooltip("이 건물이 방의 벽일 때 침식이 스며드는 정도. 0 = 완전 차단, 1 = 흙 기준. 낮을수록 방을 잘 지킵니다.")]
+    [Min(0f)] public float erosionPermeability = 0.5f;
+
     [Header("특수 배치 조건")]
     [Tooltip("바로 아래가 이 타일이어야 지을 수 있습니다. Air로 두면 제약 없음(기본).\n" +
              "가스 분출구 위에만 짓는 발전소처럼 지형 자원을 점유하는 건물에 씁니다. " +

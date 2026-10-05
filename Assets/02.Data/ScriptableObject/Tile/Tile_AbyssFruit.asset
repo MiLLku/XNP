@@ -19,6 +19,7 @@ MonoBehaviour:
     \uAC15\uD55C \uCE68\uC2DD\uC744 \uBFDC\uC9C0\uB9CC \uCE90\uBA74 \uCD5C\uC885
     \uD2F0\uC5B4 \uC7AC\uB8CC\uAC00 \uB098\uC628\uB2E4."
   tileAsset: {fileID: 0}
+  blendPriority: 5
   isSolid: 1
   isClimbable: 0
   isSpawnableSurface: 0

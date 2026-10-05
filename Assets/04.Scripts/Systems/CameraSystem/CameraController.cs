@@ -54,8 +54,11 @@ public class CameraController : MonoBehaviour
             return;
         }
 
-        // TODO [맵시스템]: MapGenerator의 baseGroundLevel 참조로 시작 위치 개선
+        // 맵이 이미 만들어졌으면 시작 방에서 시작한다. 아직이면 MapGenerator가 생성 직후 FocusOn으로 옮겨 준다.
         Vector3 startPos = new Vector3(DEFAULT_START_X, DEFAULT_START_Y, transform.position.z);
+        var generator = MapGenerator.instance;
+        if (generator != null && generator.StartingRoomY > 0)
+            startPos = new Vector3(generator.StartingRoomX + 0.5f, generator.StartingRoomY + 4f, transform.position.z);
 
         CalculateBounds();
         ClampPosition(ref startPos);

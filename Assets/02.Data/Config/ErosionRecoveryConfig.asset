@@ -23,4 +23,8 @@ MonoBehaviour:
   exposurePerErosionPoint: 0.01
   exposureCheckInterval: 1
   purificationItemAmount: 80
+  employeeEmitThreshold: 30
+  employeeEmitPerSecond: 0.03
+  doorErosionExchangeRate: 0.05
+  wallSeepRate: 0.003
   propagationCheckInterval: 8

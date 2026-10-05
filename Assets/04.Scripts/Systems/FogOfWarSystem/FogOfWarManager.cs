@@ -7,7 +7,12 @@ using UnityEngine;
 ///   - int[,] _empSightCount  : 각 타일을 시야에 두고 있는 직원 수
 ///   - int[,] _bldSightCount  : 각 타일을 비추는 건물 수
 ///   - bool[,] _permanentReveal : 스탬프로 영구 공개된 타일
-///   - 세 상태 모두 0/false → 안개로 가려짐; 하나라도 true/≥1 → 공개
+///   - 세 상태 모두 0/false → 시야 밖; 하나라도 true/≥1 → 지금 보임 (IsRevealed)
+///   - bool[,] _explored      : 한 번이라도 보인 적 있는 타일 (IsExplored, 세이브 유지)
+///
+/// 그리기 (XNP/Fog 셰이더, 맵 크기 쿼드 1장):
+///   - 미탐색 = 완전 검정 / 탐색했지만 시야 밖 = 어둡게만 / 시야 안 = 그대로
+///   - 침식이 기준 이상인 탐색한 공기 칸 = 침식 안개 (ErosionFogVisible로 켜고 끔)
 ///
 /// 직원 시야:
 ///   - 머리(발 + HEAD_OFFSET_Y) 기준 원형 범위
@@ -33,6 +38,10 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     [Tooltip("직원 스프라이트 높이에 맞게 조정. 2타일 키라면 1.")]
     [SerializeField] private int headOffsetY = 1;
 
+    [Header("그리기")]
+    [Tooltip("XNP/Fog 머티리얼. 어둡기·침식 안개 기준·텍스처는 이 머티리얼에서 조절합니다.")]
+    [SerializeField] private Material fogMaterial;
+
     #endregion
 
     #region 내부 상태
@@ -46,6 +55,35 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     /// <summary>스탬프/구조물로 영구 공개된 타일 (세이브/로드 유지)</summary>
     private bool[,] _permanentReveal;
 
+    /// <summary>한 번이라도 시야에 들어온 타일 (세이브/로드 유지)</summary>
+    private bool[,] _explored;
+
+    // 칸마다 (탐색함, 지금 시야 안, 침식/100) — 셰이더가 보간해 읽는다
+    private Texture2D _fogTexture;
+    private Color32[] _fogData;
+    private bool _fogDirty;
+    private float _nextErosionRefresh;
+    private byte[] _openErosion; // RefreshErosion 작업 버퍼
+    private MeshRenderer _fogRenderer;
+    private MaterialPropertyBlock _fogBlock;
+    private bool _erosionFogVisible = true;
+
+    private const int FogSortingOrder = 20; // 지형·개체·하이라이트 위, 방/구역 오버레이 아래
+    private const float ErosionScale = 100f; // 셰이더와 같아야 한다
+
+    /// <summary>침식 안개를 그릴지 (좌상단 보기 토글 바가 바꿉니다).</summary>
+    public bool ErosionFogVisible
+    {
+        get => _erosionFogVisible;
+        set
+        {
+            _erosionFogVisible = value;
+            if (_fogRenderer == null) return;
+            _fogBlock.SetFloat("_ErosionVisible", value ? 1f : 0f);
+            _fogRenderer.SetPropertyBlock(_fogBlock);
+        }
+    }
+
     #endregion
 
     #region 초기화
@@ -56,25 +94,139 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
         _empSightCount   = new int[GameMap.MAP_WIDTH, GameMap.MAP_HEIGHT];
         _bldSightCount   = new int[GameMap.MAP_WIDTH, GameMap.MAP_HEIGHT];
         _permanentReveal = new bool[GameMap.MAP_WIDTH, GameMap.MAP_HEIGHT];
+        _explored        = new bool[GameMap.MAP_WIDTH, GameMap.MAP_HEIGHT];
     }
 
     /// <summary>
-    /// 안개 시각 상태를 현재 카운터 상태로부터 동기화합니다.
+    /// 안개 시각 상태를 현재 카운터·탐색 상태로부터 동기화합니다.
     /// 카운터를 리셋하지 않으므로 이미 등록된 시야는 그대로 유지됩니다.
     /// 새 게임 시작 시 MapGenerator.Start()에서 RenderMap 이후 호출됩니다.
     /// </summary>
     public void InitializeFog()
     {
-        MapRenderer renderer = MapGenerator.instance?.MapRendererInstance;
-        if (renderer == null) return;
+        SetupFogRenderer();
+        if (_fogData == null) return;
 
-        bool[,] revealed = new bool[GameMap.MAP_WIDTH, GameMap.MAP_HEIGHT];
         for (int x = 0; x < GameMap.MAP_WIDTH; x++)
         for (int y = 0; y < GameMap.MAP_HEIGHT; y++)
-            revealed[x, y] = IsRevealed(x, y);
+            WriteFogCell(x, y);
 
-        renderer.RestoreFog(revealed);
+        _nextErosionRefresh = 0f;
         Debug.Log("[FogOfWarManager] 안개 초기화 완료 (카운터 상태 기반)");
+    }
+
+    #endregion
+
+    #region 그리기
+
+    private void SetupFogRenderer()
+    {
+        if (_fogTexture != null) return;
+        if (fogMaterial == null)
+        {
+            Debug.LogWarning("[FogOfWarManager] fogMaterial이 연결되지 않아 안개를 그리지 않습니다.");
+            return;
+        }
+
+        int w = GameMap.MAP_WIDTH, h = GameMap.MAP_HEIGHT;
+        _fogTexture = new Texture2D(w, h, TextureFormat.RGBA32, false, true)
+        {
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp,
+        };
+        _fogData = new Color32[w * h];
+
+        var mesh = new Mesh { name = "FogQuad" };
+        mesh.vertices = new[] { new Vector3(0, 0), new Vector3(w, 0), new Vector3(0, h), new Vector3(w, h) };
+        mesh.triangles = new[] { 0, 2, 1, 2, 3, 1 };
+        mesh.RecalculateBounds();
+
+        var go = new GameObject("FogOverlay");
+        go.transform.SetParent(transform, false);
+        go.transform.position = new Vector3(0, 0, -0.02f);
+        go.AddComponent<MeshFilter>().sharedMesh = mesh;
+        _fogRenderer = go.AddComponent<MeshRenderer>();
+        _fogRenderer.sharedMaterial = fogMaterial;
+        _fogRenderer.sortingOrder = FogSortingOrder;
+
+        // 셰이더 Properties에 없는 값은 머티리얼에 남지 않아 프로퍼티 블록으로 넘긴다
+        _fogBlock = new MaterialPropertyBlock();
+        _fogBlock.SetTexture("_FogData", _fogTexture);
+        _fogBlock.SetVector("_MapSize", new Vector4(w, h, 0, 0));
+        _fogBlock.SetFloat("_ErosionVisible", _erosionFogVisible ? 1f : 0f);
+        _fogRenderer.SetPropertyBlock(_fogBlock);
+    }
+
+    private void WriteFogCell(int x, int y)
+    {
+        if (_fogData == null) return;
+        int i = y * GameMap.MAP_WIDTH + x;
+        _fogData[i].r = _explored[x, y] ? (byte)255 : (byte)0;
+        _fogData[i].g = IsRevealed(x, y) ? (byte)255 : (byte)0;
+        _fogDirty = true;
+    }
+
+    /// <summary>
+    /// 탐색한 빈 칸의 침식 수치를 다시 읽는다. 미탐색 칸은 0(안개 없음).
+    /// 막힌 칸(지형·건물)은 맞닿은 빈 칸의 값을 물려받는다 — 0으로 두면 셰이더의 보간 때문에
+    /// 벽에 가까워질수록 안개가 옅어져 타일 옆에 안개 없는 띠가 생긴다.
+    /// </summary>
+    private void RefreshErosion()
+    {
+        var erosion = TerrainErosionManager.instance;
+        var gameMap = MapGenerator.instance?.GameMapInstance;
+        if (erosion == null || gameMap == null) return;
+
+        int w = GameMap.MAP_WIDTH, h = GameMap.MAP_HEIGHT;
+        _openErosion ??= new byte[w * h];
+
+        for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++)
+        {
+            byte value = 0;
+            if (_explored[x, y] && gameMap.TileGrid[x, y] == 0 && !gameMap.IsTileOccupied(x, y))
+                value = (byte)Mathf.Clamp(erosion.GetRoomErosionAt(x, y) / ErosionScale * 255f, 1f, 255f);
+            _openErosion[y * w + x] = value; // 0 = 막혔거나 미탐색
+        }
+
+        for (int y = 0; y < h; y++)
+        for (int x = 0; x < w; x++)
+        {
+            int i = y * w + x;
+            byte value = _openErosion[i];
+            if (value == 0)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    int nx = x + dx, ny = y + dy;
+                    if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                    byte n = _openErosion[ny * w + nx];
+                    if (n > value) value = n;
+                }
+            }
+
+            if (_fogData[i].b == value) continue;
+            _fogData[i].b = value;
+            _fogDirty = true;
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (_fogData == null) return;
+
+        // ponytail: 1초마다 전체 훑기. 방 재계산·침식 변화를 이벤트 없이 따라간다.
+        if (Time.unscaledTime >= _nextErosionRefresh)
+        {
+            _nextErosionRefresh = Time.unscaledTime + 1f;
+            RefreshErosion();
+        }
+
+        if (!_fogDirty) return;
+        _fogDirty = false;
+        _fogTexture.SetPixelData(_fogData, 0);
+        _fogTexture.Apply(false);
     }
 
     #endregion
@@ -84,7 +236,7 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     /// <summary>
     /// 지정 직사각형 영역을 영구적으로 공개합니다.
     /// 스탬프 배치(PlaceStartingRoom 등) 시 호출되며, 세이브/로드 후에도 유지됩니다.
-    /// 맵 생성 중 호출될 때는 fog 타일맵이 아직 없으므로 시각 반영은 InitializeFog()에 위임됩니다.
+    /// 맵 생성 중 호출될 때는 안개 텍스처가 아직 없으므로 시각 반영은 InitializeFog()에 위임됩니다.
     /// </summary>
     public void PermanentlyRevealArea(Vector2Int origin, Vector2Int size)
     {
@@ -94,6 +246,8 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
         {
             if (!InBounds(x, y)) continue;
             _permanentReveal[x, y] = true;
+            _explored[x, y] = true;
+            WriteFogCell(x, y);
         }
         Debug.Log($"[FogOfWarManager] 영구 공개 영역 등록: origin={origin}, size={size}");
     }
@@ -211,6 +365,7 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
 
     #region 조회
 
+    /// <summary>지금 시야 안에 있는지 (직원·건물 시야 또는 영구 공개).</summary>
     public bool IsRevealed(int x, int y)
     {
         if (!InBounds(x, y)) return false;
@@ -218,6 +373,9 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
             || _empSightCount[x, y] > 0
             || _bldSightCount[x, y] > 0;
     }
+
+    /// <summary>한 번이라도 시야에 들어온 적이 있는지. 시야를 벗어나도 유지됩니다.</summary>
+    public bool IsExplored(int x, int y) => InBounds(x, y) && _explored[x, y];
 
     #endregion
 
@@ -322,7 +480,10 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
         else       _bldSightCount[x, y]++;
 
         if (!wasRevealed)
-            MapGenerator.instance?.MapRendererInstance?.ClearFogAt(x, y);
+        {
+            _explored[x, y] = true;
+            WriteFogCell(x, y);
+        }
     }
 
     private void Decrement(int x, int y, bool isEmp)
@@ -340,7 +501,7 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
         }
 
         if (!IsRevealed(x, y))
-            MapGenerator.instance?.MapRendererInstance?.ApplyFogAt(x, y);
+            WriteFogCell(x, y);
     }
 
     #endregion
@@ -351,13 +512,14 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     public int SaveOrder => 15;
 
     /// <summary>
-    /// 영구 공개 영역 비트마스크를 저장합니다.
+    /// 영구 공개 영역과 탐색한 영역 비트마스크를 저장합니다.
     /// 카운터(직원/건물 시야)는 파생 상태이므로 저장하지 않습니다.
     /// </summary>
     public void Capture(SaveData data)
     {
         int total = GameMap.MAP_WIDTH * GameMap.MAP_HEIGHT;
         byte[] bitmask = new byte[(total + 7) / 8];
+        byte[] explored = new byte[(total + 7) / 8];
 
         for (int i = 0; i < total; i++)
         {
@@ -365,9 +527,11 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
             int y = i / GameMap.MAP_WIDTH;
             if (_permanentReveal != null && _permanentReveal[x, y])
                 bitmask[i / 8] |= (byte)(1 << (i % 8));
+            if (_explored != null && _explored[x, y])
+                explored[i / 8] |= (byte)(1 << (i % 8));
         }
 
-        data.fog = new FogSaveData { permanentRevealBitmask = bitmask };
+        data.fog = new FogSaveData { permanentRevealBitmask = bitmask, revealedBitmask = explored };
     }
 
     /// <summary>
@@ -377,21 +541,28 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     public void Restore(SaveData data)
     {
         _permanentReveal = new bool[GameMap.MAP_WIDTH, GameMap.MAP_HEIGHT];
+        _explored        = new bool[GameMap.MAP_WIDTH, GameMap.MAP_HEIGHT];
 
-        if (data.fog?.permanentRevealBitmask == null) return;
+        // 구 세이브에는 탐색 기록이 없다(null) — 영구 공개 영역만 탐색한 것으로 시작하고, 직원 시야가 다시 채운다
+        ReadBitmask(data.fog?.permanentRevealBitmask, _permanentReveal);
+        ReadBitmask(data.fog?.permanentRevealBitmask, _explored);
+        ReadBitmask(data.fog?.revealedBitmask, _explored);
+
+        Debug.Log("[FogOfWarManager] 영구 공개 영역 복원 완료");
+    }
+
+    private static void ReadBitmask(byte[] bitmask, bool[,] target)
+    {
+        if (bitmask == null) return;
 
         int total = GameMap.MAP_WIDTH * GameMap.MAP_HEIGHT;
         for (int i = 0; i < total; i++)
         {
             int byteIdx = i / 8;
-            if (byteIdx >= data.fog.permanentRevealBitmask.Length) break;
-            if ((data.fog.permanentRevealBitmask[byteIdx] & (1 << (i % 8))) != 0)
-            {
-                _permanentReveal[i % GameMap.MAP_WIDTH, i / GameMap.MAP_WIDTH] = true;
-            }
+            if (byteIdx >= bitmask.Length) break;
+            if ((bitmask[byteIdx] & (1 << (i % 8))) != 0)
+                target[i % GameMap.MAP_WIDTH, i / GameMap.MAP_WIDTH] = true;
         }
-
-        Debug.Log("[FogOfWarManager] 영구 공개 영역 복원 완료");
     }
 
     /// <summary>

@@ -42,6 +42,17 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
     [Tooltip("재계산 소요 시간과 방 개수를 로그로 남깁니다.")]
     [SerializeField] private bool showDebugLogs = false;
 
+    // ponytail: 환경이 하나뿐이라 조건을 여기 필드로 둔다. 두 번째 환경이 생기면 환경 정의 SO 목록으로 옮길 것.
+    [Header("침식 동굴 환경")]
+    [Tooltip("잔디가 침식된 잔디로 바뀌는 침식 수치. 지표 잔디에도, 침식 동굴 환경 판정에도 같은 값을 씁니다.")]
+    [SerializeField] private float erodedErosionThreshold = 15f;
+
+    [Tooltip("침식 동굴 환경이 되려면 방이 이 칸 수 이상이어야 합니다.")]
+    [SerializeField] private int erodedHabitatMinCells = 100;
+
+    [Tooltip("침식 동굴 환경이 되려면 방 테두리에 흙(흙·잔디흙) 칸이 이 수 이상 있어야 합니다.")]
+    [SerializeField] private int erodedHabitatMinDirtBorder = 20;
+
     #endregion
 
     #region 상태
@@ -71,6 +82,7 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
     private readonly Queue<Vector2Int> floodQueue = new Queue<Vector2Int>();
     private readonly List<Vector2Int> floodCells = new List<Vector2Int>();
     private readonly List<Vector2Int> floodBoundary = new List<Vector2Int>();
+    private readonly HashSet<Vector2Int> dirtBorderCells = new HashSet<Vector2Int>();
 
     #endregion
 
@@ -209,6 +221,32 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
     /// 고체 칸도 true를 반환하므로, "밀폐되지 않았다"는 뜻으로 읽으세요.
     /// </summary>
     public bool IsOutdoor(int x, int y) => GetRoomId(x, y) == OUTDOOR_ID;
+
+    /// <summary>잔디가 침식된 잔디로 바뀌는 침식 수치</summary>
+    public float ErodedErosionThreshold => erodedErosionThreshold;
+
+    /// <summary>
+    /// 침식 동굴 환경인지 — 밀폐된 방(지표 공기와 이어지지 않음)이고, 충분히 넓고, 테두리에 흙이 충분하고,
+    /// 침식이 기준 이상인 곳. 이 환경에서는 흙 면에 침식된 잔디가 덮이고 침식 식물이 자랍니다.
+    ///
+    /// 저장하는 상태가 아니라 <b>지금 조건에서 매번 파생</b>합니다 — 조건을 유지하면 환경이 유지되고,
+    /// 방을 뚫어 지표와 잇거나 침식을 씻어 내거나 흙을 캐내면 사라집니다.
+    /// </summary>
+    public bool IsErodedHabitat(Room room)
+        => room != null
+        && room.CellCount >= erodedHabitatMinCells
+        && room.DirtBorderCount >= erodedHabitatMinDirtBorder
+        && room.Erosion >= erodedErosionThreshold;
+
+    /// <inheritdoc cref="IsErodedHabitat(Room)"/>
+    public bool IsErodedHabitat(int x, int y) => IsErodedHabitat(GetRoom(x, y));
+
+    /// <summary>공기가 통하는 칸인지 — 지형·차단 건물·문이 아니면 true (실외 공기 포함).</summary>
+    public bool IsAirCell(int x, int y)
+    {
+        EnsureGameMap();
+        return gameMap != null && IsOpenCell(x, y);
+    }
 
     /// <summary>해당 칸이 하늘에 열려 있는지 (그 위로 막힌 것이 없는지)</summary>
     public bool IsOpenToSky(int x, int y)
@@ -364,6 +402,14 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
             roomIdGrid[cell.x, cell.y] = room.Id;
         }
         room.BoundaryFaces.AddRange(floodBoundary);
+
+        dirtBorderCells.Clear();
+        foreach (var face in floodBoundary)
+        {
+            int tile = gameMap.TileGrid[face.x, face.y];
+            if (tile == (int)TileType.Dirt || tile == (int)TileType.GrassDirt) dirtBorderCells.Add(face);
+        }
+        room.DirtBorderCount = dirtBorderCells.Count;
 
         rooms[room.Id] = room;
         return room;
@@ -530,7 +576,15 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
     {
         if (!IsInBounds(x, y)) return false;
         if (!gameMap.IsPassableTile(x, y)) return false;        // 지형이 있으면 막힘 (AIR·사다리만 통과)
-        if (gameMap.DoesTileBlockMovement(x, y)) return false;   // 차단 건물·문
+        if (gameMap.DoesTileBlockMovement(x, y)) return false;   // 차단 건물
+
+        // 문은 직원이 지나다니므로 이동 그리드에서는 통과 칸이지만, 공기는 막는다 — 항상 방의 경계다.
+        // 이 검사가 없으면 문 달린 방이 통째로 실외가 된다.
+        if (gameMap.IsTileOccupied(x, y))
+        {
+            Building building = Building.GetBuildingAt(new Vector2Int(x, y));
+            if (building != null && building.GetComponent<Door>() != null) return false;
+        }
         return true;
     }
 

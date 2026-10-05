@@ -38,6 +38,9 @@ public class PlantConditions
 
     [Tooltip("지표/동굴 제한")]
     public PlantHabitat habitat = PlantHabitat.Any;
+
+    [Tooltip("체크하면 침식 동굴 환경(RoomManager.IsErodedHabitat)인 방에서는 위 조건과 무관하게 통과합니다.")]
+    public bool orErodedHabitat = false;
 }
 
 /// <summary>
@@ -53,6 +56,9 @@ public static class PlantConditionChecker
     public static bool Check(PlantConditions c, Vector2Int cell, List<string> failures = null)
     {
         if (c == null) return true;
+        if (c.orErodedHabitat && RoomManager.instance != null && RoomManager.instance.IsErodedHabitat(cell.x, cell.y))
+            return true;
+
         bool ok = true;
 
         if (c.erosion.use && TerrainErosionManager.instance != null)
@@ -138,6 +144,7 @@ public static class PlantConditionChecker
         if (c.temperature.use) lines.Add($"온도 {RangeText(c.temperature)}℃");
         if (c.habitat == PlantHabitat.Surface) lines.Add("지표");
         else if (c.habitat == PlantHabitat.Cave) lines.Add("동굴");
+        if (c.orErodedHabitat) lines.Add("또는 침식 동굴 환경");
         return lines;
     }
 

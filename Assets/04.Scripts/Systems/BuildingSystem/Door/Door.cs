@@ -317,6 +317,11 @@ public class Door : MonoBehaviour, IBuildingFunction
             : (temperature.Config != null ? temperature.Config.defaultDoorExchangeRate : 0.05f);
 
         temperature.MixThroughDoor(roomA, roomB, rate);
+
+        // 침식도 같은 순간에 섞인다 — 드나들 때마다 바깥 공기가 조금씩 들어온다
+        var recovery = ErosionManager.instance != null ? ErosionManager.instance.RecoveryConfig : null;
+        if (recovery != null)
+            TerrainErosionManager.instance?.MixThroughDoor(roomA, roomB, recovery.doorErosionExchangeRate);
     }
 
     /// <summary>

@@ -62,4 +62,7 @@ public enum UIPanelType
 
     /// <summary>단련장 — 직원 레벨업 창</summary>
     LevelUpUI,
+
+    /// <summary>보관함 창 (창고·장비 보관소의 내용물, 이름 변경)</summary>
+    StorageUI,
 }

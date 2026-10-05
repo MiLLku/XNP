@@ -19,6 +19,7 @@ MonoBehaviour:
     \uAD6C\uBA4D. \uCE98 \uC218 \uC5C6\uACE0, \uC704\uC5D0 \uAC00\uC2A4 \uBC1C\uC804\uAE30\uB97C
     \uC9C0\uC744 \uC218 \uC788\uB2E4."
   tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
+  blendPriority: 5
   isSolid: 1
   isClimbable: 0
   isSpawnableSurface: 0
@@ -36,3 +37,5 @@ MonoBehaviour:
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60
+  erosionOutput: 0
+  erosionSaturation: 60

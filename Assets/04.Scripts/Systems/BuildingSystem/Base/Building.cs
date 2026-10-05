@@ -74,6 +74,9 @@ public class Building : MonoBehaviour, IHeatSource
     /// <summary>초기화 완료 여부 (Awake + SpawnBuilding 이중 초기화 방지)</summary>
     private bool _isInitialized = false;
 
+    /// <summary>플레이어가 정한 이름 (비어 있으면 기본 이름)</summary>
+    private string _customName = "";
+
     /// <summary>위치별 건물 정적 레지스트리 (이동속도·수직이동 조회용). FloorTile 레지스트리 패턴을 일반 건물로 일반화.</summary>
     private static readonly Dictionary<Vector2Int, Building> buildingRegistry = new Dictionary<Vector2Int, Building>();
 
@@ -97,6 +100,20 @@ public class Building : MonoBehaviour, IHeatSource
 
     /// <summary>런타임 고유 ID</summary>
     public int InstanceId => _instanceId;
+
+    /// <summary>플레이어가 이름을 따로 정했는지</summary>
+    public bool HasCustomName => !string.IsNullOrEmpty(_customName);
+
+    /// <summary>표시 이름. 따로 정하지 않았으면 건물 종류 이름입니다. 빈 문자열을 넣으면 기본 이름으로 돌아갑니다.</summary>
+    public string DisplayName
+    {
+        get => HasCustomName ? _customName : buildingData != null ? buildingData.buildingName : name;
+        set => _customName = value != null ? value.Trim() : "";
+    }
+
+    /// <summary>이름을 바꿀 수 있는 건물인지 — 바닥 타일·사다리(FloorTile), 전선, 문은 제외합니다.</summary>
+    public bool CanRename => GetComponent<FloorTile>() == null && GetComponent<PowerWire>() == null
+                          && GetComponentInChildren<Door>() == null;
 
     #endregion
 
@@ -186,6 +203,17 @@ public class Building : MonoBehaviour, IHeatSource
         RegisterHeatSource();
     }
 
+    /// <summary>
+    /// 건물을 클릭하면 이름 바를 띄웁니다. 건물 기능 쪽 OnMouseDown이 여는 정보 창과는 별개로 불리며,
+    /// 이름 바가 그 프레임에 열린 창을 찾아 그 위에 붙습니다.
+    /// </summary>
+    void OnMouseDown()
+    {
+        if (UIManager.PointerOverUI || !CanRename) return;
+        if (InteractionManager.instance != null && InteractionManager.instance.GetCurrentMode() != InteractionManager.InteractMode.Normal) return;
+        BuildingNameBar.Request(this);
+    }
+
     void Start()
     {
         // 새로 생성된 건물에 instanceId 부여 (복원된 건물은 이미 설정됨)
@@ -214,8 +242,7 @@ public class Building : MonoBehaviour, IHeatSource
         if (extras != null && extras.Length > 0 && extras[0] != null)
         {
             extra = extras[0].SerializeExtra() ?? "";
-            if (extras.Length > 1)
-                Debug.LogWarning($"[Building] {name}: IBuildingExtraSerializable이 여러 개 — 첫 번째만 저장됨");
+            // 여러 개면 첫 번째만 저장된다 — 첫 번째가 나머지를 품어 저장해야 한다 (ErosionVent가 연료 잔량을 품는 방식 참고)
         }
 
         return new BuildingSaveData
@@ -226,6 +253,7 @@ public class Building : MonoBehaviour, IHeatSource
             gridY = Mathf.FloorToInt(transform.position.y),
             currentHealth = _currentHealth,
             isFunctional = _isFunctional,
+            customName = _customName,
             extraData = extra
         };
     }
@@ -240,6 +268,7 @@ public class Building : MonoBehaviour, IHeatSource
         _instanceId = saveData.instanceId;
         _currentHealth = saveData.currentHealth;
         _isFunctional = saveData.isFunctional;
+        _customName = saveData.customName ?? "";
 
         if (!_isFunctional)
         {

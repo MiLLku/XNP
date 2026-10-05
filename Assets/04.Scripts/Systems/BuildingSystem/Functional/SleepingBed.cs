@@ -27,7 +27,7 @@ public class SleepingBed : MonoBehaviour, IBuildingExtraSerializable
     public Vector3 SleepPosition => transform.position + (Vector3)sleepOffset;
 
     public string BedName
-        => TryGetComponent(out Building b) && b.buildingData != null ? b.buildingData.buildingName : name;
+        => TryGetComponent(out Building b) ? b.DisplayName : name;
 
     /// <summary>주인 — 로드 직후엔 ID만 있으므로 처음 물을 때 직원을 찾아 잇는다</summary>
     public Employee Owner

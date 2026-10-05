@@ -17,6 +17,8 @@ MonoBehaviour:
   displayName: "\uC11D\uD0C4"
   description: 
   tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
+  blendTexture: {fileID: 2800000, guid: 6b2d8e104cdbcf14594c6c3c1dc6d54a, type: 3}
+  blendPriority: 4
   isSolid: 1
   isClimbable: 0
   isSpawnableSurface: 0
@@ -34,3 +36,5 @@ MonoBehaviour:
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60
+  erosionOutput: 0
+  erosionSaturation: 60
