@@ -70,6 +70,90 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         return armories.Any(a => a != null && a.IsOperating);
     }
 
+    /// <summary>가동 중인 보관소들의 보관 칸 합계</summary>
+    public int Capacity
+    {
+        get
+        {
+            int total = 0;
+            foreach (var armory in armories)
+                if (armory != null && armory.IsOperating) total += armory.Capacity;
+            return total;
+        }
+    }
+
+    /// <summary>남은 보관 칸. 풀이 이미 넘쳐 있으면 0.</summary>
+    public int FreeSlots => Mathf.Max(0, Capacity - pool.Count);
+
+    /// <summary>
+    /// 이 산출물을 만들 자리가 있는지. 장비가 아니면 항상 true.
+    ///
+    /// 보관 칸은 <b>새로 만드는 것만 막습니다</b> — 시작 지급·장착 해제·세이브 복원으로 들어오는 장비는
+    /// 칸이 모자라도 받아 줍니다(장비가 사라지면 안 되므로). 그만큼 넘친 동안에는 제작이 막힙니다.
+    /// </summary>
+    public static bool HasRoomForCraft(ItemData output, int amount)
+    {
+        if (instance == null || output == null || GameDatabase.Instance == null) return true;
+        if (GameDatabase.Instance.GetEquipmentData(output.itemID) == null) return true;
+        // ponytail: 제작 중인 장비는 세지 않는다 — 여러 곳에서 동시에 만들면 그만큼 넘칠 수 있다. 문제가 되면 예약 수를 더할 것.
+        return instance.FreeSlots >= amount;
+    }
+
+    // 장비 재고는 전역 풀이라 장비마다 보관소를 따로 기록하지 않는다. 대신 보관 칸을 세는 방식 그대로
+    // "풀 순서대로 보관소를 채운다"고 보고 장비의 자리를 정한다 — 앞에서부터 보관소마다 Capacity벌씩.
+    // 칸이 모자라 넘친 장비는 마지막 보관소에 '칸 초과'로 이어 붙는다.
+
+    /// <summary>풀의 index번째 장비가 놓인 보관소. 가동 중인 보관소가 없으면 null.</summary>
+    private ArmoryStorage ArmoryForIndex(int index)
+    {
+        ArmoryStorage last = null;
+        foreach (var armory in armories)
+        {
+            if (armory == null || !armory.IsOperating) continue;
+            last = armory;
+            if (index < armory.Capacity) return armory;
+            index -= armory.Capacity;
+        }
+        return last; // 넘친 장비는 마지막 보관소 몫
+    }
+
+    /// <summary>그 보관소에 놓인 장비들 (보관함 창 표시용).</summary>
+    public List<EquipmentInstance> GetInstancesIn(ArmoryStorage armory)
+    {
+        var result = new List<EquipmentInstance>();
+        for (int i = 0; i < pool.Count; i++)
+            if (ArmoryForIndex(i) == armory) result.Add(pool[i]);
+        return result;
+    }
+
+    /// <summary>이름을 따로 정하지 않은 보관소의 기본 이름 — 건물 이름, 여러 채면 번호가 붙습니다.</summary>
+    public string GetDefaultName(ArmoryStorage armory)
+    {
+        string name = "장비 보관소";
+        if (armory != null && armory.TryGetComponent(out Building building) && building.buildingData != null)
+            name = building.buildingData.buildingName;
+
+        int operating = 0, number = 0;
+        foreach (var other in armories)
+        {
+            if (other == null || !other.IsOperating) continue;
+            operating++;
+            if (other == armory) number = operating;
+        }
+        return operating > 1 && number > 0 ? $"{name} {number}" : name;
+    }
+
+    /// <summary>보관 중인 장비가 들어 있는 곳의 이름 (장비 정보 창 표시용).</summary>
+    public string GetStorageName(EquipmentInstance inst)
+    {
+        int index = pool.IndexOf(inst);
+        if (index < 0) return "";
+
+        ArmoryStorage armory = ArmoryForIndex(index);
+        if (armory == null) return "임시 보관 (보관소 없음)";
+        return index < Capacity ? armory.StorageName : $"{armory.StorageName} (칸 초과)";
+    }
+
     /// <summary>가장 가까운 가동 중인 보관소</summary>
     public ArmoryStorage GetNearestArmory(Vector2 position)
     {

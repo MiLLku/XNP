@@ -53,7 +53,7 @@ public class CookingStation : MonoBehaviour, IPlanHost, IMaterialReceiver, IBuil
     /// <summary>로드 직후 — 작업물을 다음 Update에서 다시 만든다 (Restore 순서상 먼저 만들면 WorkSystemManager가 지움)</summary>
     private bool rebuildOrders;
 
-    public string HostName => building != null && building.buildingData != null ? building.buildingData.buildingName : name;
+    public string HostName => building != null ? building.DisplayName : name;
     public List<ProductionPlan> Plans => plans;
     public IReadOnlyList<IPlanRecipe> Recipes => recipes;
     public ItemSupply FuelSupply => usesFuel ? fuelSupply : null;

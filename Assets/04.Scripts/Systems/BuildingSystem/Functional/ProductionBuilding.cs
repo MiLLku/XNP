@@ -270,6 +270,13 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
             return;
         }
 
+        // 장비는 보관소에 자리가 있어야 만든다 (재료를 쓰기 전에 막는다)
+        if (!EquipmentStorageManager.HasRoomForCraft(recipe.outputItem, amount * recipe.outputAmount))
+        {
+            Debug.LogWarning($"[{GetBuildingName()}] 장비 보관소에 자리가 없어 {recipe.outputItem?.itemName} 제작을 시작하지 못했습니다.");
+            return;
+        }
+
         // 재료 예약 (즉시 소모하지 않고 예약만 걸어둠)
         int reservationId = ReserveMaterials(recipe, amount);
         if (reservationId < 0)

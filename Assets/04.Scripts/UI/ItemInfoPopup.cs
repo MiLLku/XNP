@@ -51,7 +51,8 @@ public class ItemInfoPopup : BasePanel
     }
 
     /// <summary>UI 요소(인벤토리 행 등) 기준으로 엽니다.</summary>
-    public static void ShowForRect(ItemData item, RectTransform anchor)
+    /// <param name="extra">설명 아래에 덧붙일 문구 (장비의 능력치·보관 위치 등). 없으면 null.</param>
+    public static void ShowForRect(ItemData item, RectTransform anchor, string extra = null)
     {
         var canvas = anchor.GetComponentInParent<Canvas>();
         Camera cam = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
@@ -60,11 +61,11 @@ public class ItemInfoPopup : BasePanel
         anchor.GetWorldCorners(corners);
         Vector2 min = RectTransformUtility.WorldToScreenPoint(cam, corners[0]);
         Vector2 max = RectTransformUtility.WorldToScreenPoint(cam, corners[2]);
-        Show(item, Rect.MinMaxRect(min.x, min.y, max.x, max.y));
+        Show(item, Rect.MinMaxRect(min.x, min.y, max.x, max.y), extra);
     }
 
     /// <summary>화면 좌표 영역 옆에 엽니다.</summary>
-    public static void Show(ItemData item, Rect screenAnchor)
+    public static void Show(ItemData item, Rect screenAnchor, string extra = null)
     {
         if (item == null || UIManager.instance == null) return;
 
@@ -75,7 +76,7 @@ public class ItemInfoPopup : BasePanel
             return;
         }
 
-        popup.Fill(item);
+        popup.Fill(item, extra);
         UIManager.instance.ShowPanel(UIPanelType.ItemInfo);
         popup.PlaceNextTo(screenAnchor);
     }
@@ -84,7 +85,7 @@ public class ItemInfoPopup : BasePanel
 
     #region 내용
 
-    private void Fill(ItemData data)
+    private void Fill(ItemData data, string extra)
     {
         item = data;
 
@@ -94,7 +95,9 @@ public class ItemInfoPopup : BasePanel
 
         if (conditionText != null)
         {
-            conditionText.text = BuildConditionText(data);
+            string condition = BuildConditionText(data);
+            conditionText.text = string.IsNullOrEmpty(extra) ? condition
+                               : condition.Length > 0 ? condition + "\n" + extra : extra;
             conditionText.gameObject.SetActive(conditionText.text.Length > 0);
         }
 

@@ -25,6 +25,9 @@ public class BuildingSaveData
     /// <summary>기능 활성화 여부</summary>
     public bool isFunctional;
 
+    /// <summary>플레이어가 정한 이름 (없으면 빈 문자열)</summary>
+    public string customName;
+
     /// <summary>건물별 추가 데이터 (창고 내용물 등, JSON 직렬화)</summary>
     public string extraData;
 }

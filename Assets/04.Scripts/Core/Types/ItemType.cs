@@ -65,9 +65,29 @@ public enum ItemType
     // ─── 무기 (301~350) ─────────────────────────
     IronSword   = 301,
     HuntingBow  = 302,
+    /// <summary>1단계 근접 — 나무·돌</summary>
+    StoneSpear  = 303,
+    /// <summary>2단계 원거리 — 철·구리</summary>
+    Crossbow    = 304,
+    /// <summary>3단계 근접 — 철·은·금</summary>
+    RefinedSword = 305,
+    /// <summary>3단계 원거리 — 철·은·금</summary>
+    PrecisionCrossbow = 306,
+    /// <summary>0단계 근접 — 시작 지급 전용 (제작 불가)</summary>
+    Baton = 307,
 
     // ─── 방어구 (351~400) ───────────────────────
     IronArmor   = 351,
+    /// <summary>1단계 방어구 — 나무·돌</summary>
+    WoodArmor   = 352,
+    /// <summary>3단계 방어구 — 철·은·금</summary>
+    ReinforcedArmor = 353,
+    /// <summary>침식 방어 장비 1~3단계 — 같은 단계 재료 + 침식 결정체</summary>
+    ProtectiveSuit1 = 354,
+    ProtectiveSuit2 = 355,
+    ProtectiveSuit3 = 356,
+    /// <summary>0단계 방어구 — 시작 지급 전용 (제작 불가). 방어와 침식 방어를 조금씩 겸한다</summary>
+    BasicArmor = 357,
 
     // ─── 식물 (401~450) ─────────────────────────
     /// <summary>나무 묘목 — 나무를 제초하면 나오고, 파종하면 나무로 자랍니다.</summary>

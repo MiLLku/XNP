@@ -529,11 +529,27 @@ public class EmployeeManagePanel : BasePanel
         RefreshDetail();
     }
 
-    // ponytail: 장비 정보 창(이름·등급·위치·착용자 …)은 아직 없음 — 만들면 여기서 연다
+    /// <summary>
+    /// 장비 정보(i) — 아이템 정보 창을 그 칸 옆에 띄우고, 능력치·내구도·<b>지금 있는 곳</b>을 덧붙입니다.
+    /// 있는 곳은 착용 중이면 직원 이름, 아니면 보관소 이름입니다.
+    /// </summary>
     private void OnCellInfo(EquipmentEntry entry)
     {
-        if (entry == null) return;
-        Debug.Log($"[EmployeeManagePanel] 장비 정보: {entry.Name} (착용: {(entry.IsWorn ? entry.wearer.DisplayName : "보관소")})");
+        if (entry == null || entry.data == null || entry.data.itemData == null) return;
+
+        var lines = new List<string>();
+        if (!string.IsNullOrWhiteSpace(entry.data.description)) lines.Add(entry.data.description);
+        if (!entry.data.indestructible)
+            lines.Add($"내구도 {Mathf.CeilToInt(entry.instance.durability)}/{Mathf.CeilToInt(entry.data.maxDurability)}");
+
+        var storage = EquipmentStorageManager.instance;
+        lines.Add(entry.IsWorn
+            ? $"착용 중: {entry.wearer.DisplayName}"
+            : $"보관 위치: {(storage != null ? storage.GetStorageName(entry.instance) : "보관소")}");
+
+        EquipmentCell cell = cells.Find(c => c != null && c.Entry == entry);
+        if (cell != null)
+            ItemInfoPopup.ShowForRect(entry.data.itemData, (RectTransform)cell.transform, string.Join("\n", lines));
     }
 
     #endregion

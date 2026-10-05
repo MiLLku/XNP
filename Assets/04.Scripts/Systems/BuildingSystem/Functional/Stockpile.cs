@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -19,13 +20,16 @@ using UnityEngine;
 ///   3. depositOffset으로 직원이 배달/출고하러 오는 정확한 위치를 조정합니다.
 /// </summary>
 [RequireComponent(typeof(Building))]
-public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource
+public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource, IStorageView
 {
     #region 설정
 
     [Header("창고 설정")]
     [Tooltip("직원이 배달/출고하러 올 위치 오프셋 (건물 좌측 하단 기준)")]
     [SerializeField] private Vector2 depositOffset = new Vector2(0.5f, 0f);
+
+    [Tooltip("보관함 창에 보이는 칸 수 (아이템 종류 하나가 한 칸, 수량 제한 없음). 16칸이 한 쪽입니다.")]
+    [Min(1)] [SerializeField] private int slotCount = 16;
 
     [Header("디버그")]
     [SerializeField] private bool showDebugInfo = false;
@@ -166,41 +170,66 @@ public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource
     }
 
     /// <summary>
-    /// 아이템을 창고에서 출고합니다 (위임된 저장소에서 제거).
-    /// 출고 흐름: 직원이 사용처(작업대 등)의 자재 요청을 받아 Stockpile에 와서 호출합니다.
-    /// </summary>
-    /// <param name="data">출고할 아이템 데이터</param>
-    /// <param name="qty">수량</param>
-    /// <returns>출고 성공 여부 (수량 부족 시 false)</returns>
-    /// <summary>
-    /// 창고를 클릭하면 전역 인벤토리(ResourceInventory) 패널을 엽니다.
-    /// 모든 Stockpile이 InventoryManager(전역)를 공유하므로 같은 패널을 띄웁니다.
+    /// 창고를 클릭하면 보관함 창을 엽니다.
     /// (BoxCollider2D가 있어야 OnMouseDown이 동작합니다.)
     /// </summary>
     void OnMouseDown()
     {
         // UI 위 클릭은 월드로 흘리지 않는다 (OnMouseDown은 EventSystem을 거치지 않는다)
         if (UIManager.PointerOverUI) return;
+        if (!IsOperational) return;
 
-        if (!IsOperational)
-        {
-            if (showDebugInfo)
-                Debug.Log($"[Stockpile] {name}: 비활성 — 패널 열기 무시");
-            return;
-        }
-
-        if (UIManager.instance != null)
-        {
-            UIManager.instance.ShowPanel(UIPanelType.ResourceInventory);
-            if (showDebugInfo)
-                Debug.Log($"[Stockpile] {name}: 전역 인벤토리 패널 열기");
-        }
-        else
-        {
-            Debug.LogWarning("[Stockpile] UIManager.instance가 없습니다.");
-        }
+        StoragePanel.Show(this);
     }
 
+    #region IStorageView — 보관함 창
+
+    public int SlotCount => slotCount;
+
+    /// <summary>
+    /// 이 창고의 칸에 든 아이템을 채웁니다.
+    ///
+    /// 재고는 전역 인벤토리 하나라 창고마다 내용물을 따로 기록하지 않습니다. 대신 아이템 종류를 번호순으로 늘어놓고
+    /// <b>등록된 창고 순서대로 칸 수만큼 채운다</b>고 보고 이 창고 몫을 잘라 보여 줍니다.
+    /// 전체 칸을 넘는 종류는 마지막 창고에 '칸 초과'로 이어 붙입니다 — 어디에도 안 보이는 재고가 없도록.
+    /// </summary>
+    public void CollectSlots(List<StorageSlot> into)
+    {
+        var inventory = InventoryManager.instance;
+        if (inventory == null) return;
+
+        var items = inventory.GetAllItems();
+        items.RemoveAll(pair => pair.Key == null || pair.Value <= 0);
+        items.Sort((a, b) => a.Key.itemID.CompareTo(b.Key.itemID));
+
+        int offset = 0;
+        bool isLast = true;
+        var all = StockpileManager.instance != null ? StockpileManager.instance.All : null;
+        if (all != null)
+        {
+            bool passedSelf = false;
+            foreach (var other in all)
+            {
+                if (other == null || !other.IsOperational) continue;
+                if (other == this) { passedSelf = true; continue; }
+                if (passedSelf) isLast = false; else offset += other.SlotCount;
+            }
+        }
+
+        int end = isLast ? items.Count : Mathf.Min(items.Count, offset + slotCount);
+        for (int i = offset; i < end; i++)
+            into.Add(new StorageSlot { item = items[i].Key, count = items[i].Value });
+    }
+
+    #endregion
+
+    /// <summary>
+    /// 아이템을 창고에서 출고합니다 (위임된 저장소에서 제거).
+    /// 출고 흐름: 직원이 사용처(작업대 등)의 자재 요청을 받아 Stockpile에 와서 호출합니다.
+    /// </summary>
+    /// <param name="data">출고할 아이템 데이터</param>
+    /// <param name="qty">수량</param>
+    /// <returns>출고 성공 여부 (수량 부족 시 false)</returns>
     public bool Withdraw(ItemData data, int qty)
     {
         if (data == null || qty <= 0) return false;

@@ -149,6 +149,13 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
             return;
         }
 
+        // 장비는 보관소에 자리가 있어야 만든다 (재료를 쓰기 전에 막는다)
+        if (!EquipmentStorageManager.HasRoomForCraft(recipe.outputItem, recipe.outputAmount))
+        {
+            Debug.LogWarning($"[CraftingTable] 장비 보관소에 자리가 없어 {recipe.outputItem?.itemName} 제작을 시작하지 못했습니다.");
+            return;
+        }
+
         if (InventoryManager.instance == null)
         {
             Debug.LogError("[CraftingTable] InventoryManager가 없습니다.");
