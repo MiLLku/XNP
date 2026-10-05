@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 /// <summary>
 /// 채광 작업 명령.
@@ -12,6 +13,9 @@ public class MiningOrder : IWorkTarget
 
     private const float MINING_WORK_TIME = 3f;
     private const int AIR_TILE_ID = 0;
+
+    /// <summary>채광 예약된 블럭에 입히는 빨간 필터</summary>
+    private static readonly Color DESIGNATED_TINT = new Color(1f, 0.45f, 0.45f, 1f);
 
     #endregion
 
@@ -89,6 +93,28 @@ public class MiningOrder : IWorkTarget
 
     #endregion
 
+    #region 예약 표시
+
+    /// <summary>이 타일의 채광 예약 필터를 켜거나 끕니다.</summary>
+    public void SetDesignated(bool on) => SetDesignatedTint(position, on);
+
+    /// <summary>
+    /// 지형 타일맵의 해당 칸에 채광 예약 필터(빨간색)를 입히거나 지웁니다.
+    /// 타일 에셋의 LockColor를 풀어야 셀 색이 먹는다 — SetTile로 타일이 바뀌면 원래대로 돌아간다.
+    /// </summary>
+    public static void SetDesignatedTint(Vector3Int tile, bool on)
+    {
+        if (MapGenerator.instance == null) return;
+        MapRenderer renderer = MapGenerator.instance.MapRendererInstance;
+        if (renderer == null || renderer.MainTilemap == null) return;
+
+        Tilemap tilemap = renderer.MainTilemap;
+        tilemap.SetTileFlags(tile, TileFlags.None);
+        tilemap.SetColor(tile, on ? DESIGNATED_TINT : Color.white);
+    }
+
+    #endregion
+
     #region 내부 헬퍼
 
     /// <summary>
@@ -132,6 +158,7 @@ public class MiningOrder : IWorkTarget
         gameMap.SetTile(position.x, position.y, AIR_TILE_ID);
         gameMap.UnmarkTileOccupied(position.x, position.y);
         mapRenderer.UpdateTileVisual(position.x, position.y);
+        SetDesignated(false);
 
         Debug.Log($"[MiningOrder] 채광 완료: {position} (TileID: {tileID})");
     }

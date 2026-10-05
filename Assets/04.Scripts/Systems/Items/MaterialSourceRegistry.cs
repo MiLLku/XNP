@@ -56,7 +56,7 @@ public class MaterialSourceRegistry : DestroySingleton<MaterialSourceRegistry>
     }
 
     /// <summary>
-    /// 지정 타일에서 가장 가까운, 해당 자재를 요청량만큼 보유한 소스를 반환합니다.
+    /// 지정 타일에서 닿을 수 있는 가장 가까운, 해당 자재를 요청량만큼 보유한 소스를 반환합니다.
     /// 없으면 null.
     /// </summary>
     public IMaterialSource FindNearestWith(Vector2Int from, ItemData item, int amount)
@@ -74,6 +74,7 @@ public class MaterialSourceRegistry : DestroySingleton<MaterialSourceRegistry>
             if (src.GetStoredAmount(item) < amount) continue;
 
             Vector3 pos = src.GetWithdrawPosition();
+            if (!ReachabilityMap.CanReach(from, pos)) continue; // 못 가는 지점은 가까워도 제외
             float dist = Vector2Int.Distance(from,
                 new Vector2Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y)));
 

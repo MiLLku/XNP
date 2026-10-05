@@ -378,8 +378,8 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
         bool isPositionValid = CanPlaceAt(gridPos);
         bool canAfford = HasRequiredResources(selectedBuildingData);
 
-        // isCurrentPlacementValid = 위치 유효 AND 자원 충분 (실제 배치 가능 여부)
-        isCurrentPlacementValid = isPositionValid && canAfford;
+        // 자원이 모자라도 청사진은 놓을 수 있다 — 자재가 생기면 그때 운반된다 (노란 고스트로 부족만 알린다)
+        isCurrentPlacementValid = isPositionValid;
 
         // 관절점 체크: 그리드 위치가 바뀐 경우에만 BFS 재실행 (캐시)
         bool wouldIsolate = false;
@@ -609,7 +609,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
 
         foreach (var cost in buildingData.requiredResources)
         {
-            int available = InventoryManager.instance.GetAvailableAmount(cost.item);
+            int available = InventoryManager.instance.GetWorldAvailable(cost.item);
             if (available < cost.amount)
             {
                 Debug.LogWarning($"  - {cost.item.itemName}: {available}/{cost.amount} (사용가능/필요)");
@@ -630,19 +630,12 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
     {
         if (selectedBuildingData == null) return;
 
-        // 배치 시점에 자원 재확인 (배치 모드 진입 후 자원이 변경되었을 수 있음)
-        if (!HasRequiredResources(selectedBuildingData))
-        {
-            Debug.LogWarning($"[ConstructionManager] 자원이 부족하여 배치 불가: {selectedBuildingData.buildingName}");
-            return;
-        }
-
-        // 자원 예약
+        // 자원 예약 — 모자라면 예약 없이(-1) 놓는다. 자재 운반은 재고가 생기는 대로 진행된다.
         int reservationId = ReserveResources(selectedBuildingData);
         if (reservationId < 0)
         {
-            Debug.LogWarning("[ConstructionManager] 자원 예약 실패");
-            return;
+            Debug.Log($"[ConstructionManager] 자원 부족 — 예약 없이 청사진 배치: {selectedBuildingData.buildingName}");
+            LogMissingResources(selectedBuildingData);
         }
 
         // 건설 현장 생성
@@ -662,7 +655,8 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
         else
         {
             // 건설 현장 생성 실패 시 예약 취소
-            InventoryManager.instance.CancelReservation(reservationId);
+            if (reservationId > 0)
+                InventoryManager.instance.CancelReservation(reservationId);
         }
     }
 

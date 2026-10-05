@@ -66,12 +66,15 @@ public class WithdrawOrder : IWorkTarget
         // 창고에 자재가 실제로 있을 때만 할당 가능.
         // 자재가 없으면 직원을 보내지 않고(헛걸음·재시도 스팸 방지) 작업이 큐에 보류된 채 남으며,
         // 자재가 입고되면 다음 작업 평가 때 자동으로 다시 후보가 된다 (별도 이벤트 구독 불필요).
-        bool inStockpile = StockpileManager.instance != null &&
-                           StockpileManager.instance.HasItemAnywhere(request.itemData, request.amount);
-        bool outside     = MaterialSourceRegistry.instance != null &&
-                           MaterialSourceRegistry.instance.HasItemAnywhere(request.itemData, request.amount);
+        // 한 지점이 전량을 갖지 않아도 된다 — 직원이 여러 지점(바닥 더미 1개씩 등)을 돌며 모은다.
+        // 창고는 모두 전역 인벤토리의 접근점 — 가동 중인 창고가 하나라도 있으면 전역 재고 전체를 쓸 수 있다
+        int inStockpile = StockpileManager.instance != null && InventoryManager.instance != null &&
+                          StockpileManager.instance.HasItemAnywhere(request.itemData, 1)
+            ? InventoryManager.instance.GetItemCount(request.itemData) : 0;
+        int outside     = MaterialSourceRegistry.instance != null
+            ? MaterialSourceRegistry.instance.GetTotalAvailable(request.itemData) : 0;
 
-        if (!inStockpile && !outside) return false;
+        if (inStockpile + outside < request.amount) return false;
 
         return request.receiver.IsRequestStillValid();
     }

@@ -55,7 +55,23 @@ public class HaulOrder : IWorkTarget
     public float GetWorkTime() => HAUL_PICKUP_TIME;
 
     /// <summary>아이템이 여전히 유효하고 예약되지 않은 경우 true.</summary>
-    public bool IsWorkAvailable() => !completed && item != null && item.gameObject != null && item.isActiveAndEnabled;
+    public bool IsWorkAvailable()
+        => !completed && item != null && item.gameObject != null && item.isActiveAndEnabled
+           && CanReachStockpileFromItem();
+
+    /// <summary>
+    /// 아이템 자리에서 닿는 창고가 있어야 운반한다. 없으면 주웠다 내려놓기만 반복하므로
+    /// 바닥에 그대로 두어 자재로 쓰이게 하고, 길이 뚫리면 다시 후보가 된다.
+    /// 창고가 아예 없으면 기존처럼 운반(→ 인벤토리 직행)을 허용한다.
+    /// </summary>
+    private bool CanReachStockpileFromItem()
+    {
+        var mgr = StockpileManager.instance;
+        if (mgr == null || !mgr.HasAnyStockpile) return true;
+
+        Vector3 p = item.transform.position;
+        return mgr.HasReachableStockpile(new Vector2Int(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y)));
+    }
 
     /// <summary>
     /// EmployeeWork의 HaulWorkAsync가 픽업 완료 후 직접 호출합니다.

@@ -835,8 +835,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     }
 
     /// <summary>
-    /// 들고 있는 더미를 가장 가까운 창고에 입고합니다.
-    /// 창고가 없거나 못 가면 전역 인벤토리로 폴백합니다 (물건을 잃지 않도록).
+    /// 들고 있는 더미를 닿을 수 있는 가장 가까운 창고에 입고합니다.
+    /// 창고가 아예 없으면 전역 인벤토리로 폴백하고,
+    /// 창고는 있지만 못 가면 발밑에 내려놓습니다 (순간이동 금지 — 길은 플레이어가 뚫는다).
     /// </summary>
     private async UniTask DeliverCarryPileAsync(Dictionary<ItemData, int> carryPile, CancellationToken ct)
     {
@@ -844,14 +845,18 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             Mathf.FloorToInt(transform.position.x),
             Mathf.FloorToInt(transform.position.y));
 
-        Stockpile stockpile = StockpileManager.instance != null
-            ? StockpileManager.instance.GetNearestStockpile(myTile)
-            : null;
-
-        if (stockpile == null)
+        var stockpiles = StockpileManager.instance;
+        if (stockpiles == null || !stockpiles.HasAnyStockpile)
         {
             foreach (var kv in carryPile) InventoryManager.instance?.AddItem(kv.Key, kv.Value);
             if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 창고 없음 → 인벤토리 직접 추가");
+            return;
+        }
+
+        Stockpile stockpile = stockpiles.GetNearestReachableStockpile(myTile);
+        if (stockpile == null)
+        {
+            DropCarryAtFeet(carryPile, "닿는 창고 없음");
             return;
         }
 
@@ -868,8 +873,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
         if (moveFailed)
         {
-            foreach (var kv in carryPile) InventoryManager.instance?.AddItem(kv.Key, kv.Value);
-            if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 창고 이동 실패 → 인벤토리 폴백");
+            DropCarryAtFeet(carryPile, "창고 이동 실패");
             return;
         }
 
@@ -1002,51 +1006,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         }
 
         // ── Phase 2: 창고로 이동 → 배달 ─────────────────────────────────────
-        Vector2Int footTile = new Vector2Int(
-            Mathf.FloorToInt(transform.position.x),
-            Mathf.FloorToInt(transform.position.y)
-        );
-
-        Stockpile stockpile = StockpileManager.instance?.GetNearestStockpile(footTile);
-
-        if (stockpile != null)
-        {
-            Vector3 depositPos = stockpile.GetDepositPosition();
-
-            bool reachedStock = false;
-            moveFailed        = false;
-
-            employee.SetState(EmployeeState.Moving);
-            movement.MoveTo(depositPos,
-                onComplete: () => reachedStock = true,
-                onFailed:   () => moveFailed   = true
-            );
-
-            await UniTask.WaitUntil(() => reachedStock || moveFailed, GameLoop.Frame, ct);
-
-            if (!moveFailed)
-            {
-                foreach (var kv in carryPile)
-                    stockpile.Deposit(kv.Key, kv.Value);
-
-                if (showDebugInfo)
-                    Debug.Log($"[Work] {employee.DisplayName}: 창고 배달 완료 → {SummarizePile(carryPile)}");
-            }
-            else
-            {
-                // 창고 이동 실패 → 인벤토리 폴백
-                foreach (var kv in carryPile)
-                    InventoryManager.instance?.AddItem(kv.Key, kv.Value);
-                if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 창고 이동 실패 → 인벤토리 폴백");
-            }
-        }
-        else
-        {
-            // 창고 없음 → 인벤토리에 직접 추가
-            foreach (var kv in carryPile)
-                InventoryManager.instance?.AddItem(kv.Key, kv.Value);
-            if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 창고 없음 → 인벤토리 직접 추가");
-        }
+        await DeliverCarryPileAsync(carryPile, ct);
 
         // 작업 완료 처리
         IWorkTarget completedTarget = currentWorkTarget;
@@ -1123,23 +1083,29 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             return;
         }
 
-        // ── Phase 1: 자재 보유 Stockpile 검색 → 이동 → 출고 ─────────────────
-        // 도착하기 전에 다른 직원이 자재를 가져갔으면, 현재 위치 기준으로 다른 창고를
-        // 재탐색해 실제로 이동한 뒤 다시 출고합니다 (창고별 개별 저장소 구조에서도 안전).
-        const int MAX_SOURCE_ATTEMPTS = 3;
+        // ── Phase 1: 자재 지점을 돌며 요청량 수집 → 출고 ─────────────────────
+        // 한 지점이 전량을 가지면 그곳 한 번으로 끝나고, 아니면(1개짜리 바닥 더미 등)
+        // 가까운 지점부터 차례로 들러 모자란 만큼 꺼냅니다.
+        // 도착하기 전에 다른 직원이 자재를 가져갔으면 현재 위치 기준으로 재탐색합니다.
+        const int MAX_EXTRA_ATTEMPTS = 3;
 
+        var carryPile = new Dictionary<ItemData, int>();
         IMaterialSource source = null;
-        bool withdrawn   = false;
+        int  gathered    = 0;
         bool moveFailed  = false;
+        int  maxAttempts = request.amount + MAX_EXTRA_ATTEMPTS;
 
-        for (int attempt = 0; attempt < MAX_SOURCE_ATTEMPTS && !withdrawn; attempt++)
+        for (int attempt = 0; attempt < maxAttempts && gathered < request.amount; attempt++)
         {
+            int need = request.amount - gathered;
             Vector2Int footTile = new Vector2Int(
                 Mathf.FloorToInt(transform.position.x),
                 Mathf.FloorToInt(transform.position.y)
             );
 
-            source = FindNearestMaterialSource(footTile, request.itemData, request.amount);
+            // 남은 양을 한 번에 댈 지점 우선, 없으면 1개라도 가진 가장 가까운 지점
+            source = FindNearestMaterialSource(footTile, request.itemData, need)
+                  ?? FindNearestMaterialSource(footTile, request.itemData, 1);
 
             if (source == null) break;
 
@@ -1157,30 +1123,33 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
             if (moveFailed || !request.receiver.IsRequestStillValid())
             {
+                DropCarryAtFeet(carryPile, "출고 중단");
                 request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
                 CancelWork();
                 return;
             }
 
-            // 도착 후 출고 — 이동하는 사이 자재가 소진됐으면 다음 후보 창고로 재시도
-            withdrawn = source.Withdraw(request.itemData, request.amount);
-
-            if (!withdrawn && showDebugInfo)
+            // 도착 후 출고 — 이동하는 사이 자재가 소진됐으면 다음 후보 지점으로 재시도
+            int take = Mathf.Min(need, source.GetStoredAmount(request.itemData));
+            if (take > 0 && source.Withdraw(request.itemData, take))
+            {
+                gathered += take;
+                AddToCarryPile(carryPile, request.itemData, take);
+            }
+            else if (showDebugInfo)
                 Debug.Log($"[Work] {employee.DisplayName}: 출고 실패(도착 전 소진) — " +
-                          $"다른 자재 지점 재탐색 ({attempt + 1}/{MAX_SOURCE_ATTEMPTS})");
+                          $"다른 자재 지점 재탐색 ({attempt + 1}/{maxAttempts})");
         }
 
-        if (!withdrawn)
+        if (gathered < request.amount)
         {
             if (showDebugInfo)
-                Debug.Log($"[Work] {employee.DisplayName}: 자재 {request.itemData.itemName}×{request.amount} 보유한 지점 없음");
+                Debug.Log($"[Work] {employee.DisplayName}: 자재 {request.itemData.itemName}×{request.amount} 수집 실패 ({gathered}개만 확보)");
+            DropCarryAtFeet(carryPile, "자재 부족");
             request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
             CancelWork();
             return;
         }
-
-        var carryPile = new Dictionary<ItemData, int>();
-        AddToCarryPile(carryPile, request.itemData, request.amount);
 
         // ── Phase 1.5: 같은 자재의 다른 pending WithdrawOrder를 capacity까지 추가 픽업 ──
         // 한 번에 여러 사이트의 같은 자재 운반을 묶어 효율 ↑ (직원 carry capacity 활용)
@@ -1239,7 +1208,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         if (!request.receiver.IsRequestStillValid())
         {
             // 운반 중 사용처가 무효화됨 → 자재 환불 (가장 가까운 창고에 반납)
-            ReturnCarryToStorage(carryPile, "사용처 무효화");
+            DropCarryAtFeet(carryPile, "사용처 무효화");
             request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
             CancelAdditionalReserves(additionalRequests, refundAll: false);
             FinishWithdrawWork();
@@ -1281,7 +1250,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                              && (reachedDelivery || IsPositionInWorkRange(deliveryTile));
         if (!canDeliverNow)
         {
-            ReturnCarryToStorage(carryPile, moveFailed ? "사용처 이동 실패" : "사용처 무효화");
+            DropCarryAtFeet(carryPile, moveFailed ? "사용처 이동 실패" : "사용처 무효화");
             request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
             CancelAdditionalReserves(additionalRequests, refundAll: false);
             FinishWithdrawWork();
@@ -1385,12 +1354,12 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         }
     }
 
-    /// <summary>단일 아이템을 가까운 창고/인벤토리로 반납합니다.</summary>
+    /// <summary>단일 아이템을 발밑에 내려놓습니다.</summary>
     private void ReturnSingleItem(ItemData item, int amount, string reason)
     {
         if (item == null || amount <= 0) return;
         var tmp = new Dictionary<ItemData, int> { [item] = amount };
-        ReturnCarryToStorage(tmp, reason);
+        DropCarryAtFeet(tmp, reason);
     }
 
     /// <summary>carryPile에서 특정 아이템 일정량을 차감합니다.</summary>
@@ -1421,25 +1390,25 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             employee.SetState(EmployeeState.Idle);
     }
 
-    /// <summary>운반 중 실패 시 carryPile을 가장 가까운 창고/인벤토리로 반납합니다.</summary>
-    private void ReturnCarryToStorage(Dictionary<ItemData, int> carryPile, string reason)
+    /// <summary>
+    /// 들고 있는 더미를 직원 발밑에 바닥 아이템으로 내려놓습니다 (운반 실패·중단 시).
+    /// 창고로 순간이동시키지 않는다 — 내려놓은 더미는 그대로 자재로 쓰이고, 창고에 닿으면 다시 운반된다.
+    /// </summary>
+    private void DropCarryAtFeet(Dictionary<ItemData, int> carryPile, string reason)
     {
         if (carryPile == null || carryPile.Count == 0) return;
 
-        Vector2Int footTile = new Vector2Int(
-            Mathf.FloorToInt(transform.position.x),
-            Mathf.FloorToInt(transform.position.y)
-        );
-
-        Stockpile fallback = StockpileManager.instance?.GetNearestStockpile(footTile);
+        Vector3 dropPos = transform.position + new Vector3(0f, 0.5f, 0f);
         foreach (var kv in carryPile)
         {
-            bool ok = fallback != null && fallback.Deposit(kv.Key, kv.Value);
-            if (!ok) InventoryManager.instance?.AddItem(kv.Key, kv.Value);
+            if (DroppedItemManager.instance != null)
+                DroppedItemManager.instance.SpawnItem(kv.Key, kv.Value, dropPos);
+            else
+                InventoryManager.instance?.AddItem(kv.Key, kv.Value); // 드롭 시스템이 없는 씬 폴백
         }
 
         if (showDebugInfo)
-            Debug.Log($"[Work] {employee.DisplayName}: 자재 반납({reason}) → {SummarizePile(carryPile)}");
+            Debug.Log($"[Work] {employee.DisplayName}: 발밑에 내려놓음({reason}) → {SummarizePile(carryPile)}");
     }
 
     /// <summary>같은 ItemData는 합산해서 캐리 더미에 추가합니다.</summary>
