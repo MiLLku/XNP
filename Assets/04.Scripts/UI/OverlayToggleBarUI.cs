@@ -5,7 +5,7 @@ using UnityEngine.UI;
 /// <summary>
 /// 좌상단 보기(오버레이) 토글 바.
 /// 손잡이 버튼으로 화면 왼쪽 밖으로 밀어 넣었다 꺼내며, 안의 버튼으로 표시 레이어를 켜고 끈다.
-/// 토글: '침식 안개'(월드 표시 레이어), '안내'(가이드라인 패널). 새 토글은 버튼을 복제해 같은 방식으로 붙이면 된다.
+/// 토글: '침식'(월드 표시 레이어 — 누를 때마다 끔 → 안개 → 안개+수치 → 끔), '안내'(가이드라인 패널). 새 토글은 버튼을 복제해 같은 방식으로 붙이면 된다.
 /// </summary>
 public class OverlayToggleBarUI : MonoBehaviour
 {
@@ -24,12 +24,17 @@ public class OverlayToggleBarUI : MonoBehaviour
     private static readonly Color ColOn  = new Color(0.25f, 0.55f, 1.00f);
     private static readonly Color ColOff = new Color(0.14f, 0.14f, 0.18f);
 
+    /// <summary>침식 필터 단계별 버튼 글자 (FogOfWarManager.ErosionFilterLevel 순서)</summary>
+    private static readonly string[] ErosionLabels = { "침식 끔", "침식 안개", "침식 수치" };
+
     private bool open;
+    private TMP_Text erosionFogLabel;
 
     private void Awake()
     {
         handleButton?.onClick.AddListener(() => SetOpen(!open));
         erosionFogButton?.onClick.AddListener(OnErosionFogClicked);
+        if (erosionFogButton != null) erosionFogLabel = erosionFogButton.GetComponentInChildren<TMP_Text>(true);
         guidelineButton?.onClick.AddListener(() => { GuidelineUI.Visible = !GuidelineUI.Visible; RefreshButtons(); });
     }
 
@@ -60,7 +65,7 @@ public class OverlayToggleBarUI : MonoBehaviour
     {
         var fog = FogOfWarManager.instance;
         if (fog == null) return;
-        fog.ErosionFogVisible = !fog.ErosionFogVisible;
+        fog.ErosionFilterLevel = (fog.ErosionFilterLevel + 1) % FogOfWarManager.ErosionFilterLevels;
         GuidelineManager.MarkFlag("erosion_fog_filter");
         RefreshButtons();
     }
@@ -68,8 +73,10 @@ public class OverlayToggleBarUI : MonoBehaviour
     private void RefreshButtons()
     {
         var fog = FogOfWarManager.instance;
+        int erosionLevel = fog != null ? fog.ErosionFilterLevel : 0;
         if (erosionFogButton != null && erosionFogButton.image != null)
-            erosionFogButton.image.color = fog != null && fog.ErosionFogVisible ? ColOn : ColOff;
+            erosionFogButton.image.color = erosionLevel > 0 ? ColOn : ColOff;
+        if (erosionFogLabel != null) erosionFogLabel.text = ErosionLabels[erosionLevel];
         if (guidelineButton != null && guidelineButton.image != null)
             guidelineButton.image.color = GuidelineUI.Visible ? ColOn : ColOff;
     }

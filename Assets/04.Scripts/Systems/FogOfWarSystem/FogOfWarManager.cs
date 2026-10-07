@@ -12,7 +12,8 @@ using UnityEngine;
 ///
 /// 그리기 (XNP/Fog 셰이더, 맵 크기 쿼드 1장):
 ///   - 미탐색 = 완전 검정 / 탐색했지만 시야 밖 = 어둡게만 / 시야 안 = 그대로
-///   - 침식이 기준 이상인 탐색한 공기 칸 = 침식 안개 (ErosionFogVisible로 켜고 끔)
+///   - 침식이 기준 이상인 탐색한 공기 칸 = 침식 안개 (ErosionFilterLevel 1단계)
+///   - 탐색한 공기 칸마다 침식 수치를 숫자로 (ErosionFilterLevel 2단계, 안개 위에 함께)
 ///
 /// 직원 시야:
 ///   - 머리(발 + HEAD_OFFSET_Y) 기준 원형 범위
@@ -58,7 +59,7 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     /// <summary>한 번이라도 시야에 들어온 타일 (세이브/로드 유지)</summary>
     private bool[,] _explored;
 
-    // 칸마다 (탐색함, 지금 시야 안, 침식/100) — 셰이더가 보간해 읽는다
+    // 칸마다 (탐색함, 지금 시야 안, 침식/100, 숫자로 적을 침식 + 1) — 앞의 셋은 셰이더가 보간해 읽고, 넷째는 칸 값 그대로 읽는다
     private Texture2D _fogTexture;
     private Color32[] _fogData;
     private bool _fogDirty;
@@ -66,22 +67,34 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     private byte[] _openErosion; // RefreshErosion 작업 버퍼
     private MeshRenderer _fogRenderer;
     private MaterialPropertyBlock _fogBlock;
-    private bool _erosionFogVisible = true;
+    private int _erosionFilterLevel = 1;
 
     private const int FogSortingOrder = 20; // 지형·개체·하이라이트 위, 방/구역 오버레이 아래
     private const float ErosionScale = 100f; // 셰이더와 같아야 한다
 
-    /// <summary>침식 안개를 그릴지 (좌상단 보기 토글 바가 바꿉니다).</summary>
-    public bool ErosionFogVisible
+    /// <summary>침식 필터 단계 수 (0 끔 / 1 안개 / 2 수치)</summary>
+    public const int ErosionFilterLevels = 3;
+
+    /// <summary>
+    /// 침식 필터 단계 (좌상단 보기 토글 바가 바꿉니다).
+    /// 0 = 끔, 1 = 침식 안개, 2 = 침식 안개 + 칸마다 침식 수치를 칸 한가운데에 숫자로.
+    /// </summary>
+    public int ErosionFilterLevel
     {
-        get => _erosionFogVisible;
+        get => _erosionFilterLevel;
         set
         {
-            _erosionFogVisible = value;
+            _erosionFilterLevel = Mathf.Clamp(value, 0, ErosionFilterLevels - 1);
             if (_fogRenderer == null) return;
-            _fogBlock.SetFloat("_ErosionVisible", value ? 1f : 0f);
+            ApplyErosionFilter();
             _fogRenderer.SetPropertyBlock(_fogBlock);
         }
+    }
+
+    private void ApplyErosionFilter()
+    {
+        _fogBlock.SetFloat("_ErosionVisible", _erosionFilterLevel >= 1 ? 1f : 0f);
+        _fogBlock.SetFloat("_ErosionNumbers", _erosionFilterLevel == 2 ? 1f : 0f);
     }
 
     #endregion
@@ -153,7 +166,7 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
         _fogBlock = new MaterialPropertyBlock();
         _fogBlock.SetTexture("_FogData", _fogTexture);
         _fogBlock.SetVector("_MapSize", new Vector4(w, h, 0, 0));
-        _fogBlock.SetFloat("_ErosionVisible", _erosionFogVisible ? 1f : 0f);
+        ApplyErosionFilter();
         _fogRenderer.SetPropertyBlock(_fogBlock);
     }
 
@@ -170,11 +183,15 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     /// 탐색한 빈 칸의 침식 수치를 다시 읽는다. 미탐색 칸은 0(안개 없음).
     /// 막힌 칸(지형·건물)은 맞닿은 빈 칸의 값을 물려받는다 — 0으로 두면 셰이더의 보간 때문에
     /// 벽에 가까워질수록 안개가 옅어져 타일 옆에 안개 없는 띠가 생긴다.
+    ///
+    /// 숫자 표시용 값(a)은 물려받지 않는다 — 공기가 통하는 칸(가구가 놓인 칸 포함, 지형·차단 건물·문 제외)에만
+    /// 그 칸의 수치를 정수로 적고, 나머지는 0(안 적음).
     /// </summary>
     private void RefreshErosion()
     {
         var erosion = TerrainErosionManager.instance;
         var gameMap = MapGenerator.instance?.GameMapInstance;
+        var rooms = RoomManager.instance;
         if (erosion == null || gameMap == null) return;
 
         int w = GameMap.MAP_WIDTH, h = GameMap.MAP_HEIGHT;
@@ -183,10 +200,24 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
         for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
         {
-            byte value = 0;
-            if (_explored[x, y] && gameMap.TileGrid[x, y] == 0 && !gameMap.IsTileOccupied(x, y))
-                value = (byte)Mathf.Clamp(erosion.GetRoomErosionAt(x, y) / ErosionScale * 255f, 1f, 255f);
+            byte value = 0, number = 0;
+            if (_explored[x, y] && gameMap.TileGrid[x, y] == 0)
+            {
+                bool open = !gameMap.IsTileOccupied(x, y);
+                if (open || (rooms != null && rooms.IsAirCell(x, y)))
+                {
+                    float amount = erosion.GetRoomErosionAt(x, y);
+                    if (open) value = (byte)Mathf.Clamp(amount / ErosionScale * 255f, 1f, 255f);
+                    number = (byte)(1 + Mathf.Clamp(Mathf.RoundToInt(amount), 0, 254));
+                }
+            }
             _openErosion[y * w + x] = value; // 0 = 막혔거나 미탐색
+
+            if (_fogData[y * w + x].a != number)
+            {
+                _fogData[y * w + x].a = number;
+                _fogDirty = true;
+            }
         }
 
         for (int y = 0; y < h; y++)

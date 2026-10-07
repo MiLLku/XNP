@@ -1,4 +1,5 @@
 // 안개: 미탐색 = 새까맣게, 탐색했지만 지금 시야 밖 = 어둡게만, 침식이 높은 곳 = 침식 안개.
+// 침식 필터 2단계에서는 안개 위에 칸마다 침식 수치를 칸 한가운데에 숫자로 적는다.
 // 맵 전체를 덮는 쿼드 1장. 칸마다 (탐색 여부, 현재 시야, 침식)을 담은 데이터 텍스처(_FogData)를
 // 부드럽게 보간해 읽으므로 경계가 칸 모양으로 끊기지 않는다.
 Shader "XNP/Fog"
@@ -17,6 +18,12 @@ Shader "XNP/Fog"
         _FogRect ("텍스처에서 쓸 영역 (x, y, 너비, 높이) — 라벨 등을 피해 반복 한 칸만 고를 때", Vector) = (0, 0, 1, 1)
         _FogCells ("고른 영역 한 장이 덮는 칸 수", Float) = 8
         _FogSpeed ("안개 흐름 속도 (칸/초)", Vector) = (0.25, 0.08, 0, 0)
+
+        [Header(Erosion Numbers)]
+        [NoScaleOffset] _DigitTex ("숫자 아틀라스 (0~9 가로 한 줄)", 2D) = "black" {}
+        [Toggle] _ErosionNumbers ("칸마다 침식 수치 표시 (게임 중엔 버튼이 덮어씀)", Float) = 0
+        _NumberHeight ("숫자 높이 (칸)", Range(0.1, 0.6)) = 0.34
+        _NumberMinPixels ("화면을 축소했을 때 숫자 최소 높이 (픽셀) — 칸을 넘지 않는 선에서 키움", Float) = 14
     }
 
     SubShader
@@ -34,10 +41,16 @@ Shader "XNP/Fog"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             TEXTURE2D(_FogTex);  SAMPLER(sampler_FogTex);
-            TEXTURE2D(_FogData); SAMPLER(sampler_FogData); // r = 탐색함, g = 지금 시야 안, b = 침식/100 (코드가 채움)
+            TEXTURE2D(_FogData); SAMPLER(sampler_FogData); // r = 탐색함, g = 지금 시야 안, b = 침식/100, a = 숫자로 적을 침식 + 1 (0 = 안 적음) (코드가 채움)
+            TEXTURE2D(_DigitTex); SAMPLER(sampler_DigitTex);
             float4 _MapSize;
 
             float _DimAlpha, _ErosionVisible, _ErosionMin, _ErosionMax, _ErosionAlphaMin, _ErosionAlphaMax, _FogCells;
+            float _ErosionNumbers, _NumberHeight, _NumberMinPixels;
+
+            // 아틀라스(1024x128, 숫자 한 칸 102.4px)에서 글자가 실제로 차지하는 가운데 영역 — Texture_Digits.png를 다시 만들면 함께 고칠 것
+            #define DIGIT_CROP float2(0.78, 0.72)
+            #define DIGIT_ASPECT 0.8667 // 그 영역의 가로/세로
             float4 _FogSpeed, _FogRect;
 
             struct Attributes { float4 positionOS : POSITION; };
@@ -56,6 +69,38 @@ Shader "XNP/Fog"
             {
                 float2 t = _FogRect.xy + frac(uv) * _FogRect.zw;
                 return SAMPLE_TEXTURE2D_GRAD(_FogTex, sampler_FogTex, t, gx * _FogRect.zw, gy * _FogRect.zw).rgb;
+            }
+
+            // 칸 한가운데에 그 칸의 침식 수치(정수)를 적는다. rgb = 글자색, a = 덮는 정도.
+            half4 ErosionNumber(float2 p)
+            {
+                float raw = round(LOAD_TEXTURE2D(_FogData, int2(floor(p))).a * 255.0);
+                if (raw < 0.5) return 0; // 막힌 칸·미탐색 칸
+
+                float value = raw - 1;
+                float count = value >= 100 ? 3 : (value >= 10 ? 2 : 1);
+
+                // 화면을 축소해 글자가 너무 작아지면, 자릿수만큼의 글자가 칸을 넘지 않는 선에서 키운다
+                float cellPixels = 1 / max(max(length(ddx(p)), length(ddy(p))), 1e-5);
+                float h = min(max(_NumberHeight, _NumberMinPixels / cellPixels), min(0.9, 0.98 / (count * DIGIT_ASPECT)));
+                float w = h * DIGIT_ASPECT;
+
+                // q.x = 왼쪽부터 몇 번째 글자 상자의 어디인지, q.y = 상자 안 세로 위치
+                float2 f = frac(p) - 0.5;
+                float2 q = float2(f.x / w + count * 0.5, f.y / h + 0.5);
+                if (q.x < 0 || q.x >= count || q.y < 0 || q.y > 1) return 0;
+
+                float place = count - 1 - floor(q.x); // 0 = 일의 자리
+                float divisor = place > 1.5 ? 100 : (place > 0.5 ? 10 : 1);
+                float digit = fmod(floor(value / divisor + 0.001), 10);
+
+                float2 uv = float2((digit + 0.5 + (frac(q.x) - 0.5) * DIGIT_CROP.x) / 10, 0.5 + (q.y - 0.5) * DIGIT_CROP.y);
+                float2 scale = float2(DIGIT_CROP.x / (w * 10), DIGIT_CROP.y / h); // 칸 좌표 → 아틀라스 uv (글자 경계의 밉 선 방지용 미분)
+                half4 glyph = SAMPLE_TEXTURE2D_GRAD(_DigitTex, sampler_DigitTex, uv, ddx(p) * scale, ddy(p) * scale);
+
+                // 칸이 화면에서 너무 작으면(약 12픽셀 이하) 읽을 수 없으니 지운다
+                glyph.a *= saturate((cellPixels - 12) / 6);
+                return glyph;
             }
 
             half4 frag(Varyings i) : SV_Target
@@ -86,6 +131,15 @@ Shader "XNP/Fog"
                 // 장면 위에 침식 안개, 그 위에 어둠을 차례로 덮은 결과를 한 번에 낸다
                 float alpha = 1 - (1 - fogAlpha) * (1 - dark);
                 float3 col = fogColor * fogAlpha * (1 - dark) / max(alpha, 1e-4);
+
+                // 침식 수치는 맨 위에 얹는다
+                if (_ErosionNumbers > 0.5)
+                {
+                    half4 number = ErosionNumber(p);
+                    float outAlpha = number.a + alpha * (1 - number.a);
+                    col = (number.rgb * number.a + col * alpha * (1 - number.a)) / max(outAlpha, 1e-4);
+                    alpha = outAlpha;
+                }
                 return half4(col, alpha);
             }
             ENDHLSL
