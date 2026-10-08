@@ -773,6 +773,7 @@ public class EmployeeMovement : MonoBehaviour
 
         float speedModifier = 1f + Mathf.Abs(heightDiff) * HEIGHT_SPEED_PENALTY;
         float tileSpeedMult = GetTileSpeedMultiplier(targetTile);
+        if (FluidManager.instance != null) tileSpeedMult *= FluidManager.instance.GetSpeedMultiplierAt(targetTile.x, targetTile.y); // 물속 감속
         float erosionMoveModifier = erosionController != null ? erosionController.MoveSpeedModifier : 1f;
         float traitMoveModifier   = statsController   != null ? statsController.CachedMoveSpeedMult : 1f;
         float actualSpeed = tileTransitionSpeed * tileSpeedMult / speedModifier * erosionMoveModifier * traitMoveModifier;

@@ -617,6 +617,35 @@ public class EmployeeStatsController : MonoBehaviour
     }
 
     /// <summary>
+    /// 시간형 모디파이어를 <b>쌓지 않고</b> 붙입니다 — 같은 원인이 되풀이돼도 값은 그대로이고 지속 시간만 다시 채워집니다.
+    /// (ModifyMental은 같은 키로 부르면 값이 더해집니다. 물에 닿아 있는 내내 불리는 '축축함' 같은 것은 이쪽을 씁니다.)
+    /// </summary>
+    public void RefreshTimedMental(string reasonKey, string displayName, float value, float duration)
+    {
+        var existing = FindModifier(reasonKey);
+        if (existing != null)
+        {
+            existing.remainingTime = duration;
+            if (Mathf.Approximately(existing.value, value)) return; // 값이 같으면 시간만 갱신
+            existing.value = value;
+            existing.displayName = displayName;
+        }
+        else
+        {
+            mentalModifiers.Add(new MentalModifier
+            {
+                reasonKey = reasonKey,
+                displayName = displayName,
+                value = value,
+                remainingTime = duration
+            });
+        }
+
+        RecalculateMental();
+        OnStatsChanged?.Invoke(currentStats);
+    }
+
+    /// <summary>
     /// 조건이 참인 동안만 유지되는 상태형 정신력 모디파이어를 설정합니다.
     /// active가 false가 되면 즉시 제거되어 <b>정신력이 원상복구</b>됩니다.
     /// 굶주림·탈진처럼 "상황을 해결하면 회복되는" 페널티에 사용합니다.
