@@ -81,6 +81,11 @@ public class CellInfoUI : MonoBehaviour
         builder.Append("<b>").Append(GetCellName(cell)).Append("</b>");
         builder.Append("\n침식 ").Append(erosion.ToString("0.#"));
 
+        FluidType liquid = FluidManager.instance != null ? FluidManager.instance.GetFluid(cell.x, cell.y) : FluidType.None;
+        if (liquid != FluidType.None)
+            builder.Append('\n').Append(liquid == FluidType.Lava ? "용암 " : "물 ")
+                   .Append(Mathf.CeilToInt(FluidManager.instance.GetAmount(cell.x, cell.y) * 100f)).Append('%');
+
         // 방 안이면 온도는 방의 것이다 — 방 정보 쪽에 적는다
         if (room == null)
         {

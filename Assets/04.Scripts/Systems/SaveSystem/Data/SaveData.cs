@@ -101,6 +101,9 @@ public class SaveData
     /// <summary>가이드라인 진행 (구 세이브에는 없음 — null이면 처음부터 다시 판정)</summary>
     public GuidelineSaveData guideline;
 
+    /// <summary>액체(물·용암) (구 세이브에는 없음 — null이면 액체 없음)</summary>
+    public FluidSaveData fluid;
+
     #endregion
 
     public SaveData()

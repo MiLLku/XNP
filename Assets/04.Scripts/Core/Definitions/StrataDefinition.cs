@@ -137,6 +137,10 @@ public class StrataDefinition : ScriptableObject
     [Tooltip("이 층의 주변 온도에 더해지는 보정(℃). 보통 0으로 두고 깊이 지열에 맡깁니다.")]
     public float temperatureOffset = 0f;
 
+    [Tooltip("이 층의 동굴에 고일 수 있는 액체. 맵 생성 때 일부 동굴이 이 액체의 호수(웅덩이)가 됩니다. " +
+             "개수는 MapGenerator의 '호수' 설정이 정합니다. None이면 이 층에는 고이지 않습니다.")]
+    public FluidType poolFluid = FluidType.None;
+
     #endregion
 
     /// <summary>UI 표시용 이름 (displayName이 비면 codeName)</summary>

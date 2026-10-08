@@ -32,6 +32,22 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [SerializeField] [Range(1, 20)] private int maxGasVents = 5;
     [Tooltip("맵 하나에 남길 에테르 분출구의 최대 개소. 최종 티어 재료의 유일한 출처라 희소합니다.")]
     [SerializeField] [Range(1, 10)] private int maxEtherVents = 3;
+    [Header("호수")]
+    [Tooltip("맵 하나에 만들 지하 호수(물) 수. 지층의 poolFluid가 Water인 층의 동굴에 생깁니다.")]
+    [SerializeField] [Range(0, 30)] private int lakeCount = 8;
+    [Tooltip("맵 하나에 만들 용암 웅덩이 수. 지층의 poolFluid가 Lava인 층의 동굴에 생깁니다. 용암은 솟지 않으므로 이것이 전부입니다.")]
+    [SerializeField] [Range(0, 30)] private int lavaPoolCount = 6;
+    [Tooltip("호수 하나에 담수 분출구가 있을 확률. 분출구가 없는 호수는 퍼 쓰면 마릅니다.")]
+    [SerializeField] [Range(0f, 1f)] private float freshVentChance = 0.3f;
+    [Tooltip("확률이 전부 빗나가도 최소한 이만큼은 담수 분출구를 둡니다 (물을 얻을 길이 아예 없는 맵 방지).")]
+    [SerializeField] [Range(0, 5)] private int minFreshVents = 1;
+    [Tooltip("호수 하나의 크기 (칸, 최소~최대). 이 범위를 벗어나는 자리는 호수가 되지 않습니다.")]
+    [SerializeField] private Vector2Int lakeCellRange = new Vector2Int(12, 160);
+    [Tooltip("호수 깊이 (칸, 최소~최대) — 고른 바닥에서 수면까지")]
+    [SerializeField] private Vector2Int lakeDepthRange = new Vector2Int(2, 5);
+    [Tooltip("지표에서 이만큼은 내려간 동굴에만 고입니다 (칸)")]
+    [SerializeField] [Min(0)] private int lakeMinDepthBelowSurface = 10;
+
     [Header("지층 경계")]
     [Tooltip("층 경계가 위아래로 흔들리는 폭(칸). 0이면 자로 그은 듯 일직선이 됩니다.")]
     [SerializeField] [Range(0f, 40f)] private float strataBoundaryAmplitude = 12f;
@@ -275,6 +291,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             PlaceMineralClusters(groundHeightMap);          // 광물 군집화 (2~6타일)
             PlaceStartingRoom(groundHeightMap);              // 스타팅 룸 배치
             PlaceNaturalEntities(groundHeightMap);           // 식생물 배치 (정의 에셋 기반)
+            PlaceLakes(groundHeightMap);                     // 지하 호수·담수 분출구·용암 웅덩이
         }
         finally
         {
@@ -707,6 +724,156 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             Debug.Log($"[ExposeVents] {label} 분출구 {clusters.Count}개소 (상한 {max}) — " +
                       $"묻힌 것 {buried}칸 · 초과분 {culled}개소 되돌림");
     }
+
+    #region 호수 (Lakes)
+
+    /// <summary>
+    /// 일부 동굴을 호수로 만듭니다 — 물 호수(일부에 담수 분출구)와 심부의 용암 웅덩이.
+    ///
+    /// 어느 층에 무엇이 고이는지는 지층 정의의 <c>poolFluid</c>가 정합니다(침식 동굴 변종을 지정하는 것과 같은 방식).
+    /// 동굴 바닥 한 칸을 고르고 "그 칸과 이어진, 수면 높이 이하의 빈 칸 전부"를 채웁니다 —
+    /// 그렇게 채운 모양은 처음부터 고여 있는 상태라 흐름 계산을 깨우지 않습니다.
+    /// </summary>
+    private void PlaceLakes(int[] groundHeightMap)
+    {
+        var fluids = FluidManager.instance;
+        if (fluids == null || _strata == null || _strata.IsEmpty) return;
+
+        fluids.Clear();
+        _lakeStamp = new int[GameMap.MAP_WIDTH * GameMap.MAP_HEIGHT];
+        _lakeAttempt = 0;
+
+        var waterLakes = PlacePools(FluidType.Water, lakeCount, groundHeightMap, fluids);
+        var lavaPools = PlacePools(FluidType.Lava, lavaPoolCount, groundHeightMap, fluids);
+
+        // 담수 분출구 — 호수마다 확률로. 전부 빗나가면 최소 개수만큼은 채운다.
+        var withoutVent = new List<List<Vector2Int>>();
+        int vents = 0;
+        foreach (var lake in waterLakes)
+        {
+            if (_rng.NextDouble() < freshVentChance && PlaceFreshVent(lake)) vents++;
+            else withoutVent.Add(lake);
+        }
+        while (vents < minFreshVents && withoutVent.Count > 0)
+        {
+            int pick = _rng.Next(withoutVent.Count);
+            if (PlaceFreshVent(withoutVent[pick])) vents++;
+            withoutVent.RemoveAt(pick);
+        }
+
+        _lakeStamp = null;
+        Debug.Log($"[PlaceLakes] 지하 호수 {waterLakes.Count}/{lakeCount}곳 (담수 분출구 {vents}곳) · 용암 웅덩이 {lavaPools.Count}/{lavaPoolCount}곳");
+    }
+
+    private int[] _lakeStamp;   // 칸마다 '몇 번째 시도에서 방문했는지' — 시도마다 배열을 비우지 않으려는 용도
+    private int _lakeAttempt;
+
+    /// <summary>그 액체가 고이는 층의 동굴 바닥을 무작위로 골라 호수를 만듭니다. 만든 호수들의 칸 목록을 돌려줍니다.</summary>
+    private List<List<Vector2Int>> PlacePools(FluidType fluid, int count, int[] groundHeightMap, FluidManager fluids)
+    {
+        var pools = new List<List<Vector2Int>>();
+        if (count <= 0) return pools;
+
+        // 후보: 바로 아래가 막힌 빈 칸(동굴 바닥) 중, 그 액체가 고이는 층이고 지표에서 충분히 내려간 곳
+        var seeds = new List<Vector2Int>();
+        for (int x = 1; x < GameMap.MAP_WIDTH - 1; x++)
+        {
+            for (int y = 1; y < groundHeightMap[x] - lakeMinDepthBelowSurface; y++)
+            {
+                if (_gameMap.TileGrid[x, y] != AIR_ID || _gameMap.TileGrid[x, y - 1] == AIR_ID) continue;
+                StrataDefinition strata = StrataAt(x, y);
+                if (strata != null && strata.poolFluid == fluid) seeds.Add(new Vector2Int(x, y));
+            }
+        }
+
+        // 스캔 순서대로 고르면 맵 왼쪽에만 몰리므로 시드 난수로 섞는다
+        for (int i = seeds.Count - 1; i > 0; i--)
+        {
+            int j = _rng.Next(i + 1);
+            var tmp = seeds[i]; seeds[i] = seeds[j]; seeds[j] = tmp;
+        }
+
+        // ponytail: 후보를 앞에서부터 차례로 시도. 호수끼리의 거리는 따지지 않는다(겹치지만 않게) — 몰려 보이면 최소 거리 조건을 넣을 것.
+        int tries = Mathf.Min(seeds.Count, count * 60);
+        for (int i = 0; i < tries && pools.Count < count; i++)
+        {
+            int depth = _rng.Next(lakeDepthRange.x, lakeDepthRange.y + 1);
+            List<Vector2Int> basin = null;
+            for (; depth >= lakeDepthRange.x && basin == null; depth--) // 너무 크면 얕게 다시
+                basin = CollectBasin(seeds[i], seeds[i].y + depth - 1, groundHeightMap, fluids);
+            if (basin == null) continue;
+
+            foreach (var cell in basin) fluids.AddFluid(cell.x, cell.y, fluid, FluidManager.FULL, wake: false);
+            pools.Add(basin);
+        }
+        return pools;
+    }
+
+    /// <summary>
+    /// 바닥 칸에서 출발해 수면 높이 이하로 이어진 빈 칸을 전부 모읍니다. 호수로 쓸 수 없으면 null.
+    /// (너무 작거나 큼 · 맵 가장자리나 지표 근처에 닿음 · 이미 다른 호수가 있음)
+    /// </summary>
+    private List<Vector2Int> CollectBasin(Vector2Int seed, int surfaceY, int[] groundHeightMap, FluidManager fluids)
+    {
+        int attempt = ++_lakeAttempt;
+        var cells = new List<Vector2Int>();
+        var queue = new Queue<Vector2Int>();
+        queue.Enqueue(seed);
+        _lakeStamp[seed.y * GameMap.MAP_WIDTH + seed.x] = attempt;
+
+        while (queue.Count > 0)
+        {
+            Vector2Int p = queue.Dequeue();
+            if (p.x <= 0 || p.x >= GameMap.MAP_WIDTH - 1 || p.y <= 0) return null;                 // 맵 가장자리
+            if (p.y >= groundHeightMap[p.x] - lakeMinDepthBelowSurface) return null;               // 지표 근처
+            if (fluids.GetFluid(p.x, p.y) != FluidType.None) return null;                          // 다른 호수와 겹침
+            if (_gameMap.IsTileOccupied(p.x, p.y)) return null;                                    // 건물(시작 방)
+
+            cells.Add(p);
+            if (cells.Count > lakeCellRange.y) return null;
+
+            foreach (var dir in NeighborOffsets)
+            {
+                int nx = p.x + dir.x, ny = p.y + dir.y;
+                if (ny > surfaceY || nx < 0 || nx >= GameMap.MAP_WIDTH || ny < 0) continue;
+                if (_gameMap.TileGrid[nx, ny] != AIR_ID) continue;
+
+                int index = ny * GameMap.MAP_WIDTH + nx;
+                if (_lakeStamp[index] == attempt) continue;
+                _lakeStamp[index] = attempt;
+                queue.Enqueue(new Vector2Int(nx, ny));
+            }
+        }
+
+        return cells.Count >= lakeCellRange.x ? cells : null;
+    }
+
+    /// <summary>
+    /// 호수 바닥 한 칸을 담수 분출구로 바꿉니다. 분출구는 자기 위 칸에 물을 내고 그 칸이 차면 멈추므로,
+    /// <b>수면 줄 바로 아래의 턱</b>(물 깊이 1칸인 호숫가)을 가장 먼저 고릅니다 — 거기 있어야 호수를 수면까지 다시 채웁니다.
+    /// 그런 턱이 없으면 가장 높은 바닥에 둡니다(그 높이까지만 다시 찹니다).
+    /// </summary>
+    private bool PlaceFreshVent(List<Vector2Int> lake)
+    {
+        int bestY = -1;
+        var best = new List<Vector2Int>();
+        foreach (var cell in lake)
+        {
+            if (cell.y - 1 < 0) continue;
+            int below = _gameMap.TileGrid[cell.x, cell.y - 1];
+            if (below == AIR_ID || !TileRules.IsSolid(below)) continue;
+
+            if (cell.y > bestY) { bestY = cell.y; best.Clear(); }
+            if (cell.y == bestY) best.Add(cell);
+        }
+        if (best.Count == 0) return false;
+
+        Vector2Int pick = best[_rng.Next(best.Count)];
+        _gameMap.SetTile(pick.x, pick.y - 1, (int)TileType.FreshwaterVent);
+        return true;
+    }
+
+    #endregion
 
     /// <summary>분출구 칸을 그 층의 기반 암석으로 되돌립니다.</summary>
     private void RevertVent(int x, int y)
