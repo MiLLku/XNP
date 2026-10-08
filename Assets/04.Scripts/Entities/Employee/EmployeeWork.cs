@@ -233,7 +233,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     }
 
     /// <summary>결격이 될 수 있는 작업인지 — 세척은 누구나 해야 하는 일이라 예외, 철거는 건설에 합쳐져 없어짐.</summary>
-    public static bool CanBeDisqualified(WorkType type) => type != WorkType.Cleaning && type != WorkType.Demolish && type != WorkType.Training;
+    public static bool CanBeDisqualified(WorkType type) => type != WorkType.Cleaning && type != WorkType.Demolish && type != WorkType.Training && type != WorkType.Errand;
 
     /// <summary>
     /// 동적 비자격을 제거합니다.

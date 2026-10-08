@@ -1096,11 +1096,15 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                     isPaused = orderData.isPaused
                 };
 
+                // 물 퍼내기는 같은 주문의 칸들이 '범위'를 나눠 갖는다 — 복원한 칸들로 다시 묶는다
+                var scoopArea = new List<Vector3Int>();
+
                 // 대기 작업 복원
                 foreach (var taskData in orderData.pendingTasks)
                 {
                     IWorkTarget target = DeserializeWorkTarget(taskData);
                     if (target == null) continue;
+                    if (target is ScoopOrder pendingScoop) { pendingScoop.area = scoopArea; scoopArea.Add(pendingScoop.cell); }
 
                     WorkTask task = new WorkTask(target, taskData.priority);
                     task.taskId = taskData.taskId;
@@ -1113,6 +1117,7 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                 {
                     IWorkTarget target = DeserializeWorkTarget(taskData);
                     if (target == null) continue;
+                    if (target is ScoopOrder assignedScoop) { assignedScoop.area = scoopArea; scoopArea.Add(assignedScoop.cell); }
 
                     WorkTask task = new WorkTask(target, taskData.priority);
                     task.taskId = taskData.taskId;
@@ -1248,6 +1253,11 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                 weed = harvest.weed
             });
         }
+        else if (task.target is ScoopOrder scoop)
+        {
+            taskData.targetType = (int)WorkTargetType.Scoop;
+            taskData.targetData = JsonUtility.ToJson(new ScoopTargetData { cellX = scoop.cell.x, cellY = scoop.cell.y });
+        }
         else if (task.target is DemolishOrder demolish)
         {
             taskData.targetType = (int)WorkTargetType.Demolish;
@@ -1336,6 +1346,12 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                     position = building.transform.position,
                     completed = false
                 };
+            }
+
+            case WorkTargetType.Scoop:
+            {
+                var td = JsonUtility.FromJson<ScoopTargetData>(taskData.targetData);
+                return new ScoopOrder { cell = new Vector3Int(td.cellX, td.cellY, 0), priority = taskData.priority, completed = false };
             }
 
             case WorkTargetType.Crafting:

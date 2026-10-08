@@ -233,6 +233,7 @@ public class WorkTask
     {
         if (target == null) return false;
         if (state == TaskState.Completed || state == TaskState.Cancelled) return false;
+        if (target is IExpiringWorkTarget expiring && expiring.IsExpired) return false; // 할 일이 영영 없어진 대상
         return true;
     }
 

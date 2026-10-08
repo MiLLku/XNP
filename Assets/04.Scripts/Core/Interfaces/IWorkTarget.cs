@@ -38,3 +38,13 @@ public interface IWorkTarget
     /// <param name="worker">작업을 취소한 직원</param>
     void CancelWork(Employee worker);
 }
+
+/// <summary>
+/// 할 일이 <b>영영</b> 없어질 수 있는 작업 대상 (예: 물이 다 빠진 물 퍼내기).
+/// IsWorkAvailable=false는 "지금은 못 한다"(자재 대기 등)라서 작업이 목록에 남지만,
+/// IsExpired=true면 주기적인 정리(CleanupInvalidTasks) 때 목록에서 지워집니다.
+/// </summary>
+public interface IExpiringWorkTarget
+{
+    bool IsExpired { get; }
+}

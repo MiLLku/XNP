@@ -33,7 +33,9 @@ public enum WorkType
     /// <summary>조리 — 식재료를 모아 스토브에서 요리. 결격 가능, 능력은 조리 속도만.</summary>
     Cooking,
     /// <summary>단련 — 단련장에서 레벨업. 누구나 가능, 결격·능력과 무관 (지정된 직원만 맡음)</summary>
-    Training
+    Training,
+    /// <summary>심부름 — 능력치와 무관한 잡일(물 퍼내기 등). 누구나 가능, 결격 대상이 아님</summary>
+    Errand
 }
 
 /// <summary>
@@ -59,6 +61,7 @@ public static class WorkTypeDefaults
         WorkType.Research,
         WorkType.Sowing,
         // Cleaning(방 세척 명령)은 삭제됐다 — 세척은 직원 전용(세척대). enum 값은 세이브 정수 호환용으로만 남는다.
+        WorkType.Errand,
         WorkType.Hauling,
         WorkType.Building,
     };

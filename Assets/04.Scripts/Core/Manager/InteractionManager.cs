@@ -908,6 +908,9 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     
     private void FinishHarvestSelection()
     {
+        // 수확 모드로 물이 고인 칸을 고르면 물 퍼내기
+        if (_currentMode == InteractMode.Harvest) CreateScoopOrder(GetSelectionBounds());
+
         if (_selectedObjects.Count == 0) return;
 
         bool weed = _currentMode == InteractMode.Weed;
@@ -951,6 +954,43 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         _selectedObjects.Clear();
     }
     
+    /// <summary>
+    /// 고른 범위에서 물이 고인 칸마다 물 퍼내기(심부름) 작업을 만듭니다.
+    /// 탐색하지 않은 칸과 이미 다른 작업이 걸린 칸은 뺍니다.
+    /// </summary>
+    private void CreateScoopOrder(Bounds bounds)
+    {
+        const int MaxCells = 200; // ponytail: 한 번에 지시할 수 있는 칸 수 상한. 넓은 호수는 여러 번 지시.
+        const int Priority = 4;
+
+        var fluids = FluidManager.instance;
+        if (fluids == null) return;
+
+        var tiles = new List<Vector3Int>();
+        int x0 = Mathf.FloorToInt(bounds.min.x), x1 = Mathf.FloorToInt(bounds.max.x);
+        int y0 = Mathf.FloorToInt(bounds.min.y), y1 = Mathf.FloorToInt(bounds.max.y);
+        for (int y = y0; y <= y1 && tiles.Count < MaxCells; y++)
+        {
+            for (int x = x0; x <= x1 && tiles.Count < MaxCells; x++)
+            {
+                if (fluids.GetFluid(x, y) != FluidType.Water) continue;
+                if (FogOfWarManager.instance != null && !FogOfWarManager.instance.IsExplored(x, y)) continue;
+
+                var tile = new Vector3Int(x, y, 0);
+                if (!_workSystemManager.IsTileUnderWork(tile)) tiles.Add(tile);
+            }
+        }
+        if (tiles.Count == 0) return;
+
+        WorkOrderVisual visual = _workSystemManager.CreateWorkOrderWithVisual(
+            $"물 퍼내기 ({tiles.Count}칸)", WorkType.Errand, 0, tiles, Priority);
+        if (visual == null) return;
+
+        var targets = new List<IWorkTarget>();
+        foreach (var tile in tiles) targets.Add(new ScoopOrder { cell = tile, area = tiles, priority = Priority });
+        visual.WorkOrder.AddTargets(targets);
+    }
+
     /// <summary>
     /// 현재 명령 모드에서 드래그로 고를 수 있는 대상인지.
     ///   수확: 나무가 아닌 식생물 중 다 자라 수확물이 있는 것

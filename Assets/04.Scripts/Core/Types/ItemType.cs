@@ -33,6 +33,10 @@ public enum ItemType
     TitaniumOre = 10,
     Ether       = 11,
     AbyssFruit  = 12,
+    /// <summary>물 — 물 흡수 시설이나 물 퍼내기로 얻는다</summary>
+    Water       = 13,
+    /// <summary>침식된 물 — 침식이 높은 곳에서 받아낸 물</summary>
+    ErodedWater = 14,
 
     // ─── 가공 자원 (101~200) ────────────────────
     IronIngot   = 101,
