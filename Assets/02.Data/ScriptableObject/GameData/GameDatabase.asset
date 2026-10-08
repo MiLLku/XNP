@@ -112,6 +112,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 81ecd72d671002c4db6123f53e3ac0dc, type: 2}
   - {fileID: 11400000, guid: 9161588695faa844da9c44d1be913cb4, type: 2}
   - {fileID: 11400000, guid: 7c6bcef70ad02194089e357924aa772b, type: 2}
+  - {fileID: 11400000, guid: e4a009f8f9116684ea185d0623c77841, type: 2}
+  - {fileID: 11400000, guid: c1476fb0aa7771542b8c722e79752907, type: 2}
   allRecipeData:
   - {fileID: 11400000, guid: 80b1b536a9aedbb4d8995fb0482a92d3, type: 2}
   - {fileID: 11400000, guid: ae763cc660863294890b8083b261d75f, type: 2}

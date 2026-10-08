@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27504165417e2ab4caf42c3ec78806f7, type: 3}
+  m_Name: Tile_Obsidian
+  m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
+  codeName: Obsidian
+  id: 19
+  displayName: "\uD751\uC694\uC11D"
+  description: "\uC6A9\uC554\uC774 \uBB3C\uC744 \uB9CC\uB098 \uAD73\uC740 \uAC80\uC740
+    \uC720\uB9AC\uC9C8 \uC554\uC11D. \uB2E8\uB2E8\uD558\uB2E4."
+  tileAsset: {fileID: 11400000, guid: 4c53772f81754d14bb3a939339f592d8, type: 2}
+  blendTexture: {fileID: 2800000, guid: bfd4dc029f9ac2740b511136f61c0a32, type: 3}
+  blendPriority: 2
+  isSolid: 1
+  isClimbable: 0
+  isSpawnableSurface: 0
+  isMineable: 1
+  hardness: 4
+  requiredMiningSkillId: 0
+  dropItem: {fileID: 0}
+  generateAsVein: 0
+  veinShallowOffset: 0
+  veinDeepOffset: 0
+  veinNoiseScale: 0.12
+  veinThreshold: 0.65
+  veinSeedOffset: 0
+  thermalConductivity: 1
+  heatOutput: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 60
+  erosionOutput: 0
+  erosionSaturation: 60
+  erosionPermeability: 1

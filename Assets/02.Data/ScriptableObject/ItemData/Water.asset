@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a7bf4af0a018b1c4bb9016e3783a71e3, type: 3}
+  m_Name: Water
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemType: 13
+  itemName: "\uBB3C"
+  itemIcon: {fileID: -103710428, guid: fd59d6577824a024caef876e46b0618f, type: 3}
+  description: "\uB9D1\uC740 \uBB3C. \uBB3C \uD761\uC218 \uC2DC\uC124\uB85C \uBC1B\uAC70\uB098,
+    \uACE0\uC778 \uBB3C\uC744 \uD37C\uB0B4\uC11C \uC5BB\uB294\uB2E4."
+  plantEntity: {fileID: 0}
+  dropPrefab: {fileID: 0}
+  isFood: 0
+  nutrition: 0
+  foodKind: 0
+  ingredientCategory: 0
+  rawPenalty: 0
+  rawMood: -3
+  rawMoodHours: 3
+  erosionOnEat: 0
+  moodOnEat: 0
+  moodOnEatHours: 3
+  moodOnEatLabel: 
+  isDrug: 0
+  funValue: 0

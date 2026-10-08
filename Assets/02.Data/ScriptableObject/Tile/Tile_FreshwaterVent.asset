@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27504165417e2ab4caf42c3ec78806f7, type: 3}
+  m_Name: Tile_FreshwaterVent
+  m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
+  codeName: FreshwaterVent
+  id: 20
+  displayName: "\uB2F4\uC218 \uBD84\uCD9C\uAD6C"
+  description: "\uC9C0\uD558 \uD638\uC218\uC5D0\uC11C \uB9D1\uC740 \uBB3C\uC774 \uC19F\uB294
+    \uAD6C\uBA4D. \uCE98 \uC218 \uC5C6\uACE0, \uBB3C\uC5D0 \uB2E4 \uC7A0\uAE30\uAE30
+    \uC9C1\uC804\uAE4C\uC9C0 \uBB3C\uC744 \uB0B8\uB2E4."
+  tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
+  blendTexture: {fileID: 2800000, guid: 8e2decd2e3aac8044841797759a079b3, type: 3}
+  blendPriority: 5
+  isSolid: 1
+  isClimbable: 0
+  isSpawnableSurface: 0
+  isMineable: 0
+  hardness: 1
+  requiredMiningSkillId: 0
+  dropItem: {fileID: 0}
+  generateAsVein: 0
+  veinShallowOffset: -112
+  veinDeepOffset: -158
+  veinNoiseScale: 0.16
+  veinThreshold: 0.72
+  veinSeedOffset: 9000
+  thermalConductivity: 1.2
+  heatOutput: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 60
+  erosionOutput: 0
+  erosionSaturation: 60
+  erosionPermeability: 1

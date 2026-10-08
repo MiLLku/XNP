@@ -17,8 +17,12 @@ MonoBehaviour:
   description: "\uC628\uB3C4+\uCE68\uC2DD \uB3D9\uC2DC \uC704\uD611. \uC6A9\uC554
     \uD0C0\uC77C\uACFC \uC5D0\uD14C\uB974 \uBCA4\uD2B8 3\uAC1C."
   thicknessWeight: 4
+  sealedEdges: 0
   terrainMode: 0
   baseRock: 2
+  variant: {fileID: 0}
+  variantNoiseScale: 0.012
+  variantShare: 0.45
   dirtThreshold: 0.85
   dirtNoiseScale: 0.07
   caveThreshold: 0.52
@@ -30,5 +34,8 @@ MonoBehaviour:
   filamentThickness: 0.2
   filamentWarp: 14
   filamentSecondLayer: 1
+  filamentFruitTile: 0
+  filamentFruitChance: 0.06
   baseErosion: 0
   temperatureOffset: 0
+  poolFluid: 2

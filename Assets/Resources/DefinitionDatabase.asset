@@ -33,6 +33,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ec69f7a2dd3223a4e8b884d156f96c90, type: 2}
   - {fileID: 11400000, guid: bea8e09b1a6df944687a7e8035008440, type: 2}
   - {fileID: 11400000, guid: b9acbb830d8e6c34b8245ccf37a0a3a7, type: 2}
+  - {fileID: 11400000, guid: ff8467ca31b4a394184e02c26ac58f0d, type: 2}
+  - {fileID: 11400000, guid: ff94b592f7486da48b225eb5e9d962c2, type: 2}
   entities:
   - {fileID: 11400000, guid: f218b340eb5864848819df181e00ffa4, type: 2}
   - {fileID: 11400000, guid: 77ec1a7073db1304bb00d75356f80653, type: 2}
