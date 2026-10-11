@@ -255,6 +255,9 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
         return y >= skyBottom[x];
     }
 
+    /// <summary>그 열에서 하늘이 시작되는 높이 — 이 높이 이상의 칸은 위로 막힌 것이 없습니다 (비 그리기용).</summary>
+    public int GetSkyBottom(int x) => x >= 0 && x < GameMap.MAP_WIDTH ? skyBottom[x] : GameMap.MAP_HEIGHT;
+
     /// <summary>문이 잇는 두 방 번호를 반환합니다. 등록되지 않은 문이면 false.</summary>
     public bool TryGetDoorLink(Vector2Int doorTile, out int roomA, out int roomB)
     {

@@ -117,6 +117,10 @@ public class FluidManager : DestroySingleton<FluidManager>, ISaveModule
     [Tooltip("'축축함' 지속 시간 (게임 시간 단위)")]
     [Min(0f)] [SerializeField] private float dampGameHours = 3f;
 
+    [Header("비")]
+    [Tooltip("이 지속형 이벤트가 진행 중이면 비가 내립니다 (Resources/Events/Rain). 비는 물로 쌓이지 않고, 맞은 직원에게 '축축함'만 붙습니다.")]
+    [SerializeField] private EventData rainEvent;
+
     [Header("그리기")]
     [Tooltip("XNP/Fluid 셰이더 머티리얼. 비우면 계산만 하고 그리지 않습니다.")]
     [SerializeField] private Material fluidMaterial;
@@ -306,6 +310,13 @@ public class FluidManager : DestroySingleton<FluidManager>, ISaveModule
 
     #region 직원 영향
 
+    /// <summary>
+    /// 지금 비가 내리는지 — 따로 상태를 두지 않고 비 이벤트가 진행 중인지로 판단합니다.
+    /// (이벤트의 남은 시간은 세이브되므로 불러온 뒤에도 그대로 이어집니다.)
+    /// </summary>
+    public bool IsRaining
+        => rainEvent != null && EventManager.instance != null && EventManager.instance.IsEventActive(rainEvent.eventId);
+
     public float BreathSeconds => breathSeconds;
     public float DrownDamagePerSecond => drownDamagePerSecond;
     public float LavaDamagePerSecond => lavaDamagePerSecond;
@@ -406,12 +417,9 @@ public class FluidManager : DestroySingleton<FluidManager>, ISaveModule
     /// <returns>나온 아이템 수 (물이 없거나 아직 하나가 안 되면 0)</returns>
     public int TakeWaterAsItems(int x, int y, float amount, out ItemData item, bool fromSurroundings = false)
     {
-        item = null;
-        if (GetFluid(x, y) != FluidType.Water) return 0;
-
-        bool eroded = TerrainErosionManager.instance != null
-                   && TerrainErosionManager.instance.GetRoomErosionAt(x, y) >= erodedWaterErosion;
-        item = eroded ? erodedWaterItem : waterItem;
+        item = GetWaterItemAt(x, y);
+        if (item == null) return 0;
+        bool eroded = item == erodedWaterItem;
 
         float taken = RemoveFluid(x, y, amount);
         if (fromSurroundings && taken < amount) taken += DrainConnected(x, y, amount - taken);
@@ -419,10 +427,19 @@ public class FluidManager : DestroySingleton<FluidManager>, ISaveModule
         float items = taken * itemsPerCell + (eroded ? erodedCarry : waterCarry);
         int whole = Mathf.FloorToInt(items + 0.0001f);
         if (eroded) erodedCarry = items - whole; else waterCarry = items - whole;
-        return item != null ? whole : 0;
+        return whole;
     }
 
     private float waterCarry, erodedCarry; // 아이템 하나가 안 돼 남겨 둔 양
+
+    /// <summary>그 칸의 물을 받으면 나올 아이템 — 침식이 기준 이상이면 '침식된 물', 아니면 '물'. 물이 없는 칸이면 null.</summary>
+    public ItemData GetWaterItemAt(int x, int y)
+    {
+        if (GetFluid(x, y) != FluidType.Water) return null;
+        bool eroded = TerrainErosionManager.instance != null
+                   && TerrainErosionManager.instance.GetRoomErosionAt(x, y) >= erodedWaterErosion;
+        return eroded ? erodedWaterItem : waterItem;
+    }
 
     /// <summary>(x, y)와 이어진 물에서 가까운 칸부터 amount만큼 퍼냅니다.</summary>
     private float DrainConnected(int x, int y, float amount)

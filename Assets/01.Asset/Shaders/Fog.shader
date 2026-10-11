@@ -1,5 +1,6 @@
 // 안개: 미탐색 = 새까맣게, 탐색했지만 지금 시야 밖 = 어둡게만, 침식이 높은 곳 = 침식 안개.
 // 침식 필터 2단계에서는 안개 위에 칸마다 침식 수치를 칸 한가운데에 숫자로 적는다.
+// 비가 오면 하늘이 뚫린 칸에 빗줄기를 그린다(침식 안개 위, 어둠 아래).
 // 맵 전체를 덮는 쿼드 1장. 칸마다 (탐색 여부, 현재 시야, 침식)을 담은 데이터 텍스처(_FogData)를
 // 부드럽게 보간해 읽으므로 경계가 칸 모양으로 끊기지 않는다.
 Shader "XNP/Fog"
@@ -24,6 +25,14 @@ Shader "XNP/Fog"
         [Toggle] _ErosionNumbers ("칸마다 침식 수치 표시 (게임 중엔 버튼이 덮어씀)", Float) = 0
         _NumberHeight ("숫자 높이 (칸)", Range(0.1, 0.6)) = 0.34
         _NumberMinPixels ("화면을 축소했을 때 숫자 최소 높이 (픽셀) — 칸을 넘지 않는 선에서 키움", Float) = 14
+
+        [Header(Rain)]
+        _RainColor ("빗줄기 색 (알파 = 진하기)", Color) = (0.80, 0.90, 1.0, 0.55)
+        _RainDensity ("빗줄기 촘촘함 (칸당 줄 수)", Float) = 2.2
+        _RainLength ("빗줄기 간격 (칸)", Float) = 2.5
+        _RainSpeed ("떨어지는 속도", Float) = 2.2
+        _RainSlant ("기울기", Range(-1, 1)) = 0.18
+        _RainWidth ("빗줄기 굵기", Range(0.01, 0.5)) = 0.07
     }
 
     SubShader
@@ -47,6 +56,26 @@ Shader "XNP/Fog"
 
             float _DimAlpha, _ErosionVisible, _ErosionMin, _ErosionMax, _ErosionAlphaMin, _ErosionAlphaMax, _FogCells;
             float _ErosionNumbers, _NumberHeight, _NumberMinPixels;
+
+            TEXTURE2D(_SkyBottom); // 열마다 하늘이 시작되는 높이 (가로 한 줄, 코드가 채움)
+            float _Rain;           // 1 = 비가 내리는 중 (코드가 채움)
+            float4 _RainColor;
+            float _RainDensity, _RainLength, _RainSpeed, _RainSlant, _RainWidth;
+
+            // 그 자리의 빗줄기 진하기(0~1). 하늘이 뚫린 칸에만 내린다.
+            float RainAlpha(float2 p)
+            {
+                float sky = LOAD_TEXTURE2D(_SkyBottom, int2(clamp(floor(p.x), 0, _MapSize.x - 1), 0)).r;
+                if (p.y < sky) return 0;
+
+                // 기울어진 세로 띠마다 줄 하나가 서로 다른 박자로 떨어진다
+                float lane = (p.x + p.y * _RainSlant) * _RainDensity;
+                float seed = frac(sin(floor(lane) * 127.1) * 43758.5453);
+                float along = frac(p.y / _RainLength + _Time.y * _RainSpeed * (0.75 + 0.5 * seed) + seed * 13.0);
+                float body = saturate(1 - along / 0.3);                                   // 머리가 진하고 꼬리로 옅어진다
+                float thin = saturate(1 - abs(frac(lane) - 0.5) / max(_RainWidth, 1e-3)); // 띠 가운데의 가는 줄
+                return body * thin * _RainColor.a;
+            }
 
             // 아틀라스(1024x128, 숫자 한 칸 102.4px)에서 글자가 실제로 차지하는 가운데 영역 — Texture_Digits.png를 다시 만들면 함께 고칠 것
             #define DIGIT_CROP float2(0.78, 0.72)
@@ -128,9 +157,18 @@ Shader "XNP/Fog"
                 // 짙을수록 결이 덜 비치게 해서, 수치가 높으면 정말로 꽉 막힌 안개가 된다
                 fogAlpha *= lerp(lerp(0.45, 0.9, t), 1.0, smoothstep(0.45, 0.85, dot(a * b, float3(0.33, 0.34, 0.33))));
 
-                // 장면 위에 침식 안개, 그 위에 어둠을 차례로 덮은 결과를 한 번에 낸다
-                float alpha = 1 - (1 - fogAlpha) * (1 - dark);
-                float3 col = fogColor * fogAlpha * (1 - dark) / max(alpha, 1e-4);
+                // 장면 위에 침식 안개 → 비 → 어둠을 차례로 덮은 결과를 한 번에 낸다
+                float3 premul = fogColor * fogAlpha;
+                float alpha = fogAlpha;
+                if (_Rain > 0.5)
+                {
+                    float rain = RainAlpha(p);
+                    premul = _RainColor.rgb * rain + premul * (1 - rain);
+                    alpha = rain + alpha * (1 - rain);
+                }
+                premul *= 1 - dark;
+                alpha = dark + alpha * (1 - dark);
+                float3 col = premul / max(alpha, 1e-4);
 
                 // 침식 수치는 맨 위에 얹는다
                 if (_ErosionNumbers > 0.5)

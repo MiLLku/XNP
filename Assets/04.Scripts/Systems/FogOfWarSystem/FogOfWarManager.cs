@@ -67,6 +67,11 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     private byte[] _openErosion; // RefreshErosion 작업 버퍼
     private MeshRenderer _fogRenderer;
     private MaterialPropertyBlock _fogBlock;
+
+    // 비 — 열마다 하늘이 시작되는 높이(가로 한 줄 텍스처). 셰이더가 그 위쪽 칸에만 빗줄기를 그린다.
+    private Texture2D _skyTexture;
+    private float[] _skyData;
+    private bool _raining;
     private int _erosionFilterLevel = 1;
 
     private const int FogSortingOrder = 20; // 지형·개체·하이라이트 위, 방/구역 오버레이 아래
@@ -167,6 +172,15 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
         _fogBlock.SetTexture("_FogData", _fogTexture);
         _fogBlock.SetVector("_MapSize", new Vector4(w, h, 0, 0));
         ApplyErosionFilter();
+
+        _skyTexture = new Texture2D(w, 1, TextureFormat.RFloat, false, true)
+        {
+            filterMode = FilterMode.Point,
+            wrapMode = TextureWrapMode.Clamp,
+        };
+        _skyData = new float[w];
+        _fogBlock.SetTexture("_SkyBottom", _skyTexture);
+        _fogBlock.SetFloat("_Rain", 0f);
         _fogRenderer.SetPropertyBlock(_fogBlock);
     }
 
@@ -243,6 +257,25 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
         }
     }
 
+    /// <summary>비가 내리는 동안 하늘 높이를 갱신하고, 비가 시작·끝날 때 셰이더에 알린다 (1초 폴링).</summary>
+    private void RefreshRain()
+    {
+        bool raining = FluidManager.instance != null && FluidManager.instance.IsRaining;
+        if (raining)
+        {
+            var rooms = RoomManager.instance;
+            for (int x = 0; x < _skyData.Length; x++)
+                _skyData[x] = rooms != null ? rooms.GetSkyBottom(x) : GameMap.MAP_HEIGHT;
+            _skyTexture.SetPixelData(_skyData, 0);
+            _skyTexture.Apply(false);
+        }
+
+        if (raining == _raining) return;
+        _raining = raining;
+        _fogBlock.SetFloat("_Rain", raining ? 1f : 0f);
+        _fogRenderer.SetPropertyBlock(_fogBlock);
+    }
+
     private void LateUpdate()
     {
         if (_fogData == null) return;
@@ -252,6 +285,7 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
         {
             _nextErosionRefresh = Time.unscaledTime + 1f;
             RefreshErosion();
+            RefreshRain();
         }
 
         if (!_fogDirty) return;

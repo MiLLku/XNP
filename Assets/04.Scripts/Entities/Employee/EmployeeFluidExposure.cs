@@ -4,7 +4,7 @@ using UnityEngine;
 /// 직원이 액체에 닿았을 때의 영향 — 축축함, 익사, 용암 화상.
 /// (이동 감속과 길찾기 비용은 EmployeeMovement·TilePathfinder가 FluidManager에 직접 묻습니다.)
 ///
-///   • <b>축축함</b> — 발이 물에 잠기거나 비를 맞으면 붙는 정신력 페널티. 시간형이지만 쌓이지 않고,
+///   • <b>축축함</b> — 발이 물에 잠기거나 비를 맞으면(하늘이 뚫린 곳) 붙는 정신력 페널티. 시간형이지만 쌓이지 않고,
 ///     젖어 있는 동안에는 지속 시간만 계속 다시 채워집니다.
 ///   • <b>익사</b> — 머리 칸까지 물이 차면 숨을 참습니다. 숨이 다하면 체력이 깎이고, 물 밖으로 나오면 금방 회복합니다.
 ///   • <b>용암</b> — 닿아 있는 동안 버티는 시간 없이 바로 체력이 깎입니다.
@@ -76,7 +76,9 @@ public class EmployeeFluidExposure : MonoBehaviour
             statsController.ModifyHealth(-fluids.LavaDamagePerSecond * deltaTime);
 
         bool footWet = atFoot == FluidType.Water && fluids.GetAmount(foot.x, foot.y) >= fluids.DampMinDepth;
-        if (footWet || atHead == FluidType.Water) MakeDamp();
+        // 비는 머리 위로 막힌 것이 없는 곳에서만 맞는다
+        bool rainedOn = fluids.IsRaining && RoomManager.instance != null && RoomManager.instance.IsOpenToSky(foot.x, foot.y + 1);
+        if (footWet || atHead == FluidType.Water || rainedOn) MakeDamp();
 
         IsSubmerged = fluids.IsSubmerged(foot.x, foot.y);
         if (IsSubmerged)
