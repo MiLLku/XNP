@@ -3607,6 +3607,16 @@ MonoBehaviour:
   erodedWaterItem: {fileID: 11400000, guid: c1476fb0aa7771542b8c722e79752907, type: 2}
   itemsPerCell: 5
   erodedWaterErosion: 15
+  fluidSpeedMultiplier: 0.5
+  deepWaterPathCost: 3
+  submergeLevel: 0.5
+  breathSeconds: 20
+  drownDamagePerSecond: 5
+  lavaDamagePerSecond: 30
+  dampMinDepth: 0.05
+  dampMental: -2
+  dampGameHours: 3
+  rainEvent: {fileID: 11400000, guid: 388890cd4730b894fbfba4507b290b51, type: 2}
   fluidMaterial: {fileID: 2100000, guid: 696b5813a9c75314ab485c92bae5507f, type: 2}
 --- !u!1 &154145917
 GameObject:
