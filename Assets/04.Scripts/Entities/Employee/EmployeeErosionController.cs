@@ -495,6 +495,15 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
     }
 
     /// <summary>
+    /// 이 직원이 견딜 수 있는 침식 — 착용 장비 합 + 특성·스킬 보너스.
+    /// 칸 침식이 이 값 이하면 전부 막고, 넘으면 그 칸 침식을 전부 받습니다(문턱).
+    /// 침식 필터의 안전/위험 표시도 이 값을 씁니다.
+    /// </summary>
+    public float ErosionTolerance =>
+        (employee != null && employee.Equipment != null ? employee.Equipment.GetTotalErosionTolerance() : 0f)
+        + (statsController != null ? statsController.CachedErosionIgnoreBonus : 0f);
+
+    /// <summary>
     /// 환경 침식을 갱신합니다. 두 갈래가 성격이 다릅니다.
     ///
     /// <b>지형 발원지 → 방 침식(농도)</b>: 머무는 동안 <b>계속 누적</b>됩니다.
@@ -539,10 +548,8 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
             if (source == null || !source.IsEmitting) continue;
             if (!source.Covers(myPos)) continue;
 
-            // 장비·특성의 침식 무시가 고정량 이상이면 완전히 막는다 (기존 오라 규칙과 동일)
-            float ignore = (employee.Equipment?.GetTotalErosionIgnore() ?? 0f)
-                         + (statsController != null ? statsController.CachedErosionIgnoreBonus : 0f);
-            if (ignore >= source.FixedErosionAmount) continue;
+            // 견딜 수 있는 침식이 고정량 이상이면 완전히 막는다
+            if (ErosionTolerance >= source.FixedErosionAmount) continue;
 
             coveredByAny = true;
             activeEntitySourceKeys.Add(source.ErosionSourceKey);
@@ -605,11 +612,10 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
             ? TerrainErosionManager.instance.GetRoomErosionAt(cell)
             : 0f;
 
-        if (ambient <= 0f) return;
+        // 문턱 — 견딜 수 있는 침식 이하면 전부 막고, 넘으면 그 칸 침식을 전부 받는다
+        if (ambient <= 0f || ambient <= ErosionTolerance) return;
 
-        float ignore = employee.Equipment != null ? employee.Equipment.GetTotalErosionIgnore() : 0f;
-        float perSecond = ambient * recoveryConfig.exposurePerErosionPoint - ignore;
-        if (perSecond <= 0f) return;
+        float perSecond = ambient * recoveryConfig.exposurePerErosionPoint;
 
         MarkAuraExposure();
         AddErosion(perSecond * elapsed, ErosionSource.NATURAL, "환경 침식");

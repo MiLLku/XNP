@@ -100,6 +100,36 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     {
         _fogBlock.SetFloat("_ErosionVisible", _erosionFilterLevel >= 1 ? 1f : 0f);
         _fogBlock.SetFloat("_ErosionNumbers", _erosionFilterLevel == 2 ? 1f : 0f);
+        _fogBlock.SetFloat("_ToleranceOn", _erosionFilterLevel >= 1 && _shownTolerance >= 0f ? 1f : 0f);
+        _fogBlock.SetFloat("_Tolerance", Mathf.Max(0f, _shownTolerance));
+    }
+
+    // 침식 필터의 안전/위험 표시 — 선택한 직원이 견딜 수 있는 침식(여러 명이면 가장 낮은 값). 선택이 없으면 -1.
+    private float _shownTolerance = -1f;
+
+    /// <summary>
+    /// 선택한 직원 기준으로 칸을 안전(칸 침식 ≤ 견딜 수 있는 침식) / 위험으로 칠할 값을 갱신합니다.
+    /// 여러 명을 선택하면 그중 <b>가장 낮은</b> 견딜 수 있는 침식을 기준으로 합니다(가장 약한 직원이 문턱).
+    /// </summary>
+    private void RefreshSafety()
+    {
+        float tolerance = -1f;
+        var interaction = InteractionManager.instance;
+        if (interaction != null)
+        {
+            foreach (var employee in interaction.SelectedEmployees)
+            {
+                var controller = employee != null ? employee.GetComponent<EmployeeErosionController>() : null;
+                if (controller == null) continue;
+                float t = controller.ErosionTolerance;
+                tolerance = tolerance < 0f ? t : Mathf.Min(tolerance, t);
+            }
+        }
+
+        if (_fogRenderer == null || Mathf.Approximately(tolerance, _shownTolerance)) return;
+        _shownTolerance = tolerance;
+        ApplyErosionFilter();
+        _fogRenderer.SetPropertyBlock(_fogBlock);
     }
 
     #endregion
@@ -279,6 +309,8 @@ public class FogOfWarManager : DestroySingleton<FogOfWarManager>, ISaveModule
     private void LateUpdate()
     {
         if (_fogData == null) return;
+
+        RefreshSafety(); // 선택이 바뀌면 바로 반영 (값이 같으면 아무것도 안 함)
 
         // ponytail: 1초마다 전체 훑기. 방 재계산·침식 변화를 이벤트 없이 따라간다.
         if (Time.unscaledTime >= _nextErosionRefresh)

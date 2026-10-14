@@ -123,6 +123,15 @@ public class InteractionManager : DestroySingleton<InteractionManager>
 
     /// <summary>현재 선택된 직원 (없으면 null)</summary>
     public Employee SelectedEmployee => _selectedEmployee;
+
+    /// <summary>
+    /// 선택된 직원 전부. 지금은 단일 선택이라 최대 1명이지만,
+    /// 다중 선택이 생기면 여기만 바꾸면 되도록 읽는 쪽(침식 필터 안전 표시 등)은 이걸 순회합니다.
+    /// </summary>
+    public System.Collections.Generic.IEnumerable<Employee> SelectedEmployees
+    {
+        get { if (_selectedEmployee != null) yield return _selectedEmployee; }
+    }
     
     protected override void Awake()
     {

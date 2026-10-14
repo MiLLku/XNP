@@ -7,8 +7,9 @@ using UnityEngine;
 /// 세이브에 저장할 상태가 없습니다(마이그레이션 불필요). 림월드처럼 개인 체온이
 /// 서서히 오르내리는 세분화는 의도적으로 하지 않았습니다.
 ///
-/// <b>견디는 범위</b> = 기본 쾌적 범위를 착용 장비의 방한/방열 레벨만큼 넓힌 것.
-/// 레벨 1당 고정폭이라 "방한 2 = 0℃까지"처럼 산술로 자명합니다.
+/// <b>견디는 범위</b> — 하한은 기본 쾌적 하한을 방한 레벨만큼 넓힌 것(레벨 1당 고정폭),
+/// 상한은 맨몸 기준(comfortMax, 35도) + 착용 장비의 '견딜 수 있는 온도' 합(℃)입니다.
+/// 깊이 진출의 문턱이 이 상한입니다 — 내열 슈트를 만들어 입어야 깊은 곳의 더위를 견딥니다.
 ///
 /// 범위를 벗어난 정도(초과 도수)로 3단계를 나누고, 정신력은 <b>상태형 모디파이어</b>로 겁니다 —
 /// 쾌적한 곳으로 돌아오거나 장비를 갖추면 즉시 사라집니다(굶주림·탈진과 같은 방식).
@@ -82,12 +83,12 @@ public class EmployeeTemperature : MonoBehaviour
         float roomTemperature = manager.GetTemperatureAt(cell);
         LastRoomTemperature = roomTemperature;
 
-        // 견디는 범위 = 기본 쾌적 범위 + 장비 레벨 × 레벨당 폭
+        // 견디는 범위 — 하한: 쾌적 하한 - 방한 레벨 × 레벨당 폭 / 상한: 맨몸 기준 + 장비의 견딜 수 있는 온도 합
         int coldLevel = equipment != null ? equipment.GetTotalColdProtection() : 0;
-        int heatLevel = equipment != null ? equipment.GetTotalHeatProtection() : 0;
+        int heatTolerance = equipment != null ? equipment.GetTotalHeatTolerance() : 0;
 
         LastToleratedMin = config.comfortMin - coldLevel * config.degreesPerProtectionLevel;
-        LastToleratedMax = config.comfortMax + heatLevel * config.degreesPerProtectionLevel;
+        LastToleratedMax = config.comfortMax + heatTolerance;
 
         // 얼마나 벗어났는지 (추위/더위 중 하나만 성립한다)
         float coldExcess = LastToleratedMin - roomTemperature;
@@ -152,11 +153,11 @@ public class EmployeeTemperature : MonoBehaviour
     public string Describe()
     {
         int coldLevel = equipment != null ? equipment.GetTotalColdProtection() : 0;
-        int heatLevel = equipment != null ? equipment.GetTotalHeatProtection() : 0;
+        int heatTolerance = equipment != null ? equipment.GetTotalHeatTolerance() : 0;
 
         string protection = "";
         if (coldLevel > 0) protection += $" 방한{coldLevel}";
-        if (heatLevel > 0) protection += $" 방열{heatLevel}";
+        if (heatTolerance > 0) protection += $" 내열+{heatTolerance}도";
         if (protection.Length == 0) protection = " 보호 없음";
 
         string state = CurrentTier == 0 ? "쾌적" : $"{CurrentTier}단계";

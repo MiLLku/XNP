@@ -54,8 +54,13 @@ public class EquipmentData : ScriptableObject
     [Tooltip("방한 레벨. 레벨 1당 견디는 하한이 TemperatureConfig.degreesPerProtectionLevel 만큼 내려갑니다.")]
     [Min(0)] public int coldProtectionLevel = 0;
 
-    [Tooltip("방열 레벨. 레벨 1당 견디는 상한이 그만큼 올라갑니다.")]
-    [Min(0)] public int heatProtectionLevel = 0;
+    [Tooltip("견딜 수 있는 온도 가산(℃). 착용 장비끼리 합산해 맨몸 기준(TemperatureConfig.comfortMax)에 더합니다.\n" +
+             "칸 온도가 그 합 이하면 더위 페널티가 없습니다. 예: 맨몸 35 + 내열 슈트 I 15 = 50도까지.")]
+    [Min(0)] public int heatTolerance = 0;
+
+    [Tooltip("견딜 수 있는 침식. 착용 장비끼리 합산합니다.\n" +
+             "그 칸의 침식이 합산 이하면 전부 막고, 넘으면 그 칸 침식을 전부 받습니다(문턱).")]
+    [Min(0)] public int erosionTolerance = 0;
 
     [Header("내구도")]
     [Tooltip("최대 내구도. 작업 마모·전투 소모로 감소하며 0이 되면 파괴됩니다.")]
@@ -147,10 +152,6 @@ public class EquipmentPassiveEffects
     [Tooltip("작업 타입별 속도 보정")]
     public WorkSpeedModifier[] workTypeModifiers;
 
-    [Header("침식 방어")]
-    [Tooltip("침식 오라 무시 수치. 개체의 aoeErosionPerSecond가 이 값 이하이면 오라를 차단합니다.")]
-    [Min(0)]
-    public float erosionIgnoreValue;
 }
 
 /// <summary>

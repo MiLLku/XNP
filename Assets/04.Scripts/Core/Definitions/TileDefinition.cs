@@ -71,8 +71,10 @@ public class TileDefinition : ScriptableObject
     [Min(0.01f)]
     public float hardness = 1f;
 
-    [Tooltip("채광에 필요한 스킬 ID (SkillTreeConfig 기준). 0이면 제한 없음.\n채광 I=5, 채광 II=6, 채광 III=7")]
-    public int requiredMiningSkillId = 0;
+    [Tooltip("캐는 데 필요한 채광 등급 (기지 전체 연구 '채광 I~IV'). 0이면 제한 없음.\n" +
+             "1 = 석탄·구리 / 2 = 철·은 / 3 = 금·수정·티타늄 / 4 = 경계암(에테리온)")]
+    [UnityEngine.Serialization.FormerlySerializedAs("requiredMiningSkillId")]
+    [Range(0, 4)] public int requiredMiningTier = 0;
 
     [Tooltip("채광 시 드롭될 ItemData. 시각 프리팹은 ItemData.dropPrefab을 씁니다.")]
     public ItemData dropItem;

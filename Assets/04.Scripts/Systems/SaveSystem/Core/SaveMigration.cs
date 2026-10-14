@@ -7,7 +7,7 @@
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 14;
+    public const int CURRENT_VERSION = 15;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -68,6 +68,9 @@ public static class SaveMigration
                     break;
                 case 13:
                     data = MigrateV13ToV14(data);
+                    break;
+                case 14:
+                    data = MigrateV14ToV15(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -582,6 +585,50 @@ public static class SaveMigration
         }
 
         data.saveVersion = 14;
+        return data;
+    }
+
+    /// <summary>
+    /// v14 → v15: 채광 자격이 직원 스킬(채광 I~III·에테리온 각인)에서 기지 연구 '채광 I~IV'로 옮겨감.
+    ///   · 직원 중 가장 높은 채광 스킬 등급만큼 채광 연구를 완료 처리합니다. 예전엔 채광 I(석탄·구리)이
+    ///     모든 직원에게 기본 해제였으므로 최소 채광 I은 완료로 둡니다 — 불러온 뒤 캐던 광물을 못 캐는 일이 없게.
+    ///   · 굴삭 기술·심층 굴삭 노드는 채광 II·III에 흡수되어 사라졌으므로 기록을 지웁니다(진행 중이었다면 취소).
+    ///   · 에테리온 각인 스킬(19)은 삭제되었으므로 해제 목록에서 뺍니다.
+    /// </summary>
+    private static SaveData MigrateV14ToV15(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v14 → v15 마이그레이션 시작 (채광 자격 → 기지 연구)...");
+
+        int tier = 1;
+        if (data.employees != null)
+        {
+            foreach (var emp in data.employees)
+            {
+                if (emp?.unlockedSkillIds == null) continue;
+                foreach (int id in emp.unlockedSkillIds)
+                    tier = Mathf.Max(tier, MiningSkillGate.TierFromLegacySkillId(id));
+                emp.unlockedSkillIds.Remove(19);
+            }
+        }
+
+        data.researchTree ??= new ResearchTreeSaveData();
+        var states = data.researchTree.nodeStates;
+        states.RemoveAll(e => e == null || e.nodeId == "excavation_tech" || e.nodeId == "deep_excavation");
+        if (data.researchTree.activeNodeId == "excavation_tech" || data.researchTree.activeNodeId == "deep_excavation")
+        {
+            data.researchTree.activeNodeId = null;
+            data.researchTree.currentProgress = 0f;
+        }
+
+        for (int t = 1; t <= tier; t++)
+        {
+            string nodeId = $"mining_{t}";
+            states.RemoveAll(e => e.nodeId == nodeId);
+            states.Add(new ResearchNodeSaveEntry { nodeId = nodeId, state = (int)ResearchNodeState.Completed });
+        }
+
+        Debug.Log($"[SaveMigration] v15 완료 — 채광 연구 I~{MiningSkillGate.RomanNumeral(tier)} 완료 처리");
+        data.saveVersion = 15;
         return data;
     }
 

@@ -381,16 +381,16 @@ public class EmployeeEquipment : MonoBehaviour
     }
 
     /// <summary>
-    /// 전체 장비의 침식 오라 무시 수치 합산.
-    /// HostileErosionAura에서 개체의 aoeErosionPerSecond와 비교합니다.
+    /// 착용 장비의 '견딜 수 있는 침식' 합.
+    /// 칸 침식이 이 값(+특성·스킬 보너스) 이하면 전부 막고, 넘으면 그 칸 침식을 전부 받습니다 —
+    /// 판정은 <see cref="EmployeeErosionController.ErosionTolerance"/>.
     /// </summary>
-    public float GetTotalErosionIgnore()
+    public int GetTotalErosionTolerance()
     {
-        float total = 0f;
+        int total = 0;
         foreach (var kvp in itemSlots)
         {
-            if (kvp.Value.passiveEffects != null)
-                total += kvp.Value.passiveEffects.erosionIgnoreValue;
+            if (kvp.Value != null) total += kvp.Value.erosionTolerance;
         }
         return total;
     }
@@ -409,13 +409,13 @@ public class EmployeeEquipment : MonoBehaviour
         return total;
     }
 
-    /// <summary>착용 장비의 방열 레벨 합</summary>
-    public int GetTotalHeatProtection()
+    /// <summary>착용 장비의 '견딜 수 있는 온도' 가산(℃) 합 — 맨몸 기준에 더해집니다(EmployeeTemperature).</summary>
+    public int GetTotalHeatTolerance()
     {
         int total = 0;
         foreach (var kvp in itemSlots)
         {
-            if (kvp.Value != null) total += kvp.Value.heatProtectionLevel;
+            if (kvp.Value != null) total += kvp.Value.heatTolerance;
         }
         return total;
     }

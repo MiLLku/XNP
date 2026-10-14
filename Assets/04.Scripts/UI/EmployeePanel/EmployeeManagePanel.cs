@@ -539,6 +539,8 @@ public class EmployeeManagePanel : BasePanel
 
         var lines = new List<string>();
         if (!string.IsNullOrWhiteSpace(entry.data.description)) lines.Add(entry.data.description);
+        if (entry.data.erosionTolerance > 0) lines.Add($"견딜 수 있는 침식 {entry.data.erosionTolerance} (착용 장비 합산)");
+        if (entry.data.heatTolerance > 0) lines.Add($"견딜 수 있는 온도 +{entry.data.heatTolerance}도 (맨몸 기준에 합산)");
         if (!entry.data.indestructible)
             lines.Add($"내구도 {Mathf.CeilToInt(entry.instance.durability)}/{Mathf.CeilToInt(entry.data.maxDurability)}");
 

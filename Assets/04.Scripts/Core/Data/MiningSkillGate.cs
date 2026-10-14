@@ -3,63 +3,80 @@
 ///
 /// 깊이 진행을 막는 <b>하드 게이트</b>다. 경도(TileHardness)가 "얼마나 오래 걸리나"라면
 /// 이쪽은 "애초에 팔 수 있나"를 결정한다.
-///   채광 경험 → 채광 적성 레벨 → (스킬 포인트 소모) 채광 스킬 해제 → 해당 광물 채광 가능
 ///
-/// 스킬 ID는 SkillTreeConfig의 채광 계열 3종을 가리킨다:
-///   채광 I 기초(5)   — 지표·돌·석탄·구리  (기본 해제)
-///   채광 II 심층(6)  — 철·은
-///   채광 III 정밀(7) — 금·수정
+/// 자격은 <b>기지 전체의 채광 등급</b>(연구 '채광 I~IV', <see cref="ResearchMiningTierEffect"/>)이다.
+/// 예전에는 직원 스킬(채광 I~III + 에테리온 각인)이었지만, 연구로 옮기고 직원 채광 스킬은
+/// 채광 속도 보너스로 바뀌었다 — 연구 재료가 "지금 캘 수 있는 층의 귀한 재료"라서
+/// 한 층을 캐야 다음 층을 열 수 있다.
+///   1 = 석탄·구리 / 2 = 철·은 / 3 = 금·수정·티타늄 / 4 = 경계암
 ///
-/// <b>어떤 타일이 어떤 스킬을 요구하는지는 더 이상 여기 있지 않다.</b>
-/// TileDefinition 에셋의 requiredMiningSkillId 필드에서 읽어 온다.
-/// 스킬 ID → 이름 대응만 스킬 트리 쪽 지식이므로 여기 남겨 두었다.
+/// 어떤 타일이 몇 등급을 요구하는지는 TileDefinition 에셋의 requiredMiningTier 필드에 있다.
 /// </summary>
 public static class MiningSkillGate
 {
-    public const int SKILL_MINING_I   = 5;
-    public const int SKILL_MINING_II  = 6;
-    public const int SKILL_MINING_III = 7;
+    /// <summary>최고 채광 등급 (경계암 — 에테리온)</summary>
+    public const int MAX_TIER = 4;
 
-    /// <summary>에테리온 각인 — 스킬 포인트로는 못 찍고 에테리온을 태워야 얻는 특수 자격.</summary>
-    public const int SKILL_ETHERION_MARK = 19;
-
-    /// <summary>
-    /// 해당 타일을 캐는 데 필요한 스킬 ID. 0이면 제한 없음.
-    /// </summary>
-    public static int RequiredSkillId(TileType tile) => RequiredSkillId((int)tile);
+    /// <summary>해당 타일을 캐는 데 필요한 채광 등급. 0이면 제한 없음.</summary>
+    public static int RequiredTier(TileType tile) => RequiredTier((int)tile);
 
     /// <summary>타일 ID(정수)로 조회합니다.</summary>
-    public static int RequiredSkillId(int tileId)
+    public static int RequiredTier(int tileId)
     {
         var def = TileDefinitionLookup.Find(tileId);
-        return def != null ? def.requiredMiningSkillId : 0;
+        return def != null ? def.requiredMiningTier : 0;
+    }
+
+    /// <summary>기지가 지금 연구로 연 채광 등급 (연구 매니저가 없으면 0)</summary>
+    public static int CurrentTier =>
+        ResearchTreeManager.instance != null ? ResearchTreeManager.instance.MiningTier : 0;
+
+    /// <summary>
+    /// 이 타일을 지금 캘 수 있는지 — 기지 채광 등급만 봅니다(직원 무관).
+    /// <paramref name="employee"/>는 예전 호출부 호환용이며 판정에 쓰이지 않습니다.
+    /// </summary>
+    public static bool CanMine(Employee employee, int tileId) => CanMine(tileId);
+
+    /// <inheritdoc cref="CanMine(Employee,int)"/>
+    public static bool CanMine(int tileId)
+    {
+        int required = RequiredTier(tileId);
+        return required == 0 || CurrentTier >= required;
+    }
+
+    /// <summary>필요 등급 이름 (로그·UI용). 제한이 없으면 null.</summary>
+    public static string RequiredTierName(int tileId)
+    {
+        int tier = RequiredTier(tileId);
+        return tier == 0 ? null : $"채광 {RomanNumeral(tier)}";
+    }
+
+    /// <summary>등급 번호의 로마 숫자 표기 (1~4)</summary>
+    public static string RomanNumeral(int tier)
+    {
+        switch (tier)
+        {
+            case 1: return "I";
+            case 2: return "II";
+            case 3: return "III";
+            case 4: return "IV";
+            default: return tier.ToString();
+        }
     }
 
     /// <summary>
-    /// 해당 직원이 이 타일을 캘 수 있는지 확인합니다.
-    ///
-    /// 스킬 컴포넌트가 없으면 <b>막습니다</b>. 예전에는 통과시켰는데(구 프리팹 호환),
-    /// 직원 프리팹 어디에도 이 컴포넌트가 없어 게이트 전체가 무력화돼 있었습니다.
-    /// Employee.Awake가 항상 붙여 주므로 이제 없을 수가 없습니다.
+    /// 구 채광 스킬 ID → 채광 등급 (채광 I=5 → 1, II=6 → 2, III=7 → 3, 에테리온 각인=19 → 4).
+    /// 세이브 마이그레이션(v15)과 정의 부트스트랩이 씁니다.
     /// </summary>
-    public static bool CanMine(Employee employee, int tileId)
+    public static int TierFromLegacySkillId(int skillId)
     {
-        int required = RequiredSkillId(tileId);
-        if (required == 0) return true;
-        if (employee == null) return false;
-
-        var skills = employee.Skills;
-        return skills != null && skills.IsUnlocked(required);
-    }
-
-    /// <summary>필요 스킬 이름 (로그·UI용). 스킬 트리 구성에서 그대로 읽습니다.</summary>
-    public static string RequiredSkillName(int tileId)
-    {
-        int id = RequiredSkillId(tileId);
-        if (id == 0) return null;
-
-        var config = EmployeeManager.instance != null ? EmployeeManager.instance.SkillTreeConfig : null;
-        var skill = config != null ? config.GetSkill(id) : null;
-        return skill != null ? skill.skillName : $"스킬 #{id}";
+        switch (skillId)
+        {
+            case 5: return 1;
+            case 6: return 2;
+            case 7: return 3;
+            case 19: return 4;
+            default: return 0;
+        }
     }
 }

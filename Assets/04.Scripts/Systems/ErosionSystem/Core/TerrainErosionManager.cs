@@ -126,6 +126,20 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
         return Mathf.Max(0f, value);
     }
 
+    /// <summary>
+    /// 방이 아닌 칸의 실효 침식 = 그 X의 좌우 그라디언트 + 그 칸 지층 기본 침식 (상한 maxEffectiveErosion).
+    /// 깊은 곳의 넓은 곳은 두 축이 겹쳐 가장 더럽습니다 — 진행 설계(깊이 × 좌우)의 기준값입니다.
+    /// </summary>
+    public float GetOutsideErosionAt(float x, float y)
+    {
+        float strata = MapGenerator.instance != null
+            ? MapGenerator.instance.StrataErosionAt(Mathf.RoundToInt(x), Mathf.RoundToInt(y))
+            : 0f;
+        var config = ErosionManager.instance != null ? ErosionManager.instance.RecoveryConfig : null;
+        float cap = config != null ? config.maxEffectiveErosion : 100f;
+        return Mathf.Min(cap, GetOutdoorErosionAt(x) + strata);
+    }
+
     /// <summary>디버그용 — 기지에서 거리별 실외 침식 프로파일</summary>
     public string DescribeHorizontalGradient()
     {
@@ -392,17 +406,13 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
     }
 
     /// <summary>
-    /// 그 방 자리의 '바깥' 침식 — 그 X 위치의 실외 침식과 그 자리 지층 침식 중 큰 쪽.
+    /// 그 방 자리의 '바깥' 침식 — 그 자리의 실효 침식(<see cref="GetOutsideErosionAt"/>).
     /// 벽으로 스며드는 목표치이자, 실외로 난 문이 섞이는 상대값입니다.
     /// </summary>
     public float GetAmbientErosionFor(Room room)
     {
         if (room == null) return OutdoorErosion;
-
-        float strata = MapGenerator.instance != null
-            ? MapGenerator.instance.StrataErosionAt(Mathf.RoundToInt(room.AverageX), Mathf.RoundToInt(room.AverageY))
-            : 0f;
-        return Mathf.Max(GetOutdoorErosionAt(room.AverageX), strata);
+        return GetOutsideErosionAt(room.AverageX, room.AverageY);
     }
 
     /// <summary>
@@ -473,7 +483,7 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
 
     /// <summary>
     /// 해당 칸의 환경 침식 수치.
-    /// 방 안이면 그 방의 침식, <b>실외면 그 X 위치의 실외 침식과 그 칸 지층 침식 중 큰 쪽</b>입니다.
+    /// 방 안이면 그 방의 침식, <b>실외면 좌우 그라디언트 + 그 칸 지층 침식</b>입니다(<see cref="GetOutsideErosionAt"/>).
     /// 지표와 뚫린 갱도라도 침식 동굴로 파고들면 그 층만큼 더러워집니다(경계에선 서서히).
     ///
     /// 환경 노출을 읽는 곳이 여기 하나뿐이라(<c>EmployeeErosionController.UpdateAmbientErosion</c>),
@@ -484,8 +494,7 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
         Room room = RoomManager.instance != null ? RoomManager.instance.GetRoom(x, y) : null;
         if (room != null) return room.Erosion;
 
-        float strata = MapGenerator.instance != null ? MapGenerator.instance.StrataErosionAt(x, y) : 0f;
-        return Mathf.Max(GetOutdoorErosionAt(x), strata);
+        return GetOutsideErosionAt(x, y);
     }
 
     /// <summary>

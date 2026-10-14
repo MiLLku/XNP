@@ -26,6 +26,10 @@ Shader "XNP/Fog"
         _NumberHeight ("숫자 높이 (칸)", Range(0.1, 0.6)) = 0.34
         _NumberMinPixels ("화면을 축소했을 때 숫자 최소 높이 (픽셀) — 칸을 넘지 않는 선에서 키움", Float) = 14
 
+        [Header(Tolerance)]
+        _SafeColor ("선택 직원이 견디는 칸 (알파 = 진하기)", Color) = (0.25, 0.85, 0.45, 0.22)
+        _DangerColor ("선택 직원이 못 견디는 칸 (알파 = 진하기)", Color) = (0.95, 0.22, 0.15, 0.32)
+
         [Header(Rain)]
         _RainColor ("빗줄기 색 (알파 = 진하기)", Color) = (0.80, 0.90, 1.0, 0.55)
         _RainDensity ("빗줄기 촘촘함 (칸당 줄 수)", Float) = 2.2
@@ -59,6 +63,8 @@ Shader "XNP/Fog"
 
             TEXTURE2D(_SkyBottom); // 열마다 하늘이 시작되는 높이 (가로 한 줄, 코드가 채움)
             float _Rain;           // 1 = 비가 내리는 중 (코드가 채움)
+            float _ToleranceOn, _Tolerance; // 선택 직원의 견딜 수 있는 침식 (코드가 채움)
+            float4 _SafeColor, _DangerColor;
             float4 _RainColor;
             float _RainDensity, _RainLength, _RainSpeed, _RainSlant, _RainWidth;
 
@@ -160,6 +166,18 @@ Shader "XNP/Fog"
                 // 장면 위에 침식 안개 → 비 → 어둠을 차례로 덮은 결과를 한 번에 낸다
                 float3 premul = fogColor * fogAlpha;
                 float alpha = fogAlpha;
+
+                // 선택한 직원 기준 안전/위험 — 칸 침식이 견딜 수 있는 침식 이하면 안전색, 넘으면 위험색.
+                // 공기가 통하는 탐색된 칸(data.b > 0)에만 칠한다
+                if (_ToleranceOn > 0.5 && _ErosionVisible > 0.5)
+                {
+                    float open = saturate(data.b * 255 - 0.5);
+                    float danger = saturate(erosion - _Tolerance); // 견딜 수 있는 값까지는 0, 1 넘으면 위험
+                    float4 tint = lerp(_SafeColor, _DangerColor, danger);
+                    float ta = tint.a * open;
+                    premul = tint.rgb * ta + premul * (1 - ta);
+                    alpha = ta + alpha * (1 - ta);
+                }
                 if (_Rain > 0.5)
                 {
                     float rain = RainAlpha(p);

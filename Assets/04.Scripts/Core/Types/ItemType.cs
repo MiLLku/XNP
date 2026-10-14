@@ -37,6 +37,8 @@ public enum ItemType
     Water       = 13,
     /// <summary>침식된 물 — 침식이 높은 곳에서 받아낸 물</summary>
     ErodedWater = 14,
+    /// <summary>흑요석 — 용암이 물을 만나 굳은 타일을 캐서 얻는다. 내열 슈트 IV 재료</summary>
+    Obsidian    = 15,
 
     // ─── 가공 자원 (101~200) ────────────────────
     IronIngot   = 101,
@@ -92,6 +94,15 @@ public enum ItemType
     ProtectiveSuit3 = 356,
     /// <summary>0단계 방어구 — 시작 지급 전용 (제작 불가). 방어와 침식 방어를 조금씩 겸한다</summary>
     BasicArmor = 357,
+    /// <summary>방호 헬멧 I~III — 헬멧 칸 침식 방호 (견딜 수 있는 침식 10/15/25)</summary>
+    ProtectiveHelmet1 = 358,
+    ProtectiveHelmet2 = 359,
+    ProtectiveHelmet3 = 360,
+    /// <summary>내열 슈트 I~IV — 슈트 칸 내열 (견딜 수 있는 온도 +15/+30/+45/+75도)</summary>
+    HeatSuit1 = 361,
+    HeatSuit2 = 362,
+    HeatSuit3 = 363,
+    HeatSuit4 = 364,
 
     // ─── 식물 (401~450) ─────────────────────────
     /// <summary>나무 묘목 — 나무를 제초하면 나오고, 파종하면 나무로 자랍니다.</summary>
