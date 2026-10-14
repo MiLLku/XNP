@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: mining_4
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: mining_4
+  nodeName: "채광 IV"
+  description: "효율 · 최하층을 봉인한 경계암을 캘 수 있게 됩니다. 금·수정과 에테리온으로 연구합니다."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - mining_3
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 506b5c22796be494bb67a91c9bd7802f, type: 2}
+    amount: 3
+  - item: {fileID: 11400000, guid: 0436ed0d1eb390b44830a471fdb1e83f, type: 2}
+    amount: 3
+  - item: {fileID: 11400000, guid: 94bfaf90d1b03aa40a345c881c0bb61f, type: 2}
+    amount: 1
+  researchPointCost: 350
+  unlockEffects:
+  - {fileID: 11400000, guid: c14586595e1f4802ba5ef01765fca055, type: 2}
+  treePosition: {x: -6, y: -4}

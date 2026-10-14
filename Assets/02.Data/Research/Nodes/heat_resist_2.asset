@@ -10,21 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
-  m_Name: excavation_tech
+  m_Name: heat_resist_2
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
-  nodeId: excavation_tech
-  nodeName: "\uAD74\uC0AD \uAE30\uC220"
-  description: "\uD6A8\uC728 \xB7 \uCC44\uAD11 \uC18D\uB3C4 +25%. \uAE4A\uC740 \uCE35\uC758
-    \uB192\uC740 \uACBD\uB3C4\uB97C \uC0C1\uC1C4\uD569\uB2C8\uB2E4."
+  nodeId: heat_resist_2
+  nodeName: "내열 II"
+  description: "안정성 · 내열 슈트 II(+30도 → 65도) 제작법을 해금합니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
-  - smelting_tech
+  - heat_resist_1
   resourceCosts:
   - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
     amount: 5
-  - item: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
-    amount: 10
+  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
+    amount: 2
   researchPointCost: 180
   unlockEffects:
-  - {fileID: 11400000, guid: c3180de3b6f14ff48aeb2e7978b8b3a7, type: 2}
-  treePosition: {x: -1, y: -3}
+  - {fileID: 11400000, guid: 5535327ba0b54523b79ba9188c315c4c, type: 2}
+  treePosition: {x: -1, y: -4}

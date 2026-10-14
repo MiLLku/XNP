@@ -24,7 +24,7 @@ MonoBehaviour:
   isSpawnableSurface: 0
   isMineable: 1
   hardness: 1.2
-  requiredMiningSkillId: 5
+  requiredMiningTier: 1
   dropItem: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
   generateAsVein: 1
   veinShallowOffset: -42

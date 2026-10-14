@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
-  m_Name: deep_excavation
+  m_Name: mining_3
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
-  nodeId: deep_excavation
-  nodeName: "\uC2EC\uCE35 \uAD74\uC0AD"
-  description: "\uD6A8\uC728 \xB7 \uCC44\uAD11 \uC18D\uB3C4 +40%. \uC2EC\uCE35 \uAD11\uBB3C
-    \uCC44\uAD74\uC774 \uD604\uC2E4\uC801\uC774 \uB429\uB2C8\uB2E4."
+  nodeId: mining_3
+  nodeName: "채광 III"
+  description: "효율 · 금·수정·티타늄을 캘 수 있게 됩니다. 채광 속도 +25%. 심부의 철과 은으로 연구합니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
-  - excavation_tech
+  - mining_2
   resourceCosts:
-  - item: {fileID: 11400000, guid: 0436ed0d1eb390b44830a471fdb1e83f, type: 2}
+  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+    amount: 5
+  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
     amount: 3
-  - item: {fileID: 11400000, guid: 506b5c22796be494bb67a91c9bd7802f, type: 2}
-    amount: 2
-  researchPointCost: 300
+  researchPointCost: 250
   unlockEffects:
+  - {fileID: 11400000, guid: a8efd5fa0081465da731d5766192c29c, type: 2}
   - {fileID: 11400000, guid: b3796eaeb009c6f42942e9eef23ee8eb, type: 2}
-  treePosition: {x: -1, y: -4}
+  treePosition: {x: -6, y: -3}

@@ -24,7 +24,8 @@ MonoBehaviour:
   attackInterval: 1.6
   isDefensiveGear: 0
   coldProtectionLevel: 0
-  heatProtectionLevel: 0
+  heatTolerance: 0
+  erosionTolerance: 0
   maxDurability: 80
   indestructible: 0
   workWearPerSecond: 0.02
@@ -43,5 +44,4 @@ MonoBehaviour:
     damageReduction: 0
     bonusYieldChance: 0
     workTypeModifiers: []
-    erosionIgnoreValue: 0
   abilities: []

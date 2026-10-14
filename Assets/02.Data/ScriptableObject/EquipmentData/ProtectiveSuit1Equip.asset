@@ -13,9 +13,7 @@ MonoBehaviour:
   m_Name: ProtectiveSuit1Equip
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   itemData: {fileID: 11400000, guid: 4458479dceeb9c04ea102cbe919f7d64, type: 2}
-  description: "1\uB2E8\uACC4 \uCE68\uC2DD \uBC29\uC5B4 \uC7A5\uBE44. \uD658\uACBD
-    \uCE68\uC2DD 15 \uC774\uD558\uC5D0\uC11C\uB294 \uCE68\uC2DD\uC774 \uC313\uC774\uC9C0
-    \uC54A\uB294\uB2E4."
+  description: "침식 방호 장비. 견딜 수 있는 침식 15 — 칸 침식이 착용 장비 합산 이하면 전부 막고, 넘으면 그 칸 침식을 전부 받는다."
   slot: 0
   weaponClass: 0
   baseDamage: 0
@@ -25,7 +23,8 @@ MonoBehaviour:
   attackInterval: 1.2
   isDefensiveGear: 0
   coldProtectionLevel: 0
-  heatProtectionLevel: 0
+  heatTolerance: 0
+  erosionTolerance: 15
   maxDurability: 80
   indestructible: 0
   workWearPerSecond: 0.02
@@ -44,5 +43,4 @@ MonoBehaviour:
     damageReduction: 0
     bonusYieldChance: 0
     workTypeModifiers: []
-    erosionIgnoreValue: 0.15
   abilities: []
