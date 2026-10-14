@@ -93,7 +93,7 @@ MonoBehaviour:
       item: {fileID: 0}
       buildings: []
       flagKey: 
-      equipSlot: 0
+      equipSlot: 6
       roomTemperature:
         use: 0
         min: 0

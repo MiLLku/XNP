@@ -16,7 +16,7 @@ MonoBehaviour:
   description: "0\uB2E8\uACC4 \uBC29\uC5B4\uAD6C. \uBC1B\uB294 \uD53C\uD574 1% \uAC10\uC18C,
     \uD658\uACBD \uCE68\uC2DD 1 \uC774\uD558\uC5D0\uC11C\uB294 \uCE68\uC2DD\uC774
     \uC313\uC774\uC9C0 \uC54A\uB294\uB2E4."
-  slot: 0
+  slot: 6
   weaponClass: 0
   baseDamage: 0
   accuracy: 0

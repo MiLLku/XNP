@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   itemData: {fileID: 11400000, guid: 1e81365c1b73ab84388370d9f33de804, type: 2}
   description: "3\uB2E8\uACC4 \uBC29\uC5B4\uAD6C. \uBC1B\uB294 \uD53C\uD574 35% \uAC10\uC18C."
-  slot: 0
+  slot: 6
   weaponClass: 0
   baseDamage: 0
   accuracy: 0

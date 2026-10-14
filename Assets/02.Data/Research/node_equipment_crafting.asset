@@ -32,4 +32,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5857b5fb925605f438efc402dc068bd7, type: 2}
   - {fileID: 11400000, guid: e350c7821d70f7d4399fbcb20f7abb70, type: 2}
   - {fileID: 11400000, guid: ff28d53babfe4bbfaa5a010a6a4cfe20, type: 2}
+  - {fileID: 11400000, guid: 3710b6261f0b4be4b4204c182cc9f232, type: 2}
+  - {fileID: 11400000, guid: b58dff0c29d949bd99a7727418a3264c, type: 2}
   treePosition: {x: -2, y: -2}
