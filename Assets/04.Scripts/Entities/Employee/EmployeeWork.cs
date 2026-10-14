@@ -308,8 +308,11 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         float mentalModifier = mental != null ? mental.GetActiveSpeedModifier() : 1f;
         float erosionModifier = erosionController != null ? erosionController.WorkSpeedModifier : 1f;
         float researchModifier = 1f + GetResearchWorkSpeedBonus(type);
+        // 장비의 작업 종류별 속도 보정(%) — 작업 장갑 등
+        var equip = employee != null ? employee.Equipment : null;
+        float equipmentModifier = equip != null ? Mathf.Max(0.1f, 1f + equip.GetWorkTypeSpeedModifier(type) / 100f) : 1f;
 
-        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier;
+        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier * equipmentModifier;
     }
 
     /// <summary>

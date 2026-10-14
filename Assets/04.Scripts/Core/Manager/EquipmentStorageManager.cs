@@ -183,6 +183,29 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         return inst;
     }
 
+    /// <summary>
+    /// 새 직원에게 시작 복장(StartingInventoryConfig.startingOutfit)을 바로 입힙니다.
+    /// 풀을 거치지 않고 인스턴스를 만들어 장착하므로 보관소 칸을 차지하지 않습니다.
+    /// 로드로 복원되는 직원은 이 경로를 타지 않습니다(EmployeeManager.SpawnEmployee에서만 호출).
+    /// </summary>
+    public void EquipStartingOutfit(Employee employee)
+    {
+        var equipment = employee != null ? employee.Equipment : null;
+        if (equipment == null || startingConfig == null || startingConfig.startingOutfit == null) return;
+
+        foreach (var data in startingConfig.startingOutfit)
+        {
+            if (data == null || data.itemData == null || !equipment.IsSlotEmpty(data.slot)) continue;
+            var inst = new EquipmentInstance
+            {
+                instanceId = nextInstanceId++,
+                equipmentId = data.itemData.itemID,
+                durability = data.maxDurability
+            };
+            equipment.EquipInstance(data.slot, inst);
+        }
+    }
+
     /// <summary>기존 인스턴스를 풀에 반납합니다 (장착 해제 시).</summary>
     public void ReturnInstance(EquipmentInstance inst)
     {

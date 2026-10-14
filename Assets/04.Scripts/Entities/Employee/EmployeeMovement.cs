@@ -773,10 +773,17 @@ public class EmployeeMovement : MonoBehaviour
 
         float speedModifier = 1f + Mathf.Abs(heightDiff) * HEIGHT_SPEED_PENALTY;
         float tileSpeedMult = GetTileSpeedMultiplier(targetTile);
-        if (FluidManager.instance != null) tileSpeedMult *= FluidManager.instance.GetSpeedMultiplierAt(targetTile.x, targetTile.y); // 물속 감속
+        var equipment = employee != null ? employee.Equipment : null;
+        if (FluidManager.instance != null) // 물속 감속 — 방수 장화는 물만 무시(용암은 그대로)
+        {
+            bool skip = equipment != null && equipment.IgnoresWaterSlow()
+                     && FluidManager.instance.GetFluid(targetTile.x, targetTile.y) == FluidType.Water;
+            if (!skip) tileSpeedMult *= FluidManager.instance.GetSpeedMultiplierAt(targetTile.x, targetTile.y);
+        }
         float erosionMoveModifier = erosionController != null ? erosionController.MoveSpeedModifier : 1f;
         float traitMoveModifier   = statsController   != null ? statsController.CachedMoveSpeedMult : 1f;
-        float actualSpeed = tileTransitionSpeed * tileSpeedMult / speedModifier * erosionMoveModifier * traitMoveModifier;
+        float equipMoveModifier   = equipment != null ? Mathf.Max(0.1f, 1f + equipment.GetTotalMoveSpeedModifier() / 100f) : 1f;
+        float actualSpeed = tileTransitionSpeed * tileSpeedMult / speedModifier * erosionMoveModifier * traitMoveModifier * equipMoveModifier;
 
         while (Vector3.Distance(transform.position, endPos) > stoppingDistance)
         {

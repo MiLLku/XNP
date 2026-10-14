@@ -103,6 +103,19 @@ public enum ItemType
     HeatSuit2 = 362,
     HeatSuit3 = 363,
     HeatSuit4 = 364,
+    /// <summary>기본 옷·장갑·신발·모자 — 새 직원이 입고 오는 시작 복장 (제재소에서 연구 없이 제작)</summary>
+    BasicClothes = 365,
+    BasicGloves  = 366,
+    BasicShoes   = 367,
+    BasicHat     = 368,
+    /// <summary>장갑 — 작업(채광·건설·제작 +10%) / 방호(침식 +5) / 내열(온도 +10)</summary>
+    WorkGloves       = 369,
+    ProtectiveGloves = 370,
+    HeatGloves       = 371,
+    /// <summary>신발 — 작업화(이동 +10%) / 방수 장화(물속 감속 무시 + 침식 +5) / 내열화(온도 +10)</summary>
+    WorkBoots       = 372,
+    WaterproofBoots = 373,
+    HeatBoots       = 374,
 
     // ─── 식물 (401~450) ─────────────────────────
     /// <summary>나무 묘목 — 나무를 제초하면 나오고, 파종하면 나무로 자랍니다.</summary>
@@ -117,4 +130,10 @@ public enum ItemType
     // ─── 성장 (451~500) ─────────────────────────
     /// <summary>습격 전리품 — 습격 적이 확률로 떨굼. 연구 후 직원 레벨업에 사용</summary>
     RaidTrophy        = 451,
+
+    // ─── 도구 (501~) ────────────────────────────
+    /// <summary>응급 키트 — 다용도구 칸 1회용. 체력 30% 이하에서 저절로 써서 체력 +40</summary>
+    FirstAidKit       = 501,
+    /// <summary>정화 앰플 — 다용도구 칸 1회용. 침식이 유지 수치+30 이상이면 저절로 써서 침식 -15</summary>
+    PurifyingAmpoule  = 502,
 }

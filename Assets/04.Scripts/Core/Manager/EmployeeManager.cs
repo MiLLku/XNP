@@ -197,6 +197,9 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         // RestoreFromSaveData가 소지 식량을 복원한다.
         GrantInitialFood(employee);
 
+        // 새 직원은 기본 옷·장갑·신발·모자를 입고 온다
+        EquipmentStorageManager.instance?.EquipStartingOutfit(employee);
+
         GameMessageBus.Publish(new EmployeeSpawnedMessage(employee));
 
         if (showDebugInfo)

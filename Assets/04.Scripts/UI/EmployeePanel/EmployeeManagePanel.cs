@@ -6,8 +6,10 @@ using TMPro;
 /// <summary>
 /// 직원 관리 패널. 좌측 직원 목록 + 우측 상세:
 ///   - 현재 상태 (체력/침식/재미/피로)
-///   - 장비 슬롯 표시 (무기/방어구 — 현재 착용 장비)
-///   - 장비 그리드 (모든 장비 4×4 페이지 — 칸 클릭 → 선택 직원에게 장착 지시, 자기 착용분은 해제)
+///   - 프로필 이미지 + 상태 (프로필 오른쪽)
+///   - 장비 칸 7개 (헬멧·다용도구·무기·옷·장갑·보호구·신발 — 현재 착용 장비)
+///   - 장비 선택 창 — 칸 버튼을 누르면 이 창 오른쪽에 붙어 나옵니다(스킬 트리와 같은 자리, 하나만 열림).
+///     그 칸의 장비만 4×4 페이지로 보여 주고, 칸 클릭 → 선택 직원에게 장착 지시, 자기 착용분은 해제
 ///   - 작업 우선순위 (박스 드래그로 순서 지정 — WorkPriorityBar)
 ///   - 필수 소지 설정 (식량/약물 개수 — AI 선제 확보가 이 값을 따름)
 ///   - 침식 유지 수치 (이 값을 넘으면 세척 시간대에 세척 시설로 감. 세척도 이 값까지만)
@@ -19,7 +21,7 @@ using TMPro;
 /// 열기: BottomBar '직원' 버튼 → UIManager.TogglePanel(UIPanelType.EmployeeUI).
 /// 스킬 버튼 → 이 창이 왼쪽으로 밀리고 오른쪽에 스킬 트리(SkillTreePanel)가 붙습니다.
 /// ESC: 스킬 트리 → 이 창 순서로 닫힘. 이 창을 닫으면 스킬 트리도 함께 닫힘.
-/// 슬롯 확장: 새 EquipmentSlot을 표시하려면 빌더에서 슬롯 버튼을 추가하고 배열에 연결.
+/// 슬롯 확장: 새 EquipmentSlot을 표시하려면 씬에 칸 버튼을 추가하고 displaySlots·slotButtons에 같은 순서로 연결.
 /// </summary>
 public class EmployeeManagePanel : BasePanel
 {
@@ -33,7 +35,11 @@ public class EmployeeManagePanel : BasePanel
 
     [Header("장비 슬롯 (표시 순서 = displaySlots 순서)")]
     [Tooltip("표시할 슬롯 종류 — 확장 시 여기와 slotButtons에 추가")]
-    [SerializeField] private EquipmentSlot[] displaySlots = { EquipmentSlot.Weapon, EquipmentSlot.Suit };
+    [SerializeField] private EquipmentSlot[] displaySlots =
+    {
+        EquipmentSlot.Helmet, EquipmentSlot.MultiTool, EquipmentSlot.Weapon, EquipmentSlot.Suit,
+        EquipmentSlot.Gloves, EquipmentSlot.Protector, EquipmentSlot.Shoes
+    };
     [SerializeField] private Button[] slotButtons;
 
     [Header("필수 소지 설정")]
@@ -63,9 +69,14 @@ public class EmployeeManagePanel : BasePanel
     [SerializeField] private TMP_Text pageText;
     [SerializeField] private TMP_Text gridHintText;
 
-    [Header("장비 그리드 — 종류 탭")]
-    [SerializeField] private Button weaponTabButton;
-    [SerializeField] private Button armorTabButton;
+    [Header("장비 선택 창 (칸 버튼을 누르면 이 창 오른쪽에 붙어 나옴 — 그리드·페이저가 그 안에 있음)")]
+    [SerializeField] private RectTransform equipmentWindow;
+    [SerializeField] private TMP_Text equipmentWindowTitle;
+    [SerializeField] private Button equipmentWindowCloseButton;
+
+    [Header("프로필")]
+    [Tooltip("직원 프로필 이미지 자리 (그림이 생기기 전까지는 회색 빈 칸)")]
+    [SerializeField] private Image profileImage;
 
     [Header("스킬 트리")]
     [SerializeField] private Button skillButton;
@@ -85,18 +96,16 @@ public class EmployeeManagePanel : BasePanel
     private static readonly Color ARROW_ON  = Color.white;
     private static readonly Color ARROW_OFF = new Color(0.45f, 0.45f, 0.48f, 1f);
 
-    private static readonly Color TAB_ON  = new Color(0.086f, 0.373f, 0.502f, 1f);
-    private static readonly Color TAB_OFF = new Color(0.2f, 0.22f, 0.28f, 1f);
-
-    /// <summary>장비 그리드 종류 — 무기 / 방어구(무기 외 전부)</summary>
-    private enum EquipmentTab { Weapon, Armor }
+    private static readonly Color SLOT_ON  = new Color(0.086f, 0.373f, 0.502f, 1f);
+    private static readonly Color SLOT_OFF = new Color(0.2f, 0.22f, 0.28f, 1f);
 
     private Employee selected;
 
     private readonly List<EquipmentCell> cells = new List<EquipmentCell>();
     private List<EquipmentEntry> entries = new List<EquipmentEntry>();
     private int page;
-    private EquipmentTab tab = EquipmentTab.Weapon;
+    /// <summary>장비 선택 창이 보여 주는 칸 (창이 닫혀 있으면 null)</summary>
+    private EquipmentSlot? windowSlot;
 
     private SkillTreePanel skillPanel;
     private Vector2 homePosition;
@@ -114,9 +123,17 @@ public class EmployeeManagePanel : BasePanel
     {
         homePosition = ((RectTransform)transform).anchoredPosition;
 
-        // 슬롯 버튼은 현재 착용 장비 표시 전용 — 장착·해제는 장비 그리드에서
+        // 칸 버튼 — 누르면 그 칸의 장비 선택 창을 연다 (다시 누르면 닫힘)
         if (slotButtons != null)
-            foreach (var b in slotButtons) if (b != null) b.interactable = false;
+            for (int i = 0; i < slotButtons.Length && i < displaySlots.Length; i++)
+            {
+                if (slotButtons[i] == null) continue;
+                EquipmentSlot slot = displaySlots[i];
+                slotButtons[i].interactable = true;
+                slotButtons[i].onClick.AddListener(() => ToggleEquipmentWindow(slot));
+            }
+        if (equipmentWindowCloseButton != null) equipmentWindowCloseButton.onClick.AddListener(CloseEquipmentWindow);
+        if (equipmentWindow != null) equipmentWindow.gameObject.SetActive(false);
 
         if (cellTemplate != null)
         {
@@ -132,8 +149,6 @@ public class EmployeeManagePanel : BasePanel
         if (prevPageButton != null) { prevPageButton.transition = Selectable.Transition.None; prevPageButton.onClick.AddListener(() => TurnPage(-1)); }
         if (nextPageButton != null) { nextPageButton.transition = Selectable.Transition.None; nextPageButton.onClick.AddListener(() => TurnPage(+1)); }
         if (skillButton != null) skillButton.onClick.AddListener(ToggleSkillTree);
-        if (weaponTabButton != null) weaponTabButton.onClick.AddListener(() => SetTab(EquipmentTab.Weapon));
-        if (armorTabButton != null) armorTabButton.onClick.AddListener(() => SetTab(EquipmentTab.Armor));
 
         foodMinusButton?.onClick.AddListener(() => AdjustCarry(isFood: true, delta: -1));
         foodPlusButton?.onClick.AddListener(() => AdjustCarry(isFood: true, delta: +1));
@@ -148,17 +163,18 @@ public class EmployeeManagePanel : BasePanel
     public override void OnOpen()
     {
         base.OnOpen();
-        tab = EquipmentTab.Weapon; // 열 때는 항상 무기 탭부터
         page = 0;
+        CloseEquipmentWindow();
         RebuildList();
         RefreshDetail();
         workPriorityBar?.Show(selected);
     }
 
-    /// <summary>이 창을 닫으면 스킬 트리도 함께 닫습니다.</summary>
+    /// <summary>이 창을 닫으면 스킬 트리·장비 선택 창도 함께 닫습니다.</summary>
     public override void OnClose()
     {
         CloseSkillTree();
+        CloseEquipmentWindow();
         base.OnClose();
     }
 
@@ -166,17 +182,18 @@ public class EmployeeManagePanel : BasePanel
     {
         if (!gameObject.activeSelf) return;
 
-        // ESC: 스킬 트리가 열려 있으면 그것만, 아니면 이 창
+        // ESC: 스킬 트리·장비 선택 창이 열려 있으면 그것만, 아니면 이 창
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             if (IsSkillTreeOpen) CloseSkillTree();
+            else if (IsEquipmentWindowOpen) CloseEquipmentWindow();
             else if (UIManager.instance != null) UIManager.instance.HidePanel(panelType);
             else OnClose();
             return;
         }
 
         // 스킬 트리가 자기 닫기 버튼으로 닫혔으면 이 창을 제자리로
-        if (skillPanel != null && !skillPanel.gameObject.activeSelf && Shifted) SetShifted(false);
+        if (skillPanel != null && !skillPanel.gameObject.activeSelf && !IsEquipmentWindowOpen && Shifted) SetShifted(false);
 
         refreshTimer -= Time.unscaledDeltaTime;
         if (refreshTimer <= 0f)
@@ -274,13 +291,20 @@ public class EmployeeManagePanel : BasePanel
             var erosionCtrl = selected.GetComponent<EmployeeErosionController>();
             string stage = erosionCtrl != null ? erosionCtrl.CurrentStage.ToString() : "-";
 
+            var equip = selected.Equipment;
+            var temperature = selected.GetComponent<EmployeeTemperature>();
+            string tolerance = $"견딜 수 있는 침식 {(erosionCtrl != null ? erosionCtrl.ErosionTolerance : 0f):F0}"
+                             + (temperature != null ? $" · 온도 {temperature.LastToleratedMax:F0}도" : "")
+                             + (equip != null && equip.GetTotalDamageReduction() > 0f ? $" · 피해 감소 {equip.GetTotalDamageReduction():F0}%" : "");
+
             statsText.text =
                 $"체력  {stats.health:F0} / {stats.maxHealth:F0}\n" +
                 $"정신  {stats.mental:F0} / {stats.maxMental:F0}{BuildMentalDetail()}\n" +
                 $"침식  {selected.ErosionLevel:F0} / 200  ({stage})\n" +
                 BuildErosionDetail(erosionCtrl) +
                 $"재미  {needs.fun:F0} / 100\n" +
-                $"수면(피로)  {needs.fatigue:F0} / 100";
+                $"수면(피로)  {needs.fatigue:F0} / 100\n" +
+                tolerance;
         }
 
         RefreshSlotLabels();
@@ -345,23 +369,24 @@ public class EmployeeManagePanel : BasePanel
         var equipment = selected.GetComponent<EmployeeEquipment>();
         for (int i = 0; i < slotButtons.Length && i < displaySlots.Length; i++)
         {
-            var label = slotButtons[i] != null ? slotButtons[i].GetComponentInChildren<TMP_Text>() : null;
-            if (label == null) continue;
+            var button = slotButtons[i];
+            if (button == null) continue;
 
             var slot = displaySlots[i];
-            string slotName = GetSlotDisplayName(slot);
             var data = equipment?.GetItemInSlot(slot);
-            if (data == null)
-            {
-                label.text = $"{slotName}: (없음)";
-            }
-            else
-            {
-                var inst = equipment.GetInstanceInSlot(slot);
-                string dura = data.indestructible ? "∞"
-                    : inst != null ? $"{inst.durability:F0}/{data.maxDurability:F0}" : "?";
-                label.text = $"{slotName}: {data.itemData?.itemName} [{dura}]";
-            }
+            Transform iconT = button.transform.Find("Icon");
+            Transform labelT = button.transform.Find("Label");
+            var icon = iconT != null ? iconT.GetComponent<Image>() : null;
+            var label = labelT != null ? labelT.GetComponent<TMP_Text>() : button.GetComponentInChildren<TMP_Text>();
+
+            // 착용 장비가 있으면 그림(없으면 이름), 비어 있으면 칸 이름
+            Sprite sprite = data?.itemData != null ? data.itemData.itemIcon : null;
+            if (icon != null) { icon.sprite = sprite; icon.enabled = sprite != null; }
+            if (label != null)
+                label.text = data == null ? EquipmentSlotNames.Label(slot)
+                           : sprite != null ? "" : data.itemData?.itemName;
+
+            if (button.targetGraphic != null) button.targetGraphic.color = windowSlot == slot ? SLOT_ON : SLOT_OFF;
         }
     }
 
@@ -435,30 +460,18 @@ public class EmployeeManagePanel : BasePanel
         selected.GetComponent<EmployeeAI>()?.ForceReevaluate();
     }
 
-    public static string GetSlotDisplayName(EquipmentSlot slot)
-    {
-        switch (slot)
-        {
-            case EquipmentSlot.Weapon:    return "무기";
-            case EquipmentSlot.Suit:      return "방어구";
-            case EquipmentSlot.Helmet:    return "헬멧";
-            case EquipmentSlot.MultiTool: return "다용도구";
-            default:                      return slot.ToString();
-        }
-    }
+    public static string GetSlotDisplayName(EquipmentSlot slot) => EquipmentSlotNames.Label(slot);
 
     #endregion
 
     #region 장비 그리드
 
-    /// <summary>모든 장비를 다시 모아 현재 페이지를 그립니다 (주기 갱신에서 호출).</summary>
+    /// <summary>선택한 칸의 장비를 다시 모아 현재 페이지를 그립니다 (주기 갱신에서 호출, 창이 닫혀 있으면 생략).</summary>
     private void RefreshEquipmentGrid()
     {
-        if (cells.Count == 0) return;
+        if (cells.Count == 0 || !IsEquipmentWindowOpen) return;
 
-        entries = EquipmentListing.CollectAll().FindAll(InTab);
-        SetTabColor(weaponTabButton, tab == EquipmentTab.Weapon);
-        SetTabColor(armorTabButton, tab == EquipmentTab.Armor);
+        entries = EquipmentListing.CollectAll().FindAll(InWindowSlot);
         int pages = Mathf.Max(1, Mathf.CeilToInt(entries.Count / (float)GRID_SIZE));
         page = Mathf.Clamp(page, 0, pages - 1);
 
@@ -485,24 +498,33 @@ public class EmployeeManagePanel : BasePanel
             gridHintText.text = hasArmory ? "" : "! 장비 보관소 없음 — 장착 불가";
     }
 
-    /// <summary>현재 탭에 속하는 장비인지 — 무기 탭은 무기 슬롯, 방어구 탭은 그 외 슬롯.</summary>
-    private bool InTab(EquipmentEntry e)
-    {
-        bool weapon = e.data != null && e.data.slot == EquipmentSlot.Weapon;
-        return tab == EquipmentTab.Weapon ? weapon : !weapon;
-    }
+    /// <summary>장비 선택 창이 보여 주는 칸의 장비인지</summary>
+    private bool InWindowSlot(EquipmentEntry e) => e.data != null && windowSlot.HasValue && e.data.slot == windowSlot.Value;
 
-    private void SetTab(EquipmentTab next)
+    private bool IsEquipmentWindowOpen => equipmentWindow != null && equipmentWindow.gameObject.activeSelf;
+
+    /// <summary>칸 버튼 — 그 칸의 장비 선택 창을 엽니다. 같은 칸을 다시 누르면 닫습니다. 스킬 트리는 닫힙니다.</summary>
+    private void ToggleEquipmentWindow(EquipmentSlot slot)
     {
-        if (tab == next) return;
-        tab = next;
+        if (equipmentWindow == null) return;
+        if (IsEquipmentWindowOpen && windowSlot == slot) { CloseEquipmentWindow(); return; }
+
+        if (IsSkillTreeOpen) skillPanel.OnClose();
+        windowSlot = slot;
         page = 0;
+        equipmentWindow.gameObject.SetActive(true);
+        if (equipmentWindowTitle != null) equipmentWindowTitle.text = $"{EquipmentSlotNames.Label(slot)} 장비";
+        DockToLeft(equipmentWindow.rect.width);
+        RefreshSlotLabels();
         RefreshEquipmentGrid();
     }
 
-    private static void SetTabColor(Button button, bool on)
+    private void CloseEquipmentWindow()
     {
-        if (button != null && button.targetGraphic != null) button.targetGraphic.color = on ? TAB_ON : TAB_OFF;
+        windowSlot = null;
+        if (equipmentWindow != null) equipmentWindow.gameObject.SetActive(false);
+        if (!IsSkillTreeOpen) SetShifted(false);
+        RefreshSlotLabels();
     }
 
     private void TurnPage(int delta)
@@ -541,6 +563,23 @@ public class EmployeeManagePanel : BasePanel
         if (!string.IsNullOrWhiteSpace(entry.data.description)) lines.Add(entry.data.description);
         if (entry.data.erosionTolerance > 0) lines.Add($"견딜 수 있는 침식 {entry.data.erosionTolerance} (착용 장비 합산)");
         if (entry.data.heatTolerance > 0) lines.Add($"견딜 수 있는 온도 +{entry.data.heatTolerance}도 (맨몸 기준에 합산)");
+        if (entry.data.coldProtectionLevel > 0) lines.Add($"방한 +{entry.data.coldProtectionLevel}");
+        if (entry.data.passiveEffects != null)
+        {
+            if (entry.data.passiveEffects.damageReduction > 0f) lines.Add($"피해 감소 {entry.data.passiveEffects.damageReduction:F0}% (착용 장비 합산)");
+            if (entry.data.passiveEffects.workTypeModifiers != null)
+                foreach (var m in entry.data.passiveEffects.workTypeModifiers)
+                    lines.Add($"{WorkTypeCategory.GetDisplayName(m.workType)} 속도 {m.speedModifier:+0;-0}%");
+            if (entry.data.passiveEffects.ignoreWaterSlow) lines.Add("물속 감속 무시");
+        }
+        if (entry.data.statModifier.moveSpeedModifier != 0f) lines.Add($"이동 속도 {entry.data.statModifier.moveSpeedModifier:+0;-0}%");
+        if (entry.data.IsConsumable)
+        {
+            var c = entry.data.consumable;
+            string when = c.trigger == ConsumableTrigger.LowHealth ? $"체력 {c.threshold * 100f:F0}% 이하일 때" : $"침식이 유지 수치+{c.threshold:F0} 이상일 때";
+            string what = (c.healthRestore > 0f ? $"체력 +{c.healthRestore:F0} " : "") + (c.erosionReduce > 0f ? $"침식 -{c.erosionReduce:F0}" : "");
+            lines.Add($"1회용 — {when} 저절로 사용 ({what.Trim()})");
+        }
         if (!entry.data.indestructible)
             lines.Add($"내구도 {Mathf.CeilToInt(entry.instance.durability)}/{Mathf.CeilToInt(entry.data.maxDurability)}");
 
@@ -565,6 +604,7 @@ public class EmployeeManagePanel : BasePanel
     {
         if (IsSkillTreeOpen) { CloseSkillTree(); return; }
         if (selected == null || UIManager.instance == null) return;
+        if (IsEquipmentWindowOpen) CloseEquipmentWindow();
 
         skillPanel = UIManager.instance.GetPanel<SkillTreePanel>(UIPanelType.SkillTreeUI);
         if (skillPanel == null) { Debug.LogWarning("[EmployeeManagePanel] SkillTreePanel이 UIManager에 등록되지 않았습니다."); return; }
@@ -584,6 +624,18 @@ public class EmployeeManagePanel : BasePanel
     /// 가운데 정렬로 두면 오른쪽 끝이 우상단 알림 배너에 걸려 스킬 트리 닫기 버튼이 가려진다.
     /// 두 창 모두 가운데 앵커라 x만 옮기면 됩니다.
     /// </summary>
+    /// <summary>
+    /// 장비 선택 창용 — 이 창의 오른쪽에 자식으로 붙은 창(너비 <paramref name="dockedWidth"/>)이 화면에 들어오도록
+    /// 이 창을 왼쪽으로 밉니다. 스킬 트리와 같은 자리 계산입니다.
+    /// </summary>
+    private void DockToLeft(float dockedWidth)
+    {
+        var me = (RectTransform)transform;
+        float screenW = me.parent is RectTransform parent ? parent.rect.width : 1920f;
+        float left = -screenW / 2f + skillGap * 3f;
+        me.anchoredPosition = new Vector2(left + me.rect.width / 2f, homePosition.y);
+    }
+
     private void SetShifted(bool shifted)
     {
         var me = (RectTransform)transform;

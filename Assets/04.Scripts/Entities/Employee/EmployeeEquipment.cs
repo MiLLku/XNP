@@ -61,6 +61,7 @@ public class EmployeeEquipment : MonoBehaviour
         UpdateAbilityCooldowns();
         UpdatePeriodicAbilities();
         UpdateWorkWear();
+        UpdateConsumables();
     }
 
     #endregion
@@ -141,11 +142,63 @@ public class EmployeeEquipment : MonoBehaviour
         if (weapon != null) ApplyWear(EquipmentSlot.Weapon, weapon.combatWearPerHit);
     }
 
-    /// <summary>피격 시 방어구(슈트) 내구도 소모. Employee.TakeDamage에서 호출.</summary>
+    /// <summary>피격 시 옷·보호구 내구도 소모. Employee.TakeDamage에서 호출.</summary>
     public void NotifyDamageTaken()
     {
         var suit = GetItemInSlot(EquipmentSlot.Suit);
         if (suit != null) ApplyWear(EquipmentSlot.Suit, suit.combatWearPerHit);
+        var protector = GetItemInSlot(EquipmentSlot.Protector);
+        if (protector != null) ApplyWear(EquipmentSlot.Protector, protector.combatWearPerHit);
+    }
+
+    #endregion
+
+    #region 1회용 (다용도구)
+
+    private const float CONSUMABLE_CHECK_INTERVAL = 0.5f;
+    private float consumableTimer;
+
+    /// <summary>1회용 장비의 사용 조건을 주기적으로 확인하고, 되면 쓰고 없앱니다.</summary>
+    private void UpdateConsumables()
+    {
+        consumableTimer += Time.deltaTime;
+        if (consumableTimer < CONSUMABLE_CHECK_INTERVAL) return;
+        consumableTimer = 0f;
+        if (employee == null || employee.State == EmployeeState.Dead || statsController == null) return;
+
+        foreach (var slot in new List<EquipmentSlot>(itemSlots.Keys))
+        {
+            var data = GetItemInSlot(slot);
+            if (data == null || !data.IsConsumable || !IsConsumableTriggered(data.consumable)) continue;
+            UseConsumable(slot, data);
+        }
+    }
+
+    private bool IsConsumableTriggered(EquipmentConsumable c)
+    {
+        switch (c.trigger)
+        {
+            case ConsumableTrigger.LowHealth:
+                var stats = statsController.Stats;
+                return stats.maxHealth > 0f && stats.health <= stats.maxHealth * c.threshold;
+            case ConsumableTrigger.HighErosion:
+                var erosion = GetComponent<EmployeeErosionController>();
+                return erosion != null && statsController.ErosionLevel >= erosion.ErosionMaintainTarget + c.threshold;
+            default:
+                return false;
+        }
+    }
+
+    /// <summary>1회용 장비를 쓰고 없앱니다 (해제 + 인스턴스 소멸). 보관소에서 자동으로 다시 끼우지는 않습니다.</summary>
+    private void UseConsumable(EquipmentSlot slot, EquipmentData data)
+    {
+        var c = data.consumable;
+        if (c.healthRestore > 0f) statsController.ModifyHealth(c.healthRestore);
+        if (c.erosionReduce > 0f) GetComponent<EmployeeErosionController>()?.ReduceErosion(c.erosionReduce, data.itemData != null ? data.itemData.itemName : "1회용 장비");
+
+        UnequipItem(slot);
+        equippedInstances.Remove(slot);
+        Debug.Log($"[EmployeeEquipment] {employee?.DisplayName}: {data.itemData?.itemName} 사용 ({slot})");
     }
 
     /// <summary>작업 중 장착 장비 전체가 서서히 마모됩니다.</summary>
@@ -418,6 +471,23 @@ public class EmployeeEquipment : MonoBehaviour
             if (kvp.Value != null) total += kvp.Value.heatTolerance;
         }
         return total;
+    }
+
+    /// <summary>착용 장비의 이동 속도 보정 합 (%) — EmployeeMovement가 (1 + 합/100)을 곱합니다.</summary>
+    public float GetTotalMoveSpeedModifier()
+    {
+        float total = 0f;
+        foreach (var kvp in itemSlots)
+            if (kvp.Value != null) total += kvp.Value.statModifier.moveSpeedModifier;
+        return total;
+    }
+
+    /// <summary>물속 감속을 무시하는 장비를 신었는지 (방수 장화 등)</summary>
+    public bool IgnoresWaterSlow()
+    {
+        foreach (var kvp in itemSlots)
+            if (kvp.Value?.passiveEffects != null && kvp.Value.passiveEffects.ignoreWaterSlow) return true;
+        return false;
     }
 
     /// <summary>전체 장비의 추가 산출 확률 합산</summary>

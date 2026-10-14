@@ -83,9 +83,16 @@ public class EquipmentData : ScriptableObject
     [Tooltip("항상 적용되는 특성")]
     public EquipmentPassiveEffects passiveEffects;
 
+    [Header("1회용 (다용도구)")]
+    [Tooltip("조건이 되면 저절로 쓰이고 사라지는 장비. trigger가 None이면 일반 장비입니다.")]
+    public EquipmentConsumable consumable = new EquipmentConsumable();
+
     [Header("능력")]
     [Tooltip("액티브/트리거 기반 스킬 목록")]
     public List<EquipmentAbility> abilities = new List<EquipmentAbility>();
+
+    /// <summary>1회용 장비인지</summary>
+    public bool IsConsumable => consumable != null && consumable.trigger != ConsumableTrigger.None;
 }
 
 /// <summary>
@@ -152,6 +159,42 @@ public class EquipmentPassiveEffects
     [Tooltip("작업 타입별 속도 보정")]
     public WorkSpeedModifier[] workTypeModifiers;
 
+    [Header("이동")]
+    [Tooltip("물속 감속 무시 (용암은 그대로 느려짐)")]
+    public bool ignoreWaterSlow;
+}
+
+/// <summary>1회용 장비가 저절로 쓰이는 조건</summary>
+public enum ConsumableTrigger
+{
+    /// <summary>1회용이 아님</summary>
+    None,
+
+    /// <summary>체력이 최대치의 일정 비율 이하로 떨어지면</summary>
+    LowHealth,
+
+    /// <summary>직원 침식이 '침식 유지 수치 + 문턱' 이상이면</summary>
+    HighErosion
+}
+
+/// <summary>
+/// 1회용 장비(다용도구 칸) — 조건이 되면 저절로 쓰이고 사라집니다.
+/// 다 쓴 뒤 보관소에서 같은 장비를 자동으로 다시 끼우지는 않습니다.
+/// </summary>
+[Serializable]
+public class EquipmentConsumable
+{
+    [Tooltip("저절로 쓰이는 조건. None이면 1회용이 아닙니다.")]
+    public ConsumableTrigger trigger = ConsumableTrigger.None;
+
+    [Tooltip("조건 값 — LowHealth: 최대 체력 대비 비율(0.3 = 30% 이하) / HighErosion: 침식 유지 수치에 더하는 값(30이면 유지 수치+30 이상)")]
+    public float threshold;
+
+    [Tooltip("쓰면 회복하는 체력")]
+    [Min(0f)] public float healthRestore;
+
+    [Tooltip("쓰면 줄어드는 직원 침식")]
+    [Min(0f)] public float erosionReduce;
 }
 
 /// <summary>

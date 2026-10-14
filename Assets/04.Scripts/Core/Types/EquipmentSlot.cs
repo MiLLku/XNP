@@ -1,22 +1,51 @@
 using System;
 
 /// <summary>
-/// 장비 슬롯 종류.
-/// 각 직원은 4개 슬롯에 장비를 장착할 수 있습니다.
+/// 장비 슬롯 종류 — 직원 한 명이 7칸을 동시에 착용합니다.
+/// 방어력·견딜 수 있는 온도·방한·견딜 수 있는 침식은 7칸 전부 합산합니다.
+/// 값은 세이브에 int로 저장되므로 <b>순서를 바꾸지 말고 뒤에만 추가</b>하세요.
 /// </summary>
 public enum EquipmentSlot
 {
-    /// <summary>슈트 — 방어/환경 보호</summary>
+    /// <summary>옷 — 방호복·내열 슈트·기본 옷 (환경 보호)</summary>
     Suit,
 
-    /// <summary>헬멧 — 정신력/센서</summary>
+    /// <summary>헬멧 — 방호 헬멧·기본 모자</summary>
     Helmet,
 
     /// <summary>무기 — 공격/전투</summary>
     Weapon,
 
-    /// <summary>다용도구 — 작업 효율</summary>
-    MultiTool
+    /// <summary>다용도구 — 1회용 도구 (조건이 되면 자동 사용 후 사라짐)</summary>
+    MultiTool,
+
+    /// <summary>장갑 — 작업 속도·소량의 내성</summary>
+    Gloves,
+
+    /// <summary>신발 — 이동 속도·물속 감속 무시·소량의 내성</summary>
+    Shoes,
+
+    /// <summary>보호구 — 갑옷류 (피해 감소, 옷과 합산)</summary>
+    Protector
+}
+
+/// <summary>장비 칸 표시 이름</summary>
+public static class EquipmentSlotNames
+{
+    public static string Label(EquipmentSlot slot)
+    {
+        switch (slot)
+        {
+            case EquipmentSlot.Suit:      return "옷";
+            case EquipmentSlot.Helmet:    return "헬멧";
+            case EquipmentSlot.Weapon:    return "무기";
+            case EquipmentSlot.MultiTool: return "다용도구";
+            case EquipmentSlot.Gloves:    return "장갑";
+            case EquipmentSlot.Shoes:     return "신발";
+            case EquipmentSlot.Protector: return "보호구";
+            default:                      return slot.ToString();
+        }
+    }
 }
 
 /// <summary>

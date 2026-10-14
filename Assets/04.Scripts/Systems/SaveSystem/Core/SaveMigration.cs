@@ -7,7 +7,7 @@
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 15;
+    public const int CURRENT_VERSION = 16;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -71,6 +71,9 @@ public static class SaveMigration
                     break;
                 case 14:
                     data = MigrateV14ToV15(data);
+                    break;
+                case 15:
+                    data = MigrateV15ToV16(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -629,6 +632,39 @@ public static class SaveMigration
 
         Debug.Log($"[SaveMigration] v15 완료 — 채광 연구 I~{MiningSkillGate.RomanNumeral(tier)} 완료 처리");
         data.saveVersion = 15;
+        return data;
+    }
+
+    /// <summary>
+    /// v15 → v16: 장비 칸이 4개 → 7개(장갑·신발·보호구 추가). 갑옷류가 '옷(Suit)' 칸에서 '보호구' 칸으로 옮겨감.
+    /// 옷 칸에 끼워 둔 갑옷을 보호구 칸으로 옮겨 적습니다 — 안 옮기면 칸이 안 맞아 복원 때 장비가 사라집니다.
+    /// 보관소 풀의 인스턴스는 칸 정보를 갖지 않으므로 손댈 것이 없습니다.
+    /// </summary>
+    private static SaveData MigrateV15ToV16(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v15 → v16 마이그레이션 시작 (갑옷류 → 보호구 칸)...");
+
+        int moved = 0;
+        if (data.employees != null)
+        {
+            foreach (var emp in data.employees)
+            {
+                if (emp?.equippedItems == null) continue;
+                foreach (var slot in emp.equippedItems)
+                {
+                    if (slot == null || slot.slot != (int)EquipmentSlot.Suit) continue;
+                    if (slot.itemId == (int)ItemType.IronArmor || slot.itemId == (int)ItemType.WoodArmor
+                        || slot.itemId == (int)ItemType.ReinforcedArmor || slot.itemId == (int)ItemType.BasicArmor)
+                    {
+                        slot.slot = (int)EquipmentSlot.Protector;
+                        moved++;
+                    }
+                }
+            }
+        }
+
+        Debug.Log($"[SaveMigration] v16 완료 — 보호구 칸으로 옮긴 갑옷 {moved}개");
+        data.saveVersion = 16;
         return data;
     }
 
