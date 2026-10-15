@@ -135,6 +135,18 @@ public class EmployeeEquipment : MonoBehaviour
             BreakEquipment(slot, data);
     }
 
+    /// <summary>
+    /// 수선 진입점 (보류 — 틀만, 호출하는 곳 없음): 수선 가능한 장비의 내구도를 최대로 되돌립니다.
+    /// 자원 차감·수선대·작업은 수선 시스템을 만들 때 호출하는 쪽이 맡습니다.
+    /// </summary>
+    public bool Repair(EquipmentSlot slot)
+    {
+        var data = GetItemInSlot(slot);
+        if (data == null || !data.repairable || !equippedInstances.TryGetValue(slot, out var inst)) return false;
+        inst.durability = data.maxDurability;
+        return true;
+    }
+
     /// <summary>공격 수행 시 무기 내구도 소모 (전투 시스템에서 호출 — 훅 준비).</summary>
     public void NotifyAttackPerformed()
     {
