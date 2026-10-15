@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d7db84bffb7bc1459f9d21341012110, type: 3}
   m_Name: WashConfig
   m_EditorClassIdentifier: Assembly-CSharp::WashConfig
-  crystalPerErosion: 0.2
+  crystalPerErosion: 0.35

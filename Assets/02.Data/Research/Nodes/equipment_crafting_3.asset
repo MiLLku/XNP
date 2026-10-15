@@ -27,7 +27,7 @@ MonoBehaviour:
     amount: 3
   - item: {fileID: 11400000, guid: 506b5c22796be494bb67a91c9bd7802f, type: 2}
     amount: 2
-  researchPointCost: 320
+  researchPointCost: 1920
   unlockEffects:
   - {fileID: 11400000, guid: 1f2ac4e715bf3334193379bf79606562, type: 2}
   - {fileID: 11400000, guid: b34bcac47cbf4c0498595b6de57606a7, type: 2}

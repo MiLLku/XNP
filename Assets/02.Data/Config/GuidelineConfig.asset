@@ -16,9 +16,9 @@ MonoBehaviour:
   - title: "\uCCAB \uC9C1\uC6D0"
     objectives:
     - id: hire
-      text: "\uC9C1\uC6D0 3\uBA85 \uCC44\uC6A9\uD558\uAE30"
+      text: "\uCC44\uC6A9 \uC0AC\uBB34\uC18C\uC5D0\uC11C \uC9C1\uC6D0 1\uBA85 \uB354 \uCC44\uC6A9\uD558\uAE30 (\uCD1D 4\uBA85 \u00B7 \uAE30\uBCF8 \uC637 4\uC885\uC744 \uBA3C\uC800 \uB9CC\uB4E4\uC5B4 \uB450\uAE30)"
       kind: 0
-      amount: 3
+      amount: 4
       item: {fileID: 0}
       buildings: []
       flagKey: 

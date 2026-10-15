@@ -19,7 +19,7 @@ MonoBehaviour:
     \uC9C1\uC6D0\uC744 \uC18C\uC9D1\uD574 \uBC29\uC5B4\uB97C \uC900\uBE44\uD558\uB77C."
   icon: {fileID: 0}
   category: 5
-  weight: 10
+  weight: 0
   maxOccurrences: 0
   cooldown: 180
   isPersistent: 0
