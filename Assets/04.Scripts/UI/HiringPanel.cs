@@ -229,7 +229,7 @@ public class HiringPanel : BasePanel
         }
 
         Vector3 spawnPos = _hiringOffice.GetSpawnPoint();
-        Employee hired = EmployeeManager.instance.SpawnEmployee(data, spawnPos);
+        Employee hired = EmployeeManager.instance.SpawnEmployee(data, spawnPos, freeOutfit: false);
 
         if (hired != null)
             Debug.Log($"[HiringPanel] '{data.employeeName}' 채용 완료. 스폰 위치: {spawnPos}");

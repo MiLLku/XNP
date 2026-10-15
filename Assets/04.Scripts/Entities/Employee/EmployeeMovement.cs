@@ -49,6 +49,18 @@ public class EmployeeMovement : MonoBehaviour
     [Header("낙하 설정")]
     [SerializeField] private float fallSpeed = 8f;
 
+    [Tooltip("이 칸 수까지는 떨어져도 다치지 않습니다")]
+    [Min(0)] [SerializeField] private int safeFallTiles = 3;
+
+    [Tooltip("안전 높이를 넘긴 한 칸마다 받는 체력 피해 (기본: 7칸 = 100 = 사실상 사망). 물에 떨어지면 피해 없음.")]
+    [Min(0f)] [SerializeField] private float fallDamagePerTile = 25f;
+
+    /// <summary>낙하를 시작한 발 높이 (피해 계산용)</summary>
+    private float fallStartY;
+
+    /// <summary>한 번이라도 착지했는지 — 스폰 직후 첫 착지는 낙하 피해를 주지 않는다</summary>
+    private bool hasLanded;
+
     [Header("디버그")]
     [SerializeField] private bool showPath = true;
     [SerializeField] private bool showDebugLogs = true;
@@ -302,6 +314,7 @@ public class EmployeeMovement : MonoBehaviour
             if (!isFalling)
             {
                 isFalling = true;
+                fallStartY = transform.position.y;
 
                 if (isMoving)
                 {
@@ -327,6 +340,10 @@ public class EmployeeMovement : MonoBehaviour
         else if (isFalling)
         {
             LandOnGround(groundTile);
+        }
+        else
+        {
+            hasLanded = true; // 서 있는 상태로 시작했으면 다음 낙하부터 피해
         }
     }
 
@@ -403,6 +420,25 @@ public class EmployeeMovement : MonoBehaviour
     }
 
     /// <summary>
+    /// 낙하 피해 — 안전 높이(safeFallTiles)를 넘긴 칸마다 fallDamagePerTile.
+    /// 착지한 칸에 물이 반 이상 차 있으면 피해가 없습니다(대신 익사 위험).
+    /// </summary>
+    private void ApplyFallDamage(Vector2Int groundTile)
+    {
+        if (!hasLanded) { hasLanded = true; return; } // 스폰·로드 직후 자리 잡기
+        int tiles = Mathf.FloorToInt(fallStartY - (groundTile.y + 1) + 0.01f);
+        if (tiles <= safeFallTiles || fallDamagePerTile <= 0f || statsController == null) return;
+
+        var fluids = FluidManager.instance;
+        if (fluids != null && fluids.GetFluid(groundTile.x, groundTile.y + 1) == FluidType.Water
+            && fluids.GetAmount(groundTile.x, groundTile.y + 1) >= 0.5f) return;
+
+        float damage = (tiles - safeFallTiles) * fallDamagePerTile;
+        statsController.ModifyHealth(-damage);
+        Debug.Log($"[EmployeeMovement] {employee?.DisplayName} 낙하 {tiles}칸 — 체력 -{damage:F0}");
+    }
+
+    /// <summary>
     /// 바닥에 착지합니다.
     /// X/Y 좌표 보정, 고체 안 진입 보정을 수행한 뒤 OnLanded 이벤트를 발생시킵니다.
     /// </summary>
@@ -410,6 +446,7 @@ public class EmployeeMovement : MonoBehaviour
     private void LandOnGround(Vector2Int groundTile)
     {
         isFalling = false;
+        ApplyFallDamage(groundTile);
 
         int landingY = groundTile.y + 1;
 

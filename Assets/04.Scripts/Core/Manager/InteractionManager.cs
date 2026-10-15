@@ -635,7 +635,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
 
             if (hiringOffice.IsUsed)
             {
-                Debug.Log("[Interaction] 채용 건물: 이미 채용이 완료되었습니다.");
+                Debug.Log("[Interaction] 채용 건물: 오늘은 이미 채용했습니다 (하루 1명).");
                 return;
             }
 

@@ -604,7 +604,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
 
     /// <summary>
     /// EmployeeManager에 스폰 지점을 설정합니다.
-    /// 초기 자동 스폰은 수행하지 않습니다 — 직원 채용은 HiringOffice(채용 건물)를 통해 이루어집니다.
+    /// 시작 직원을 스폰합니다(EmployeeManager.startingEmployeeCount, 무작위 생성). 그 뒤 인원은 채용 사무소에서.
     /// </summary>
     private void SetupEmployeeSpawn(int x, int y)
     {
@@ -618,7 +618,9 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         Vector3 spawnPoint = new Vector3(x + 0.5f, y + 3, 0);
         EmployeeManager.instance.SetSpawnPoint(spawnPoint);
 
-        Debug.Log($"[MapGenerator] 직원 스폰 지점 설정 완료: {spawnPoint} (초기 스폰 없음 — 채용 건물 사용)");
+        // 시작 직원 3명 — 이후 인원은 채용 사무소에서 하루 1명씩
+        EmployeeManager.instance.SpawnStartingEmployeesNextFrame();
+        Debug.Log($"[MapGenerator] 직원 스폰 지점 설정 완료: {spawnPoint}");
     }
     #endregion
     
