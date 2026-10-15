@@ -600,7 +600,10 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
     }
 
     /// <summary>
-    /// 방 침식(농도)에 비례한 누적 노출. 이쪽은 머무는 동안 계속 오릅니다.
+    /// 방 침식(농도)에 비례한 누적 노출 — 초당 '칸 침식 × exposurePerErosionPoint'씩 오르되,
+    /// 환경에서 들어온 침식('환경 침식' 내역)은 <b>그 칸의 침식 수치를 넘지 않습니다</b>.
+    /// 기지 근처(5)에 있으면 5에서 멈추고, 더 더러운 곳에 가면 그 값까지 다시 차오릅니다.
+    /// 천장에 닿아 있는 동안은 노출 표시를 걸지 않아 다른 출처의 자연 회복이 돕니다.
     /// </summary>
     private void UpdateAmbientErosion(float elapsed)
     {
@@ -615,10 +618,13 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
         // 문턱 — 견딜 수 있는 침식 이하면 전부 막고, 넘으면 그 칸 침식을 전부 받는다
         if (ambient <= 0f || ambient <= ErosionTolerance) return;
 
+        float room = ambient - GetErosionFromSource(ErosionSource.NATURAL); // 천장까지 남은 양
+        if (room <= 0f) return;
+
         float perSecond = ambient * recoveryConfig.exposurePerErosionPoint;
 
         MarkAuraExposure();
-        AddErosion(perSecond * elapsed, ErosionSource.NATURAL, "환경 침식");
+        AddErosion(Mathf.Min(perSecond * elapsed, room), ErosionSource.NATURAL, "환경 침식");
     }
 
     #endregion
