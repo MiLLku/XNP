@@ -383,6 +383,20 @@ public class EmployeeSkillState : MonoBehaviour
 
     #endregion
 
+    /// <summary>
+    /// 해제된 스킬이 부여한 특성들 — 작업 종류별 속도 배율(workSpeedMultipliers)처럼
+    /// 합산 구조체로 담기 어려운 효과를 읽는 쪽(EmployeeWork)이 직접 순회합니다.
+    /// </summary>
+    public IEnumerable<EmployeeTrait> GetGrantedTraits()
+    {
+        if (config == null) yield break;
+        foreach (int id in unlockedSkillIds)
+        {
+            var trait = config.GetSkill(id)?.grantedTrait;
+            if (trait != null) yield return trait;
+        }
+    }
+
     #region 내부 유틸리티
 
     private static WorkType? CategoryToWorkType(SkillCategory category)

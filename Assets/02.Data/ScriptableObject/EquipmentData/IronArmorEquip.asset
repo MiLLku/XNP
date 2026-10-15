@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   itemData: {fileID: 11400000, guid: 920fdbb1909e2554ab069a98c85c208c, type: 2}
   description: "2\uB2E8\uACC4 \uBC29\uC5B4\uAD6C. \uBC1B\uB294 \uD53C\uD574 20% \uAC10\uC18C."
-  slot: 0
+  slot: 6
   weaponClass: 0
   baseDamage: 0
   accuracy: 0
@@ -23,7 +23,8 @@ MonoBehaviour:
   attackInterval: 1.2
   isDefensiveGear: 1
   coldProtectionLevel: 0
-  heatProtectionLevel: 0
+  heatTolerance: 0
+  erosionTolerance: 0
   maxDurability: 150
   indestructible: 0
   workWearPerSecond: 0.02
@@ -42,5 +43,4 @@ MonoBehaviour:
     damageReduction: 20
     bonusYieldChance: 0
     workTypeModifiers: []
-    erosionIgnoreValue: 0
   abilities: []

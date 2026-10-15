@@ -46,6 +46,9 @@ public class RaidData : ScriptableObject
     [Tooltip("이 레이드가 발동될 수 있는 최소 직원 수 (0 = 제한 없음)")]
     [Min(0)] public int minEmployeeCount = 0;
 
+    [Tooltip("강한 습격 — 지난 습격 뒤 텀이 길었을 때만(RaidManager.strongRaidAfterDays) 자동 일정에서 뽑힙니다")]
+    public bool isStrong = false;
+
     #endregion
 
     #region 스폰 위치

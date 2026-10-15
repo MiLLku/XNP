@@ -31,6 +31,28 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Tooltip("레이드 개체 스폰 기준점. 미설정 시 (0,0,0) 사용.")]
     [SerializeField] private Transform defaultSpawnPoint;
 
+    [Header("자동 습격 일정 — 잦은 소규모, 텀이 길었으면 크게")]
+    [Tooltip("켜면 RaidManager가 직접 습격을 잡습니다 (이벤트 풀의 침공 이벤트와 별개)")]
+    [SerializeField] private bool autoSchedule = true;
+
+    [Tooltip("첫 습격이 올 수 있는 가장 이른 날")]
+    [Min(0)] [SerializeField] private int firstRaidDay = 3;
+
+    [Tooltip("습격 사이 간격 (게임일, 최소~최대 무작위)")]
+    [SerializeField] private Vector2 raidIntervalDays = new Vector2(0.7f, 1.5f);
+
+    [Tooltip("지난 습격 뒤 최소 간격을 넘긴 하루마다 더해지는 배수 — 텀이 길었으면 더 많이 온다")]
+    [Min(0f)] [SerializeField] private float overdueMultiplierPerDay = 0.5f;
+
+    [Tooltip("지난 습격 뒤 이 일수를 넘기면 '강한 습격'(RaidData.isStrong)도 뽑힐 수 있다")]
+    [Min(0f)] [SerializeField] private float strongRaidAfterDays = 1.5f;
+
+    [Tooltip("한 번 습격의 적 수 상한 = 살아 있는 직원 수 × 이 값 (클리어 가능하게)")]
+    [Min(0.5f)] [SerializeField] private float maxEnemiesPerEmployee = 1.5f;
+
+    [Tooltip("한 번 습격의 적 수 절대 상한")]
+    [Min(1)] [SerializeField] private int maxEnemiesPerRaid = 12;
+
     [Header("디버그")]
     [SerializeField] private bool showDebugLogs = false;
 
@@ -46,6 +68,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     /// <summary>이번 레이드의 스폰 수량 배수 (시작 시점 진행 상황으로 계산)</summary>
     private float activeMultiplier = 1f;
+
+    /// <summary>지난 습격이 시작된 시각과 다음 자동 습격 시각 (게임일 단위, 세이브됨). -1 = 아직 없음</summary>
+    private float lastRaidGameDay = -1f;
+    private float nextRaidGameDay = -1f;
 
     /// <summary>이번 레이드에서 스폰된 제놉스 목록</summary>
     private readonly List<Xenops> spawnedEntities = new List<Xenops>();
@@ -76,7 +102,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             activeRaidId = activeRaid != null ? activeRaid.raidId : -1,
             currentWaveIndex = currentWaveIndex,
             waveTimer   = waveTimer,
-            activeMultiplier = activeMultiplier
+            activeMultiplier = activeMultiplier,
+            lastRaidGameDay = lastRaidGameDay,
+            nextRaidGameDay = nextRaidGameDay
         };
 
         foreach (var xenops in spawnedEntities)
@@ -96,6 +124,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         currentWaveIndex = data.raidSystem.currentWaveIndex;
         waveTimer        = data.raidSystem.waveTimer;
         activeMultiplier = data.raidSystem.activeMultiplier > 0f ? data.raidSystem.activeMultiplier : 1f;
+        lastRaidGameDay  = data.raidSystem.lastRaidGameDay;
+        nextRaidGameDay  = data.raidSystem.nextRaidGameDay;
 
         int raidId = data.raidSystem.activeRaidId;
         if (raidId >= 0)
@@ -165,6 +195,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         currentWaveIndex = 0;
         spawnedEntities.Clear();
         activeMultiplier = ComputeMultiplier(raid);
+        lastRaidGameDay = GameDayNow;
+        ScheduleNextRaid();
 
         if (showDebugLogs)
             Debug.Log($"[RaidManager] 레이드 시작: {raid.raidName} (배수 {activeMultiplier:F2}, 위치 {raid.spawnLocation})");
@@ -183,10 +215,14 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     /// <summary>
     /// 랜덤 레이드를 선택하여 시작합니다.
+    /// 지난 습격 뒤 strongRaidAfterDays가 지났으면 강한 습격도 후보에 넣고, 아니면 약한 습격만 뽑습니다.
     /// </summary>
     public void StartRandomRaid()
     {
-        var pool = availableRaids.FindAll(r => r != null && r.includeInRandomPool);
+        bool overdue = lastRaidGameDay < 0f || GameDayNow - lastRaidGameDay >= strongRaidAfterDays;
+        int day = DayCycle.instance != null ? DayCycle.instance.Day : 0;
+        var pool = availableRaids.FindAll(r => r != null && r.includeInRandomPool && day >= r.minDayNumber && (overdue || !r.isStrong));
+        if (pool.Count == 0) pool = availableRaids.FindAll(r => r != null && r.includeInRandomPool);
         if (pool.Count == 0)
         {
             Debug.LogWarning("[RaidManager] 랜덤 레이드 풀이 비어 있습니다.");
@@ -337,7 +373,34 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         return basePos + new Vector3(offset.x, offset.y, 0f);
     }
 
-    /// <summary>진행 상황 기반 스폰 배수: base + 일수·직원수 가산, 상한 클램프.</summary>
+    #region 자동 습격 일정
+
+    /// <summary>지금 시각 (게임일 단위, 하루 안의 진행도 포함)</summary>
+    private static float GameDayNow =>
+        DayCycle.instance != null ? DayCycle.instance.Day + DayCycle.instance.TimeNormalized : 0f;
+
+    private void ScheduleNextRaid()
+    {
+        float from = Mathf.Max(GameDayNow, firstRaidDay);
+        nextRaidGameDay = from + UnityEngine.Random.Range(raidIntervalDays.x, Mathf.Max(raidIntervalDays.x, raidIntervalDays.y));
+    }
+
+    private void Update()
+    {
+        if (!autoSchedule || IsRaidActive || DayCycle.instance == null) return;
+        if (nextRaidGameDay < 0f) { ScheduleNextRaid(); return; }
+        if (GameDayNow < nextRaidGameDay) return;
+
+        StartRandomRaid();
+        if (!IsRaidActive) ScheduleNextRaid(); // 디버그 차단 등으로 안 시작했으면 다음으로 미룬다
+    }
+
+    #endregion
+
+    /// <summary>
+    /// 진행 상황 기반 스폰 배수: base + 일수·직원수 가산 + 텀 보너스(지난 습격 뒤 최소 간격을 넘긴 하루마다),
+    /// 상한 클램프. 그 뒤 적 수 상한(직원 수 × maxEnemiesPerEmployee, 절대 maxEnemiesPerRaid)에 맞춰 줄입니다.
+    /// </summary>
     private float ComputeMultiplier(RaidData raid)
     {
         int day = DayCycle.instance != null ? DayCycle.instance.Day : 0;
@@ -349,11 +412,23 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
                 if (e != null && e.State != EmployeeState.Dead) employees++;
         }
 
+        float overdueDays = lastRaidGameDay < 0f ? 0f : Mathf.Max(0f, GameDayNow - lastRaidGameDay - raidIntervalDays.x);
+
         float m = raid.baseMultiplier
                 + raid.multiplierPerDay * day
-                + raid.multiplierPerEmployee * employees;
+                + raid.multiplierPerEmployee * employees
+                + overdueMultiplierPerDay * overdueDays;
+        m = Mathf.Clamp(m, 0.1f, raid.maxMultiplier);
 
-        return Mathf.Clamp(m, 0.1f, raid.maxMultiplier);
+        // 적 수 상한 — 클리어할 수 있게
+        int baseCount = 0;
+        foreach (var wave in raid.waves)
+            foreach (var entry in wave.entries)
+                baseCount += entry.count;
+        int cap = Mathf.Min(maxEnemiesPerRaid, Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(1, employees) * maxEnemiesPerEmployee)));
+        if (baseCount > 0 && baseCount * m > cap) m = cap / (float)baseCount;
+
+        return Mathf.Max(0.1f, m);
     }
 
     private void CompleteRaid()

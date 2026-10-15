@@ -16,6 +16,9 @@ public class StartingInventoryConfig : ScriptableObject
 
     [Tooltip("새 게임 시작 시 장비 보관소 풀에 지급할 장비. EquipmentStorageManager가 읽습니다.")]
     public List<StartingEquipmentEntry> startingEquipment = new List<StartingEquipmentEntry>();
+
+    [Tooltip("새로 생긴 직원(시작 직원·채용·이벤트)이 입고 오는 장비. 칸마다 하나씩 바로 장착됩니다 — 보관소 풀과 별개.")]
+    public List<EquipmentData> startingOutfit = new List<EquipmentData>();
 }
 
 /// <summary>시작 지급 장비 항목.</summary>

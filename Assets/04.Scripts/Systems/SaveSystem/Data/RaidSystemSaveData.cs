@@ -17,6 +17,10 @@ public class RaidSystemSaveData
     /// <summary>현재 웨이브 인덱스</summary>
     public int currentWaveIndex;
 
+    /// <summary>지난 습격 시각·다음 자동 습격 시각 (게임일, 구 세이브에는 없음 — -1이면 새로 잡음)</summary>
+    public float lastRaidGameDay = -1f;
+    public float nextRaidGameDay = -1f;
+
     /// <summary>다음 웨이브까지 남은 대기 시간 (초)</summary>
     public float waveTimer;
 

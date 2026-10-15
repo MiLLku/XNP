@@ -119,10 +119,11 @@ public class TemperatureConfig : ScriptableObject
     [Tooltip("보호 장비가 없을 때 견디는 하한(℃)")]
     public float comfortMin = 10f;
 
-    [Tooltip("보호 장비가 없을 때 견디는 상한(℃)")]
-    public float comfortMax = 25f;
+    [Tooltip("맨몸으로 견딜 수 있는 온도(℃). 착용 장비의 '견딜 수 있는 온도'(EquipmentData.heatTolerance) 합이 여기에 더해집니다.\n" +
+             "예: 35 + 내열 슈트 I 15 = 50도까지 더위 페널티 없음.")]
+    public float comfortMax = 35f;
 
-    [Tooltip("방한/방열 레벨 1당 넓어지는 폭(℃). 레벨당 견디는 온도가 산술로 자명해집니다.")]
+    [Tooltip("방한 레벨 1당 넓어지는 폭(℃). 레벨당 견디는 온도가 산술로 자명해집니다.")]
     public float degreesPerProtectionLevel = 5f;
 
     [Header("초과 구간")]

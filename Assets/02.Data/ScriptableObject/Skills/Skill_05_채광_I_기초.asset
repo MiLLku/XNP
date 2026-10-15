@@ -13,14 +13,13 @@ MonoBehaviour:
   m_Name: "Skill_05_\uCC44\uAD11_I_\uAE30\uCD08"
   m_EditorClassIdentifier: Assembly-CSharp::SkillData
   skillId: 5
-  skillName: "\uCC44\uAD11 I: \uAE30\uCD08"
-  description: "\uC11D\uD0C4\xB7\uAD6C\uB9AC \uB4F1 \uC595\uC740 \uCE35 \uAD11\uBB3C\uC744
-    \uCE98 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uAE30\uBCF8 \uC2B5\uB4DD."
+  skillName: "채광 I: 기초"
+  description: "채광 속도 x1.15. (캐는 자격은 기지 연구 '채광 I~IV'가 정합니다)"
   icon: {fileID: 0}
   category: 1
   treePosition: {x: -3.5, y: 1}
   prerequisiteSkillIds: 04000000
   requiredAptitudeLevel: 1
-  pointCost: 0
-  defaultUnlocked: 1
-  grantedTrait: {fileID: 0}
+  pointCost: 1
+  defaultUnlocked: 0
+  grantedTrait: {fileID: 11400000, guid: 59de44c093d846ee91dd71a8a3a9c26c, type: 2}

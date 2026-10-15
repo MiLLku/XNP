@@ -68,6 +68,12 @@ public enum TileType
     /// <summary>경계암 — 최하층을 봉인한 암반. 에테리온 각인을 받은 직원만 이 돌에 손댈 수 있다.</summary>
     Boundstone = 18,
 
+    /// <summary>흑요석 — 용암이 물을 만나 굳은 검은 유리질 암석. 단단하다.</summary>
+    Obsidian = 19,
+
+    /// <summary>담수 분출구 — 지하 호수에서 맑은 물이 솟는 구멍. 캘 수 없고, 물에 다 잠기기 직전까지 물을 낸다.</summary>
+    FreshwaterVent = 20,
+
     /// <summary>특수</summary>
     Special = 99,
 }

@@ -221,7 +221,7 @@ public class RoomOverlayRenderer : DestroySingleton<RoomOverlayRenderer>
     {
         float erosion = room.Erosion;
         float baseline = TerrainErosionManager.instance != null
-            ? TerrainErosionManager.instance.GetOutdoorErosionAt(room.AverageX)
+            ? TerrainErosionManager.instance.GetOutsideErosionAt(room.AverageX, room.AverageY)
             : 0f;
 
         Color color;

@@ -24,6 +24,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
     private HashSet<int> _unlockedBuildingIds = new();
     private HashSet<int> _unlockedRecipeIds = new();
     private Dictionary<ResearchStatType, float> _statBonuses = new();
+    private int _miningTier;
 
     // ─── 프로퍼티 ──────────────────────────────────────────────────────────────
 
@@ -32,6 +33,9 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
     public float CurrentProgress => _currentProgress;
     public ResearchNodeData ActiveNode => treeConfig?.GetNode(_activeNodeId);
     public bool IsResearchActive => !string.IsNullOrEmpty(_activeNodeId);
+
+    /// <summary>기지가 연구로 연 채광 등급 (0 = 흙·돌만). MiningSkillGate가 읽습니다.</summary>
+    public int MiningTier => _miningTier;
 
     // ─── 초기화 ────────────────────────────────────────────────────────────────
 
@@ -181,6 +185,13 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
         Debug.Log($"[ResearchTreeManager] 레시피 해금: {recipe.outputItem?.itemName}");
     }
 
+    public void RegisterMiningTier(int tier)
+    {
+        if (tier <= _miningTier) return;
+        _miningTier = tier;
+        Debug.Log($"[ResearchTreeManager] 채광 등급: {MiningSkillGate.RomanNumeral(tier)}");
+    }
+
     public void ApplyStatBonus(ResearchStatType statType, float value)
     {
         _statBonuses.TryGetValue(statType, out float current);
@@ -230,6 +241,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
         _unlockedBuildingIds.Clear();
         _unlockedRecipeIds.Clear();
         _statBonuses.Clear();
+        _miningTier      = 0;
         _activeNodeId    = null;
         _currentProgress = 0f;
 
@@ -249,16 +261,19 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
                 _nodeStates[entry.nodeId] = (ResearchNodeState)entry.state;
         }
 
-        // 저장에 없는 노드(새 콘텐츠 추가 등)는 초기 상태로 보완
+        // 저장에 없는 노드(새 콘텐츠 추가 등)는 초기 상태로 보완 — 선행이 이미 끝났으면 바로 연구 가능.
+        // (예전엔 선행이 있으면 무조건 Locked라, 선행을 마친 세이브에 추가된 노드가 영영 잠겨 있었다)
         if (treeConfig != null)
         {
+            var added = new List<ResearchNodeData>();
             foreach (var node in treeConfig.nodes)
             {
                 if (node == null || _nodeStates.ContainsKey(node.nodeId)) continue;
-                _nodeStates[node.nodeId] = node.prerequisiteNodeIds.Count == 0
-                    ? ResearchNodeState.Available
-                    : ResearchNodeState.Locked;
+                _nodeStates[node.nodeId] = ResearchNodeState.Locked;
+                added.Add(node);
             }
+            foreach (var node in added)
+                if (ArePrerequisitesMet(node)) _nodeStates[node.nodeId] = ResearchNodeState.Available;
 
             // 완료된 노드의 해금 효과 재적용 → _unlockedBuildingIds 등 파생 상태 재건
             foreach (var node in treeConfig.nodes)

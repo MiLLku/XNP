@@ -24,6 +24,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _DigitTex:
+        m_Texture: {fileID: 2800000, guid: 7673f9a2699a38f4fa3e69a999636587, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _FogTex:
         m_Texture: {fileID: 2800000, guid: 661f8fc39cc0ab140acdcc12f8f788ba, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -35,8 +39,10 @@ Material:
     - _ErosionAlphaMin: 0.05
     - _ErosionMax: 80
     - _ErosionMin: 6
+    - _ErosionNumbers: 0
     - _ErosionVisible: 1
     - _FogCells: 8
+    - _NumberHeight: 0.34
     m_Colors:
     - _FogRect: {r: 0.5, g: 0.25, b: 0.25, a: 0.25}
     - _FogSpeed: {r: 0.25, g: 0.08, b: 0, a: 0}

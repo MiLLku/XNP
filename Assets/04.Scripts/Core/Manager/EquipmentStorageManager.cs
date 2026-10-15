@@ -183,6 +183,42 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         return inst;
     }
 
+    /// <summary>
+    /// 새 직원에게 시작 복장(StartingInventoryConfig.startingOutfit)을 입힙니다.
+    ///   · fromStorage = false (시작 직원·이벤트 합류) — 인스턴스를 새로 만들어 바로 입힘. 보관소 칸을 차지하지 않음.
+    ///   · fromStorage = true (채용) — 보관소에 같은 장비가 있을 때만 꺼내 입힘. 없으면 그 칸은 빈 채로 온다
+    ///     → 채용 전에 기본 옷을 만들어 두게 하는 것이 인원 증가의 부담 중 하나다.
+    /// 로드로 복원되는 직원은 이 경로를 타지 않습니다(EmployeeManager.SpawnEmployee에서만 호출).
+    /// </summary>
+    public void EquipStartingOutfit(Employee employee, bool fromStorage = false)
+    {
+        var equipment = employee != null ? employee.Equipment : null;
+        if (equipment == null || startingConfig == null || startingConfig.startingOutfit == null) return;
+
+        foreach (var data in startingConfig.startingOutfit)
+        {
+            if (data == null || data.itemData == null || !equipment.IsSlotEmpty(data.slot)) continue;
+
+            EquipmentInstance inst;
+            if (fromStorage)
+            {
+                var stored = pool.FirstOrDefault(i => i.equipmentId == data.itemData.itemID);
+                if (stored == null) continue;
+                inst = TakeInstance(stored.instanceId);
+            }
+            else
+            {
+                inst = new EquipmentInstance
+                {
+                    instanceId = nextInstanceId++,
+                    equipmentId = data.itemData.itemID,
+                    durability = data.maxDurability
+                };
+            }
+            if (inst != null) equipment.EquipInstance(data.slot, inst);
+        }
+    }
+
     /// <summary>기존 인스턴스를 풀에 반납합니다 (장착 해제 시).</summary>
     public void ReturnInstance(EquipmentInstance inst)
     {

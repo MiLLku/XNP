@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 
 /// <summary>
 /// 직원 중앙 관리 매니저.
@@ -61,6 +62,17 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     [Tooltip("정신력 변동 기준값 — 굶주림·탈진 페널티 크기와 일시 효과 지속 시간. 미할당 시 코드 기본값으로 동작")]
     [SerializeField] private MentalModifierConfig mentalModifierConfig;
 
+    [Header("시작·채용")]
+    [Tooltip("새 게임에서 시작 방에 바로 나오는 무작위 직원 수 (기본 옷 4종을 입고 나옴)")]
+    [Min(0)] [SerializeField] private int startingEmployeeCount = 3;
+
+    [Tooltip("채용은 게임 하루에 이 인원까지 (채용 사무소 수와 무관한 전역 제한)")]
+    [Min(1)] [SerializeField] private int hiresPerDay = 1;
+
+    /// <summary>마지막으로 채용한 게임 날짜와 그날 채용한 인원 (세이브됨)</summary>
+    private int lastHireDay = -1;
+    private int hiresOnLastDay;
+
     #endregion
 
     #region 프로퍼티
@@ -92,6 +104,21 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     /// <summary>정신력 변동 기준값 (EmployeeStatsController에서 참조, null 허용)</summary>
     public MentalModifierConfig MentalModifierConfig => mentalModifierConfig;
+
+    private static int Today => DayCycle.instance != null ? DayCycle.instance.Day : 0;
+
+    /// <summary>
+    /// 오늘 더 채용할 수 있는지 — 하루 hiresPerDay명까지.
+    /// 인원 증가의 부담은 비용이 아니라 유지비(식량·침대·옷·장비)로 준다.
+    /// </summary>
+    public bool CanHireToday => lastHireDay != Today || hiresOnLastDay < hiresPerDay;
+
+    /// <summary>채용을 기록합니다 (HiringOffice가 채용 직후 호출).</summary>
+    public void RecordHire()
+    {
+        if (lastHireDay != Today) { lastHireDay = Today; hiresOnLastDay = 0; }
+        hiresOnLastDay++;
+    }
 
     #endregion
 
@@ -164,7 +191,11 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     /// <param name="employeeData">직원 템플릿 데이터</param>
     /// <param name="position">스폰 월드 좌표</param>
     /// <returns>생성된 직원 (실패 시 null)</returns>
-    public Employee SpawnEmployee(EmployeeData employeeData, Vector3 position)
+    /// <param name="freeOutfit">
+    /// true면 기본 옷 4종을 새로 만들어 입힌다(시작 직원·이벤트 합류).
+    /// false면 장비 보관소에 있는 기본 옷만 꺼내 입는다(채용 — 옷을 미리 만들어 둬야 한다).
+    /// </param>
+    public Employee SpawnEmployee(EmployeeData employeeData, Vector3 position, bool freeOutfit = true)
     {
         if (employeePrefab == null)
         {
@@ -197,6 +228,9 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         // RestoreFromSaveData가 소지 식량을 복원한다.
         GrantInitialFood(employee);
 
+        // 새 직원의 기본 옷·장갑·신발·모자 — 시작 직원은 그냥 입고 오고, 채용 직원은 보관소에서 꺼내 입는다
+        EquipmentStorageManager.instance?.EquipStartingOutfit(employee, fromStorage: !freeOutfit);
+
         GameMessageBus.Publish(new EmployeeSpawnedMessage(employee));
 
         if (showDebugInfo)
@@ -218,6 +252,28 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         ItemData food = InventoryManager.instance.TakeBestFood(); // 시작 식량은 소지 기준과 무관하게 지급
         if (food != null && work.StoreFood(food, 1) && showDebugInfo)
             Debug.Log($"[EmployeeManager] '{employee.Data?.employeeName}'에게 시작 식량 지급: {food.itemName}");
+    }
+
+    /// <summary>
+    /// 새 게임 시작 직원을 무작위로 만들어 스폰 지점에 세웁니다 (MapGenerator가 맵 생성 직후 호출).
+    /// 한 프레임 뒤에 스폰해 시작 인벤토리(식량)가 먼저 채워지게 한다 — 시작 식량 1개를 쥐여 주기 위해.
+    /// 불러오기는 SaveManager가 직원을 전부 지우고 복원하므로 영향이 없다.
+    /// </summary>
+    public void SpawnStartingEmployeesNextFrame()
+    {
+        SpawnStartingEmployeesAsync(this.GetCancellationTokenOnDestroy()).Forget();
+    }
+
+    private async UniTaskVoid SpawnStartingEmployeesAsync(System.Threading.CancellationToken ct)
+    {
+        await UniTask.Yield(GameLoop.Frame, ct);
+        if (generationConfig == null || allEmployees.Count > 0) return;
+
+        for (int i = 0; i < startingEmployeeCount; i++)
+        {
+            EmployeeData data = RandomEmployeeGenerator.Generate(generationConfig);
+            if (data != null) SpawnEmployee(data, spawnPoint); // 같은 자리 — 옆으로 벌리면 시작 방 밖 낮은 지형으로 떨어진다
+        }
     }
 
     /// <summary>
@@ -356,6 +412,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     public void Capture(SaveData data)
     {
+        data.lastHireDay = lastHireDay;
+        data.hiresOnLastDay = hiresOnLastDay;
         data.employees.Clear();
         foreach (var employee in allEmployees)
         {
@@ -368,6 +426,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     public void Restore(SaveData data)
     {
+        lastHireDay = data.lastHireDay;
+        hiresOnLastDay = data.hiresOnLastDay;
         if (data.employees == null) return;
 
         var db = GameDatabase.Instance;

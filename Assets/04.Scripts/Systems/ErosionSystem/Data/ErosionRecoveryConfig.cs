@@ -54,6 +54,9 @@ public class ErosionRecoveryConfig : ScriptableObject
     [Tooltip("좌우 그라디언트로 도달할 수 있는 최대 실외 침식. 맵 끝까지 나갔을 때의 값입니다.")]
     [Min(0f)] public float maxOutdoorErosion = 60f;
 
+    [Tooltip("실외 칸의 실효 침식 상한. 실효 침식 = 좌우 그라디언트 + 그 칸 지층 기본 침식(침식 동굴 30, 최하층 45)이고, 합이 이 값을 넘지 않습니다.")]
+    [Min(0f)] public float maxEffectiveErosion = 100f;
+
     [Header("환경 노출 (방 침식 + 타일 침식)")]
     [Tooltip("유효 침식 1당 초당 받는 침식량. 예: 0.01이면 침식 50인 방에서 초당 0.5씩 오릅니다.")]
     [Min(0f)] public float exposurePerErosionPoint = 0.01f;

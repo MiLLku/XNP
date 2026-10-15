@@ -103,7 +103,17 @@ public enum WorkTargetType
     /// <summary>운반</summary>
     Haul = 4,
     /// <summary>제작 (CraftingOrder)</summary>
-    Crafting = 5
+    Crafting = 5,
+    /// <summary>물 퍼내기 (ScoopOrder)</summary>
+    Scoop = 6
+}
+
+/// <summary>물 퍼내기 대상 — 칸 하나. 같이 지시된 범위는 같은 주문의 칸들로 다시 만듭니다.</summary>
+[Serializable]
+public class ScoopTargetData
+{
+    public int cellX;
+    public int cellY;
 }
 
 #region 작업 대상별 직렬화 데이터

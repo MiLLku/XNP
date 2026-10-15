@@ -159,6 +159,7 @@ public class WorkOrder
             case WorkType.Demolish:
             case WorkType.Cleaning:
             case WorkType.Cooking:
+            case WorkType.Errand:
                 return true;
 
             case WorkType.Crafting:

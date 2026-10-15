@@ -255,6 +255,9 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
         return y >= skyBottom[x];
     }
 
+    /// <summary>그 열에서 하늘이 시작되는 높이 — 이 높이 이상의 칸은 위로 막힌 것이 없습니다 (비 그리기용).</summary>
+    public int GetSkyBottom(int x) => x >= 0 && x < GameMap.MAP_WIDTH ? skyBottom[x] : GameMap.MAP_HEIGHT;
+
     /// <summary>문이 잇는 두 방 번호를 반환합니다. 등록되지 않은 문이면 false.</summary>
     public bool TryGetDoorLink(Vector2Int doorTile, out int roomA, out int roomB)
     {
@@ -435,14 +438,10 @@ public class RoomManager : DestroySingleton<RoomManager>, ISaveModule
 
         // 침식도 온도와 같이 위치를 반영한다 — 기지에서 먼 곳을 새로 밀폐하면
         // 그만큼 더러운 공기를 가둔 채로 출발한다
+        // 지층 자체의 침식(침식 동굴 변종 등)도 더해진다 — 경계에선 두 층 사이 값
         float outdoorErosion = TerrainErosionManager.instance != null
-            ? TerrainErosionManager.instance.GetOutdoorErosionAt(room.AverageX)
+            ? TerrainErosionManager.instance.GetOutsideErosionAt(room.AverageX, room.AverageY)
             : 0f;
-
-        // 지층 자체가 더러우면(침식 동굴 변종 등) 그쪽을 따른다 — 경계에선 두 층 사이 값
-        if (MapGenerator.instance != null)
-            outdoorErosion = Mathf.Max(outdoorErosion, MapGenerator.instance.StrataErosionAt(
-                Mathf.RoundToInt(room.AverageX), Mathf.RoundToInt(room.AverageY)));
 
         float temperatureSum = 0f;
         float erosionSum = 0f;

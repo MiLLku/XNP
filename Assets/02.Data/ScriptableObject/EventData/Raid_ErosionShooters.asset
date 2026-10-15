@@ -31,6 +31,12 @@ MonoBehaviour:
       spawnRadius: 2
   minDayNumber: 0
   minEmployeeCount: 0
+  isStrong: 0
+  spawnLocation: 0
+  baseMultiplier: 1
+  multiplierPerDay: 0.05
+  multiplierPerEmployee: 0.15
+  maxMultiplier: 4
   approachDuration: 5
   retreatDelay: 0
   includeInRandomPool: 1

@@ -31,6 +31,8 @@ public class MinimapUI : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoin
     [SerializeField] private Color32 airColor = new Color32(58, 70, 88, 255);
     [SerializeField] private Color32 structureColor = new Color32(150, 150, 150, 255);
     [SerializeField] private Color32 unknownTileColor = new Color32(110, 100, 90, 255);
+    [SerializeField] private Color32 waterColor = new Color32(60, 130, 220, 255);
+    [SerializeField] private Color32 lavaColor = new Color32(235, 100, 30, 255);
 
     private Texture2D texture;
     private Color32[] pixels;
@@ -83,6 +85,7 @@ public class MinimapUI : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoin
     {
         var map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
         var fog = FogOfWarManager.instance;
+        var fluid = FluidManager.instance;
         if (map == null) return;
         var mapRenderer = MapGenerator.instance.MapRendererInstance;
 
@@ -97,7 +100,10 @@ public class MinimapUI : MonoBehaviour, IPointerDownHandler, IDragHandler, IPoin
                 else
                 {
                     int id = map.TileGrid[x, y];
-                    if (id == (int)TileType.Air)
+                    FluidType liquid = fluid != null ? fluid.GetFluid(x, y) : FluidType.None;
+                    if (liquid != FluidType.None)
+                        c = liquid == FluidType.Lava ? lavaColor : waterColor;
+                    else if (id == (int)TileType.Air)
                         c = mapRenderer != null && mapRenderer.IsStructureCell(x, y) ? structureColor : airColor;
                     else
                     {

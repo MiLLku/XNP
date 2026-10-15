@@ -63,6 +63,7 @@ public class Employee : MonoBehaviour
     private EmployeeEquipment equipment;
     private EmployeeErosionController erosionController;
     private EmployeeTemperature temperature;
+    private EmployeeFluidExposure fluidExposure;
     private EmployeeSchedule schedule;
     private EmployeeDraft draft;
     private EmployeeCombat combat;
@@ -197,6 +198,7 @@ public class Employee : MonoBehaviour
         equipment = GetComponent<EmployeeEquipment>() ?? gameObject.AddComponent<EmployeeEquipment>();
         erosionController = GetComponent<EmployeeErosionController>() ?? gameObject.AddComponent<EmployeeErosionController>();
         temperature = GetComponent<EmployeeTemperature>() ?? gameObject.AddComponent<EmployeeTemperature>();
+        fluidExposure = GetComponent<EmployeeFluidExposure>() ?? gameObject.AddComponent<EmployeeFluidExposure>();
         schedule = GetComponent<EmployeeSchedule>() ?? gameObject.AddComponent<EmployeeSchedule>();
         draft = GetComponent<EmployeeDraft>() ?? gameObject.AddComponent<EmployeeDraft>();
         combat = GetComponent<EmployeeCombat>() ?? gameObject.AddComponent<EmployeeCombat>();
@@ -473,6 +475,9 @@ public class Employee : MonoBehaviour
 
     /// <summary>온도 컨디션 판정 컴포넌트</summary>
     public EmployeeTemperature Temperature => temperature;
+
+    /// <summary>액체 노출(축축함·익사·용암) 판정</summary>
+    public EmployeeFluidExposure FluidExposure => fluidExposure;
 
     #endregion
 

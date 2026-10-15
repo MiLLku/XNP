@@ -13,9 +13,8 @@ MonoBehaviour:
   m_Name: "Skill_07_\uCC44\uAD11_III_\uC815\uBC00"
   m_EditorClassIdentifier: Assembly-CSharp::SkillData
   skillId: 7
-  skillName: "\uCC44\uAD11 III: \uC815\uBC00"
-  description: "\uAE08\xB7\uC218\uC815 \uB4F1 \uC2EC\uCE35 \uAD11\uBB3C\uC744 \uCE98
-    \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uCC44\uAD11 \uC801\uC131 Lv.6 \uD544\uC694."
+  skillName: "채광 III: 정밀"
+  description: "채광 속도 x1.25 (I·II와 곱연산). 채광 적성 Lv.6 필요."
   icon: {fileID: 0}
   category: 1
   treePosition: {x: -6.5, y: 1}
@@ -26,4 +25,4 @@ MonoBehaviour:
   - stat: 3
     minValue: 1.3
   defaultUnlocked: 0
-  grantedTrait: {fileID: 0}
+  grantedTrait: {fileID: 11400000, guid: efa26e4836a64eb1ac306301ee6427fd, type: 2}

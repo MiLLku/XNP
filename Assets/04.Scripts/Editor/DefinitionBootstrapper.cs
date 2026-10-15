@@ -68,7 +68,7 @@ public static class DefinitionBootstrapper
         }
     }
 
-    // 경도: TileHardness.Get / 스킬: MiningSkillGate.RequiredSkillId
+    // 경도: TileHardness.Get / skill 열 = 구 채광 스킬 ID → MiningSkillGate.TierFromLegacySkillId로 채광 등급 변환
     // 전도율: TileConductivity.Get / 발열: TileHeatOutput.Get
     // 통행: GameMap의 AIR_ID·LADDER_ID / 스폰면: GameMap.IsTileSpawnable(DIRT·GRASS)
     private static readonly TileSeed[] TileSeeds =
@@ -252,7 +252,7 @@ public static class DefinitionBootstrapper
                 def.isSpawnableSurface = seed.SpawnableSurface;
                 def.isMineable = seed.Mineable;
                 def.hardness = seed.Hardness;
-                def.requiredMiningSkillId = seed.SkillId;
+                def.requiredMiningTier = MiningSkillGate.TierFromLegacySkillId(seed.SkillId);
                 def.thermalConductivity = seed.Conductivity;
                 def.heatOutput = seed.Heat;
                 def.generateAsVein = seed.Vein;

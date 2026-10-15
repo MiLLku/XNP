@@ -54,8 +54,13 @@ public class EquipmentData : ScriptableObject
     [Tooltip("방한 레벨. 레벨 1당 견디는 하한이 TemperatureConfig.degreesPerProtectionLevel 만큼 내려갑니다.")]
     [Min(0)] public int coldProtectionLevel = 0;
 
-    [Tooltip("방열 레벨. 레벨 1당 견디는 상한이 그만큼 올라갑니다.")]
-    [Min(0)] public int heatProtectionLevel = 0;
+    [Tooltip("견딜 수 있는 온도 가산(℃). 착용 장비끼리 합산해 맨몸 기준(TemperatureConfig.comfortMax)에 더합니다.\n" +
+             "칸 온도가 그 합 이하면 더위 페널티가 없습니다. 예: 맨몸 35 + 내열 슈트 I 15 = 50도까지.")]
+    [Min(0)] public int heatTolerance = 0;
+
+    [Tooltip("견딜 수 있는 침식. 착용 장비끼리 합산합니다.\n" +
+             "그 칸의 침식이 합산 이하면 전부 막고, 넘으면 그 칸 침식을 전부 받습니다(문턱).")]
+    [Min(0)] public int erosionTolerance = 0;
 
     [Header("내구도")]
     [Tooltip("최대 내구도. 작업 마모·전투 소모로 감소하며 0이 되면 파괴됩니다.")]
@@ -70,6 +75,14 @@ public class EquipmentData : ScriptableObject
     [Tooltip("전투 소모량 — 무기: 공격 1회당 / 방어구: 피격 1회당")]
     [Min(0f)] public float combatWearPerHit = 1f;
 
+    // shortcut: 수선 시스템은 사용자 결정(2026-10-15)으로 보류 — 틀(필드·진입점 EmployeeEquipment.Repair)만 있고 건물·작업·UI·연구 없음. 수선대·'수선' 작업을 만들 때 연결.
+    [Header("수선 (보류 — 틀만)")]
+    [Tooltip("수선 가능한 장비인지 (비싼·고급 장비만). 지금은 아무 데서도 쓰지 않습니다.")]
+    public bool repairable = false;
+
+    [Tooltip("내구도를 최대로 되돌리는 데 드는 수선 자원 (보류)")]
+    public List<ResourceCost> repairCost = new List<ResourceCost>();
+
     [Header("스탯 보정")]
     [Tooltip("장착 시 직원 스탯 변경")]
     public EquipmentStatModifier statModifier;
@@ -78,9 +91,16 @@ public class EquipmentData : ScriptableObject
     [Tooltip("항상 적용되는 특성")]
     public EquipmentPassiveEffects passiveEffects;
 
+    [Header("1회용 (다용도구)")]
+    [Tooltip("조건이 되면 저절로 쓰이고 사라지는 장비. trigger가 None이면 일반 장비입니다.")]
+    public EquipmentConsumable consumable = new EquipmentConsumable();
+
     [Header("능력")]
     [Tooltip("액티브/트리거 기반 스킬 목록")]
     public List<EquipmentAbility> abilities = new List<EquipmentAbility>();
+
+    /// <summary>1회용 장비인지</summary>
+    public bool IsConsumable => consumable != null && consumable.trigger != ConsumableTrigger.None;
 }
 
 /// <summary>
@@ -147,10 +167,42 @@ public class EquipmentPassiveEffects
     [Tooltip("작업 타입별 속도 보정")]
     public WorkSpeedModifier[] workTypeModifiers;
 
-    [Header("침식 방어")]
-    [Tooltip("침식 오라 무시 수치. 개체의 aoeErosionPerSecond가 이 값 이하이면 오라를 차단합니다.")]
-    [Min(0)]
-    public float erosionIgnoreValue;
+    [Header("이동")]
+    [Tooltip("물속 감속 무시 (용암은 그대로 느려짐)")]
+    public bool ignoreWaterSlow;
+}
+
+/// <summary>1회용 장비가 저절로 쓰이는 조건</summary>
+public enum ConsumableTrigger
+{
+    /// <summary>1회용이 아님</summary>
+    None,
+
+    /// <summary>체력이 최대치의 일정 비율 이하로 떨어지면</summary>
+    LowHealth,
+
+    /// <summary>직원 침식이 '침식 유지 수치 + 문턱' 이상이면</summary>
+    HighErosion
+}
+
+/// <summary>
+/// 1회용 장비(다용도구 칸) — 조건이 되면 저절로 쓰이고 사라집니다.
+/// 다 쓴 뒤 보관소에서 같은 장비를 자동으로 다시 끼우지는 않습니다.
+/// </summary>
+[Serializable]
+public class EquipmentConsumable
+{
+    [Tooltip("저절로 쓰이는 조건. None이면 1회용이 아닙니다.")]
+    public ConsumableTrigger trigger = ConsumableTrigger.None;
+
+    [Tooltip("조건 값 — LowHealth: 최대 체력 대비 비율(0.3 = 30% 이하) / HighErosion: 침식 유지 수치에 더하는 값(30이면 유지 수치+30 이상)")]
+    public float threshold;
+
+    [Tooltip("쓰면 회복하는 체력")]
+    [Min(0f)] public float healthRestore;
+
+    [Tooltip("쓰면 줄어드는 직원 침식")]
+    [Min(0f)] public float erosionReduce;
 }
 
 /// <summary>

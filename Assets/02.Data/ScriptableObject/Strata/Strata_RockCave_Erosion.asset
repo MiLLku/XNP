@@ -18,9 +18,9 @@ MonoBehaviour:
     \uD759\uC774\uB77C \uAD11\uB9E5\uC774 \uC0DD\uAE30\uC9C0 \uC54A\uACE0, \uB300\uC2E0
     \uCE68\uC2DD\uC774 \uACE0\uC5EC \uC788\uB2E4."
   thicknessWeight: 0
+  sealedEdges: 0
   terrainMode: 0
   baseRock: 1
-  allowVeins: 0
   variant: {fileID: 0}
   variantNoiseScale: 0.012
   variantShare: 0.45
@@ -35,5 +35,8 @@ MonoBehaviour:
   filamentThickness: 0.2
   filamentWarp: 14
   filamentSecondLayer: 1
+  filamentFruitTile: 0
+  filamentFruitChance: 0.06
   baseErosion: 30
   temperatureOffset: 0
+  poolFluid: 1

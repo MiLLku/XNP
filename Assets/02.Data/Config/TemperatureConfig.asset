@@ -36,7 +36,7 @@ MonoBehaviour:
   climateTargetMax: 60
   defaultDoorExchangeRate: 0.05
   comfortMin: 10
-  comfortMax: 25
+  comfortMax: 35
   degreesPerProtectionLevel: 5
   tier1MaxExcess: 10
   tier2MaxExcess: 20

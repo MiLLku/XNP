@@ -133,6 +133,12 @@ public class GameMap
         OnBulkChanged?.Invoke();
     }
 
+    /// <summary>
+    /// 지형은 그대로인데 갈 수 있는 곳이 바뀌었을 때 호출합니다 (용암이 흘러 길을 막거나 틔운 경우).
+    /// 이동 중인 직원이 경로를 다시 잡고, 도달 가능 영역도 다시 계산됩니다.
+    /// </summary>
+    public void InvalidateNavigation() => NavVersion++;
+
     /// <summary>칸 변경을 구독자에게 알립니다. 대량 변경 중에는 무시됩니다.</summary>
     private void NotifyCellChanged(int x, int y)
     {

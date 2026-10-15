@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: heat_resist_4
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: heat_resist_4
+  nodeName: "내열 IV"
+  description: "안정성 · 내열 슈트 IV(+75도 → 110도) 제작법을 해금합니다. 최하층의 열을 견딥니다."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - heat_resist_3
+  resourceCosts:
+  - item: {fileID: 11400000, guid: f84fa6a62b438d64ca3a339d2f915360, type: 2}
+    amount: 5
+  - item: {fileID: 11400000, guid: d89afdea18364bc8b4e751720069bf83, type: 2}
+    amount: 3
+  - item: {fileID: 11400000, guid: 94bfaf90d1b03aa40a345c881c0bb61f, type: 2}
+    amount: 1
+  researchPointCost: 2160
+  unlockEffects:
+  - {fileID: 11400000, guid: a66256674cc94b6ab762a791b4957649, type: 2}
+  treePosition: {x: -1, y: -6}

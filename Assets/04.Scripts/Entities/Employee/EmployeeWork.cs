@@ -233,7 +233,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     }
 
     /// <summary>결격이 될 수 있는 작업인지 — 세척은 누구나 해야 하는 일이라 예외, 철거는 건설에 합쳐져 없어짐.</summary>
-    public static bool CanBeDisqualified(WorkType type) => type != WorkType.Cleaning && type != WorkType.Demolish && type != WorkType.Training;
+    public static bool CanBeDisqualified(WorkType type) => type != WorkType.Cleaning && type != WorkType.Demolish && type != WorkType.Training && type != WorkType.Errand;
 
     /// <summary>
     /// 동적 비자격을 제거합니다.
@@ -308,8 +308,11 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         float mentalModifier = mental != null ? mental.GetActiveSpeedModifier() : 1f;
         float erosionModifier = erosionController != null ? erosionController.WorkSpeedModifier : 1f;
         float researchModifier = 1f + GetResearchWorkSpeedBonus(type);
+        // 장비의 작업 종류별 속도 보정(%) — 작업 장갑 등
+        var equip = employee != null ? employee.Equipment : null;
+        float equipmentModifier = equip != null ? Mathf.Max(0.1f, 1f + equip.GetWorkTypeSpeedModifier(type) / 100f) : 1f;
 
-        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier;
+        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier * equipmentModifier;
     }
 
     /// <summary>
@@ -473,25 +476,31 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
     /// <summary>
     /// 특성에 의한 작업 타입별 속도 보정을 반환합니다.
+    /// 타고난 특성과 <b>스킬이 부여한 특성</b>(예: 채광 I~III = 채광 속도) 모두 곱연산으로 쌓입니다.
     /// </summary>
     private float GetTraitWorkSpeedModifier(WorkType type)
     {
         float modifier = 1f;
         EmployeeData data = employee?.Data;
-        if (data?.traits == null) return modifier;
+        if (data?.traits != null)
+            foreach (var trait in data.traits)
+                modifier *= TraitWorkSpeed(trait, type);
 
-        foreach (var trait in data.traits)
-        {
-            if (trait == null || trait.effects.workSpeedMultipliers == null) continue;
-
-            var specific = trait.effects.workSpeedMultipliers.FirstOrDefault(m => m.workType == type);
-            if (specific.workType == type)
-            {
-                modifier *= specific.multiplier; // 곱연산 배율
-            }
-        }
+        var skills = employee != null ? employee.Skills : null;
+        if (skills != null)
+            foreach (var trait in skills.GetGrantedTraits())
+                modifier *= TraitWorkSpeed(trait, type);
 
         return modifier;
+    }
+
+    /// <summary>특성 하나의 그 작업 속도 배율 (해당 항목이 없으면 1)</summary>
+    private static float TraitWorkSpeed(EmployeeTrait trait, WorkType type)
+    {
+        if (trait == null || trait.effects.workSpeedMultipliers == null) return 1f;
+        foreach (var m in trait.effects.workSpeedMultipliers)
+            if (m.workType == type) return m.multiplier;
+        return 1f;
     }
 
     #endregion

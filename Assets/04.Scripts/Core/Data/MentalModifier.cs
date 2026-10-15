@@ -72,6 +72,9 @@ public static class MentalReason
     /// <summary>더위 (상태형 — 시원한 곳으로 가거나 방열 장비를 갖추면 사라짐)</summary>
     public const string HEAT = "heat";
 
+    /// <summary>축축함 (시간형 — 물에 닿거나 비를 맞으면 붙고, 젖어 있는 동안은 지속 시간이 계속 다시 채워짐)</summary>
+    public const string DAMP = "damp";
+
     /// <summary>동료의 감정 폭발 목격 (시간형)</summary>
     public const string OUTBURST = "outburst";
 

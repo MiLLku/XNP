@@ -403,6 +403,7 @@ public class TilePathfinder
             int checkY = y + i;
             if (!IsInBounds(new Vector2Int(x, checkY))) return false;
             if (!IsSpaceClear(x, checkY))               return false;
+            if (FluidManager.IsLavaAt(x, checkY))       return false; // 용암은 피해 간다 (물은 비용만 — GetMovementCost)
         }
 
         return true;
@@ -435,6 +436,9 @@ public class TilePathfinder
             float buildingMult = Building.GetSpeedMultiplierAt(to);
             if (buildingMult > 0) baseCost /= buildingMult;
         }
+
+        // 물속은 느린 만큼 비싸고, 머리까지 잠기는 곳은 더 비싸다 — 마른 길이 있으면 그쪽으로 간다
+        if (FluidManager.instance != null) baseCost *= FluidManager.instance.GetPathCostAt(to.x, to.y);
 
         int heightDifference = Mathf.Abs(to.y - from.y);
         if (heightDifference > 0) baseCost += heightDifference * 1f;

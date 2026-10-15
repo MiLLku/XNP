@@ -233,6 +233,7 @@ public class WorkTask
     {
         if (target == null) return false;
         if (state == TaskState.Completed || state == TaskState.Cancelled) return false;
+        if (target is IExpiringWorkTarget expiring && expiring.IsExpired) return false; // 할 일이 영영 없어진 대상
         return true;
     }
 
@@ -248,8 +249,8 @@ public class WorkTask
 
     /// <summary>
     /// 특정 직원이 이 작업을 맡을 자격이 있는지 확인합니다.
-    /// 현재는 채광 스킬 게이트만 검사합니다 — 필요 스킬이 없는 직원은
-    /// 해당 광물 타일 작업을 배정받지 못하고, 자격 있는 다른 직원이 가져갑니다.
+    /// 채광은 기지 채광 등급(연구)을 검사합니다 — 등급이 모자라면
+    /// 어느 직원에게도 배정되지 않습니다(연구를 마치면 그때부터 배정).
     /// </summary>
     public bool CanBeAssignedTo(Employee worker)
     {
