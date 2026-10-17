@@ -185,7 +185,7 @@ MonoBehaviour:
   workPosition: {fileID: 0}
   workingEffectPrefab: {fileID: 0}
   effectOffset: {x: 0, y: 0.5, z: 0}
-  workingSound: {fileID: 0}
+  workingSound: {fileID: 11400000, guid: 06b10747e4f5c6e478e9053b7a3a85c7, type: 2}
 --- !u!1 &3978708966667151644
 GameObject:
   m_ObjectHideFlags: 0
