@@ -31,7 +31,7 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
     [SerializeField] protected Vector3 effectOffset = new Vector3(0, 0.5f, 0);
 
     [Header("오디오 (선택사항)")]
-    [SerializeField] protected AudioClip workingSound;
+    [SerializeField] protected SoundData workingSound;
 
     /// <summary>현재 진행 중인 제작 주문</summary>
     protected CraftingOrder _currentOrder;

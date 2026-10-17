@@ -22,11 +22,7 @@ public class SawMill : ProductionBuilding
     {
         base.OnProductionStarted();
 
-        // TODO [사운드]: 톱질 소리 재생
-        if (workingSound != null)
-        {
-            // AudioSource.PlayClipAtPoint(workingSound, transform.position);
-        }
+        SoundManager.instance?.Play(workingSound, transform.position); // 톱질 소리
     }
 
     /// <summary>

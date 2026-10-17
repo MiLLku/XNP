@@ -25,8 +25,8 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
     [SerializeField] private Vector3 progressBarOffset = new Vector3(0, 1.5f, 0);
 
     [Header("오디오 (선택사항)")]
-    [SerializeField] private AudioClip craftingStartSound;
-    [SerializeField] private AudioClip craftingCompleteSound;
+    [SerializeField] private SoundData craftingStartSound;
+    [SerializeField] private SoundData craftingCompleteSound;
 
     private bool _isCrafting = false;
     private CraftingRecipe _currentRecipe;
@@ -707,12 +707,9 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
         Debug.Log($"재료 부족:{missing}");
     }
     
-    private void PlaySound(AudioClip clip)
+    private void PlaySound(SoundData sound)
     {
-        if (clip != null && AudioManager.instance != null)
-        {
-            // AudioManager.instance.PlaySFX(clip);
-        }
+        SoundManager.instance?.Play(sound, transform.position);
     }
     
     // Public 프로퍼티
@@ -731,10 +728,4 @@ public class CraftingUIManager : MonoBehaviour
     {
         // UI 열기 로직
     }
-}
-
-// 임시 오디오 매니저 인터페이스 (나중에 실제 구현 필요)
-public class AudioManager : MonoBehaviour
-{
-    public static AudioManager instance;
 }
