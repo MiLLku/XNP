@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40595986fc9d52c40aee059e9bbd5aef, type: 3}
+  m_Name: AcidThrowerEquip
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
+  itemData: {fileID: 11400000, guid: ddf55ce6f13e4a72b61896e4fbdbd2ed, type: 2}
+  description: "스피터의 산성 주머니를 쏘는 원거리 무기. 관통이 높다."
+  slot: 2
+  weaponClass: 1
+  baseDamage: 10
+  accuracy: 0.82
+  penetration: 0.3
+  attackRange: 7
+  attackInterval: 1.4
+  isDefensiveGear: 0
+  coldProtectionLevel: 0
+  heatTolerance: 0
+  erosionTolerance: 0
+  maxDurability: 130
+  indestructible: 0
+  workWearPerSecond: 0.02
+  combatWearPerHit: 1
+  statModifier:
+    maxHealthModifier: 0
+    maxMentalModifier: 0
+    damageBonus: 0
+    workSpeedModifier: 0
+    hungerRateModifier: 0
+    fatigueRateModifier: 0
+    moveSpeedModifier: 0
+  passiveEffects:
+    enableNightWork: 0
+    rainProtection: 0
+    damageReduction: 0
+    bonusYieldChance: 0
+    workTypeModifiers: []
+    ignoreWaterSlow: 0
+  consumable:
+    trigger: 0
+    threshold: 0
+    healthRestore: 0
+    erosionReduce: 0
+  repairable: 0
+  repairCost: []
+  abilities: []

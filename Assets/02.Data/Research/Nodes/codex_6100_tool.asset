@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: codex_6100_tool
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: codex_6100_tool
+  nodeName: "침식 사수 — 다용도구"
+  description: "제놉스 · 침식 사수 도감 100%면 열림(순서 없음). 정화 분비샘 제작법을 해금합니다."
+  icon: {fileID: 0}
+  prerequisiteNodeIds: []
+  requiredCodexXenopsId: 6100
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 3f0b5741e79141eb98619d71a2117c76, type: 2}
+    amount: 2
+  researchPointCost: 1200
+  unlockEffects:
+  - {fileID: 11400000, guid: 183c2e9be3ab4ad08116f2ce59625e55, type: 2}
+  treePosition: {x: 8, y: -3}
