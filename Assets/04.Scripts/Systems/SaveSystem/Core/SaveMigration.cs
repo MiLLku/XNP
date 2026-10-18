@@ -7,7 +7,7 @@
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 16;
+    public const int CURRENT_VERSION = 17;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -74,6 +74,9 @@ public static class SaveMigration
                     break;
                 case 15:
                     data = MigrateV15ToV16(data);
+                    break;
+                case 16:
+                    data = MigrateV16ToV17(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -665,6 +668,34 @@ public static class SaveMigration
 
         Debug.Log($"[SaveMigration] v16 완료 — 보호구 칸으로 옮긴 갑옷 {moved}개");
         data.saveVersion = 16;
+        return data;
+    }
+
+    /// <summary>
+    /// v16 → v17: 살아 있는 제놉스를 직원에게 붙이던 장착 방식 폐지(제놉스 도감 → 장비 제작으로 대체).
+    /// 직원 장비 칸의 '제놉스 출처' 항목을 지우고, 장착 상태였던 제놉스는 대기 상태로 풀어 줍니다.
+    /// </summary>
+    private static SaveData MigrateV16ToV17(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v16 → v17 마이그레이션 시작 (직원 장착 제놉스 폐지)...");
+
+        int removed = 0;
+        if (data.employees != null)
+            foreach (var emp in data.employees)
+                if (emp?.equippedItems != null)
+                    removed += emp.equippedItems.RemoveAll(s => s != null && s.sourceType == (int)EquipmentSourceType.Xenops);
+
+        if (data.xenopsEntities != null)
+            foreach (var x in data.xenopsEntities)
+            {
+                if (x == null) continue;
+                if (x.state == (int)XenopsState.Equipped) x.state = (int)XenopsState.Idle;
+                x.equippedEmployeeInstanceId = 0;
+                x.equippedSlot = -1;
+            }
+
+        Debug.Log($"[SaveMigration] v17 완료 — 직원 장비 칸에서 제놉스 {removed}개 해제");
+        data.saveVersion = 17;
         return data;
     }
 

@@ -39,6 +39,10 @@ public enum ItemType
     ErodedWater = 14,
     /// <summary>흑요석 — 용암이 물을 만나 굳은 타일을 캐서 얻는다. 내열 슈트 IV 재료</summary>
     Obsidian    = 15,
+    /// <summary>제놉스 특수 드롭 — 처치하면 떨어진다. 그 제놉스 도감 장비의 재료</summary>
+    ErosionGland  = 16, // 침식 사수
+    GrapplerSinew = 17, // 그래플러
+    AcidSac       = 18, // 스피터
 
     // ─── 가공 자원 (101~200) ────────────────────
     IronIngot   = 101,
@@ -81,6 +85,10 @@ public enum ItemType
     PrecisionCrossbow = 306,
     /// <summary>0단계 근접 — 시작 지급 전용 (제작 불가)</summary>
     Baton = 307,
+    /// <summary>제놉스 도감 무기 — 침식 사수·그래플러·스피터</summary>
+    GlandRifle   = 308,
+    SinewWhip    = 309,
+    AcidThrower  = 310,
 
     // ─── 방어구 (351~400) ───────────────────────
     IronArmor   = 351,
@@ -116,6 +124,10 @@ public enum ItemType
     WorkBoots       = 372,
     WaterproofBoots = 373,
     HeatBoots       = 374,
+    /// <summary>제놉스 도감 착용 장비 — 분비샘 방호복(옷)·힘줄 보호구(보호구)·산성막 장갑(장갑)</summary>
+    GlandSuit     = 375,
+    SinewArmor    = 376,
+    AcidGloves    = 377,
 
     // ─── 식물 (401~450) ─────────────────────────
     /// <summary>나무 묘목 — 나무를 제초하면 나오고, 파종하면 나무로 자랍니다.</summary>
@@ -136,4 +148,8 @@ public enum ItemType
     FirstAidKit       = 501,
     /// <summary>정화 앰플 — 다용도구 칸 1회용. 침식이 유지 수치+30 이상이면 저절로 써서 침식 -15</summary>
     PurifyingAmpoule  = 502,
+    /// <summary>제놉스 도감 다용도구 — 정화 분비샘(1회용)·갈고리 손잡이(채광·건설 속도)·해독 주머니(1회용)</summary>
+    PurifyingGland    = 503,
+    GrapplingGrip     = 504,
+    AntidoteSac       = 505,
 }

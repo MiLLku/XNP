@@ -49,6 +49,17 @@ public class XenopsData : ScriptableObject
 
     #endregion
 
+    #region 도감
+
+    [Header("도감 (연구도 0~100% — 100%면 이 제놉스의 장비 연구 3개가 열림)")]
+    [Tooltip("처음 보는 개체가 시야에 들어올 때 오르는 연구도 (개체당 1회). 위협도가 높을수록 크게.")]
+    [Min(0f)] public float codexObservePercent = 3f;
+
+    [Tooltip("한 마리 처치할 때 오르는 연구도. 위협도 2(보통) 기준 8 → 처치만으로 약 13마리.")]
+    [Min(0f)] public float codexKillPercent = 8f;
+
+    #endregion
+
     #region 해석 시스템
 
     [Header("해석 시스템")]

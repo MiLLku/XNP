@@ -129,6 +129,53 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
         BuildTree();
         SelectNode(null);
         RefreshProgressSection();
+        RefreshCodexLabel();
+    }
+
+    // ─── 제놉스 도감 ─────────────────────────────────────────────────────────
+
+    private TextMeshProUGUI _codexLabel;
+    private float _codexTimer;
+
+    private void Update()
+    {
+        _codexTimer -= Time.unscaledDeltaTime;
+        if (_codexTimer > 0f) return;
+        _codexTimer = 1f;
+        RefreshCodexLabel();
+    }
+
+    /// <summary>
+    /// 종류별 도감 연구도 막대 — 창 왼쪽 위에 한 줄씩. 100%면 그 제놉스의 장비 연구 3개가 열린다.
+    /// 씬에 따로 칸을 두지 않고 진행 중 연구 글자(progressText)를 본떠 만든다.
+    /// </summary>
+    private void RefreshCodexLabel()
+    {
+        var db = GameDatabase.Instance;
+        if (db == null || db.allXenopsData == null) return;
+
+        if (_codexLabel == null)
+        {
+            if (progressText == null) return;
+            _codexLabel = Instantiate(progressText, transform);
+            _codexLabel.name = "CodexLabel";
+            var rt = _codexLabel.rectTransform;
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
+            rt.anchoredPosition = new Vector2(16f, -56f);
+            rt.sizeDelta = new Vector2(340f, 120f);
+            _codexLabel.alignment = TextAlignmentOptions.TopLeft;
+            _codexLabel.raycastTarget = false;
+        }
+
+        var sb = new System.Text.StringBuilder("제놉스 도감\n");
+        foreach (var x in db.allXenopsData)
+        {
+            if (x == null) continue;
+            float p = XenopsCodexManager.instance != null ? XenopsCodexManager.instance.GetProgress(x.xenopsID) : 0f;
+            int filled = Mathf.RoundToInt(p / 10f);
+            sb.Append($"{x.xenopsName}  [{new string('■', filled)}{new string('□', 10 - filled)}] {p:F0}%{(p >= 100f ? " — 연구 열림" : "")}\n");
+        }
+        _codexLabel.text = sb.ToString().TrimEnd();
     }
 
     public override void OnClose()
@@ -240,7 +287,14 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
 
         SetText(nodeNameText, _selectedNode.nodeName);
         SetText(nodeDescText, _selectedNode.description);
-        SetText(costText, $"연구 포인트: {_selectedNode.researchPointCost:F0}pt");
+        string codexNeed = "";
+        if (_selectedNode.requiredCodexXenopsId != 0 && !XenopsCodexManager.IsComplete(_selectedNode.requiredCodexXenopsId))
+        {
+            var xd = GameDatabase.Instance != null ? GameDatabase.Instance.GetXenopsData(_selectedNode.requiredCodexXenopsId) : null;
+            float p = XenopsCodexManager.instance != null ? XenopsCodexManager.instance.GetProgress(_selectedNode.requiredCodexXenopsId) : 0f;
+            codexNeed = $"\n필요:{(xd != null ? xd.xenopsName : "제놉스")} 도감 100% (지금 {p:F0}%)";
+        }
+        SetText(costText, $"연구 포인트: {_selectedNode.researchPointCost:F0}pt{codexNeed}");
 
         // 효과 목록
         if (_selectedNode.unlockEffects.Count > 0)

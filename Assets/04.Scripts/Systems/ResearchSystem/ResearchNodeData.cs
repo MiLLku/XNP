@@ -14,6 +14,9 @@ public class ResearchNodeData : ScriptableObject
     [Tooltip("이 연구를 시작하기 전에 완료되어야 하는 연구 ID 목록")]
     public List<string> prerequisiteNodeIds = new List<string>();
 
+    [Tooltip("이 제놉스(xenopsID)의 도감이 100%여야 열립니다. 0이면 조건 없음.")]
+    public int requiredCodexXenopsId = 0;
+
     [Header("연구 비용")]
     [Tooltip("연구 시작 시 즉시 소비되는 자원")]
     public List<ResourceCost> resourceCosts = new List<ResourceCost>();

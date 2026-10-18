@@ -26,7 +26,6 @@ public class EmployeeEquipment : MonoBehaviour
     private Dictionary<EquipmentSlot, EquipmentData> itemSlots;
 
     /// <summary>제노프스 장비 슬롯</summary>
-    private Dictionary<EquipmentSlot, Xenops> xenopsSlots;
 
     /// <summary>능력 쿨다운 추적 (abilityName → 남은 쿨다운)</summary>
     private Dictionary<string, float> abilityCooldowns;
@@ -45,7 +44,6 @@ public class EmployeeEquipment : MonoBehaviour
 
         slotTypes = new Dictionary<EquipmentSlot, EquipmentSourceType>();
         itemSlots = new Dictionary<EquipmentSlot, EquipmentData>();
-        xenopsSlots = new Dictionary<EquipmentSlot, Xenops>();
         abilityCooldowns = new Dictionary<string, float>();
         equippedInstances = new Dictionary<EquipmentSlot, EquipmentInstance>();
 
@@ -137,14 +135,12 @@ public class EmployeeEquipment : MonoBehaviour
 
     /// <summary>
     /// 사망 시 — 무기·다용도구 칸의 장비를 바닥 아이템으로 떨어뜨립니다(나머지 칸은 손대지 않음).
-    /// 장착 제놉스는 해제만 합니다(개체라서 떨어뜨릴 물건이 없음).
     /// </summary>
     public void DropOnDeath(Vector3 position)
     {
         var drops = new Dictionary<ItemData, int>();
         foreach (var slot in new[] { EquipmentSlot.Weapon, EquipmentSlot.MultiTool })
         {
-            if (GetSlotType(slot) == EquipmentSourceType.Xenops) { UnequipXenops(slot); continue; }
             var data = GetItemInSlot(slot);
             if (data?.itemData == null) continue;
             UnequipToInstance(slot);
@@ -286,8 +282,6 @@ public class EmployeeEquipment : MonoBehaviour
         {
             if (GetSlotType(slot) == EquipmentSourceType.Item)
                 UnequipItem(slot);
-            else if (GetSlotType(slot) == EquipmentSourceType.Xenops)
-                UnequipXenops(slot);
         }
 
         itemSlots[slot] = data;
@@ -333,60 +327,6 @@ public class EmployeeEquipment : MonoBehaviour
 
     #endregion
 
-    #region 장착/해제 — 제노프스
-
-    /// <summary>
-    /// 장비형 제노프스를 장착합니다.
-    /// </summary>
-    /// <returns>장착 성공 여부</returns>
-    public bool EquipXenops(EquipmentSlot slot, Xenops xenops)
-    {
-        if (xenops == null) return false;
-        if (xenops.Data == null || xenops.Data.xenopsType != XenopsType.Equipment) return false;
-
-        // 기존 장비 해제
-        if (!IsSlotEmpty(slot))
-        {
-            if (GetSlotType(slot) == EquipmentSourceType.Item)
-                UnequipItem(slot);
-            else if (GetSlotType(slot) == EquipmentSourceType.Xenops)
-                UnequipXenops(slot);
-        }
-
-        xenopsSlots[slot] = xenops;
-        slotTypes[slot] = EquipmentSourceType.Xenops;
-
-        // Xenops 측에 장착 통보 (상태 변경 + EquipmentBehavior 활성화)
-        xenops.EquipTo(employee);
-
-        Debug.Log($"[EmployeeEquipment] {employee?.DisplayName}: {xenops.DisplayName} 제노프스 장착 ({slot})");
-        return true;
-    }
-
-    /// <summary>
-    /// 장비형 제노프스를 해제합니다.
-    /// </summary>
-    /// <returns>해제된 제노프스 (없으면 null)</returns>
-    public Xenops UnequipXenops(EquipmentSlot slot)
-    {
-        if (GetSlotType(slot) != EquipmentSourceType.Xenops) return null;
-        if (!xenopsSlots.TryGetValue(slot, out var xenops)) return null;
-
-        // 스탯 보정 제거 (EquipmentBehavior에서 AddEquipmentModifier 했을 수 있음)
-        statsController?.RemoveEquipmentModifier(slot);
-
-        // Xenops 측에 해제 통보
-        xenops.Unequip();
-
-        xenopsSlots.Remove(slot);
-        slotTypes[slot] = EquipmentSourceType.None;
-
-        Debug.Log($"[EmployeeEquipment] {employee?.DisplayName}: {xenops.DisplayName} 제노프스 해제 ({slot})");
-        return xenops;
-    }
-
-    #endregion
-
     #region 조회
 
     /// <summary>슬롯이 비어있는지 확인</summary>
@@ -407,11 +347,6 @@ public class EmployeeEquipment : MonoBehaviour
         return itemSlots.TryGetValue(slot, out var data) ? data : null;
     }
 
-    /// <summary>슬롯의 제노프스 반환</summary>
-    public Xenops GetXenopsInSlot(EquipmentSlot slot)
-    {
-        return xenopsSlots.TryGetValue(slot, out var xenops) ? xenops : null;
-    }
 
     #endregion
 
@@ -822,11 +757,6 @@ public class EmployeeEquipment : MonoBehaviour
                 slotData.durability = inst != null ? inst.durability : (item != null ? item.maxDurability : 0f);
                 slotData.equipInstanceId = inst?.instanceId ?? 0;
             }
-            else if (slotType == EquipmentSourceType.Xenops)
-            {
-                var xenops = GetXenopsInSlot(slot);
-                slotData.xenopsInstanceId = xenops?.InstanceId ?? 0;
-            }
 
             data.equippedItems.Add(slotData);
         }
@@ -867,37 +797,9 @@ public class EmployeeEquipment : MonoBehaviour
                     }
                 }
             }
-            // Xenops는 ResolveEquipmentReferences에서 처리
         }
     }
 
-    /// <summary>
-    /// 제노프스 장비 크로스레퍼런스를 복원합니다 (PostRestore 단계).
-    /// </summary>
-    public void ResolveEquipmentReferences(EmployeeSaveData data)
-    {
-        if (data.equippedItems == null) return;
-        if (RuntimeIDRegistry.instance == null) return;
-
-        foreach (var slotData in data.equippedItems)
-        {
-            var sourceType = (EquipmentSourceType)slotData.sourceType;
-            if (sourceType != EquipmentSourceType.Xenops) continue;
-            if (slotData.xenopsInstanceId <= 0) continue;
-
-            var slot = (EquipmentSlot)slotData.slot;
-            var xenops = RuntimeIDRegistry.instance.ResolveComponent<Xenops>(slotData.xenopsInstanceId);
-
-            if (xenops != null)
-            {
-                EquipXenops(slot, xenops);
-            }
-            else
-            {
-                Debug.LogWarning($"[EmployeeEquipment] 제노프스 장비 복원 실패: InstanceID {slotData.xenopsInstanceId}");
-            }
-        }
-    }
 
     #endregion
 }

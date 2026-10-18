@@ -560,14 +560,6 @@ public class Employee : MonoBehaviour
     public EquipmentData UnequipItem(EquipmentSlot slot)
         => equipment?.UnequipItem(slot);
 
-    /// <summary>제노프스 장비 장착</summary>
-    public bool EquipXenops(EquipmentSlot slot, Xenops xenops)
-        => equipment != null && equipment.EquipXenops(slot, xenops);
-
-    /// <summary>제노프스 장비 해제</summary>
-    public Xenops UnequipXenops(EquipmentSlot slot)
-        => equipment?.UnequipXenops(slot);
-
     /// <summary>야간 작업 가능 여부</summary>
     public bool CanWorkAtNight()
         => equipment != null && equipment.CanWorkAtNight();

@@ -118,6 +118,7 @@ public class XenopsHealth : MonoBehaviour
         // 드랍 처리
         TryDrop();
         TryDropRaidTrophy();
+        XenopsCodexManager.instance?.OnKilled(_xenops != null ? _xenops.Data : null); // 도감 연구도
 
         // XenopsManager에 제거 위임
         if (XenopsManager.instance != null)
