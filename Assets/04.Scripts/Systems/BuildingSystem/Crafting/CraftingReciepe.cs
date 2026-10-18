@@ -41,9 +41,13 @@ public class CraftingRecipe : ScriptableObject
     [Tooltip("true면 연구로 해금해야 사용 가능 (ResearchRecipeUnlockEffect). false면 항상 사용 가능.")]
     public bool requiresResearch = false;
 
-    /// <summary>현재 사용 가능한 레시피인지 (연구 잠금 고려).</summary>
+    [Tooltip("제놉스 전용 장비 — 이 제놉스(xenopsID)의 도감이 100%여야 제작 가능. 0이면 조건 없음.")]
+    public int requiredCodexXenopsId = 0;
+
+    /// <summary>현재 사용 가능한 레시피인지 (연구 잠금 + 제놉스 도감 고려).</summary>
     public bool IsAvailable()
     {
+        if (requiredCodexXenopsId != 0 && !XenopsCodexManager.IsComplete(requiredCodexXenopsId)) return false;
         if (!requiresResearch) return true;
         return ResearchTreeManager.instance != null && ResearchTreeManager.instance.IsRecipeUnlocked(this);
     }

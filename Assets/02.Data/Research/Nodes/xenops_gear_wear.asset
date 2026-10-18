@@ -10,18 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
-  m_Name: codex_6100_wear
+  m_Name: xenops_gear_wear
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
-  nodeId: codex_6100_wear
-  nodeName: "침식 사수 — 착용"
-  description: "제놉스 · 침식 사수 도감 100%면 열림(순서 없음). 분비샘 방호복 제작법을 해금합니다."
+  nodeId: xenops_gear_wear
+  nodeName: "제놉스 착용 장비 제작"
+  description: "제놉스 · 제작대에서 제놉스 전용 보호구·옷·장갑·신발 등를 만들 수 있게 됩니다. 각 장비는 그 제놉스 도감 100%도 필요합니다."
   icon: {fileID: 0}
-  prerequisiteNodeIds: []
-  requiredCodexXenopsId: 6100
-  resourceCosts:
-  - item: {fileID: 11400000, guid: 3f0b5741e79141eb98619d71a2117c76, type: 2}
-    amount: 2
-  researchPointCost: 1200
+  prerequisiteNodeIds:
+  - xenops_workbench
+  resourceCosts: []
+  researchPointCost: 1080
   unlockEffects:
   - {fileID: 11400000, guid: 0529870f5b7c4381a9e6b7daef13c879, type: 2}
+  - {fileID: 11400000, guid: 4616eac84943449a9c44eec2a2ff4919, type: 2}
+  - {fileID: 11400000, guid: 1c94179d53a944cc9ac8df316af5065a, type: 2}
   treePosition: {x: 8, y: -2}

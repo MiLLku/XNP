@@ -17,8 +17,8 @@ public class XenopsCodexSaveData
 ///
 ///   • 처음 보는 개체가 시야(안개가 걷힌 칸)에 들어오면 +codexObservePercent (개체당 1회)
 ///   • 처치하면 +codexKillPercent
-///   • 100%가 되면 그 종류의 연구 3개(무기·착용·다용도구, ResearchNodeData.requiredCodexXenopsId)가 열린다.
-///     셋 사이에 순서는 없다. 연구를 마치면 그 제놉스 재료로 만드는 장비 제작법이 열린다.
+///   • 100%가 되면 그 제놉스 전용 장비(CraftingRecipe.requiredCodexXenopsId)를 제놉스 장비 제작대에서 만들 수 있다.
+///     단, 그 장비 부위의 제작 연구(무기·착용·다용도구)도 마쳐야 한다 — 연구는 부위별, 도감은 제놉스별.
 ///
 /// 연구도 수치는 XenopsData에 있다 — 위협도(등급)에 맞춰 종류별로 정한다.
 /// </summary>
@@ -74,11 +74,10 @@ public class XenopsCodexManager : DestroySingleton<XenopsCodexManager>, ISaveMod
 
         if (after >= 100f)
         {
-            ResearchTreeManager.instance?.RefreshLockedNodes();
             NotificationManager.instance?.PushLetter(new Letter
             {
                 title = $"도감 완성: {data.xenopsName}",
-                body = $"{data.xenopsName}의 연구도가 100%가 되었습니다. 연구 트리에서 이 제놉스의 무기·착용·다용도구 연구 3개를 순서 없이 진행할 수 있습니다.",
+                body = $"{data.xenopsName}의 연구도가 100%가 되었습니다. 제놉스 장비 제작대에서 이 제놉스 전용 장비를 만들 수 있습니다 (그 부위의 제작 연구를 마친 경우).",
                 type = LetterType.Positive
             });
         }
@@ -86,7 +85,7 @@ public class XenopsCodexManager : DestroySingleton<XenopsCodexManager>, ISaveMod
 
     #region ISaveModule
 
-    /// <summary>연구 트리(85) 다음 — 도감으로 잠긴 연구를 복원 뒤 다시 연다</summary>
+    /// <summary>연구 트리(85) 다음</summary>
     public int SaveOrder => 86;
 
     public void Capture(SaveData data)
@@ -112,7 +111,6 @@ public class XenopsCodexManager : DestroySingleton<XenopsCodexManager>, ISaveMod
                 progress[save.xenopsIds[i]] = save.progress[i];
             foreach (int id in save.observedInstanceIds) observed.Add(id);
         }
-        ResearchTreeManager.instance?.RefreshLockedNodes();
     }
 
     public void PostRestore(SaveData data) { }

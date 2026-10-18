@@ -219,15 +219,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e2f8d16a99de474baf8a472825f5367a, type: 2}
   - {fileID: 11400000, guid: 4d5cf1b81c6145fa97a415c891c94bff, type: 2}
   - {fileID: 11400000, guid: fcde302cd4fd4260b431823cd5bc6858, type: 2}
-  - {fileID: 11400000, guid: 4a1b52f713b1453880526591f918d9af, type: 2}
-  - {fileID: 11400000, guid: 996a8dfbf0124e75820823029e94ba21, type: 2}
-  - {fileID: 11400000, guid: d4bb85122caf45f88a07dd5c1c80df62, type: 2}
-  - {fileID: 11400000, guid: 841a4f163c8f4542815a204b0a21e52b, type: 2}
-  - {fileID: 11400000, guid: 7512d9c17d0d4efab592fbcc10dea4f0, type: 2}
-  - {fileID: 11400000, guid: 53d438612a234c4ea2ff063831cc6fab, type: 2}
-  - {fileID: 11400000, guid: 19cf8897f88a4772ba0ea28852134c29, type: 2}
-  - {fileID: 11400000, guid: 386d0ae747c44206a81f568e804e9577, type: 2}
-  - {fileID: 11400000, guid: ccdadc80c57a49c6a23df2cb0f80a9a6, type: 2}
   workPosition: {fileID: 0}
   workingEffectPrefab: {fileID: 0}
   effectOffset: {x: 0, y: 0.5, z: 0}

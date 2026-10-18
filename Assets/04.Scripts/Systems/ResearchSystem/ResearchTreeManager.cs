@@ -159,19 +159,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
     }
 
     private bool ArePrerequisitesMet(ResearchNodeData node)
-        => node.prerequisiteNodeIds.All(id => GetNodeState(id) == ResearchNodeState.Completed)
-           && (node.requiredCodexXenopsId == 0 || XenopsCodexManager.IsComplete(node.requiredCodexXenopsId));
-
-    /// <summary>잠긴 연구 중 조건이 채워진 것을 연다 — 제놉스 도감이 100%가 됐을 때 등.</summary>
-    public void RefreshLockedNodes()
-    {
-        if (treeConfig == null) return;
-        foreach (var node in treeConfig.nodes)
-        {
-            if (node == null || GetNodeState(node.nodeId) != ResearchNodeState.Locked) continue;
-            if (ArePrerequisitesMet(node)) SetNodeState(node.nodeId, ResearchNodeState.Available);
-        }
-    }
+        => node.prerequisiteNodeIds.All(id => GetNodeState(id) == ResearchNodeState.Completed);
 
     private void SetNodeState(string nodeId, ResearchNodeState state)
     {

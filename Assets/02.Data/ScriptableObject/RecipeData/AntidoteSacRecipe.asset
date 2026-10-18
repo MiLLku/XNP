@@ -24,3 +24,4 @@ MonoBehaviour:
     amount: 2
   craftingTime: 600
   requiresResearch: 1
+  requiredCodexXenopsId: 6102

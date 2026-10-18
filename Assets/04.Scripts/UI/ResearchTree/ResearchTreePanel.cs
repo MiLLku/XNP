@@ -146,7 +146,7 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
     }
 
     /// <summary>
-    /// 종류별 도감 연구도 막대 — 창 왼쪽 위에 한 줄씩. 100%면 그 제놉스의 장비 연구 3개가 열린다.
+    /// 종류별 도감 연구도 막대 — 창 왼쪽 위에 한 줄씩. 100%면 그 제놉스 전용 장비를 제작할 수 있다.
     /// 씬에 따로 칸을 두지 않고 진행 중 연구 글자(progressText)를 본떠 만든다.
     /// </summary>
     private void RefreshCodexLabel()
@@ -173,7 +173,7 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
             if (x == null) continue;
             float p = XenopsCodexManager.instance != null ? XenopsCodexManager.instance.GetProgress(x.xenopsID) : 0f;
             int filled = Mathf.RoundToInt(p / 10f);
-            sb.Append($"{x.xenopsName}  [{new string('■', filled)}{new string('□', 10 - filled)}] {p:F0}%{(p >= 100f ? " — 연구 열림" : "")}\n");
+            sb.Append($"{x.xenopsName}  [{new string('■', filled)}{new string('□', 10 - filled)}] {p:F0}%{(p >= 100f ? " — 전용 장비 제작 가능" : "")}\n");
         }
         _codexLabel.text = sb.ToString().TrimEnd();
     }
@@ -287,14 +287,7 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
 
         SetText(nodeNameText, _selectedNode.nodeName);
         SetText(nodeDescText, _selectedNode.description);
-        string codexNeed = "";
-        if (_selectedNode.requiredCodexXenopsId != 0 && !XenopsCodexManager.IsComplete(_selectedNode.requiredCodexXenopsId))
-        {
-            var xd = GameDatabase.Instance != null ? GameDatabase.Instance.GetXenopsData(_selectedNode.requiredCodexXenopsId) : null;
-            float p = XenopsCodexManager.instance != null ? XenopsCodexManager.instance.GetProgress(_selectedNode.requiredCodexXenopsId) : 0f;
-            codexNeed = $"\n필요:{(xd != null ? xd.xenopsName : "제놉스")} 도감 100% (지금 {p:F0}%)";
-        }
-        SetText(costText, $"연구 포인트: {_selectedNode.researchPointCost:F0}pt{codexNeed}");
+        SetText(costText, $"연구 포인트: {_selectedNode.researchPointCost:F0}pt");
 
         // 효과 목록
         if (_selectedNode.unlockEffects.Count > 0)
