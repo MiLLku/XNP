@@ -136,6 +136,26 @@ public class EmployeeEquipment : MonoBehaviour
     }
 
     /// <summary>
+    /// 사망 시 — 무기·다용도구 칸의 장비를 바닥 아이템으로 떨어뜨립니다(나머지 칸은 손대지 않음).
+    /// 장착 제놉스는 해제만 합니다(개체라서 떨어뜨릴 물건이 없음).
+    /// </summary>
+    public void DropOnDeath(Vector3 position)
+    {
+        var drops = new Dictionary<ItemData, int>();
+        foreach (var slot in new[] { EquipmentSlot.Weapon, EquipmentSlot.MultiTool })
+        {
+            if (GetSlotType(slot) == EquipmentSourceType.Xenops) { UnequipXenops(slot); continue; }
+            var data = GetItemInSlot(slot);
+            if (data?.itemData == null) continue;
+            UnequipToInstance(slot);
+            drops.TryGetValue(data.itemData, out int n);
+            drops[data.itemData] = n + 1;
+        }
+        // shortcut: 바닥 아이템은 수량만 가져서 내구도는 운반 뒤 최대치로 돌아온다 — 장비형 바닥 아이템이 생기면 인스턴스째 옮길 것
+        ItemRefundHelper.SpawnRefunds(drops, position, Vector2Int.one);
+    }
+
+    /// <summary>
     /// 수선 진입점 (보류 — 틀만, 호출하는 곳 없음): 수선 가능한 장비의 내구도를 최대로 되돌립니다.
     /// 자원 차감·수선대·작업은 수선 시스템을 만들 때 호출하는 쪽이 맡습니다.
     /// </summary>

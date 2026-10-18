@@ -431,6 +431,9 @@ public class EmployeeStatsController : MonoBehaviour
                 pauseUntilRead = true
             });
             TimeManager.instance?.ForcePause();
+
+            // 무기·다용도구만 그 자리에 떨어뜨리고, 나머지(옷·헬멧·장갑·신발·보호구·소지품)는 직원과 함께 사라진다
+            EmployeeManager.instance?.HandleDeath(employee);
             return;
         }
 

@@ -95,6 +95,9 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
             return false;
         }
 
+        // 장비 아이템(사망 직원이 떨군 무기 등)은 인벤토리가 아니라 장비 보관소로
+        if (EquipmentStorageManager.TryAddCraftOutput(itemData, amount)) return true;
+
         int currentAmount = GetItemCount(itemData);
         int newAmount = currentAmount + amount;
 

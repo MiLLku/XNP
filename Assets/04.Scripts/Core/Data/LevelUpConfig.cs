@@ -38,6 +38,10 @@ public class LevelUpConfig : ScriptableObject
     [Tooltip("이 레벨 간격마다 운반 용량 +1 (예: 3이면 Lv4·7·10…)")]
     [Min(1)] public int carryEveryLevels = 3;
 
+    [Header("작업 레벨 (반복 작업으로 오름)")]
+    [Tooltip("작업 레벨 1당 그 작업 속도 증가 (0.03 = +3%). Lv1은 보너스 없음, Lv10이면 +27%.")]
+    [Min(0f)] public float workSpeedPerAptitudeLevel = 0.03f;
+
     /// <summary>현재 레벨에서 다음 레벨로 가는 단련 시간(초)</summary>
     public float TrainingSecondsFor(int currentLevel) => trainingSecondsBase + trainingSecondsPerLevel * Mathf.Max(0, currentLevel - 1);
 

@@ -295,6 +295,17 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     /// 직원을 제거합니다.
     /// </summary>
     /// <param name="employee">제거할 직원</param>
+    /// <summary>
+    /// 직원 사망 — 무기·다용도구만 바닥에 떨어뜨리고(직원이 창고로 운반 → 장비 보관소) 직원을 지웁니다.
+    /// 나머지 장비와 소지품은 함께 사라집니다. 침대·구역 배정은 사망 직원을 각자 알아서 풀어 줍니다.
+    /// </summary>
+    public void HandleDeath(Employee employee)
+    {
+        if (employee == null) return;
+        employee.Equipment?.DropOnDeath(employee.transform.position);
+        RemoveEmployee(employee);
+    }
+
     public void RemoveEmployee(Employee employee)
     {
         if (employee == null) return;
