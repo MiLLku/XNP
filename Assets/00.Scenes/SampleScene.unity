@@ -9930,6 +9930,51 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 365859615}
   m_CullTransparentMesh: 1
+--- !u!1 &366553295
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 366553296}
+  - component: {fileID: 366553297}
+  m_Layer: 0
+  m_Name: RuntimeIDRegistry
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &366553296
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 366553295}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1006733511}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &366553297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 366553295}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 18d104ac7c9c4554cb209474c7e892b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RuntimeIDRegistry
+  showDebugLogs: 0
 --- !u!1 &367563498
 GameObject:
   m_ObjectHideFlags: 0
@@ -30094,6 +30139,7 @@ Transform:
   - {fileID: 1600534965}
   - {fileID: 1894559265}
   - {fileID: 152218925}
+  - {fileID: 366553296}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1009719779
@@ -48396,6 +48442,13 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 10113f383b1ee6b489ea655a03ba6e81, type: 2}
   - {fileID: 11400000, guid: 781c0e6a32f84fa4e88bf314ee1951f0, type: 2}
   defaultSpawnPoint: {fileID: 676058047}
+  autoSchedule: 1
+  firstRaidDay: 3
+  raidIntervalDays: {x: 0.7, y: 1.5}
+  overdueMultiplierPerDay: 0.5
+  strongRaidAfterDays: 1.5
+  maxEnemiesPerEmployee: 1.5
+  maxEnemiesPerRaid: 12
   showDebugLogs: 1
 --- !u!1 &1624414287
 GameObject:
@@ -51316,6 +51369,8 @@ MonoBehaviour:
   skillTreeConfig: {fileID: 11400000, guid: 7daa6ce102741b649bcf5431b74982f3, type: 2}
   mentalBreakConfig: {fileID: 11400000, guid: b1c862c10364e90459f7beae508f547f, type: 2}
   mentalModifierConfig: {fileID: 11400000, guid: 7d62d86ad48b4e344b7d02747f5b0665, type: 2}
+  startingEmployeeCount: 3
+  hiresPerDay: 1
 --- !u!1 &1682204058
 GameObject:
   m_ObjectHideFlags: 0
