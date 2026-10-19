@@ -76,6 +76,24 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ee3bb596ca675114abed6a6e75dfa0fa, type: 2}
   - {fileID: 11400000, guid: aa0e7ae4cbcfb304096adf7eed5f547b, type: 2}
   - {fileID: 11400000, guid: dbd3e76953c27c545aa9469afdbc4ccc, type: 2}
+  - {fileID: 11400000, guid: b9049ebb2b8fec64db02a4687cd6c646, type: 2}
+  - {fileID: 11400000, guid: d45be63532779d64d8310036b717e0e9, type: 2}
+  - {fileID: 11400000, guid: 0e6643ea6b5934b41be3cf707dde5df1, type: 2}
+  - {fileID: 11400000, guid: a274f85d6863a3b4992c6344d54e7e62, type: 2}
+  - {fileID: 11400000, guid: 10dcd57b5407ea94c9b20a4249c00c52, type: 2}
+  - {fileID: 11400000, guid: 50a09d32bb278ff40a307c4c5f75af22, type: 2}
+  - {fileID: 11400000, guid: c1f7302789ee7b246a4cfbbcbd77fa6f, type: 2}
+  - {fileID: 11400000, guid: ba0d43e49b257884183dfc8e4ca10138, type: 2}
+  - {fileID: 11400000, guid: 6a6d72a73854a1a4a97f4eebca5567cc, type: 2}
+  - {fileID: 11400000, guid: 4ebe5def233b03141a219afa27cb1ea5, type: 2}
+  - {fileID: 11400000, guid: fb811c36fe1c84f4da6b29897325f53c, type: 2}
+  - {fileID: 11400000, guid: 0b0356aaec5eadf4499a07162c4df8d3, type: 2}
+  - {fileID: 11400000, guid: ae9266afb292cfb48b36fa0768b44fa0, type: 2}
+  - {fileID: 11400000, guid: 027cafa11e8e47f41a57a4953f9a371d, type: 2}
+  - {fileID: 11400000, guid: 547d0a7b4414d5441aa522b4fb05814e, type: 2}
+  - {fileID: 11400000, guid: 37877b4d574edd445a1fbef62bd7ca8b, type: 2}
+  - {fileID: 11400000, guid: aed1d002e91a1f545b72c3a3c61edda8, type: 2}
+  - {fileID: 11400000, guid: 5f043adf83c68194c9600f7e1b6c7a18, type: 2}
   traitCountMin: 0
   traitCountMax: 3
   baseMaxHealth: 100
@@ -91,6 +109,7 @@ MonoBehaviour:
   defaultCanCraft: 1
   defaultCanResearch: 1
   defaultCanGarden: 1
+  baseWorkStatCap: 30
   baseCarryCapacityMin: 3
   baseCarryCapacityMax: 8
   disqualChances: []

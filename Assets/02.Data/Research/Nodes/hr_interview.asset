@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: hr_interview
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: hr_interview
+  nodeName: "\uBA74\uC811 \uAE30\uBC95"
+  description: "\uC778\uC0AC \xB7 \uBA74\uC811 \uCC45\uC0C1\uC744(\uB97C) \uD574\uAE08\uD569\uB2C8\uB2E4.
+    \uAC19\uC740 \uBC29\uC5D0 \uC788\uC73C\uBA74 \uCC44\uC6A9 \uD6C4\uBCF4\uC758
+    \uC791\uC5C5 \uC218\uCE58 \uCD5C\uB300\uCE58 +10."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - hr_aptitude_test
+  resourceCosts: []
+  researchPointCost: 1200
+  unlockEffects:
+  - {fileID: 11400000, guid: 104dfd3cf5a264a49a0219afee857460, type: 2}
+  treePosition: {x: 11, y: -3}

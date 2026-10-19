@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MentalBreakConfig
   checkIntervalSeconds: 2.5
   breakGraceSeconds: 40
-  breakThreshold: 0.5
+  breakThreshold: 0.4
   mtbDays: 0.75
   depthMtbFactor: 4
   composureBonus: 50

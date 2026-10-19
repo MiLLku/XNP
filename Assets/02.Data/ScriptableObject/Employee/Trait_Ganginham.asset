@@ -13,22 +13,47 @@ MonoBehaviour:
   m_Name: Trait_Ganginham
   m_EditorClassIdentifier: Assembly-CSharp::EmployeeTrait
   traitName: "\uAC15\uC778\uD568"
-  description: "\uCE68\uC2DD \uC624\uB77C \uBB34\uC2DC \uC218\uCE58\uAC00 1 \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  description: "\uBC1B\uB294 \uBB3C\uB9AC \uD53C\uD574\uAC00 20% \uAC10\uC18C\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   type: 0
+  exclusionGroup: "\uC2E0\uCCB4"
   effects:
-    healthModifier: 0
-    mentalModifier: 0
+    healthMult: 1
+    mentalMult: 1
+    damageTakenMult: 0.8
+    erosionDamageMult: 1
+    mentalDecayMult: 1
+    abnormalResistMult: 1
+    moveSpeedMult: 1
+    workSpeedMultipliers: []
+    meleeDamageMult: 1
+    rangedDamageMult: 1
+    accuracyMult: 1
+    attackIntervalMult: 1
+    attackRangeBonus: 0
+    penetrationBonus: 0
     attackModifier: 0
     globalWorkSpeedModifier: 0
-    specificWorkModifiers: []
     hungerRateModifier: 0
     fatigueRateModifier: 0
+    carryCapacityModifier: 0
+    skillGainRateModifier: 0
+    erosionIgnoreBonus: 0
+    guardRangeBonus: 0
+    selfMood: 0
+    moodToOthers: 0
+    ignoreColleagueMood: 0
+    moodPerErosion: 0
+    erosionMoodMax: 0
+    moodWhenNoErosion: 0
+    erosionMoodLabel: 
+    violent: 0
+    bonusYieldChance: 0
+    workLevelBonuses: []
+    meleeLevelBonus: 0
+    rangedLevelBonus: 0
+    chefDishes: 0
     canWorkAtNight: 0
     cannotWorkInRain: 0
     lonewolfBonus: 0
     teamworkBonus: 0
-    physicalDamageReduction: 0
-    erosionIgnoreBonus: 1
-    moveSpeedModifier: 0
-    skillGainRateModifier: 0
