@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e13f7c21b4c811644800ed6f7e9e8dd5, type: 3}
+  m_Name: Trait_Bipongnyeokjuui
+  m_EditorClassIdentifier: Assembly-CSharp::EmployeeTrait
+  traitName: "\uBE44\uD3ED\uB825\uC8FC\uC758"
+  description: "\uC804\uD22C \uACB0\uACA9 \u2014 \uD53C\uD574\uB97C \uC8FC\uB294
+    \uD589\uB3D9\uC744 \uC804\uD600 \uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4 (\uACF5\uACA9,
+    \uB3D9\uB8CC\xB7\uAC74\uBB3C\uC744 \uACF5\uACA9\uD558\uB294 \uC774\uC0C1 \uD589\uB3D9).
+    \uC18C\uC9D1\uD574\uC11C \uC774\uB3D9\uC740 \uAC00\uB2A5\uD569\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  type: 1
+  exclusionGroup: "\uC804\uD22C,\uD3ED\uB825"
+  effects:
+    healthMult: 1
+    mentalMult: 1
+    damageTakenMult: 1
+    erosionDamageMult: 1
+    mentalDecayMult: 1
+    abnormalResistMult: 1
+    moveSpeedMult: 1
+    workSpeedMultipliers: []
+    meleeDamageMult: 1
+    rangedDamageMult: 1
+    accuracyMult: 1
+    attackIntervalMult: 1
+    meleeAttackIntervalMult: 1
+    rangedAttackIntervalMult: 1
+    meleeAccuracyMult: 1
+    rangedAccuracyMult: 1
+    aimTimeMult: 1
+    attackRangeBonus: 0
+    penetrationBonus: 0
+    attackModifier: 0
+    globalWorkSpeedModifier: 0
+    hungerRateModifier: 0
+    fatigueRateModifier: 0
+    carryCapacityModifier: 0
+    skillGainRateModifier: 0
+    erosionIgnoreBonus: 0
+    guardRangeBonus: 0
+    selfMood: 0
+    moodToOthers: 0
+    ignoreColleagueMood: 0
+    moodPerErosion: 0
+    erosionMoodMax: 0
+    moodWhenNoErosion: 0
+    erosionMoodLabel: 
+    violent: 0
+    bonusYieldChance: 0
+    workLevelBonuses: []
+    meleeLevelBonus: 0
+    rangedLevelBonus: 0
+    chefDishes: 0
+    cannotEquipMelee: 0
+    cannotEquipRanged: 0
+    nonViolent: 1
+    canWorkAtNight: 0
+    cannotWorkInRain: 0
+    lonewolfBonus: 0
+    teamworkBonus: 0

@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: Trait_Ssaumkkun
   m_EditorClassIdentifier: Assembly-CSharp::EmployeeTrait
   traitName: "\uC2F8\uC6C0\uAFBC"
-  description: "\uACA9\uD22C \uC218\uCE58 +4, \uACF5\uACA9 \uC18D\uB3C4 +20%. (\uC0AC\uACA9
-    \uACB0\uACA9\uC740 \uC0AC\uACA9 \uAC1C\uD3B8 \uB54C \uCD94\uAC00)"
+  description: "\uACA9\uD22C \uC218\uCE58 +4, \uADFC\uC811 \uACF5\uACA9 \uC18D\uB3C4
+    +20%. \uC6D0\uAC70\uB9AC \uBB34\uAE30\uB97C \uCC29\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
   icon: {fileID: 0}
   type: 2
   exclusionGroup: "\uC804\uD22C"
@@ -30,7 +30,12 @@ MonoBehaviour:
     meleeDamageMult: 1
     rangedDamageMult: 1
     accuracyMult: 1
-    attackIntervalMult: 0.8333333
+    attackIntervalMult: 1
+    meleeAttackIntervalMult: 0.8333333
+    rangedAttackIntervalMult: 1
+    meleeAccuracyMult: 1
+    rangedAccuracyMult: 1
+    aimTimeMult: 1
     attackRangeBonus: 0
     penetrationBonus: 0
     attackModifier: 0
@@ -54,6 +59,9 @@ MonoBehaviour:
     meleeLevelBonus: 4
     rangedLevelBonus: 0
     chefDishes: 0
+    cannotEquipMelee: 0
+    cannotEquipRanged: 1
+    nonViolent: 0
     canWorkAtNight: 0
     cannotWorkInRain: 0
     lonewolfBonus: 0

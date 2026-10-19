@@ -17,7 +17,7 @@ MonoBehaviour:
     \uB098\uC635\uB2C8\uB2E4 (\uCE68\uC2DD \uC774\uC0C1 \uD3EC\uD568)."
   icon: {fileID: 0}
   type: 1
-  exclusionGroup: 
+  exclusionGroup: "\uD3ED\uB825"
   effects:
     healthMult: 1
     mentalMult: 1
@@ -31,6 +31,11 @@ MonoBehaviour:
     rangedDamageMult: 1
     accuracyMult: 1
     attackIntervalMult: 1
+    meleeAttackIntervalMult: 1
+    rangedAttackIntervalMult: 1
+    meleeAccuracyMult: 1
+    rangedAccuracyMult: 1
+    aimTimeMult: 1
     attackRangeBonus: 0
     penetrationBonus: 0
     attackModifier: 0
@@ -54,6 +59,9 @@ MonoBehaviour:
     meleeLevelBonus: 0
     rangedLevelBonus: 0
     chefDishes: 0
+    cannotEquipMelee: 0
+    cannotEquipRanged: 0
+    nonViolent: 0
     canWorkAtNight: 0
     cannotWorkInRain: 0
     lonewolfBonus: 0

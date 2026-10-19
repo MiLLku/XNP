@@ -94,6 +94,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 37877b4d574edd445a1fbef62bd7ca8b, type: 2}
   - {fileID: 11400000, guid: aed1d002e91a1f545b72c3a3c61edda8, type: 2}
   - {fileID: 11400000, guid: 5f043adf83c68194c9600f7e1b6c7a18, type: 2}
+  - {fileID: 11400000, guid: 68bdd6ca06923ac499ae2b1c593008da, type: 2}
   traitCountMin: 0
   traitCountMax: 3
   baseMaxHealth: 100

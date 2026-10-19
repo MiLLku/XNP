@@ -13,14 +13,16 @@ MonoBehaviour:
   m_Name: GlandRifleEquip
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   itemData: {fileID: 11400000, guid: 353189f45fa048b5b95c9fe6de6cd609, type: 2}
-  description: "침식 사수의 분비샘으로 만든 원거리 무기."
+  description: "\uCE68\uC2DD \uC0AC\uC218\uC758 \uBD84\uBE44\uC0D8\uC73C\uB85C \uB9CC\uB4E0
+    \uC6D0\uAC70\uB9AC \uBB34\uAE30."
   slot: 2
   weaponClass: 1
   baseDamage: 13
   accuracy: 0.85
   penetration: 0.1
   attackRange: 9
-  attackInterval: 1.6
+  attackInterval: 1
+  aimTime: 0.6
   isDefensiveGear: 0
   coldProtectionLevel: 0
   heatTolerance: 0
@@ -29,6 +31,8 @@ MonoBehaviour:
   indestructible: 0
   workWearPerSecond: 0.02
   combatWearPerHit: 1
+  repairable: 0
+  repairCost: []
   statModifier:
     maxHealthModifier: 0
     maxMentalModifier: 0
@@ -49,6 +53,4 @@ MonoBehaviour:
     threshold: 0
     healthRestore: 0
     erosionReduce: 0
-  repairable: 0
-  repairCost: []
   abilities: []

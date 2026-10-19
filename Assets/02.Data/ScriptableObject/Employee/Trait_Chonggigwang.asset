@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Trait_Chonggigwang
   m_EditorClassIdentifier: Assembly-CSharp::EmployeeTrait
   traitName: "\uCD1D\uAE30\uAD11"
-  description: "\uC0AC\uACA9 \uC218\uCE58 +4, \uBA85\uC911\uB960 +10% (\uC784\uC2DC).
-    (\uC870\uC900 \uC2DC\uAC04 -50%\xB7\uACA9\uD22C \uACB0\uACA9\uC740 \uC0AC\uACA9
-    \uAC1C\uD3B8 \uB54C \uCD94\uAC00)"
+  description: "\uC0AC\uACA9 \uC218\uCE58 +4, \uC870\uC900 \uC2DC\uAC04 -50%, \uC0AC\uACA9
+    \uBA85\uC911\uB960 +10% (\uC784\uC2DC). \uADFC\uC811 \uBB34\uAE30\uB97C \uCC29\uC6A9\uD560
+    \uC218 \uC5C6\uC2B5\uB2C8\uB2E4."
   icon: {fileID: 0}
   type: 2
   exclusionGroup: "\uC804\uD22C"
@@ -30,8 +30,13 @@ MonoBehaviour:
     workSpeedMultipliers: []
     meleeDamageMult: 1
     rangedDamageMult: 1
-    accuracyMult: 1.1
+    accuracyMult: 1
     attackIntervalMult: 1
+    meleeAttackIntervalMult: 1
+    rangedAttackIntervalMult: 1
+    meleeAccuracyMult: 1
+    rangedAccuracyMult: 1.1
+    aimTimeMult: 0.5
     attackRangeBonus: 0
     penetrationBonus: 0
     attackModifier: 0
@@ -55,6 +60,9 @@ MonoBehaviour:
     meleeLevelBonus: 0
     rangedLevelBonus: 4
     chefDishes: 0
+    cannotEquipMelee: 1
+    cannotEquipRanged: 0
+    nonViolent: 0
     canWorkAtNight: 0
     cannotWorkInRain: 0
     lonewolfBonus: 0
