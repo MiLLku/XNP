@@ -222,8 +222,14 @@ public class HiringPanel : BasePanel
     {
         if (data.traits == null || data.traits.Count == 0) return "";
         var names = new List<string>();
-        foreach (var t in data.traits) if (t != null) names.Add(t.traitName);
-        return "\n특성: " + string.Join(", ", names);
+        bool nonViolent = false;
+        foreach (var t in data.traits)
+        {
+            if (t == null) continue;
+            names.Add(t.traitName);
+            nonViolent |= t.effects != null && t.effects.nonViolent;
+        }
+        return "\n특성: " + string.Join(", ", names) + (nonViolent ? "\n결격: 전투" : "");
     }
 
     private void ClearCards()

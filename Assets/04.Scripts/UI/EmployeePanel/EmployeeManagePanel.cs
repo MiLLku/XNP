@@ -272,6 +272,17 @@ public class EmployeeManagePanel : BasePanel
 
     #region 상세 표시
 
+    /// <summary>특성 목록 + 전투 결격 표시</summary>
+    private string BuildTraitLine()
+    {
+        var traits = selected != null && selected.Data != null ? selected.Data.traits : null;
+        if (traits == null || traits.Count == 0) return "";
+        var names = new System.Collections.Generic.List<string>();
+        foreach (var t in traits) if (t != null) names.Add(t.traitName);
+        bool nonViolent = selected.StatsController != null && selected.StatsController.IsNonViolent;
+        return "\n특성: " + string.Join(", ", names) + (nonViolent ? "\n결격: 전투" : "");
+    }
+
     private void RefreshDetail()
     {
         if (selected == null)
@@ -304,7 +315,7 @@ public class EmployeeManagePanel : BasePanel
                 BuildErosionDetail(erosionCtrl) +
                 $"재미  {needs.fun:F0} / 100\n" +
                 $"수면(피로)  {needs.fatigue:F0} / 100\n" +
-                tolerance;
+                tolerance + BuildTraitLine();
         }
 
         RefreshSlotLabels();
@@ -477,6 +488,7 @@ public class EmployeeManagePanel : BasePanel
 
         var mgr = EquipmentStorageManager.instance;
         bool hasArmory = mgr != null && mgr.HasArmory();
+        string blockReason = null; // 이 페이지에 특성상 못 입는 장비가 있으면 그 이유
 
         for (int i = 0; i < cells.Count; i++)
         {
@@ -485,7 +497,10 @@ public class EmployeeManagePanel : BasePanel
 
             // 보관소 장비 → 선택 직원에게 장착 / 선택 직원이 입은 장비 → 해제 / 다른 직원이 입은 장비 → 불가
             bool mine = entry != null && entry.wearer == selected;
-            bool usable = entry != null && selected != null && hasArmory && (!entry.IsWorn || mine);
+            string block = entry != null && !entry.IsWorn && selected != null && selected.Equipment != null
+                ? selected.Equipment.GetEquipBlockReason(entry.data) : null;
+            if (block != null) blockReason = block;
+            bool usable = entry != null && selected != null && hasArmory && (!entry.IsWorn || mine) && block == null;
             EquipmentEntry captured = entry;
             cells[i].Bind(entry, usable, () => OnCellClicked(captured), () => OnCellInfo(captured));
         }
@@ -495,7 +510,9 @@ public class EmployeeManagePanel : BasePanel
         SetArrow(nextPageButton, page < pages - 1);
 
         if (gridHintText != null)
-            gridHintText.text = hasArmory ? "" : "! 장비 보관소 없음 — 장착 불가";
+            gridHintText.text = !hasArmory ? "! 장비 보관소 없음 — 장착 불가"
+                              : blockReason != null ? "! " + blockReason
+                              : "";
     }
 
     /// <summary>장비 선택 창이 보여 주는 칸의 장비인지</summary>

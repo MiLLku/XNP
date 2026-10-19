@@ -69,6 +69,13 @@ public class CombatConfig : ScriptableObject
     [Tooltip("아군 투사체 수명 (초) — 사거리 밖으로 무한히 날아가지 않게 제한")]
     public float allyProjectileLifetime = 1.5f;
 
+    [Header("사격 (조준·명중)")]
+    [Tooltip("사거리 끝에서의 명중률 배율 — 가까울수록 1, 사거리 끝에서 이 값 (거리 감쇠)")]
+    [Range(0f, 1f)] public float rangedAccuracyAtMaxRange = 0.75f;
+
+    [Tooltip("빗나간 탄이 벗어나는 각도 (도) — 대상 옆으로 날아가 지나친다")]
+    [Range(0f, 45f)] public float missSpreadDegrees = 12f;
+
     
     [Header("방어 (Defend)")]
     [Tooltip("방어 태세 중 방어형 장비 감쇄 증폭 배율 (1.5 = 감쇄 50% 증폭)")]

@@ -526,9 +526,13 @@ public class EmployeeMental : MonoBehaviour
         if (registered.Count == 0) return false;
 
         // 쿨다운 중이 아니고 실행 가능한 것만. 폭력적 특성은 폭력 계열만
+        // 전투 결격(비폭력주의)은 동료·건물을 공격하는 이상 행동을 하지 않는다
         bool violentOnly = statsController != null && statsController.IsViolent;
+        bool nonViolent  = statsController != null && statsController.IsNonViolent;
         var candidates = registered
-            .Where(t => !IsOnCooldown(t) && (!violentOnly || AbnormalBehaviorKind.IsViolent(t)))
+            .Where(t => !IsOnCooldown(t)
+                        && (!violentOnly || AbnormalBehaviorKind.IsViolent(t))
+                        && (!nonViolent || !AbnormalBehaviorKind.IsViolent(t)))
             .Select(AbnormalBehaviorRegistry.Get)
             .Where(b => b != null && b.CanExecute(employee))
             .ToList();

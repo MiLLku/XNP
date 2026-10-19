@@ -47,6 +47,9 @@ public class EquipmentData : ScriptableObject
     [Tooltip("공격 간격 (초)")]
     [Min(0.1f)] public float attackInterval = 1.2f;
 
+    [Tooltip("조준 시간 (초, 원거리 전용) — 매 사격 전에 멈춰 서서 조준. 대상이 사거리를 벗어나거나 움직이면 처음부터")]
+    [Min(0f)] public float aimTime = 0f;
+
     [Tooltip("방어형 장비 — 보유 시 '방어' 태세 활성 (감쇄 증폭 + 어그로)")]
     public bool isDefensiveGear = false;
 

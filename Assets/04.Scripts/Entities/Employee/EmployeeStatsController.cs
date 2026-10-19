@@ -116,6 +116,9 @@ public class EmployeeStatsController : MonoBehaviour
     private bool cachedIgnoreColleagueMood;
     private bool cachedViolent;
     private bool cachedChefDishes;
+    private float cachedMeleeIntervalMult = 1f, cachedRangedIntervalMult = 1f;
+    private float cachedMeleeAccuracyMult = 1f, cachedRangedAccuracyMult = 1f, cachedAimTimeMult = 1f;
+    private bool cachedCannotEquipMelee, cachedCannotEquipRanged, cachedNonViolent;
     private float cachedBonusYieldChance;
     private float cachedMoodPerErosion, cachedErosionMoodMax, cachedMoodWhenNoErosion;
     private string cachedErosionMoodLabel;
@@ -223,6 +226,22 @@ public class EmployeeStatsController : MonoBehaviour
 
     /// <summary>요리사 — 조리하면 요리사 요리가 나온다</summary>
     public bool MakesChefDishes => cachedChefDishes;
+
+    /// <summary>근접/원거리 별도 공격 간격 배율 (공통 배율과 곱해서 씀)</summary>
+    public float GetAttackIntervalMult(bool ranged) => cachedAttackIntervalMult * (ranged ? cachedRangedIntervalMult : cachedMeleeIntervalMult);
+
+    /// <summary>근접/원거리 별도 명중률 배율 (공통 배율과 곱해서 씀)</summary>
+    public float GetAccuracyMult(bool ranged) => cachedAccuracyMult * (ranged ? cachedRangedAccuracyMult : cachedMeleeAccuracyMult);
+
+    /// <summary>사격 조준 시간 배율</summary>
+    public float CachedAimTimeMult => cachedAimTimeMult;
+
+    /// <summary>이 무기 종류를 착용할 수 없는지 (싸움꾼 원거리 / 총기광 근접)</summary>
+    public bool CannotEquip(WeaponClass weaponClass)
+        => weaponClass == WeaponClass.Ranged ? cachedCannotEquipRanged : cachedCannotEquipMelee;
+
+    /// <summary>전투 결격 (비폭력주의) — 피해를 주는 행동을 하지 않는다</summary>
+    public bool IsNonViolent => cachedNonViolent;
 
     /// <summary>특성의 채광·채집 추가 드롭 확률 (장비 분은 따로)</summary>
     public float CachedBonusYieldChance => cachedBonusYieldChance;
@@ -503,6 +522,9 @@ public class EmployeeStatsController : MonoBehaviour
         cachedIgnoreColleagueMood  = false;
         cachedViolent              = false;
         cachedChefDishes           = false;
+        cachedMeleeIntervalMult = cachedRangedIntervalMult = 1f;
+        cachedMeleeAccuracyMult = cachedRangedAccuracyMult = cachedAimTimeMult = 1f;
+        cachedCannotEquipMelee = cachedCannotEquipRanged = cachedNonViolent = false;
         cachedBonusYieldChance     = 0f;
         cachedMoodPerErosion = cachedErosionMoodMax = cachedMoodWhenNoErosion = 0f;
         cachedErosionMoodLabel     = null;
@@ -579,6 +601,14 @@ public class EmployeeStatsController : MonoBehaviour
         cachedIgnoreColleagueMood  |= fx.ignoreColleagueMood;
         cachedViolent              |= fx.violent;
         cachedChefDishes           |= fx.chefDishes;
+        cachedMeleeIntervalMult    *= fx.meleeAttackIntervalMult;
+        cachedRangedIntervalMult   *= fx.rangedAttackIntervalMult;
+        cachedMeleeAccuracyMult    *= fx.meleeAccuracyMult;
+        cachedRangedAccuracyMult   *= fx.rangedAccuracyMult;
+        cachedAimTimeMult          *= fx.aimTimeMult;
+        cachedCannotEquipMelee     |= fx.cannotEquipMelee;
+        cachedCannotEquipRanged    |= fx.cannotEquipRanged;
+        cachedNonViolent           |= fx.nonViolent;
         cachedBonusYieldChance     += fx.bonusYieldChance;
         if (fx.moodPerErosion > 0f)
         {

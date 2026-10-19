@@ -215,7 +215,8 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
                     durability = data.maxDurability
                 };
             }
-            if (inst != null) equipment.EquipInstance(data.slot, inst);
+            if (inst != null && !equipment.EquipInstance(data.slot, inst) && fromStorage)
+                ReturnInstance(inst); // 특성상 못 입는 시작 장비는 보관소에 그대로
         }
     }
 

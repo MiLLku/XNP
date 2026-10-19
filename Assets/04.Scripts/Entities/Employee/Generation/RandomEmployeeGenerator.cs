@@ -255,7 +255,11 @@ public static class RandomEmployeeGenerator
         {
             if (result.Count >= count) break;
             if (trait == null) continue;
-            if (!string.IsNullOrEmpty(trait.exclusionGroup) && !usedGroups.Add(trait.exclusionGroup)) continue;
+            var groups = trait.ExclusionGroups;
+            bool clash = false;
+            foreach (var g in groups) if (usedGroups.Contains(g)) clash = true;
+            if (clash) continue;
+            foreach (var g in groups) usedGroups.Add(g);
             result.Add(trait);
         }
 

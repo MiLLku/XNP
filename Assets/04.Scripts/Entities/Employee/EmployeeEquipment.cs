@@ -66,6 +66,14 @@ public class EmployeeEquipment : MonoBehaviour
 
     #region 인스턴스 장착 (내구도 보유 실물)
 
+    /// <summary>특성 때문에 이 장비를 못 입는 이유 (입을 수 있으면 null) — 싸움꾼 원거리 무기, 총기광 근접 무기</summary>
+    public string GetEquipBlockReason(EquipmentData data)
+    {
+        if (data == null || data.slot != EquipmentSlot.Weapon || statsController == null) return null;
+        if (!statsController.CannotEquip(data.weaponClass)) return null;
+        return data.weaponClass == WeaponClass.Ranged ? "원거리 무기 착용 불가 (특성)" : "근접 무기 착용 불가 (특성)";
+    }
+
     /// <summary>
     /// 장비 인스턴스를 장착합니다 (보관소 풀에서 꺼낸 실물).
     /// 기존 인스턴스가 있으면 먼저 UnequipToInstance로 반납할 것.
@@ -276,6 +284,7 @@ public class EmployeeEquipment : MonoBehaviour
     {
         if (data == null) return false;
         if (data.slot != slot) return false;
+        if (GetEquipBlockReason(data) != null) return false;
 
         // 기존 장비 해제
         if (!IsSlotEmpty(slot))
@@ -782,14 +791,16 @@ public class EmployeeEquipment : MonoBehaviour
                     var equipData = GameDatabase.Instance.GetEquipmentData(slotData.itemId);
                     if (equipData != null)
                     {
-                        EquipItem(slot, equipData);
                         // 내구도 인스턴스 복원 (0 이하 = 구 세이브 → 최대치로 보정)
-                        equippedInstances[slot] = new EquipmentInstance
+                        var inst = new EquipmentInstance
                         {
                             instanceId = slotData.equipInstanceId,
                             equipmentId = slotData.itemId,
                             durability = slotData.durability > 0f ? slotData.durability : equipData.maxDurability
                         };
+                        // 특성상 못 입는 장비(예전 세이브)는 보관소로 돌려보낸다 — 보관소는 직원보다 먼저 복원됨
+                        if (EquipItem(slot, equipData)) equippedInstances[slot] = inst;
+                        else EquipmentStorageManager.instance?.ReturnInstance(inst);
                     }
                     else
                     {

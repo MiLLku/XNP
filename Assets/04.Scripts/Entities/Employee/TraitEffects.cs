@@ -58,8 +58,23 @@ public class TraitEffects
     [Tooltip("명중률 배율 (근접·원거리 공통)")]
     public float accuracyMult = 1f;
 
-    [Tooltip("공격 간격 배율 — 낮을수록 빠르다 (0.8 = 20% 빠름)")]
+    [Tooltip("공격 간격 배율 — 낮을수록 빠르다 (0.8 = 20% 빠름). 근접·원거리 공통")]
     public float attackIntervalMult = 1f;
+
+    [Tooltip("근접 공격 간격 배율 (싸움꾼 0.83 = 20% 빠름)")]
+    public float meleeAttackIntervalMult = 1f;
+
+    [Tooltip("원거리 공격 간격 배율")]
+    public float rangedAttackIntervalMult = 1f;
+
+    [Tooltip("근접 명중률 배율")]
+    public float meleeAccuracyMult = 1f;
+
+    [Tooltip("원거리(사격) 명중률 배율")]
+    public float rangedAccuracyMult = 1f;
+
+    [Tooltip("사격 조준 시간 배율 (총기광 0.5 = 50% 짧음)")]
+    public float aimTimeMult = 1f;
 
     #endregion
 
@@ -161,6 +176,16 @@ public class TraitEffects
 
     [Tooltip("요리사 — 이 직원이 조리한 요리는 요리사 요리(먹으면 추가 기분)로 나온다")]
     public bool chefDishes = false;
+
+    [Header("전투 제한")]
+    [Tooltip("근접 무기 착용 불가 (총기광)")]
+    public bool cannotEquipMelee = false;
+
+    [Tooltip("원거리 무기 착용 불가 (싸움꾼)")]
+    public bool cannotEquipRanged = false;
+
+    [Tooltip("전투 결격 (비폭력주의) — 피해를 주는 행동을 전혀 하지 않는다. 소집해서 이동은 가능")]
+    public bool nonViolent = false;
 
     #endregion
 
