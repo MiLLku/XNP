@@ -81,6 +81,15 @@ public class WorkAptitude
         return leveled;
     }
 
+    /// <summary>레벨을 바로 정합니다 (생성 시 분배). 경험치는 0으로</summary>
+    public void SetLevel(WorkType type, int level)
+    {
+        var e = Find(type);
+        if (e == null) { e = new Entry { workType = type }; entries.Add(e); }
+        e.level = Mathf.Clamp(level, 1, MAX_LEVEL);
+        e.experience = 0;
+    }
+
     /// <summary>저장 데이터로부터 복원합니다.</summary>
     public void Restore(List<Entry> saved)
     {

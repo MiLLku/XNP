@@ -266,6 +266,7 @@ public class Employee : MonoBehaviour
         work.Initialize(data);
         growth.Initialize();
         growth.ApplyInitialCombatLevels(data.initialMeleeLevel, data.initialRangedLevel);
+        growth.ApplyInitialWorkLevels(data.initialWorkLevels);
         erosionController.Initialize(
             ErosionManager.instance?.StageConfig,
             ErosionManager.instance?.RecoveryConfig);
@@ -578,6 +579,11 @@ public class Employee : MonoBehaviour
 
     /// <summary>장비 컴포넌트 참조</summary>
     public EmployeeEquipment Equipment => equipment;
+
+    /// <summary>채광·채집 때 1개를 더 떨굴 확률 — 특성(완벽주의자) + 장비 추가 산출</summary>
+    public float BonusYieldChance => Mathf.Clamp01(
+        (statsController != null ? statsController.CachedBonusYieldChance : 0f) +
+        (equipment != null ? equipment.GetTotalBonusYieldChance() : 0f));
 
     #endregion
 

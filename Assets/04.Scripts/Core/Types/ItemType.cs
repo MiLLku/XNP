@@ -68,6 +68,9 @@ public enum ItemType
     SimpleMeal    = 206,
     /// <summary>침식된 간단한 식사 — 침식 재료가 하나라도 들어간 간단한 식사</summary>
     ErosionSimpleMeal = 207,
+    /// <summary>요리사가 만든 간단한 식사 — 먹으면 추가 기분 (사이코패스 제외)</summary>
+    ChefSimpleMeal = 208,
+    ChefErosionSimpleMeal = 209,
 
     // ─── 약물 (251~300) ─────────────────────────
     Sedative    = 251,

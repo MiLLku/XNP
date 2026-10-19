@@ -45,6 +45,7 @@ public class HiringPanel : BasePanel
     private List<EmployeeData>     _candidates;
     private List<GameObject>       _cards = new List<GameObject>();
     private int                    _selectedIndex = -1; // -1 = 없음
+    private Button                 _rerollButton;       // 고용 버튼을 본떠 런타임에 만든다 (씬 배선 없이)
 
     #endregion
 
@@ -81,11 +82,51 @@ public class HiringPanel : BasePanel
 
         Debug.Log($"[HiringPanel] Setup 호출됨. 후보 수: {candidates?.Count ?? 0}");
 
-        if (titleText != null)
-            titleText.text = "직원 채용";
-
+        RefreshHeader();
         SetHireButtonInteractable(false);
         BuildCards();
+    }
+
+    /// <summary>제목에 작업 수치 최대치를 보이고, 다시 뽑기 버튼(남은 횟수)을 갱신한다</summary>
+    private void RefreshHeader()
+    {
+        if (titleText != null)
+            titleText.text = _hiringOffice != null
+                ? $"직원 채용  (작업 수치 최대 {_hiringOffice.WorkStatCap})"
+                : "직원 채용";
+
+        EnsureRerollButton();
+        if (_rerollButton == null) return;
+        int perDay = _hiringOffice != null ? _hiringOffice.RerollsPerDay : 0;
+        _rerollButton.gameObject.SetActive(perDay > 0);
+        int left = _hiringOffice != null ? _hiringOffice.RerollsLeft : 0;
+        _rerollButton.interactable = left > 0 && _hiringOffice != null && !_hiringOffice.IsUsed;
+        var label = _rerollButton.GetComponentInChildren<TextMeshProUGUI>();
+        if (label != null) label.text = $"다시 뽑기 ({left}/{perDay})";
+    }
+
+    private void EnsureRerollButton()
+    {
+        if (_rerollButton != null || hireButton == null) return;
+        _rerollButton = Instantiate(hireButton, hireButton.transform.parent);
+        _rerollButton.name = "RerollButton";
+        _rerollButton.onClick.RemoveAllListeners();
+        _rerollButton.onClick.AddListener(OnRerollClicked);
+        var rt = (RectTransform)_rerollButton.transform;
+        var src = (RectTransform)hireButton.transform;
+        rt.anchoredPosition = src.anchoredPosition - new Vector2(src.rect.width + 16f, 0f);
+    }
+
+    private void OnRerollClicked()
+    {
+        if (_hiringOffice == null) return;
+        var fresh = _hiringOffice.Reroll();
+        if (fresh == null) return;
+        _candidates = fresh;
+        _selectedIndex = -1;
+        SetHireButtonInteractable(false);
+        BuildCards();
+        RefreshHeader();
     }
 
     #endregion
@@ -150,7 +191,8 @@ public class HiringPanel : BasePanel
             TextMeshProUGUI lbl = statsTf.GetComponent<TextMeshProUGUI>();
             if (lbl != null)
                 lbl.text = $"HP: {data.maxHealth}\n정신력: {data.baseMental}/{data.maxMental}\n" +
-                           $"근접 Lv.{data.initialMeleeLevel}  원거리 Lv.{data.initialRangedLevel}";
+                           $"근접 Lv.{data.initialMeleeLevel}  원거리 Lv.{data.initialRangedLevel}\n" +
+                           WorkLevelsLine(data) + TraitsLine(data);
         }
 
         // 선택 하이라이트 초기화
@@ -160,6 +202,28 @@ public class HiringPanel : BasePanel
         Button btn = card.GetComponent<Button>();
         if (btn != null)
             btn.onClick.AddListener(() => OnCardClicked(index));
+    }
+
+    /// <summary>작업 숙련 한 줄 요약 — "채광3 건설5 … (합 30)"</summary>
+    private static string WorkLevelsLine(EmployeeData data)
+    {
+        if (data.initialWorkLevels == null || data.initialWorkLevels.Count == 0) return "";
+        var sb = new System.Text.StringBuilder();
+        int sum = 0;
+        foreach (var l in data.initialWorkLevels)
+        {
+            sb.Append(WorkTypeCategory.GetDisplayName(l.workType)).Append(l.levels).Append(' ');
+            sum += l.levels;
+        }
+        return sb.Append($"(합 {sum})").ToString();
+    }
+
+    private static string TraitsLine(EmployeeData data)
+    {
+        if (data.traits == null || data.traits.Count == 0) return "";
+        var names = new List<string>();
+        foreach (var t in data.traits) if (t != null) names.Add(t.traitName);
+        return "\n특성: " + string.Join(", ", names);
     }
 
     private void ClearCards()

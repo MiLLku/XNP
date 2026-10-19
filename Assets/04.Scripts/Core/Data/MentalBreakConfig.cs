@@ -41,7 +41,7 @@ public class MentalBreakConfig : ScriptableObject
     [Header("정신 이상 임계점 (정신력 비율)")]
     [Tooltip("정신 비율이 이 값 미만이면 정신 이상이 발생할 수 있습니다. 심각도 등급은 두지 않습니다 — 얼마나 위험한 이상이 나오는지는 침식 수치가 계열 확률로 정합니다.")]
     [Range(0f, 1f)]
-    public float breakThreshold = 0.50f;
+    public float breakThreshold = 0.40f;
 
     #endregion
 

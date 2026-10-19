@@ -110,6 +110,14 @@ public class EmployeeGenerationConfig : ScriptableObject
 
     #endregion
 
+    #region 작업 숙련 분배
+
+    [Header("작업 숙련 분배")]
+    [Tooltip("생성 시 작업별 숙련 레벨 총합 최대치 (채용 사무소 부속 건물마다 늘어남)")]
+    [Min(7)] public int baseWorkStatCap = 30;
+
+    #endregion
+
     #region 운반 용량
 
     [Header("운반 용량 범위 (무작위 생성)")]

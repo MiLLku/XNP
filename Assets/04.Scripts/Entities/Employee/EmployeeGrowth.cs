@@ -200,6 +200,13 @@ public void RestoreFromSaveData(EmployeeSaveData data)
         return gained;
     }
 
+    /// <summary>생성 때 정해진 작업 숙련 레벨을 적용합니다 (불러오기 때는 저장된 값이 뒤에 덮어씀).</summary>
+    public void ApplyInitialWorkLevels(System.Collections.Generic.List<WorkLevelBonus> levels)
+    {
+        if (levels == null) return;
+        foreach (var l in levels) aptitude.SetLevel(l.workType, l.levels);
+    }
+
     /// <summary>템플릿의 초기 숙련 레벨을 적용합니다.</summary>
     public void ApplyInitialCombatLevels(int meleeLevel, int rangedLevel)
     {

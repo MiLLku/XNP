@@ -463,7 +463,7 @@ public class EmployeeEquipment : MonoBehaviour
         float total = 0f;
         foreach (var kvp in itemSlots)
         {
-            if (kvp.Value.passiveEffects != null)
+            if (kvp.Value != null && kvp.Value.passiveEffects != null)
                 total += kvp.Value.passiveEffects.bonusYieldChance;
         }
         return Mathf.Clamp01(total);

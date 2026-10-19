@@ -261,6 +261,14 @@ public abstract class PlantBase : MonoBehaviour, IHarvestable
 
     #region 드롭
 
+    /// <summary>추가 산출 — 첫 수확물을 1개 더 떨군다 (완벽주의자·장비 추가 산출 확률)</summary>
+    public void DropBonusYield()
+    {
+        if (yields == null) return;
+        foreach (var y in yields)
+            if (y.item != null && y.amount > 0) { Drop(y.item, 1); return; }
+    }
+
     private void DropYields()
     {
         if (yields == null) return;

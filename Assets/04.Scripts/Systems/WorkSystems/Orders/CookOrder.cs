@@ -20,7 +20,7 @@ public class CookOrder : IWorkTarget
     {
         if (completed) return;
         completed = true;
-        if (station != null) station.CompleteCooking();
+        if (station != null) station.CompleteCooking(worker);
     }
 
     public void CancelWork(Employee worker) { }

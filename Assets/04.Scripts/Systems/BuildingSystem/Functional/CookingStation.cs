@@ -196,7 +196,7 @@ public class CookingStation : MonoBehaviour, IPlanHost, IMaterialReceiver, IBuil
     #region 조리 완료·취소
 
     /// <summary>조리 작업 완료 — 연료를 쓰고 요리를 스토브 옆에 떨굽니다.</summary>
-    public void CompleteCooking()
+    public void CompleteCooking(Employee cook = null)
     {
         if (!HasJob) return;
 
@@ -209,7 +209,8 @@ public class CookingStation : MonoBehaviour, IPlanHost, IMaterialReceiver, IBuil
         }
         nutrition *= jobRecipe.nutritionMultiplier;
 
-        var meal = erosion && jobRecipe.erosionOutput != null ? jobRecipe.erosionOutput : jobRecipe.output;
+        bool chef = cook != null && cook.StatsController != null && cook.StatsController.MakesChefDishes;
+        var meal = jobRecipe.GetOutput(erosion, chef);
         if (meal != null)
         {
             if (InventoryManager.instance != null) InventoryManager.instance.AddMealNutrition(meal, nutrition);

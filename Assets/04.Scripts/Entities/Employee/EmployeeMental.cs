@@ -44,7 +44,7 @@ public class EmployeeMental : MonoBehaviour
 
     private const float DEFAULT_CHECK_INTERVAL   = 2.5f;
     private const float DEFAULT_BREAK_GRACE      = 40f;
-    private const float DEFAULT_BREAK_THRESHOLD  = 0.50f;
+    private const float DEFAULT_BREAK_THRESHOLD  = 0.40f;
     private const float DEFAULT_MTB_DAYS         = 0.75f;
     private const float DEFAULT_DEPTH_MTB_FACTOR = 4f;
     private const float DEFAULT_COMPOSURE_BONUS  = 50f;
@@ -525,9 +525,10 @@ public class EmployeeMental : MonoBehaviour
         var registered = AbnormalBehaviorRegistry.FilterRegistered(EROSION_POOL);
         if (registered.Count == 0) return false;
 
-        // 쿨다운 중이 아니고 실행 가능한 것만
+        // 쿨다운 중이 아니고 실행 가능한 것만. 폭력적 특성은 폭력 계열만
+        bool violentOnly = statsController != null && statsController.IsViolent;
         var candidates = registered
-            .Where(t => !IsOnCooldown(t))
+            .Where(t => !IsOnCooldown(t) && (!violentOnly || AbnormalBehaviorKind.IsViolent(t)))
             .Select(AbnormalBehaviorRegistry.Get)
             .Where(b => b != null && b.CanExecute(employee))
             .ToList();

@@ -25,7 +25,8 @@ public static class RandomEmployeeGenerator
     /// <summary>
     /// config를 기반으로 무작위 EmployeeData 인스턴스를 생성합니다.
     /// </summary>
-    public static EmployeeData Generate(EmployeeGenerationConfig config)
+    /// <param name="workStatCap">작업 숙련 총합 최대치 (채용 사무소 부속 건물로 늘어남). 0 이하면 config 기본값</param>
+    public static EmployeeData Generate(EmployeeGenerationConfig config, int workStatCap = 0)
     {
         if (config == null)
         {
@@ -75,6 +76,10 @@ public static class RandomEmployeeGenerator
 
         // 결격 수에 따라 비결격 작업 속도 보정
         ApplyDisqualSpeedBonus(data, config);
+
+        // 작업 숙련 레벨 무작위 분배 (총합 ≤ 최대치) → 특성 보너스는 그 바깥에서 더함
+        data.initialWorkLevels = DistributeWorkLevels(data, workStatCap > 0 ? workStatCap : config.baseWorkStatCap);
+        ApplyTraitLevelBonuses(data);
 
         // 외형 무작위 배정
         data.appearance = GenerateAppearance(config);
@@ -237,7 +242,7 @@ public static class RandomEmployeeGenerator
         int count = Random.Range(config.traitCountMin, config.traitCountMax + 1);
         count = Mathf.Min(count, config.traitPool.Count);
 
-        // Fisher-Yates 셔플 후 앞 count개 선택 → 중복 방지
+        // Fisher-Yates 셔플 후 앞에서부터 — 중복 없음, 같은 배제 묶음은 하나만
         var pool = new List<EmployeeTrait>(config.traitPool);
         for (int i = pool.Count - 1; i > 0; i--)
         {
@@ -245,10 +250,13 @@ public static class RandomEmployeeGenerator
             (pool[i], pool[j]) = (pool[j], pool[i]);
         }
 
-        for (int i = 0; i < count; i++)
+        var usedGroups = new HashSet<string>();
+        foreach (var trait in pool)
         {
-            if (pool[i] != null)
-                result.Add(pool[i]);
+            if (result.Count >= count) break;
+            if (trait == null) continue;
+            if (!string.IsNullOrEmpty(trait.exclusionGroup) && !usedGroups.Add(trait.exclusionGroup)) continue;
+            result.Add(trait);
         }
 
         return result;
@@ -283,6 +291,65 @@ public static class RandomEmployeeGenerator
         }
 
         return result;
+    }
+
+    /// <summary>숙련 레벨을 나누는 작업 — 결격·능력 없음은 Lv1 그대로 (점수를 받지 않음)</summary>
+    private static readonly WorkType[] STAT_WORKS =
+    {
+        WorkType.Mining, WorkType.Building, WorkType.Crafting, WorkType.Research,
+        WorkType.Weeding, WorkType.Sowing, WorkType.Cooking
+    };
+
+    /// <summary>
+    /// 작업별 숙련 레벨을 무작위로 나눈다. 모두 Lv1에서 시작하고, 총합이 cap을 넘지 않게
+    /// (cap - 작업 수)점을 한 점씩 무작위 작업에 준다 (작업당 최대 Lv10).
+    /// </summary>
+    public static List<WorkLevelBonus> DistributeWorkLevels(EmployeeData data, int cap)
+    {
+        var levels = new Dictionary<WorkType, int>();
+        var open = new List<WorkType>();
+        foreach (var w in STAT_WORKS)
+        {
+            levels[w] = 1;
+            bool can = data.abilities == null || data.abilities.CanPerformWork(w);
+            if (can && (data.initialDisqualifications == null || !data.initialDisqualifications.Contains(w))) open.Add(w);
+        }
+
+        int points = Mathf.Max(0, cap - STAT_WORKS.Length);
+        while (points > 0 && open.Count > 0)
+        {
+            int i = Random.Range(0, open.Count);
+            WorkType w = open[i];
+            levels[w]++;
+            points--;
+            if (levels[w] >= WorkAptitude.MAX_LEVEL) open.RemoveAt(i);
+        }
+
+        var result = new List<WorkLevelBonus>();
+        foreach (var w in STAT_WORKS) result.Add(new WorkLevelBonus { workType = w, levels = levels[w] });
+        return result;
+    }
+
+    /// <summary>특성의 숙련 보너스(학자 연구 +4, 싸움꾼 격투 +4 등) — 최대치 바깥, 작업당 Lv10 상한</summary>
+    private static void ApplyTraitLevelBonuses(EmployeeData data)
+    {
+        if (data.traits == null) return;
+        foreach (var trait in data.traits)
+        {
+            var fx = trait != null ? trait.effects : null;
+            if (fx == null) continue;
+            data.initialMeleeLevel  += fx.meleeLevelBonus;
+            data.initialRangedLevel += fx.rangedLevelBonus;
+            if (fx.workLevelBonuses == null) continue;
+            foreach (var b in fx.workLevelBonuses)
+            {
+                int idx = data.initialWorkLevels.FindIndex(e => e.workType == b.workType);
+                if (idx < 0) { data.initialWorkLevels.Add(new WorkLevelBonus { workType = b.workType, levels = Mathf.Min(WorkAptitude.MAX_LEVEL, 1 + b.levels) }); continue; }
+                var e2 = data.initialWorkLevels[idx];
+                e2.levels = Mathf.Min(WorkAptitude.MAX_LEVEL, e2.levels + b.levels);
+                data.initialWorkLevels[idx] = e2;
+            }
+        }
     }
 
     /// <summary>

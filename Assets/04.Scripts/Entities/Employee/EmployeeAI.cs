@@ -1350,6 +1350,15 @@ public class EmployeeAI : MonoBehaviour
             stats.ModifyMental(food.moodOnEat, key, label, food.moodOnEatHours * dayLength / 24f);
         }
 
+        // 요리사의 요리 — 동료가 만든 정성이라 사이코패스는 받지 않는다 (키로 걸러짐)
+        if (food.chefMoodBonus > 0f && stats != null)
+        {
+            string chefKey = MentalReason.CHEF_FOOD_PREFIX + food.itemID;
+            float dayLength = DayCycle.instance != null ? DayCycle.instance.DayLengthInSeconds : 1000f;
+            stats.RemoveMentalModifier(chefKey);
+            stats.ModifyMental(food.chefMoodBonus, chefKey, "요리사의 손맛", food.moodOnEatHours * dayLength / 24f);
+        }
+
         // 생식 — 조리해야 하는 재료를 날로 먹음 (요리는 해당 없음). 재료가 달라도 하나로 갱신
         if (food.rawPenalty && !food.IsMeal && stats != null && !Mathf.Approximately(food.rawMood, 0f))
         {
