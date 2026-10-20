@@ -97,6 +97,10 @@ public class MiningTaskSelector
         }
 
         // 안전한 작업이 있으면 우선 선택, 없을 때만 낙하 감수하고 최선 작업 수행
+        // 전부 도달 불가면 고르지 않는다 — 골라 봐야 이동이 실패해 직원이 배회하고,
+        // 같은 직원의 다른(닿는) 작업물까지 막힌다. 지형이 바뀌면 다음 판정에서 다시 후보가 된다.
+        if (bestSafeTask == null && bestScore <= float.MinValue) return null;
+
         WorkTask selected = bestSafeTask ?? bestTask;
 
         if (selected != null)
