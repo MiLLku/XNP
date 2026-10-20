@@ -100,8 +100,13 @@ public class MiningTaskSelector
         // 채광 칸이 전부 도달 불가면 고르지 않는다 — 골라 봐야 이동이 실패해 직원이 배회하고,
         // 같은 직원의 다른(닿는) 작업물까지 막힌다. 지형이 바뀌면 다음 판정에서 다시 후보가 된다.
         // (도달 판정 IsTaskReachable은 채광 칸 기준이라 수확·운반 등 다른 작업은 예전처럼 둔다)
-        if (bestSafeTask == null && bestScore <= float.MinValue && bestTask != null && bestTask.target is MiningOrder)
-            return null;
+        if (bestSafeTask == null && bestScore <= float.MinValue && bestTask != null)
+        {
+            if (bestTask.target is MiningOrder) return null;
+            // 수확·운반 등은 대상 둘레에 실제로 걸어서 닿는 칸이 있는 것만 고른다 (없으면 null — 뒤 순위 작업으로)
+            bestTask = validTasks.FirstOrDefault(t => HasReachableNeighbor(context.footTile, GetTaskTile(t)));
+            if (bestTask == null) return null;
+        }
 
         WorkTask selected = bestSafeTask ?? bestTask;
 
@@ -254,6 +259,20 @@ public class MiningTaskSelector
     
     #region 도달 가능성
     
+    /// <summary>대상 칸 또는 그 8방향 이웃 중 발 위치에서 걸어서 닿는 서 있을 칸이 있는지 (채광 외 작업용)</summary>
+    private static bool HasReachableNeighbor(Vector2Int from, Vector2Int tile)
+    {
+        var map = ReachabilityMap.Current;
+        if (map == null) return true;
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                var n = new Vector2Int(tile.x + dx, tile.y + dy);
+                if (map.CanStandAtPosition(n) && map.IsReachable(from, n)) return true;
+            }
+        return false;
+    }
+
     private bool IsTaskReachable(Vector2Int taskTile, WorkerContext context)
     {
         // ── 1단계: 연결 성분 선판정 (O(1)) ──────────────────────────────
