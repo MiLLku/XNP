@@ -108,6 +108,10 @@ public class SaveData
     public int lastHireDay = -1;
     public int hiresOnLastDay;
 
+    /// <summary>채용 후보 다시 뽑기를 마지막으로 쓴 날짜·그날 쓴 횟수 (구 세이브에는 없음)</summary>
+    public int lastRerollDay = -1;
+    public int rerollsOnLastDay;
+
     /// <summary>액체(물·용암) (구 세이브에는 없음 — null이면 액체 없음)</summary>
     public FluidSaveData fluid;
 

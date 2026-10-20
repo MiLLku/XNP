@@ -45,6 +45,7 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
     private State    _state = State.Idle;
     private Employee _target;
     private float    _cooldownTimer;
+    private float    _aimTimer;   // 조준 진행 — 거리를 벗어나면 처음부터
 
     // ─────────────────────────────────────────
     #region 초기화
@@ -166,7 +167,19 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
 
         if (dist < _minRange || dist > _attackRange)
         {
+            _aimTimer = 0f;
             _state = State.Positioning;
+            return;
+        }
+
+        // 조준 → 명중 판정. 빗나가면 피해 없이 다시 쿨다운
+        _aimTimer += Time.deltaTime;
+        if (_xenops != null && _xenops.Data != null && _aimTimer < _xenops.Data.rangedAimTime) return;
+        _aimTimer = 0f;
+        if (_xenops != null && _xenops.Data != null && !_xenops.Data.RollRangedHit())
+        {
+            _cooldownTimer = _attackInterval;
+            _state         = State.Cooldown;
             return;
         }
 

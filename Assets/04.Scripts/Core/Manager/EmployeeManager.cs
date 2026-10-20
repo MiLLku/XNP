@@ -71,6 +71,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     /// <summary>마지막으로 채용한 게임 날짜와 그날 채용한 인원 (세이브됨)</summary>
     private int lastHireDay = -1;
+    private int lastRerollDay = -1;
+    private int rerollsOnLastDay;
     private int hiresOnLastDay;
 
     #endregion
@@ -118,6 +120,16 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     {
         if (lastHireDay != Today) { lastHireDay = Today; hiresOnLastDay = 0; }
         hiresOnLastDay++;
+    }
+
+    /// <summary>오늘 쓴 채용 후보 다시 뽑기 횟수 (사무소와 무관한 전역)</summary>
+    public int RerollsUsedToday => lastRerollDay == Today ? rerollsOnLastDay : 0;
+
+    /// <summary>다시 뽑기를 기록합니다 (HiringOffice.Reroll)</summary>
+    public void RecordReroll()
+    {
+        if (lastRerollDay != Today) { lastRerollDay = Today; rerollsOnLastDay = 0; }
+        rerollsOnLastDay++;
     }
 
     #endregion
@@ -425,6 +437,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     {
         data.lastHireDay = lastHireDay;
         data.hiresOnLastDay = hiresOnLastDay;
+        data.lastRerollDay = lastRerollDay;
+        data.rerollsOnLastDay = rerollsOnLastDay;
         data.employees.Clear();
         foreach (var employee in allEmployees)
         {
@@ -439,6 +453,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     {
         lastHireDay = data.lastHireDay;
         hiresOnLastDay = data.hiresOnLastDay;
+        lastRerollDay = data.lastRerollDay;
+        rerollsOnLastDay = data.rerollsOnLastDay;
         if (data.employees == null) return;
 
         var db = GameDatabase.Instance;

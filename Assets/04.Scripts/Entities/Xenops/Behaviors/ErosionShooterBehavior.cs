@@ -94,6 +94,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
 
     // ─── 런타임 ──────────────────────────────────
     private float _cooldownTimer;
+    private float _aimTimer;   // 조준 진행 — 사거리·시야를 벗어나면 0으로
     private float _debugLogTimer;
     private const float DEBUG_LOG_INTERVAL = 1f;
 
@@ -285,10 +286,18 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
             // ── 4a. 공격 — 정지 후 타겟에 발사 ──
             _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
             if (_cooldownTimer <= 0f)
-                FireProjectile(tgtPos);
+            {
+                _aimTimer += dt;
+                if (_aimTimer >= _data.rangedAimTime)
+                {
+                    _aimTimer = 0f;
+                    FireProjectile(tgtPos, _data.RollRangedHit());
+                }
+            }
         }
         else
         {
+            _aimTimer = 0f;
             // ── 4b. 이동 / 벽 공격 — 사거리 밖이거나 시야가 막힘 ──
             float dir = Mathf.Sign(tgtPos.x - myPos.x);
             if (Mathf.Approximately(dir, 0f))
@@ -409,14 +418,20 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         return true;
     }
 
-    /// <summary>지정 위치를 향해 침식 투사체를 발사합니다 (타겟·벽 공통).</summary>
-    private void FireProjectile(Vector2 targetPos)
+    /// <summary>지정 위치를 향해 침식 투사체를 발사합니다 (타겟·벽 공통). hit=false면 옆으로 비껴 쏜다.</summary>
+    private void FireProjectile(Vector2 targetPos, bool hit = true)
     {
         // 공격 애니메이션 트리거 (이동→공격, 종료 후 자동 복귀)
         if (_animator != null)
             _animator.SetTrigger(AnimAttack);
 
         Vector2 direction = (targetPos - (Vector2)transform.position).normalized;
+        if (!hit)
+        {
+            var cfg = EmployeeManager.instance != null ? EmployeeManager.instance.CombatConfig : null;
+            float spread = (cfg != null ? cfg.missSpreadDegrees : 12f) * (Random.value < 0.5f ? -1f : 1f) * Random.Range(0.6f, 1f);
+            direction = Quaternion.Euler(0f, 0f, spread) * direction;
+        }
         var proj = PoolManager.instance.Spawn<ErosionProjectile>(_data.projectilePrefab, transform.position);
         proj.Init(direction, _projectileSpeed, _erosionOnHit, _healthDamageOnHit, _erosionOnHit + _healthDamageOnHit, _projectileLifetime);
 

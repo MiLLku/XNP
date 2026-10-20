@@ -76,8 +76,8 @@ public class ItemData : ScriptableObject
     [Tooltip("기분 변화 표시 이름 (예: 침식된 음식을 먹음)")]
     public string moodOnEatLabel = "";
 
-    [Tooltip("요리사가 만든 요리의 추가 기분 (+1~3, 음식마다 다름). 동료 때문에 생기는 기분이라 사이코패스는 받지 않습니다.")]
-    public float chefMoodBonus = 0f;
+    [Tooltip("요리사가 만든 요리인지 — 먹으면 추가 기분 (요리의 영양 × 요리사 조리 숙련으로 조리 때 정해짐). 사이코패스는 받지 않습니다.")]
+    public bool chefDish = false;
 
     [Header("약물 (오락 소모품)")]
     [Tooltip("직원이 복용해 재미를 회복하는 약물인지 여부.")]

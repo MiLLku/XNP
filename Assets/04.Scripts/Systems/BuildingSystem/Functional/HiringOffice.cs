@@ -30,7 +30,6 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
     // 런타임 상태
     private List<EmployeeData> _candidates;
     private int _candidatesDay = -1;
-    private int _rerollsUsed;   // shortcut: 저장 안 함 — 불러오면 그날 다시 뽑기 횟수가 초기화됨
     private Building _building;
     private SpriteRenderer _sprite;
 
@@ -133,7 +132,6 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
     public List<EmployeeData> GetCandidates()
     {
         int today = DayCycle.instance != null ? DayCycle.instance.Day : 0;
-        if (_candidatesDay != today) _rerollsUsed = 0;
         if (_candidates == null || _candidates.Count == 0 || _candidatesDay != today)
             GenerateCandidates();
         return _candidates ?? new List<EmployeeData>();
@@ -166,13 +164,13 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
     public int RerollsPerDay => Mathf.Min(maxRerollAddons, BuildingAddonUtil.CountInSameRoom(_building, rerollAddonId));
 
     /// <summary>오늘 남은 다시 뽑기 횟수</summary>
-    public int RerollsLeft => Mathf.Max(0, RerollsPerDay - _rerollsUsed);
+    public int RerollsLeft => Mathf.Max(0, RerollsPerDay - (EmployeeManager.instance != null ? EmployeeManager.instance.RerollsUsedToday : 0));
 
     /// <summary>후보 3명을 새로 뽑는다 (하루 횟수 제한). 성공하면 새 후보 목록</summary>
     public List<EmployeeData> Reroll()
     {
         if (RerollsLeft <= 0 || IsUsed) return null;
-        _rerollsUsed++;
+        EmployeeManager.instance?.RecordReroll();
         GenerateCandidates();
         return _candidates;
     }

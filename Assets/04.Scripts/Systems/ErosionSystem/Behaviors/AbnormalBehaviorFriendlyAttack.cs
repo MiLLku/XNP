@@ -14,8 +14,8 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
 {
     #region 수치 (밸런스 조정 지점)
 
-    /// <summary>지속 시간 (초)</summary>
-    private const float DURATION = 25f;
+    /// <summary>기본 지속 시간 (초)</summary>
+    private const float DEFAULT_DURATION = 25f;
 
     /// <summary>대상을 찾는 반경 (타일). 이 밖의 동료는 무시한다.</summary>
     private const float SEARCH_RADIUS = 12f;
@@ -46,7 +46,20 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
 
     #endregion
 
-    public override AbnormalBehaviorType BehaviorType => AbnormalBehaviorType.FriendlyAttack;
+    private readonly AbnormalBehaviorType type;
+    private readonly float duration;
+    private readonly bool randomTarget;
+
+    /// <param name="randomTarget">true면 가장 가까운 동료 대신 반경 안의 아무나 (광란)</param>
+    public AbnormalBehaviorFriendlyAttack(AbnormalBehaviorType type = AbnormalBehaviorType.FriendlyAttack,
+                                          float duration = DEFAULT_DURATION, bool randomTarget = false)
+    {
+        this.type = type;
+        this.duration = duration;
+        this.randomTarget = randomTarget;
+    }
+
+    public override AbnormalBehaviorType BehaviorType => type;
 
     #region 실행
 
@@ -60,11 +73,9 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
     {
         SeizeControl(employee);
 
-        var target = FindNearestTarget(employee);
+        var target = PickTarget(employee);
         states[employee] = new AttackState { target = target, attackTimer = 0f };
-
-        Debug.Log($"[AbnormalBehavior] {employee.DisplayName}: 동료 공격 → {target?.DisplayName} ({DURATION:F0}초)");
-        return DURATION;
+        return duration;
     }
 
     public override void Tick(Employee employee, float deltaTime)
@@ -77,7 +88,7 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
         // 대상이 죽었거나 사라졌으면 새로 고른다
         if (state.target == null || state.target.State == EmployeeState.Dead)
         {
-            state.target = FindNearestTarget(employee);
+            state.target = PickTarget(employee);
             state.approaching = false;
 
             if (state.target == null)
@@ -116,7 +127,6 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
         state.attackTimer = interval;
 
         state.target.TakeDamage(damage);
-        Debug.Log($"[AbnormalBehavior] {employee.DisplayName} → {state.target.DisplayName}: 동료 공격 {damage:F1} 피해");
     }
 
     public override void OnEnd(Employee employee)
@@ -139,9 +149,23 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
 
         SeizeControl(employee);
 
-        var state = new AttackState { target = FindNearestTarget(employee), attackTimer = 0f };
+        var state = new AttackState { target = PickTarget(employee), attackTimer = 0f };
         states[employee] = state;
         return state;
+    }
+
+    /// <summary>공격할 동료 — 광란은 반경 안의 아무나, 동료 공격은 가장 가까운 사람</summary>
+    private Employee PickTarget(Employee employee)
+    {
+        if (!randomTarget) return FindNearestTarget(employee);
+        if (EmployeeManager.instance == null || employee == null) return null;
+
+        var near = new List<Employee>();
+        foreach (var other in EmployeeManager.instance.AllEmployees)
+            if (other != null && other != employee && other.State != EmployeeState.Dead
+                && Vector2.Distance(employee.transform.position, other.transform.position) <= SEARCH_RADIUS)
+                near.Add(other);
+        return near.Count > 0 ? near[Random.Range(0, near.Count)] : null;
     }
 
     /// <summary>반경 내에서 가장 가까운 살아있는 동료를 찾습니다.</summary>

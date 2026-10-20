@@ -79,6 +79,15 @@ public class EmployeeMental : MonoBehaviour
     };
 
     /// <summary>
+    /// 폭력 정신 이상 — 일반 계열 후보에 섞인다. 폭력적 특성은 이것만, 비폭력주의는 이것을 빼고 고른다.
+    /// </summary>
+    private static readonly List<AbnormalBehaviorType> VIOLENT_POOL = new List<AbnormalBehaviorType>
+    {
+        AbnormalBehaviorType.Tantrum,
+        AbnormalBehaviorType.Berserk,
+    };
+
+    /// <summary>
     /// 침식 계열 — 침식 수치가 높을수록 이쪽에서 뽑힌다.
     /// AbnormalBehaviorRegistry에 실제 등록된 구현체만 후보가 되므로(FilterRegistered),
     /// 미구현 타입을 여기 적어두어도 안전합니다.
@@ -459,10 +468,22 @@ public class EmployeeMental : MonoBehaviour
     /// </summary>
     private bool TryApplyNormalBreak()
     {
-        var available = NORMAL_POOL.Where(e => !IsOnCooldown(e)).ToArray();
-        if (available.Length == 0) return false;
+        bool violentOnly = statsController != null && statsController.IsViolent;
+        bool nonViolent  = statsController != null && statsController.IsNonViolent;
 
-        ApplyNormalEvent(available[Random.Range(0, available.Length)]);
+        var normal = violentOnly ? new MentalEventType[0] : NORMAL_POOL.Where(e => !IsOnCooldown(e)).ToArray();
+        var violent = nonViolent ? new List<IAbnormalBehavior>() : AbnormalBehaviorRegistry.FilterRegistered(VIOLENT_POOL)
+            .Where(t => !IsOnCooldown(t))
+            .Select(AbnormalBehaviorRegistry.Get)
+            .Where(b => b != null && b.CanExecute(employee))
+            .ToList();
+
+        int total = normal.Length + violent.Count;
+        if (total == 0) return false;
+
+        int pick = Random.Range(0, total);
+        if (pick < normal.Length) ApplyNormalEvent(normal[pick]);
+        else ApplyErosionEvent(violent[pick - normal.Length]);
         return true;
     }
 
@@ -611,7 +632,9 @@ public class EmployeeMental : MonoBehaviour
     private static bool IsDestructiveKind(AbnormalBehaviorType type)
         => type == AbnormalBehaviorType.ErosionOutburst
         || type == AbnormalBehaviorType.AttackBuilding
-        || type == AbnormalBehaviorType.FriendlyAttack;
+        || type == AbnormalBehaviorType.FriendlyAttack
+        || type == AbnormalBehaviorType.Tantrum
+        || type == AbnormalBehaviorType.Berserk;
 
     private static string BreakLabel(MentalEventType type) => type switch
     {
@@ -630,6 +653,8 @@ public class EmployeeMental : MonoBehaviour
         AbnormalBehaviorType.FriendlyAttack  => "동료 공격",
         AbnormalBehaviorType.ErosionOutburst => "침식 폭주",
         AbnormalBehaviorType.AttackBuilding  => "건물 파괴 충동",
+        AbnormalBehaviorType.Tantrum         => "화풀이",
+        AbnormalBehaviorType.Berserk         => "광란",
         _                                    => "침식 이상 행동",
     };
 
@@ -647,6 +672,8 @@ public class EmployeeMental : MonoBehaviour
         AbnormalBehaviorType.ErosionOutburst => $"{employee.DisplayName}이(가) 그 자리에 멈춰 주변에 침식을 흩뿌립니다. 소집도 되지 않습니다 — 동료를 물리세요. ({duration:F0}초)",
         AbnormalBehaviorType.AttackBuilding  => $"{employee.DisplayName}이(가) 주변 건물을 부수기 시작했습니다. ({duration:F0}초)",
         AbnormalBehaviorType.FriendlyAttack  => $"{employee.DisplayName}이(가) 동료를 공격합니다. ({duration:F0}초)",
+        AbnormalBehaviorType.Tantrum         => $"{employee.DisplayName}이(가) 화풀이를 합니다 — 근처 건물을 부수거나 창고 물건을 부숴 버립니다.",
+        AbnormalBehaviorType.Berserk         => $"{employee.DisplayName}이(가) 광란에 빠져 주변 동료를 아무나 공격합니다. ({duration:F0}초)",
         AbnormalBehaviorType.WorkStop        => $"{employee.DisplayName}이(가) 하던 작업을 망가뜨리고 손을 놓았습니다 — 진행도가 깎였습니다. ({duration:F0}초)",
         AbnormalBehaviorType.IgnoreCommand   => $"{employee.DisplayName}이(가) 명령을 듣지 않습니다. ({duration:F0}초)",
         AbnormalBehaviorType.RandomMove      => $"{employee.DisplayName}이(가) 제멋대로 움직입니다. ({duration:F0}초)",

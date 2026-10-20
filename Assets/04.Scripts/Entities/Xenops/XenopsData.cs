@@ -49,6 +49,20 @@ public class XenopsData : ScriptableObject
 
     #endregion
 
+    #region 원거리 사격 (원거리 적 전용 — 침식 사수·스피터)
+
+    [Header("원거리 사격 (원거리 적 전용)")]
+    [Tooltip("매 사격 전에 멈춰 서서 조준하는 시간 (초). 대상이 사거리를 벗어나면 처음부터")]
+    [Min(0f)] public float rangedAimTime = 0.6f;
+
+    [Tooltip("명중률 (0~1). 빗나가면 피해 없음 — 투사체는 대상 옆으로 비껴 날아간다")]
+    [Range(0f, 1f)] public float rangedAccuracy = 0.8f;
+
+    /// <summary>이번 사격이 맞는지 굴린다</summary>
+    public bool RollRangedHit() => Random.value <= rangedAccuracy;
+
+    #endregion
+
     #region 도감
 
     [Header("도감 (연구도 0~100% — 100%면 이 제놉스의 장비 연구 3개가 열림)")]

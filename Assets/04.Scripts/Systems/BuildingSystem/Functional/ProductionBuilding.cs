@@ -51,6 +51,9 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
     /// <summary>Building 컴포넌트 캐시</summary>
     protected Building _building;
 
+    /// <summary>이 생산 시설의 건물 (부속 판정용)</summary>
+    public Building HostBuilding => _building;
+
     /// <summary>전력 소비 컴포넌트 캐시 (없으면 전력 제약 없음)</summary>
     protected PowerConsumer _powerConsumer;
 

@@ -289,6 +289,27 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
         mealNutrition[meal] = (p.total + nutrition, p.count + 1);
     }
 
+    // 요리사 요리의 기분 보너스도 영양과 같은 방식(종류별 합계/개수)으로 묶는다
+    private readonly Dictionary<ItemData, (float total, int count)> chefMood = new Dictionary<ItemData, (float, int)>();
+
+    /// <summary>요리사가 조리 완료 — 요리 1개의 기분 보너스를 풀에 더합니다.</summary>
+    public void AddChefMood(ItemData meal, float mood)
+    {
+        if (meal == null) return;
+        chefMood.TryGetValue(meal, out var p);
+        chefMood[meal] = (p.total + mood, p.count + 1);
+    }
+
+    /// <summary>요리사 요리 1개를 먹을 때의 기분 보너스 (풀 평균을 꺼냄). 풀이 비었으면 0</summary>
+    public float TakeChefMood(ItemData meal)
+    {
+        if (meal == null || !chefMood.TryGetValue(meal, out var p) || p.count <= 0) return 0f;
+        float avg = p.total / p.count;
+        if (p.count <= 1) chefMood.Remove(meal);
+        else chefMood[meal] = (p.total - avg, p.count - 1);
+        return avg;
+    }
+
     /// <summary>
     /// 음식 1개의 영양값. 요리면 풀 평균(consume=true면 풀에서 뺌), 아니면 아이템 고정값.
     /// </summary>
@@ -315,6 +336,7 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
         reservedAmounts.Clear();
         reservations.Clear();
         mealNutrition.Clear();
+        chefMood.Clear();
         if (showDebugLogs)
         {
             Debug.Log("[InventoryManager] 인벤토리 및 예약이 초기화되었습니다.");
@@ -685,6 +707,8 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
 
         foreach (var kvp in mealNutrition)
             data.inventory.mealNutrition.Add(new MealNutritionSaveData { itemId = kvp.Key.itemID, total = kvp.Value.total, count = kvp.Value.count });
+        foreach (var kvp in chefMood)
+            data.inventory.chefMood.Add(new MealNutritionSaveData { itemId = kvp.Key.itemID, total = kvp.Value.total, count = kvp.Value.count });
     }
 
     public void Restore(SaveData data)
@@ -742,6 +766,15 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
             {
                 ItemData item = db.GetItemData(m.itemId);
                 if (item != null && m.count > 0) mealNutrition[item] = (m.total, m.count);
+            }
+        }
+
+        if (data.inventory.chefMood != null)
+        {
+            foreach (var m in data.inventory.chefMood)
+            {
+                ItemData item = db.GetItemData(m.itemId);
+                if (item != null && m.count > 0) chefMood[item] = (m.total, m.count);
             }
         }
 
