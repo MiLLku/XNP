@@ -93,8 +93,7 @@ public class XenopsEffectController : MonoBehaviour
         switch (effect.target)
         {
             case XenopsEffectTarget.EquippedEmployee:
-                ApplyToEquippedEmployee(effect.effectType, value, effect.targetId);
-                break;
+                break; // 직원 장착 제놉스는 폐지됨 — 대상 없음
 
             case XenopsEffectTarget.NearbyEmployees:
                 ApplyToNearbyEmployees(effect.effectType, value, effect.targetId);
@@ -125,14 +124,6 @@ public class XenopsEffectController : MonoBehaviour
     #endregion
 
     #region 대상별 적용
-
-    private void ApplyToEquippedEmployee(XenopsEffectType type, float value, int targetId)
-    {
-        var employee = xenops.EquippedEmployee;
-        if (employee == null) return;
-
-        ApplyEffectToEmployee(employee, type, value, targetId);
-    }
 
     private void ApplyToNearbyEmployees(XenopsEffectType type, float value, int targetId)
     {

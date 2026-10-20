@@ -16,6 +16,12 @@ public class CookingRecipe : ScriptableObject, IPlanRecipe
     [Tooltip("침식 재료가 섞였을 때 결과물")]
     public ItemData erosionOutput;
 
+    [Tooltip("요리사가 만들었을 때 결과물 (비우면 일반 결과물)")]
+    public ItemData chefOutput;
+
+    [Tooltip("요리사가 침식 재료로 만들었을 때 결과물 (비우면 침식 결과물)")]
+    public ItemData chefErosionOutput;
+
     [Tooltip("필요한 조리 재료 개수 (종류 무관)")]
     [Min(1)] public int ingredientCount = 4;
 
@@ -34,6 +40,16 @@ public class CookingRecipe : ScriptableObject, IPlanRecipe
         var inv = InventoryManager.instance;
         if (inv == null) return 0;
         // 창고 + 아직 옮기지 않은 바닥 더미까지 — 창고만 세면 운반 전에 하나 더 만든다
-        return (output != null ? inv.GetWorldAvailable(output) : 0) + (erosionOutput != null ? inv.GetWorldAvailable(erosionOutput) : 0);
+        return Count(inv, output) + Count(inv, erosionOutput) + Count(inv, chefOutput) + Count(inv, chefErosionOutput);
+    }
+
+    private static int Count(InventoryManager inv, ItemData item) => item != null ? inv.GetWorldAvailable(item) : 0;
+
+    /// <summary>재료·조리사에 맞는 결과물</summary>
+    public ItemData GetOutput(bool erosion, bool chef)
+    {
+        ItemData baseMeal = erosion && erosionOutput != null ? erosionOutput : output;
+        ItemData chefMeal = erosion && erosionOutput != null ? chefErosionOutput : chefOutput;
+        return chef && chefMeal != null ? chefMeal : baseMeal;
     }
 }

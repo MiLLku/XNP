@@ -21,7 +21,8 @@ MonoBehaviour:
   accuracy: 0.8
   penetration: 0.12
   attackRange: 8
-  attackInterval: 1.9
+  attackInterval: 1.2
+  aimTime: 0.7
   isDefensiveGear: 0
   coldProtectionLevel: 0
   heatTolerance: 0
@@ -30,6 +31,8 @@ MonoBehaviour:
   indestructible: 0
   workWearPerSecond: 0.02
   combatWearPerHit: 1
+  repairable: 0
+  repairCost: []
   statModifier:
     maxHealthModifier: 0
     maxMentalModifier: 0
@@ -44,4 +47,10 @@ MonoBehaviour:
     damageReduction: 0
     bonusYieldChance: 0
     workTypeModifiers: []
+    ignoreWaterSlow: 0
+  consumable:
+    trigger: 0
+    threshold: 0
+    healthRestore: 0
+    erosionReduce: 0
   abilities: []

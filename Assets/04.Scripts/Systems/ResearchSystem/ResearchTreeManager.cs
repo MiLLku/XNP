@@ -51,7 +51,7 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
         foreach (var node in treeConfig.nodes)
         {
             if (node == null || _nodeStates.ContainsKey(node.nodeId)) continue;
-            _nodeStates[node.nodeId] = node.prerequisiteNodeIds.Count == 0
+            _nodeStates[node.nodeId] = ArePrerequisitesMet(node)
                 ? ResearchNodeState.Available
                 : ResearchNodeState.Locked;
         }

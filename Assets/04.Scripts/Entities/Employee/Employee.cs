@@ -266,6 +266,7 @@ public class Employee : MonoBehaviour
         work.Initialize(data);
         growth.Initialize();
         growth.ApplyInitialCombatLevels(data.initialMeleeLevel, data.initialRangedLevel);
+        growth.ApplyInitialWorkLevels(data.initialWorkLevels);
         erosionController.Initialize(
             ErosionManager.instance?.StageConfig,
             ErosionManager.instance?.RecoveryConfig);
@@ -560,14 +561,6 @@ public class Employee : MonoBehaviour
     public EquipmentData UnequipItem(EquipmentSlot slot)
         => equipment?.UnequipItem(slot);
 
-    /// <summary>제노프스 장비 장착</summary>
-    public bool EquipXenops(EquipmentSlot slot, Xenops xenops)
-        => equipment != null && equipment.EquipXenops(slot, xenops);
-
-    /// <summary>제노프스 장비 해제</summary>
-    public Xenops UnequipXenops(EquipmentSlot slot)
-        => equipment?.UnequipXenops(slot);
-
     /// <summary>야간 작업 가능 여부</summary>
     public bool CanWorkAtNight()
         => equipment != null && equipment.CanWorkAtNight();
@@ -586,6 +579,11 @@ public class Employee : MonoBehaviour
 
     /// <summary>장비 컴포넌트 참조</summary>
     public EmployeeEquipment Equipment => equipment;
+
+    /// <summary>채광·채집 때 1개를 더 떨굴 확률 — 특성(완벽주의자) + 장비 추가 산출</summary>
+    public float BonusYieldChance => Mathf.Clamp01(
+        (statsController != null ? statsController.CachedBonusYieldChance : 0f) +
+        (equipment != null ? equipment.GetTotalBonusYieldChance() : 0f));
 
     #endregion
 

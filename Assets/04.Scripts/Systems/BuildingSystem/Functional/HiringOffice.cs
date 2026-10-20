@@ -18,6 +18,15 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
     [Tooltip("건물 위치 기준 채용된 직원의 스폰 위치 오프셋")]
     [SerializeField] private Vector3 spawnOffset = new Vector3(3f, 0f, 0f);
 
+    [Header("부속 건물 (같은 방 안에 있어야 인정 — 실외면 효과 없음)")]
+    [Tooltip("작업 수치 최대치를 올리는 부속 건물 ID — 서로 다른 건물이어야 하고, 종류마다 1개만 인정")]
+    [SerializeField] private int[] statCapAddonIds = { 4003, 4004, 4005 };
+    [Tooltip("부속 건물 1종당 작업 수치 최대치 증가")]
+    [SerializeField] private int statCapPerAddon = 10;
+    [Tooltip("다시 뽑기 부속 건물 ID — 같은 건물이 여러 개면 개수만큼 하루 다시 뽑기 +1")]
+    [SerializeField] private int rerollAddonId = 4006;
+    [SerializeField] private int maxRerollAddons = 3;
+
     // 런타임 상태
     private List<EmployeeData> _candidates;
     private int _candidatesDay = -1;
@@ -105,7 +114,7 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
         const int CANDIDATE_COUNT = 3;
         for (int i = 0; i < CANDIDATE_COUNT; i++)
         {
-            EmployeeData data = RandomEmployeeGenerator.Generate(config);
+            EmployeeData data = RandomEmployeeGenerator.Generate(config, WorkStatCap);
             if (data != null)
                 _candidates.Add(data);
         }
@@ -135,6 +144,35 @@ public class HiringOffice : MonoBehaviour, IBuildingFunction
         foreach (EmployeeData candidate in _candidates)
             if (candidate != null && candidate != keep) Destroy(candidate);
         _candidates = null;
+    }
+
+    /// <summary>작업 수치 최대치 — 기본(설정) + 같은 방의 서로 다른 부속 건물 1종당 +statCapPerAddon</summary>
+    public int WorkStatCap
+    {
+        get
+        {
+            var config = EmployeeManager.instance != null ? EmployeeManager.instance.GenerationConfig : null;
+            int cap = config != null ? config.baseWorkStatCap : 30;
+            if (statCapAddonIds != null)
+                foreach (int id in statCapAddonIds)
+                    if (BuildingAddonUtil.CountInSameRoom(_building, id) > 0) cap += statCapPerAddon;
+            return cap;
+        }
+    }
+
+    /// <summary>하루 다시 뽑기 횟수 — 같은 방의 다시 뽑기 부속 건물 수 (최대 maxRerollAddons)</summary>
+    public int RerollsPerDay => Mathf.Min(maxRerollAddons, BuildingAddonUtil.CountInSameRoom(_building, rerollAddonId));
+
+    /// <summary>오늘 남은 다시 뽑기 횟수</summary>
+    public int RerollsLeft => Mathf.Max(0, RerollsPerDay - (EmployeeManager.instance != null ? EmployeeManager.instance.RerollsUsedToday : 0));
+
+    /// <summary>후보 3명을 새로 뽑는다 (하루 횟수 제한). 성공하면 새 후보 목록</summary>
+    public List<EmployeeData> Reroll()
+    {
+        if (RerollsLeft <= 0 || IsUsed) return null;
+        EmployeeManager.instance?.RecordReroll();
+        GenerateCandidates();
+        return _candidates;
     }
 
     /// <summary>

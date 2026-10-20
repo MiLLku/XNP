@@ -23,6 +23,8 @@ MonoBehaviour:
   prefab: {fileID: 5095541274345772357, guid: d529faab5269ac34794c172a4ee6a476, type: 3}
   benefits: []
   drawbacks: []
+  codexObservePercent: 3
+  codexKillPercent: 8
   maxInterpretationLevel: 10
   baseExpRequired: 50
   expPerInteraction: 10
@@ -33,13 +35,13 @@ MonoBehaviour:
     moveSpeed: 2.5
     maxHealth: 60
     defense: 0
-    attackSpeed: 0.5
+    attackSpeed: 1
     attackDamage: 4
     attackRange: 6
     size: 1
     aoeErosionPerSecond: 15
     aoeErosionRange: 3
-    subdueDropItemId: 0
+    subdueDropItemId: 18
     subdueDropAmount: 1
   hitErosionAmount: 5
   dotDamagePerSecond: 3

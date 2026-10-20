@@ -159,4 +159,15 @@ public class BuildingData : ScriptableObject
     public bool requiresResearch = false;
 
     #endregion
+
+    #region 부속 건물
+
+    [Header("부속 건물 (같은 방 안의 본 건물을 돕는다)")]
+    [Tooltip("이 건물이 부속으로 돕는 본 건물 ID 목록 (예: 작업 조명 → 대장간·제련소…). 비우면 부속이 아님")]
+    public int[] addonForBuildingIds = new int[0];
+
+    [Tooltip("본 건물 작업 속도 보너스 (0.1 = +10%). 같은 종류 부속은 여러 개여도 하나만 인정")]
+    [Min(0f)] public float addonWorkSpeedBonus = 0f;
+
+    #endregion
 }

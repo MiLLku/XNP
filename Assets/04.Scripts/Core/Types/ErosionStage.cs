@@ -69,5 +69,25 @@ public enum AbnormalBehaviorType
     ErosionOutburst = 10,
 
     /// <summary>건물 파괴 충동 — 주변의 내구도 있는 건설물을 공격한다 (벽·바닥 등 기반시설 제외)</summary>
-    AttackBuilding = 11
+    AttackBuilding = 11,
+
+    // ── 폭력 정신 이상 (정신력 계열 — 침식과 무관하게 일반 정신 이상 후보에 섞인다) ──
+
+    /// <summary>화풀이 — 근처 건물 하나를 부수거나, 창고의 무작위 아이템을 부숴 없앤다</summary>
+    Tantrum = 12,
+
+    /// <summary>광란 — 주변 직원을 아무나 일정 시간 공격한다</summary>
+    Berserk = 13
+}
+
+/// <summary>정신 이상 계열 분류 — 폭력적 특성은 폭력 계열만 고른다</summary>
+public static class AbnormalBehaviorKind
+{
+    /// <summary>폭력 계열 (동료·건물을 공격). 폭력 정신 이상을 새로 만들면 여기에 추가한다</summary>
+    public static bool IsViolent(AbnormalBehaviorType type)
+        => type == AbnormalBehaviorType.FriendlyAttack
+        || type == AbnormalBehaviorType.FriendlyAttackEnhanced
+        || type == AbnormalBehaviorType.AttackBuilding
+        || type == AbnormalBehaviorType.Tantrum
+        || type == AbnormalBehaviorType.Berserk;
 }

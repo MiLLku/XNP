@@ -10,21 +10,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e13f7c21b4c811644800ed6f7e9e8dd5, type: 3}
-  m_Name: Trait_Geonjangham
+  m_Name: Trait_Saikopaeseu
   m_EditorClassIdentifier: Assembly-CSharp::EmployeeTrait
-  traitName: "\uAC74\uC7A5\uD568"
-  description: "\uBC1B\uB294 \uBB3C\uB9AC \uD53C\uD574\uAC00 25% \uAC10\uC18C\uD569\uB2C8\uB2E4."
+  traitName: "\uC0AC\uC774\uCF54\uD328\uC2A4"
+  description: "\uB2E4\uB978 \uC9C1\uC6D0 \uB54C\uBB38\uC5D0 \uC0DD\uAE30\uB294 \uBB34\uB4DC\uB97C
+    \uBC1B\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4 (\uC694\uB9AC\uC0AC\uC758 \uC694\uB9AC,
+    \uC74C\uCE68\uD568\xB7\uCE5C\uC808\uD568, \uB3D9\uB8CC\uC758 \uAC10\uC815 \uD3ED\uBC1C
+    \uB4F1)."
   icon: {fileID: 0}
-  type: 0
+  type: 2
+  exclusionGroup: 
   effects:
     healthMult: 1
     mentalMult: 1
-    damageTakenMult: 0.75
+    damageTakenMult: 1
     erosionDamageMult: 1
     mentalDecayMult: 1
     abnormalResistMult: 1
     moveSpeedMult: 1
     workSpeedMultipliers: []
+    meleeDamageMult: 1
+    rangedDamageMult: 1
+    accuracyMult: 1
+    attackIntervalMult: 1
+    attackRangeBonus: 0
+    penetrationBonus: 0
     attackModifier: 0
     globalWorkSpeedModifier: 0
     hungerRateModifier: 0
@@ -32,6 +42,20 @@ MonoBehaviour:
     carryCapacityModifier: 0
     skillGainRateModifier: 0
     erosionIgnoreBonus: 0
+    guardRangeBonus: 0
+    selfMood: 0
+    moodToOthers: 0
+    ignoreColleagueMood: 1
+    moodPerErosion: 0
+    erosionMoodMax: 0
+    moodWhenNoErosion: 0
+    erosionMoodLabel: 
+    violent: 0
+    bonusYieldChance: 0
+    workLevelBonuses: []
+    meleeLevelBonus: 0
+    rangedLevelBonus: 0
+    chefDishes: 0
     canWorkAtNight: 0
     cannotWorkInRain: 0
     lonewolfBonus: 0

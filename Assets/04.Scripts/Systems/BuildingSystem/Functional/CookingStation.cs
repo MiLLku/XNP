@@ -61,7 +61,8 @@ public class CookingStation : MonoBehaviour, IPlanHost, IMaterialReceiver, IBuil
     public Vector3 WorkPosition => transform.position + (Vector3)workOffset;
 
     /// <summary>조리 작업량 — 직원 조리 속도는 작업 루프가 따로 곱함</summary>
-    public float CookWorkTime => (jobRecipe != null ? jobRecipe.cookTime : 1f) / speedMultiplier;
+    public float CookWorkTime => (jobRecipe != null ? jobRecipe.cookTime : 1f) / speedMultiplier
+                                 / BuildingAddonUtil.GetWorkSpeedMultiplier(building);
 
     private bool IsRunning => (building == null || building.IsFunctional) && (power == null || power.IsPowered);
     private bool HasFuel => !usesFuel || burnRemaining > 0f || fuelSupply.Stock > 0;
@@ -196,7 +197,7 @@ public class CookingStation : MonoBehaviour, IPlanHost, IMaterialReceiver, IBuil
     #region 조리 완료·취소
 
     /// <summary>조리 작업 완료 — 연료를 쓰고 요리를 스토브 옆에 떨굽니다.</summary>
-    public void CompleteCooking()
+    public void CompleteCooking(Employee cook = null)
     {
         if (!HasJob) return;
 
@@ -209,16 +210,31 @@ public class CookingStation : MonoBehaviour, IPlanHost, IMaterialReceiver, IBuil
         }
         nutrition *= jobRecipe.nutritionMultiplier;
 
-        var meal = erosion && jobRecipe.erosionOutput != null ? jobRecipe.erosionOutput : jobRecipe.output;
+        bool chef = cook != null && cook.StatsController != null && cook.StatsController.MakesChefDishes;
+        var meal = jobRecipe.GetOutput(erosion, chef);
         if (meal != null)
         {
-            if (InventoryManager.instance != null) InventoryManager.instance.AddMealNutrition(meal, nutrition);
+            if (InventoryManager.instance != null)
+            {
+                InventoryManager.instance.AddMealNutrition(meal, nutrition);
+                if (meal.chefDish) InventoryManager.instance.AddChefMood(meal, ChefMood(nutrition, cook));
+            }
             ItemRefundHelper.SpawnRefunds(new Dictionary<ItemData, int> { { meal, 1 } }, WorkPosition, Vector2Int.one);
         }
 
         if (jobPlan != null) jobPlan.done++;
         cookOrder = null; // 완료 처리 중인 작업물 — 큐가 비면 WorkSystemManager가 스스로 정리
         ClearJob();
+    }
+
+    /// <summary>
+    /// 요리사 요리의 기분 보너스 = 영양 ÷ 20 × (0.5 + 조리 숙련 ÷ 10), +1~+5.
+    /// shortcut: 임시 공식 — 요리 종류가 늘면 밸런스 다시 볼 것
+    /// </summary>
+    private static float ChefMood(float nutrition, Employee cook)
+    {
+        int level = cook != null && cook.Growth != null ? cook.Growth.GetAptitudeLevel(WorkType.Cooking) : 1;
+        return Mathf.Clamp(nutrition / 20f * (0.5f + level / 10f), 1f, 5f);
     }
 
     /// <summary>진행 중인 요리를 취소합니다. 이미 온 재료는 바닥에 돌려줍니다.</summary>

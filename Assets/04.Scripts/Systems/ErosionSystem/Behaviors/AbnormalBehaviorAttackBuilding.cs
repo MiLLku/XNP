@@ -16,8 +16,8 @@ public class AbnormalBehaviorAttackBuilding : AbnormalBehaviorBase
 {
     #region 수치 (밸런스 조정 지점)
 
-    /// <summary>지속 시간 (초)</summary>
-    private const float DURATION = 40f;
+    /// <summary>기본 지속 시간 (초)</summary>
+    private const float DEFAULT_DURATION = 40f;
 
     /// <summary>대상 건물을 찾는 반경 (타일)</summary>
     private const int SEARCH_RADIUS = 8;
@@ -42,13 +42,29 @@ public class AbnormalBehaviorAttackBuilding : AbnormalBehaviorBase
 
         /// <summary>다음 경로 재계산까지 남은 시간</summary>
         public float repathTimer;
+
+        /// <summary>대상을 한 번이라도 골랐는지 (한 건물만 부수는 화풀이용)</summary>
+        public bool picked;
     }
 
     private readonly Dictionary<Employee, AttackState> states = new Dictionary<Employee, AttackState>();
 
     #endregion
 
-    public override AbnormalBehaviorType BehaviorType => AbnormalBehaviorType.AttackBuilding;
+    private readonly AbnormalBehaviorType type;
+    private readonly float duration;
+    private readonly bool singleTarget;
+
+    /// <param name="singleTarget">true면 건물 하나만 노리고, 부서지면 남은 시간 동안 멈춰 있는다 (화풀이)</param>
+    public AbnormalBehaviorAttackBuilding(AbnormalBehaviorType type = AbnormalBehaviorType.AttackBuilding,
+                                          float duration = DEFAULT_DURATION, bool singleTarget = false)
+    {
+        this.type = type;
+        this.duration = duration;
+        this.singleTarget = singleTarget;
+    }
+
+    public override AbnormalBehaviorType BehaviorType => type;
 
     #region 실행
 
@@ -56,9 +72,7 @@ public class AbnormalBehaviorAttackBuilding : AbnormalBehaviorBase
     {
         SeizeControl(employee);
         states[employee] = new AttackState { attackTimer = 0f };
-
-        Debug.Log($"[AbnormalBehavior] {employee.DisplayName}: 건물 파괴 충동 ({DURATION:F0}초)");
-        return DURATION;
+        return duration;
     }
 
     public override void Tick(Employee employee, float deltaTime)
@@ -71,7 +85,15 @@ public class AbnormalBehaviorAttackBuilding : AbnormalBehaviorBase
         // 대상이 없거나 이미 부서졌으면 새로 고른다
         if (state.target == null)
         {
+            if (singleTarget && state.picked)
+            {
+                // 노리던 건물을 다 부쉈다 — 남은 시간은 그 자리에서 씩씩댄다
+                if (movement != null && movement.IsMoving) movement.StopMoving();
+                return;
+            }
+
             state.target = FindNearestTarget(employee);
+            state.picked |= state.target != null;
             state.approaching = false;
 
             if (state.target == null)
@@ -81,7 +103,6 @@ public class AbnormalBehaviorAttackBuilding : AbnormalBehaviorBase
                 return;
             }
 
-            Debug.Log($"[AbnormalBehavior] {employee.DisplayName}: 파괴 대상 → {state.target.buildingData?.buildingName}");
         }
 
         GetAttackProfile(employee, out float damage, out float interval, out float range);
@@ -157,7 +178,7 @@ public class AbnormalBehaviorAttackBuilding : AbnormalBehaviorBase
     ///   • 이미 기능이 꺼진 건물 — TakeDamage가 무시하므로 시간만 버린다
     /// 벽·바닥 중 타일로만 존재하는 것들은 애초에 Building이 아니라 자동으로 제외된다.
     /// </summary>
-    private static Building FindNearestTarget(Employee employee)
+    internal static Building FindNearestTarget(Employee employee)
     {
         var movement = employee.GetComponent<EmployeeMovement>();
         if (movement == null) return null;

@@ -70,6 +70,14 @@ public class EmployeeData : ScriptableObject
 
     #endregion
 
+    #region 초기 작업 숙련
+
+    [Header("초기 작업 숙련")]
+    [Tooltip("생성 시 정해진 작업별 숙련 레벨 (무작위 분배 + 특성 보너스). 비우면 모두 Lv1")]
+    public List<WorkLevelBonus> initialWorkLevels = new List<WorkLevelBonus>();
+
+    #endregion
+
     #region 초기 결격 작업
 
     [Header("초기 결격 작업")]

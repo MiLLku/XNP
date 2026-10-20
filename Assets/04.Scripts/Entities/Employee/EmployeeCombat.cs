@@ -40,6 +40,16 @@ public class EmployeeCombat : MonoBehaviour
     private bool movingToTarget;
     private bool projectilePoolReady;
 
+    // 사격 조준 — 매 사격 전에 aimTime 동안 멈춰 서서 조준한다
+    private Xenops aimTarget;
+    private float aimTimer;
+
+    /// <summary>조준 중인지 (UI·디버그용)</summary>
+    public bool IsAiming => aimTarget != null;
+
+    /// <summary>전투 결격(비폭력주의) — 피해를 주는 행동을 하지 않는다</summary>
+    private bool NonViolent => stats != null && stats.IsNonViolent;
+
     /// <summary>현재 태세</summary>
     public CombatStance Stance => stance;
 
@@ -148,8 +158,10 @@ public class EmployeeCombat : MonoBehaviour
         if (draft == null || !draft.IsDrafted) return;
         if (employee == null || employee.State == EmployeeState.Dead) return;
         if (stance == CombatStance.Defend) return; // 방어: 공격 안 함 (효과는 TakeDamage/어그로 측)
+        if (NonViolent) return;                    // 전투 결격: 소집해도 이동 명령만 따른다
 
         attackTimer -= Time.deltaTime;
+        UpdateAim(Time.deltaTime);
 
         scanTimer -= Time.deltaTime;
         if (scanTimer <= 0f)
@@ -277,7 +289,7 @@ public class EmployeeCombat : MonoBehaviour
 
         float speedFactor = SkillFactor(CurrentSkillLevel,
             Cfg != null ? Cfg.attackSpeedBonusAtMaxLevel : 0.5f);
-        float traitMult = stats != null ? stats.CachedAttackIntervalMult : 1f;
+        float traitMult = stats != null ? stats.GetAttackIntervalMult(IsRangedWeapon) : 1f;
 
         return Mathf.Max(0.05f, baseInterval / Mathf.Max(0.01f, speedFactor) * traitMult);
     }
@@ -310,17 +322,42 @@ public class EmployeeCombat : MonoBehaviour
         return Mathf.Max(0f, baseDamage * skillFactor * traitMult * (1f + researchBonus));
     }
 
-    /// <summary>명중률 = 무기 명중률 × 숙련 배율 × 특성 배율 (0~1 클램프).</summary>
-    private float GetAccuracy()
+    /// <summary>
+    /// 명중률 = 무기 명중률 × 숙련 배율 × 특성 배율 (× 사격이면 거리 감쇠) — 0~1 클램프.
+    /// 거리 감쇠: 붙어 있으면 1, 사거리 끝에서 CombatConfig.rangedAccuracyAtMaxRange.
+    /// </summary>
+    public float GetAccuracy(float distance = 0f)
     {
         var w = Weapon;
         float baseAccuracy = w != null ? w.accuracy : (Cfg != null ? Cfg.unarmedAccuracy : 0.8f);
 
         float skillFactor = SkillFactor(CurrentSkillLevel,
             Cfg != null ? Cfg.accuracyBonusAtMaxLevel : 0.5f);
-        float traitMult = stats != null ? stats.CachedAccuracyMult : 1f;
+        bool ranged = IsRangedWeapon;
+        float traitMult = stats != null ? stats.GetAccuracyMult(ranged) : 1f;
 
-        return Mathf.Clamp01(baseAccuracy * skillFactor * traitMult);
+        float falloff = 1f;
+        if (ranged)
+        {
+            float t = Mathf.Clamp01(distance / Mathf.Max(0.5f, GetAttackRange()));
+            falloff = Mathf.Lerp(1f, Cfg != null ? Cfg.rangedAccuracyAtMaxRange : 0.75f, t);
+        }
+
+        return Mathf.Clamp01(baseAccuracy * skillFactor * traitMult * falloff);
+    }
+
+    /// <summary>원거리 무기를 들고 있는지 (맨손은 근접)</summary>
+    private bool IsRangedWeapon
+    {
+        get { var w = Weapon; return w != null && w.weaponClass == WeaponClass.Ranged; }
+    }
+
+    /// <summary>조준 시간 = 무기 조준 시간 × 특성 배율 (총기광 0.5). 근접은 0</summary>
+    public float GetAimTime()
+    {
+        var w = Weapon;
+        if (w == null || w.weaponClass != WeaponClass.Ranged) return 0f;
+        return Mathf.Max(0f, w.aimTime * (stats != null ? stats.CachedAimTimeMult : 1f));
     }
 
     /// <summary>관통력 = 무기 관통력 + 특성 가산 (0~1 클램프).</summary>
@@ -353,14 +390,54 @@ public class EmployeeCombat : MonoBehaviour
 
     private void TryAttack(Xenops victim)
     {
+        if (NonViolent) return;
         if (attackTimer > 0f) return;
+
+        // 사격은 먼저 조준한다 — 조준이 끝나면 UpdateAim이 쏜다
+        if (GetAimTime() > 0f)
+        {
+            if (aimTarget != victim) { aimTarget = victim; aimTimer = 0f; }
+            return;
+        }
+
+        PerformAttack(victim);
+    }
+
+    /// <summary>
+    /// 조준 진행 — 대상이 죽거나 사거리를 벗어나거나 사수가 움직이면 조준이 풀린다.
+    /// 다 차면 쏘고, 다음 사격은 공격 간격 뒤 다시 조준부터.
+    /// </summary>
+    private void UpdateAim(float dt)
+    {
+        if (aimTarget == null) return;
+
+        var h = aimTarget.GetComponent<XenopsHealth>();
+        bool lost = aimTarget.State == XenopsState.Subdued || h == null || h.IsDead
+                    || aimTarget != target
+                    || Vector2.Distance(transform.position, aimTarget.transform.position) > GetAttackRange()
+                    || (movement != null && movement.IsMoving)
+                    || GetAimTime() <= 0f;
+        if (lost) { aimTarget = null; aimTimer = 0f; return; }
+
+        aimTimer += dt;
+        if (aimTimer < GetAimTime()) return;
+
+        var victim = aimTarget;
+        aimTarget = null;
+        aimTimer = 0f;
+        PerformAttack(victim);
+    }
+
+    private void PerformAttack(Xenops victim)
+    {
         attackTimer = GetAttackInterval();
 
         var health = victim.GetComponent<XenopsHealth>();
         if (health == null || health.IsDead) { target = null; return; }
 
-        // 명중 판정 — 빗나가면 데미지 0. 근접·원거리 동일하게 '헛친다'로 처리한다.
-        bool hitSuccess = Random.value <= GetAccuracy();
+        // 명중 판정 — 빗나가면 데미지 0. 근접은 헛치고, 사격은 탄이 대상 옆으로 지나간다.
+        float distance = Vector2.Distance(transform.position, victim.transform.position);
+        bool hitSuccess = Random.value <= GetAccuracy(distance);
         float damage = hitSuccess ? GetAttackDamage() : 0f;
 
         GainCombatExp(hitSuccess);
@@ -422,10 +499,17 @@ public class EmployeeCombat : MonoBehaviour
         Vector3 origin = transform.position + new Vector3(0f, 0.3f, 0f);
         Vector2 dir = victim.transform.position - origin;
 
+        // 빗나간 사격은 대상 옆으로 비껴 날아가 그대로 지나친다 (적을 통과, 지형에 막힘)
+        if (!hitSuccess)
+        {
+            float spread = cfg.missSpreadDegrees * (Random.value < 0.5f ? -1f : 1f) * Random.Range(0.6f, 1f);
+            dir = Quaternion.Euler(0f, 0f, spread) * dir;
+        }
+
         var proj = PoolManager.instance.Spawn<AllyProjectile>(prefab, origin);
         if (proj == null) return false;
 
-        proj.Init(dir, cfg.allyProjectileSpeed, damage, GetPenetration(), cfg.allyProjectileLifetime,
+        proj.Init(dir, cfg.allyProjectileSpeed, damage, GetPenetration(), cfg.allyProjectileLifetime, !hitSuccess,
             hit =>
             {
                 if (this == null) return;                 // 발사자 사망/파괴 후 명중

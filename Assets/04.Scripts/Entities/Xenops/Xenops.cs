@@ -32,10 +32,6 @@ public class Xenops : MonoBehaviour
     private IXenopsBehavior behavior;
     private SpriteRenderer spriteRenderer;
 
-    // 장비형 전용: 장착 대상 직원
-    private Employee equippedEmployee;
-    private int equippedEmployeeInstanceId;
-
     // 잠입체 전용: 잠입 대상 건물
     private Building infiltratedBuilding;
     private int infiltratedBuildingInstanceId;
@@ -138,9 +134,6 @@ public class Xenops : MonoBehaviour
 
     #region 프로퍼티 — 크로스레퍼런스
 
-    /// <summary>장착 대상 직원 (장비형 전용)</summary>
-    public Employee EquippedEmployee => equippedEmployee;
-
     /// <summary>잠입 대상 건물 (잠입체 전용)</summary>
     public Building InfiltratedBuilding => infiltratedBuilding;
 
@@ -167,8 +160,7 @@ public class Xenops : MonoBehaviour
             RuntimeIDRegistry.instance.Unregister(instanceId);
         }
 
-        // 장비/잠입 해제
-        if (equippedEmployee != null) Unequip();
+        // 잠입 해제
         if (infiltratedBuilding != null) Expel();
     }
 
@@ -299,7 +291,7 @@ public class Xenops : MonoBehaviour
     #region 플레이어 상호작용
 
     /// <summary>
-    /// 해석 경험치를 직접 부여합니다 (EquipmentBehavior 등 내부 호출용).
+    /// 해석 경험치를 직접 부여합니다 (내부 호출용).
     /// </summary>
     public void GainInterpretationExp(int amount)
     {
@@ -361,44 +353,6 @@ public class Xenops : MonoBehaviour
     #region 장비/잠입 관리
 
     /// <summary>
-    /// 직원에게 장착합니다 (장비형 전용).
-    /// </summary>
-    public void EquipTo(Employee employee)
-    {
-        if (xenopsData == null || xenopsData.xenopsType != XenopsType.Equipment) return;
-        if (employee == null) return;
-
-        // 기존 장착 해제
-        if (equippedEmployee != null) Unequip();
-
-        equippedEmployee = employee;
-        equippedEmployeeInstanceId = employee.InstanceId;
-        SetState(XenopsState.Equipped);
-
-        if (showDebugInfo)
-        {
-            Debug.Log($"[Xenops] {DisplayName} → {employee.DisplayName}에 장착");
-        }
-    }
-
-    /// <summary>
-    /// 장착을 해제합니다.
-    /// </summary>
-    public void Unequip()
-    {
-        if (equippedEmployee == null) return;
-
-        if (showDebugInfo)
-        {
-            Debug.Log($"[Xenops] {DisplayName} → {equippedEmployee.DisplayName}에서 해제");
-        }
-
-        equippedEmployee = null;
-        equippedEmployeeInstanceId = 0;
-        SetState(XenopsState.Idle);
-    }
-
-    /// <summary>
     /// 건물에 잠입합니다 (잠입체 전용).
     /// </summary>
     public void InfiltrateTo(Building building)
@@ -443,13 +397,6 @@ public class Xenops : MonoBehaviour
     private void HandleInterpretationLevelUp(int newLevel)
     {
         OnInterpretationLevelUp?.Invoke(newLevel);
-
-        // 장비형: 해석도 레벨업 시 스탯 보정 재계산
-        if (xenopsData != null && xenopsData.xenopsType == XenopsType.Equipment)
-        {
-            var equipBehavior = GetComponent<EquipmentBehavior>();
-            equipBehavior?.RefreshStatModifier();
-        }
     }
 
     #endregion
@@ -468,10 +415,8 @@ public class Xenops : MonoBehaviour
             state = (int)currentState,
             posX = transform.position.x,
             posY = transform.position.y,
-            equippedEmployeeInstanceId = equippedEmployeeInstanceId,
             infiltratedBuildingInstanceId = infiltratedBuildingInstanceId,
-            equippedSlot = xenopsData != null && xenopsData.xenopsType == XenopsType.Equipment && currentState == XenopsState.Equipped
-                ? (int)xenopsData.equipmentSlot : -1
+            equippedSlot = -1 // 직원 장착 제놉스는 폐지(제놉스 도감 → 장비 제작으로 대체)
         };
 
         // 서브 컴포넌트 데이터 수집
@@ -490,7 +435,6 @@ public class Xenops : MonoBehaviour
         transform.position = new Vector3(data.posX, data.posY, 0f);
 
         // 크로스레퍼런스 ID 보관 (PostRestore에서 해결)
-        equippedEmployeeInstanceId = data.equippedEmployeeInstanceId;
         infiltratedBuildingInstanceId = data.infiltratedBuildingInstanceId;
 
         name = $"Xenops_{DisplayName}_{instanceId}";
@@ -526,18 +470,6 @@ public class Xenops : MonoBehaviour
     public void ResolveReferences()
     {
         if (RuntimeIDRegistry.instance == null) return;
-
-        // 장비형 — 장착 대상 직원 복원
-        if (equippedEmployeeInstanceId > 0)
-        {
-            equippedEmployee = RuntimeIDRegistry.instance.ResolveComponent<Employee>(equippedEmployeeInstanceId);
-            if (equippedEmployee == null)
-            {
-                Debug.LogWarning($"[Xenops] {DisplayName}: 장착 대상 직원(ID:{equippedEmployeeInstanceId}) 복원 실패");
-                equippedEmployeeInstanceId = 0;
-                if (currentState == XenopsState.Equipped) SetState(XenopsState.Idle);
-            }
-        }
 
         // 잠입체 — 잠입 대상 건물 복원
         if (infiltratedBuildingInstanceId > 0)

@@ -72,7 +72,7 @@ public class MiningOrder : IWorkTarget
         completed = true;
         assignedWorker = null;
 
-        ExecuteMining();
+        ExecuteMining(worker);
 
         // 채광으로 지형이 바뀌면 LOS가 달라집니다.
         // UpdateEmployeeSight의 diff 계산은 '현재' 지형으로 inFrom을 재계산하므로
@@ -121,7 +121,7 @@ public class MiningOrder : IWorkTarget
     /// 실제 채광 로직을 실행합니다.
     /// 타일을 AIR로 변경하고, 드롭 아이템을 인벤토리에 추가합니다.
     /// </summary>
-    private void ExecuteMining()
+    private void ExecuteMining(Employee worker)
     {
         if (MapGenerator.instance == null)
         {
@@ -153,7 +153,7 @@ public class MiningOrder : IWorkTarget
             return;
         }
 
-        DropMinedResource(resourceManager);
+        DropMinedResource(resourceManager, worker != null && Random.value < worker.BonusYieldChance ? 2 : 1);
 
         gameMap.SetTile(position.x, position.y, AIR_TILE_ID);
         gameMap.UnmarkTileOccupied(position.x, position.y);
@@ -168,7 +168,7 @@ public class MiningOrder : IWorkTarget
     /// DroppedItemManager가 있으면 DroppedItem으로 스폰 (직원이 창고로 운반).
     /// 없으면 인벤토리에 직접 추가 (폴백).
     /// </summary>
-private void DropMinedResource(ResourceManager resourceManager)
+private void DropMinedResource(ResourceManager resourceManager, int amount)
     {
         // 새 API: tileID → ItemData 직접 조회 (ClickableItem 경유 제거)
         ItemData itemData = resourceManager.GetTileDropItem(tileID);
@@ -179,13 +179,13 @@ private void DropMinedResource(ResourceManager resourceManager)
         // DroppedItemManager가 있으면 바닥에 드롭 → 직원이 운반
         if (DroppedItemManager.instance != null)
         {
-            DroppedItemManager.instance.SpawnItem(itemData, 1, dropPos);
+            DroppedItemManager.instance.SpawnItem(itemData, amount, dropPos);
             Debug.Log($"[MiningOrder] 드롭 스폰: {itemData.itemName} @ {dropPos}");
             return;
         }
 
         // 폴백: 인벤토리에 직접 추가
-        InventoryManager.instance?.AddItem(itemData, 1);
+        InventoryManager.instance?.AddItem(itemData, amount);
     }
 
     #endregion

@@ -58,8 +58,23 @@ public class TraitEffects
     [Tooltip("명중률 배율 (근접·원거리 공통)")]
     public float accuracyMult = 1f;
 
-    [Tooltip("공격 간격 배율 — 낮을수록 빠르다 (0.8 = 20% 빠름)")]
+    [Tooltip("공격 간격 배율 — 낮을수록 빠르다 (0.8 = 20% 빠름). 근접·원거리 공통")]
     public float attackIntervalMult = 1f;
+
+    [Tooltip("근접 공격 간격 배율 (싸움꾼 0.83 = 20% 빠름)")]
+    public float meleeAttackIntervalMult = 1f;
+
+    [Tooltip("원거리 공격 간격 배율")]
+    public float rangedAttackIntervalMult = 1f;
+
+    [Tooltip("근접 명중률 배율")]
+    public float meleeAccuracyMult = 1f;
+
+    [Tooltip("원거리(사격) 명중률 배율")]
+    public float rangedAccuracyMult = 1f;
+
+    [Tooltip("사격 조준 시간 배율 (총기광 0.5 = 50% 짧음)")]
+    public float aimTimeMult = 1f;
 
     #endregion
 
@@ -111,6 +126,66 @@ public class TraitEffects
 
     [Tooltip("경계 태세 반경 가감 (타일, flat). 예: +2 = 더 넓게 경계")]
     public float guardRangeBonus = 0f;
+
+    #endregion
+
+    #region 무드 (flat)
+
+    [Header("무드 (flat)")]
+    [Tooltip("본인에게 늘 붙는 무드. 예: 우울함 -5, 긍정적 +3, 낙천적 +5")]
+    public float selfMood = 0f;
+
+    [Tooltip("다른 모든 직원에게 붙는 무드. 예: 음침함 -1, 친절함 +1 — 그런 직원이 여럿이면 쌓인다")]
+    public float moodToOthers = 0f;
+
+    [Tooltip("다른 직원 때문에 생기는 무드를 받지 않음 (사이코패스) — 요리사의 요리, 음침함·친절함, 동료의 감정 폭발 등")]
+    public bool ignoreColleagueMood = false;
+
+    [Tooltip("침식 1당 오르는 무드 (침식 선호). 0이면 효과 없음")]
+    public float moodPerErosion = 0f;
+
+    [Tooltip("침식 무드 상한")]
+    public float erosionMoodMax = 0f;
+
+    [Tooltip("침식이 없을 때의 무드 (침식 선호 -10)")]
+    public float moodWhenNoErosion = 0f;
+
+    [Tooltip("침식 무드 표시 문구")]
+    public string erosionMoodLabel = "";
+
+    #endregion
+
+    #region 정신 이상 계열·수확·생성 보너스
+
+    [Header("정신 이상")]
+    [Tooltip("폭력적 — 정신 이상이 폭력 계열로만 나온다 (지금은 침식 이상 중 폭력 계열만 고름. 일반 폭력 이상은 추후 추가)")]
+    public bool violent = false;
+
+    [Header("수확")]
+    [Tooltip("채광·채집 때 1개를 더 떨굴 확률 (0~1). 장비 추가 산출 확률과 더해진다")]
+    [Range(0f, 1f)] public float bonusYieldChance = 0f;
+
+    [Header("생성 시 숙련 보너스 (작업 수치 최대치 밖에서 더함)")]
+    public WorkLevelBonus[] workLevelBonuses;
+
+    [Tooltip("생성 시 격투 숙련 +")]
+    public int meleeLevelBonus = 0;
+
+    [Tooltip("생성 시 사격 숙련 +")]
+    public int rangedLevelBonus = 0;
+
+    [Tooltip("요리사 — 이 직원이 조리한 요리는 요리사 요리(먹으면 추가 기분)로 나온다")]
+    public bool chefDishes = false;
+
+    [Header("전투 제한")]
+    [Tooltip("근접 무기 착용 불가 (총기광)")]
+    public bool cannotEquipMelee = false;
+
+    [Tooltip("원거리 무기 착용 불가 (싸움꾼)")]
+    public bool cannotEquipRanged = false;
+
+    [Tooltip("전투 결격 (비폭력주의) — 피해를 주는 행동을 전혀 하지 않는다. 소집해서 이동은 가능")]
+    public bool nonViolent = false;
 
     #endregion
 

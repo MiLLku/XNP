@@ -679,6 +679,10 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
     /// 한 칸만 보고 판단하면 아무 방도 못 찾습니다(다중 타일 냉난방기가 작동하지 않던 원인).
     /// 그래서 풋프린트 <b>바깥을 두르는 띠</b>를 훑어 가장 많이 맞닿은 방을 고릅니다.
     /// </summary>
+    /// <summary>건물이 속한 방 — 자기 칸이 방이면 그 방, 아니면 둘레 칸 투표 (건물 부속 판정에도 씀)</summary>
+    public int ResolveRoomOf(Vector2Int origin, Vector2Int size)
+        => RoomManager.instance != null ? ResolveHeatRoom(RoomManager.instance, origin, size) : RoomManager.OUTDOOR_ID;
+
     private int ResolveHeatRoom(RoomManager manager, Vector2Int origin, Vector2Int size)
     {
         int width = Mathf.Max(1, size.x);

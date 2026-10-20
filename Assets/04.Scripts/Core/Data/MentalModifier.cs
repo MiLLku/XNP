@@ -89,4 +89,20 @@ public static class MentalReason
     /// 이게 붙어 있는 동안은 정신 비율이 임계점 위로 올라가 다시 터지지 않는다.
     /// </summary>
     public const string COMPOSURE = "composure";
+
+    /// <summary>타고난 기질 — 우울함·긍정적·낙천적 등 특성이 늘 거는 무드 (상태형)</summary>
+    public const string TRAIT = "trait";
+
+    /// <summary>동료의 기질 — 음침함·친절함 직원이 다른 직원에게 거는 무드 (상태형)</summary>
+    public const string COLLEAGUE_TRAIT = "colleague_trait";
+
+    /// <summary>침식 선호 — 침식 수치에 비례하는 무드 (상태형)</summary>
+    public const string EROSION_LOVE = "erosion_love";
+
+    /// <summary>요리사의 요리를 먹음 (시간형). 뒤에 아이템 ID가 붙는다</summary>
+    public const string CHEF_FOOD_PREFIX = "chef_food_";
+
+    /// <summary>다른 직원 때문에 생긴 무드인지 — 사이코패스는 이걸 받지 않는다</summary>
+    public static bool IsFromColleague(string key)
+        => key == OUTBURST || key == COLLEAGUE_TRAIT || (key != null && key.StartsWith(CHEF_FOOD_PREFIX));
 }

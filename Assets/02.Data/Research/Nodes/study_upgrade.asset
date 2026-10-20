@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: study_upgrade
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: study_upgrade
+  nodeName: "\uC11C\uC7AC \uAFB8\uBBF8\uAE30"
+  description: "\uC2DC\uC124 \xB7 \uC11C\uAC00\uB97C \uD574\uAE08\uD569\uB2C8\uB2E4.
+    \uAC19\uC740 \uBC29\uC758 \uC5F0\uAD6C\uB300 \uC5F0\uAD6C \uC18D\uB3C4 +10%."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - research_basics
+  resourceCosts: []
+  researchPointCost: 480
+  unlockEffects:
+  - {fileID: 11400000, guid: e675c059a9530d045ad595535734b6d6, type: 2}
+  treePosition: {x: 13, y: -2}

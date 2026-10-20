@@ -16,8 +16,25 @@ public class EmployeeTrait : ScriptableObject
     [Header("특성 타입")]
     public TraitType type;
 
+    [Header("배제 묶음")]
+    [Tooltip("같은 묶음 이름의 특성은 한 직원에게 하나만 붙는다 (예: \"신체\" = 강인함/연약함). 쉼표로 여러 묶음 (비폭력주의 = \"전투,폭력\"). 비우면 제한 없음")]
+    public string exclusionGroup = "";
+
+    /// <summary>배제 묶음 목록 (쉼표 구분)</summary>
+    public string[] ExclusionGroups => string.IsNullOrEmpty(exclusionGroup)
+        ? System.Array.Empty<string>()
+        : exclusionGroup.Split(',');
+
     [Header("효과")]
     public TraitEffects effects;
+}
+
+/// <summary>생성 시 작업 숙련 레벨 보너스 (학자 연구 +4 등)</summary>
+[System.Serializable]
+public struct WorkLevelBonus
+{
+    public WorkType workType;
+    public int levels;
 }
 
 /// <summary>

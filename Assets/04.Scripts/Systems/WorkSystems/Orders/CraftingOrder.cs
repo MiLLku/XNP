@@ -159,7 +159,8 @@ public class CraftingOrder : WorkOrder, IWorkTarget
     /// </summary>
     public float GetWorkTime()
     {
-        return _totalTime;
+        // 같은 방 부속 건물이 있으면 그만큼 빨리 끝난다
+        return _totalTime / BuildingAddonUtil.GetWorkSpeedMultiplier(building != null ? building.HostBuilding : null);
     }
 
     /// <summary>

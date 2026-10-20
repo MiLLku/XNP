@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: InterviewDesk
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 4005
+  buildingName: "\uBA74\uC811 \uCC45\uC0C1"
+  icon: {fileID: 0}
+  category: 1
+  description: "\uCC44\uC6A9 \uC0AC\uBB34\uC18C \uBD80\uC18D \u2014 \uAC19\uC740
+    \uBC29\uC5D0 \uC788\uC73C\uBA74 \uCC44\uC6A9 \uD6C4\uBCF4\uC758 \uC791\uC5C5
+    \uC218\uCE58 \uCD5C\uB300\uCE58 +10."
+  buildingPrefab: {fileID: 3488678066343277963, guid: c27709db16ae05a4887ae480d4e3eb0a, type: 3}
+  size: {x: 1, y: 1}
+  pivot: {x: 0, y: 0}
+  workAmount: 20
+  requiredResources:
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 10
+  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+    amount: 5
+  maxHealth: 100
+  blocksMovement: 1
+  requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
+  destructionDrops: []
+  paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  erosionPermeability: 0.5
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 22
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
+  powerConsumption: 0
+  allowOverlap: 0
+  requiresResearch: 1

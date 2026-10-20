@@ -76,6 +76,10 @@ public class HarvestOrder : IWorkTarget
 
         if (IsTargetAlive)
         {
+            // 완벽주의자·장비 추가 산출 — 수확물이 나오는 경우에만 1개 더 (대상이 사라지기 전에)
+            if (target is PlantBase yieldPlant && yieldPlant.CanHarvest() && worker != null && Random.value < worker.BonusYieldChance)
+                yieldPlant.DropBonusYield();
+
             if (weed && target is PlantBase plant) plant.Weed();
             else target.Harvest();
         }

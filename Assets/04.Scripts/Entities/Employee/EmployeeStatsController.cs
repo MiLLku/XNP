@@ -109,6 +109,22 @@ public class EmployeeStatsController : MonoBehaviour
     /// <summary>무기 사거리 가감 (flat, 타일)</summary>
     private float cachedAttackRangeBonus = 0f;
 
+    // ── 특성 무드·정신 계열·수확 ──
+    private float cachedSelfMood;
+    private string cachedSelfMoodLabel;
+    private float cachedMoodToOthers;
+    private bool cachedIgnoreColleagueMood;
+    private bool cachedViolent;
+    private bool cachedChefDishes;
+    private float cachedMeleeIntervalMult = 1f, cachedRangedIntervalMult = 1f;
+    private float cachedMeleeAccuracyMult = 1f, cachedRangedAccuracyMult = 1f, cachedAimTimeMult = 1f;
+    private bool cachedCannotEquipMelee, cachedCannotEquipRanged, cachedNonViolent;
+    private float cachedBonusYieldChance;
+    private float cachedMoodPerErosion, cachedErosionMoodMax, cachedMoodWhenNoErosion;
+    private string cachedErosionMoodLabel;
+    private float traitMoodTimer;
+    private const float TRAIT_MOOD_INTERVAL = 1f;
+
     /// <summary>방어 관통력 가산 (flat, 0~1)</summary>
     private float cachedPenetrationBonus = 0f;
 
@@ -198,6 +214,37 @@ public class EmployeeStatsController : MonoBehaviour
 
     /// <summary>캐시된 무기 사거리 가감 (타일)</summary>
     public float CachedAttackRangeBonus => cachedAttackRangeBonus;
+
+    /// <summary>다른 직원에게 거는 무드 합 (음침함 -1, 친절함 +1)</summary>
+    public float CachedMoodToOthers => cachedMoodToOthers;
+
+    /// <summary>다른 직원 때문에 생기는 무드를 받지 않음 (사이코패스)</summary>
+    public bool IgnoresColleagueMood => cachedIgnoreColleagueMood;
+
+    /// <summary>폭력적 — 정신 이상이 폭력 계열로만 나온다</summary>
+    public bool IsViolent => cachedViolent;
+
+    /// <summary>요리사 — 조리하면 요리사 요리가 나온다</summary>
+    public bool MakesChefDishes => cachedChefDishes;
+
+    /// <summary>근접/원거리 별도 공격 간격 배율 (공통 배율과 곱해서 씀)</summary>
+    public float GetAttackIntervalMult(bool ranged) => cachedAttackIntervalMult * (ranged ? cachedRangedIntervalMult : cachedMeleeIntervalMult);
+
+    /// <summary>근접/원거리 별도 명중률 배율 (공통 배율과 곱해서 씀)</summary>
+    public float GetAccuracyMult(bool ranged) => cachedAccuracyMult * (ranged ? cachedRangedAccuracyMult : cachedMeleeAccuracyMult);
+
+    /// <summary>사격 조준 시간 배율</summary>
+    public float CachedAimTimeMult => cachedAimTimeMult;
+
+    /// <summary>이 무기 종류를 착용할 수 없는지 (싸움꾼 원거리 / 총기광 근접)</summary>
+    public bool CannotEquip(WeaponClass weaponClass)
+        => weaponClass == WeaponClass.Ranged ? cachedCannotEquipRanged : cachedCannotEquipMelee;
+
+    /// <summary>전투 결격 (비폭력주의) — 피해를 주는 행동을 하지 않는다</summary>
+    public bool IsNonViolent => cachedNonViolent;
+
+    /// <summary>특성의 채광·채집 추가 드롭 확률 (장비 분은 따로)</summary>
+    public float CachedBonusYieldChance => cachedBonusYieldChance;
 
     /// <summary>캐시된 방어 관통력 가산 (0~1)</summary>
     public float CachedPenetrationBonus => cachedPenetrationBonus;
@@ -328,6 +375,7 @@ public class EmployeeStatsController : MonoBehaviour
 
         UpdateSleepPenalty();
         UpdateFunModifier();
+        UpdateTraitMoods(deltaTime);
 
         // 시간형 모디파이어 소멸 처리
         TickMentalModifiers(deltaTime);
@@ -431,6 +479,9 @@ public class EmployeeStatsController : MonoBehaviour
                 pauseUntilRead = true
             });
             TimeManager.instance?.ForcePause();
+
+            // 무기·다용도구만 그 자리에 떨어뜨리고, 나머지(옷·헬멧·장갑·신발·보호구·소지품)는 직원과 함께 사라진다
+            EmployeeManager.instance?.HandleDeath(employee);
             return;
         }
 
@@ -465,6 +516,18 @@ public class EmployeeStatsController : MonoBehaviour
         cachedAttackIntervalMult   = 1f;
         cachedAttackRangeBonus     = 0f;
         cachedPenetrationBonus     = 0f;
+        cachedSelfMood             = 0f;
+        cachedSelfMoodLabel        = null;
+        cachedMoodToOthers         = 0f;
+        cachedIgnoreColleagueMood  = false;
+        cachedViolent              = false;
+        cachedChefDishes           = false;
+        cachedMeleeIntervalMult = cachedRangedIntervalMult = 1f;
+        cachedMeleeAccuracyMult = cachedRangedAccuracyMult = cachedAimTimeMult = 1f;
+        cachedCannotEquipMelee = cachedCannotEquipRanged = cachedNonViolent = false;
+        cachedBonusYieldChance     = 0f;
+        cachedMoodPerErosion = cachedErosionMoodMax = cachedMoodWhenNoErosion = 0f;
+        cachedErosionMoodLabel     = null;
         // 가산·flat (1.0 또는 0 기준)
         cachedWorkSpeedModifier        = 1f;
         cachedHungerRateModifier       = 1f;
@@ -488,6 +551,8 @@ public class EmployeeStatsController : MonoBehaviour
             {
                 if (trait == null) continue;
                 ApplyTraitEffects(trait.effects);
+                if (trait.effects != null && !Mathf.Approximately(trait.effects.selfMood, 0f))
+                    cachedSelfMoodLabel = cachedSelfMoodLabel == null ? trait.traitName : cachedSelfMoodLabel + "·" + trait.traitName;
             }
         }
 
@@ -530,6 +595,61 @@ public class EmployeeStatsController : MonoBehaviour
         cachedFatigueRateModifier   += fx.fatigueRateModifier / 100f;
         cachedErosionIgnoreBonus    += fx.erosionIgnoreBonus;
         cachedSkillGainRateModifier += fx.skillGainRateModifier / 100f;
+
+        cachedSelfMood             += fx.selfMood;
+        cachedMoodToOthers         += fx.moodToOthers;
+        cachedIgnoreColleagueMood  |= fx.ignoreColleagueMood;
+        cachedViolent              |= fx.violent;
+        cachedChefDishes           |= fx.chefDishes;
+        cachedMeleeIntervalMult    *= fx.meleeAttackIntervalMult;
+        cachedRangedIntervalMult   *= fx.rangedAttackIntervalMult;
+        cachedMeleeAccuracyMult    *= fx.meleeAccuracyMult;
+        cachedRangedAccuracyMult   *= fx.rangedAccuracyMult;
+        cachedAimTimeMult          *= fx.aimTimeMult;
+        cachedCannotEquipMelee     |= fx.cannotEquipMelee;
+        cachedCannotEquipRanged    |= fx.cannotEquipRanged;
+        cachedNonViolent           |= fx.nonViolent;
+        cachedBonusYieldChance     += fx.bonusYieldChance;
+        if (fx.moodPerErosion > 0f)
+        {
+            cachedMoodPerErosion    = fx.moodPerErosion;
+            cachedErosionMoodMax    = fx.erosionMoodMax;
+            cachedMoodWhenNoErosion = fx.moodWhenNoErosion;
+            cachedErosionMoodLabel  = fx.erosionMoodLabel;
+        }
+    }
+
+    /// <summary>
+    /// 특성이 거는 상태형 무드 3종 — 타고난 기질(본인), 동료의 기질(음침함·친절함), 침식 선호.
+    /// 동료 기질은 다른 직원을 다 훑어야 해서 1초 간격으로만 갱신한다.
+    /// </summary>
+    private void UpdateTraitMoods(float deltaTime)
+    {
+        traitMoodTimer -= deltaTime;
+        if (traitMoodTimer > 0f) return;
+        traitMoodTimer = TRAIT_MOOD_INTERVAL;
+
+        SetConditionalMental(MentalReason.TRAIT, cachedSelfMoodLabel ?? "타고난 기질", cachedSelfMood,
+            !Mathf.Approximately(cachedSelfMood, 0f));
+
+        float aura = 0f;
+        var all = EmployeeManager.instance != null ? EmployeeManager.instance.AllEmployees : null;
+        if (all != null)
+            foreach (var other in all)
+                if (other != null && other != employee && other.StatsController != null)
+                    aura += other.StatsController.CachedMoodToOthers;
+        SetConditionalMental(MentalReason.COLLEAGUE_TRAIT, aura < 0f ? "동료의 음침함" : "동료의 친절함", aura,
+            !Mathf.Approximately(aura, 0f));
+
+        if (cachedMoodPerErosion > 0f)
+        {
+            float erosion = ErosionLevel;
+            bool clean = erosion < 0.5f;
+            float mood = clean ? cachedMoodWhenNoErosion : Mathf.Min(cachedErosionMoodMax, erosion * cachedMoodPerErosion);
+            SetConditionalMental(MentalReason.EROSION_LOVE, clean ? "침식이 그립다" : cachedErosionMoodLabel, mood,
+                !Mathf.Approximately(mood, 0f));
+        }
+        else SetConditionalMental(MentalReason.EROSION_LOVE, null, 0f, false);
     }
 
     /// <summary>
@@ -588,6 +708,7 @@ public class EmployeeStatsController : MonoBehaviour
                              string displayName = "일시적인 기분", float duration = 0f)
     {
         if (Mathf.Approximately(amount, 0f)) return;
+        if (cachedIgnoreColleagueMood && MentalReason.IsFromColleague(reasonKey)) return;
 
         var cfg = MentalCfg;
         float dur = duration > 0f
@@ -622,6 +743,7 @@ public class EmployeeStatsController : MonoBehaviour
     /// </summary>
     public void RefreshTimedMental(string reasonKey, string displayName, float value, float duration)
     {
+        if (cachedIgnoreColleagueMood && MentalReason.IsFromColleague(reasonKey)) return;
         var existing = FindModifier(reasonKey);
         if (existing != null)
         {
@@ -652,6 +774,7 @@ public class EmployeeStatsController : MonoBehaviour
     /// </summary>
     public void SetConditionalMental(string reasonKey, string displayName, float value, bool active)
     {
+        if (cachedIgnoreColleagueMood && MentalReason.IsFromColleague(reasonKey)) active = false;
         var existing = FindModifier(reasonKey);
 
         if (!active)
@@ -679,6 +802,7 @@ public class EmployeeStatsController : MonoBehaviour
         {
             existing.value = value;
             existing.remainingTime = -1f;
+            if (displayName != null) existing.displayName = displayName;
         }
         else
         {

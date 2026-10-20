@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: Trait_Jaeppareom
   m_EditorClassIdentifier: Assembly-CSharp::EmployeeTrait
   traitName: "\uC7AC\uBE60\uB984"
-  description: "\uC774\uB3D9 \uC18D\uB3C4\uAC00 10% \uC99D\uAC00\uD569\uB2C8\uB2E4."
+  description: "\uC774\uB3D9 \uC18D\uB3C4\uAC00 5% \uC99D\uAC00\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   type: 0
+  exclusionGroup: "\uC18D\uB3C4"
   effects:
     healthMult: 1
     mentalMult: 1
@@ -23,8 +24,14 @@ MonoBehaviour:
     erosionDamageMult: 1
     mentalDecayMult: 1
     abnormalResistMult: 1
-    moveSpeedMult: 1.1
+    moveSpeedMult: 1.05
     workSpeedMultipliers: []
+    meleeDamageMult: 1
+    rangedDamageMult: 1
+    accuracyMult: 1
+    attackIntervalMult: 1
+    attackRangeBonus: 0
+    penetrationBonus: 0
     attackModifier: 0
     globalWorkSpeedModifier: 0
     hungerRateModifier: 0
@@ -32,6 +39,20 @@ MonoBehaviour:
     carryCapacityModifier: 0
     skillGainRateModifier: 0
     erosionIgnoreBonus: 0
+    guardRangeBonus: 0
+    selfMood: 0
+    moodToOthers: 0
+    ignoreColleagueMood: 0
+    moodPerErosion: 0
+    erosionMoodMax: 0
+    moodWhenNoErosion: 0
+    erosionMoodLabel: 
+    violent: 0
+    bonusYieldChance: 0
+    workLevelBonuses: []
+    meleeLevelBonus: 0
+    rangedLevelBonus: 0
+    chefDishes: 0
     canWorkAtNight: 0
     cannotWorkInRain: 0
     lonewolfBonus: 0

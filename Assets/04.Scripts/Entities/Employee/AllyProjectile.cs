@@ -18,6 +18,7 @@ public class AllyProjectile : MonoBehaviour, IPoolable
     private float _penetration;
     private float _lifetime;
     private bool  _isReturned;
+    private bool  _miss;
     private System.Action<Xenops> _onHit;
 
     private Rigidbody2D _rb;
@@ -42,9 +43,11 @@ public class AllyProjectile : MonoBehaviour, IPoolable
     // ─── 초기화 (풀에서 꺼낼 때마다 호출) ────────
     /// <param name="damage">피해량. 0이면 빗나간 사격이라 명중해도 피해를 주지 않고 사라집니다.</param>
     /// <param name="penetration">방어 관통력 (0~1)</param>
+    /// <param name="miss">빗나간 사격 — 적을 통과해 날아가고(피해 없음) 지형에 막히거나 수명이 다하면 사라진다</param>
     public void Init(Vector2 direction, float speed, float damage, float penetration, float lifetime,
-                     System.Action<Xenops> onHit)
+                     bool miss, System.Action<Xenops> onHit)
     {
+        _miss        = miss;
         _damage      = damage;
         _penetration = penetration;
         _lifetime    = lifetime;
@@ -70,6 +73,8 @@ public class AllyProjectile : MonoBehaviour, IPoolable
         var xenops = other.GetComponent<Xenops>() ?? other.GetComponentInParent<Xenops>();
         if (xenops != null)
         {
+            if (_miss) return; // 빗나간 탄은 적 옆을 스쳐 지나간다
+
             // 적대 개체만 피해 — 나머지(환경/장비형 등)는 통과
             if (xenops.Type != XenopsType.Hostile || xenops.State == XenopsState.Subdued) return;
 

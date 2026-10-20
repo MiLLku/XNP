@@ -311,8 +311,12 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         // 장비의 작업 종류별 속도 보정(%) — 작업 장갑 등
         var equip = employee != null ? employee.Equipment : null;
         float equipmentModifier = equip != null ? Mathf.Max(0.1f, 1f + equip.GetWorkTypeSpeedModifier(type) / 100f) : 1f;
+        // 반복 작업으로 오른 그 작업의 레벨 — 오래 캔 직원이 더 빨리 캔다
+        var levelCfg = EmployeeManager.instance != null ? EmployeeManager.instance.LevelUpConfig : null;
+        int aptitude = employee != null && employee.Growth != null ? employee.Growth.GetAptitudeLevel(type) : 1;
+        float aptitudeModifier = levelCfg != null ? 1f + levelCfg.workSpeedPerAptitudeLevel * Mathf.Max(0, aptitude - 1) : 1f;
 
-        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier * equipmentModifier;
+        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier * equipmentModifier * aptitudeModifier;
     }
 
     /// <summary>

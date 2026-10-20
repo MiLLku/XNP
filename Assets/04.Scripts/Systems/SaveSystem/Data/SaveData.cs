@@ -101,9 +101,16 @@ public class SaveData
     /// <summary>가이드라인 진행 (구 세이브에는 없음 — null이면 처음부터 다시 판정)</summary>
     public GuidelineSaveData guideline;
 
+    /// <summary>제놉스 도감 (구 세이브에는 없음 — null이면 처음부터)</summary>
+    public XenopsCodexSaveData xenopsCodex;
+
     /// <summary>마지막 채용 날짜·그날 채용 인원 (하루 채용 제한용, 구 세이브에는 없음 — -1이면 오늘 채용 가능)</summary>
     public int lastHireDay = -1;
     public int hiresOnLastDay;
+
+    /// <summary>채용 후보 다시 뽑기를 마지막으로 쓴 날짜·그날 쓴 횟수 (구 세이브에는 없음)</summary>
+    public int lastRerollDay = -1;
+    public int rerollsOnLastDay;
 
     /// <summary>액체(물·용암) (구 세이브에는 없음 — null이면 액체 없음)</summary>
     public FluidSaveData fluid;

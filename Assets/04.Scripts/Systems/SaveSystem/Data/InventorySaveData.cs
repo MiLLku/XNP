@@ -19,6 +19,9 @@ public class InventorySaveData
     /// <summary>요리 종류별 영양 풀 (구 세이브엔 없음 → null)</summary>
     public List<MealNutritionSaveData> mealNutrition = new List<MealNutritionSaveData>();
 
+    /// <summary>요리사 요리의 기분 보너스 풀 (total = 기분 합). 구 세이브에는 없음</summary>
+    public List<MealNutritionSaveData> chefMood = new List<MealNutritionSaveData>();
+
     public InventorySaveData()
     {
         items = new List<ItemStackSaveData>();

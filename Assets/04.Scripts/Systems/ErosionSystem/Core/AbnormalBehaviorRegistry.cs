@@ -34,6 +34,10 @@ public static class AbnormalBehaviorRegistry
         Register(new AbnormalBehaviorAttackBuilding());   // 주변 건물 파괴
         Register(new AbnormalBehaviorFriendlyAttack());   // 동료 추적 공격
 
+        // 폭력 정신 이상 (정신력 계열)
+        Register(new AbnormalBehaviorTantrum());                                                  // 화풀이
+        Register(new AbnormalBehaviorFriendlyAttack(AbnormalBehaviorType.Berserk, 20f, true));    // 광란
+
         // 미구현 — 열거형 값만 있고 구현체가 없다. 만들면 여기에 등록할 것.
         // Register(new AbnormalBehaviorIgnoreCommandEnhanced());
         // Register(new AbnormalBehaviorMoveTowardEnemy());
