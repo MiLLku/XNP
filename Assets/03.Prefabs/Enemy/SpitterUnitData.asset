@@ -35,7 +35,7 @@ MonoBehaviour:
     moveSpeed: 2.5
     maxHealth: 60
     defense: 0
-    attackSpeed: 0.5
+    attackSpeed: 1
     attackDamage: 4
     attackRange: 6
     size: 1

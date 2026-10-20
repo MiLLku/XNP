@@ -13,8 +13,11 @@ MonoBehaviour:
   m_Name: xenops_gear_weapon
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: xenops_gear_weapon
-  nodeName: "제놉스 무기 제작"
-  description: "제놉스 · 제작대에서 제놉스 전용 무기를 만들 수 있게 됩니다. 각 장비는 그 제놉스 도감 100%도 필요합니다."
+  nodeName: "\uC81C\uB189\uC2A4 \uBB34\uAE30 \uC81C\uC791"
+  description: "\uC81C\uB189\uC2A4 \xB7 \uC81C\uC791\uB300\uC5D0\uC11C \uC81C\uB189\uC2A4
+    \uC804\uC6A9 \uBB34\uAE30\uB97C \uB9CC\uB4E4 \uC218 \uC788\uAC8C \uB429\uB2C8\uB2E4
+    (\uCE68\uC2DD \uC0AC\uC218\xB7\uC2A4\uD53C\uD130). \uAC01 \uC7A5\uBE44\uB294
+    \uADF8 \uC81C\uB189\uC2A4 \uB3C4\uAC10 100%\uB3C4 \uD544\uC694\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - xenops_workbench
@@ -22,6 +25,5 @@ MonoBehaviour:
   researchPointCost: 1080
   unlockEffects:
   - {fileID: 11400000, guid: 743025fc7f1043538c5a0d426099f2b0, type: 2}
-  - {fileID: 11400000, guid: b8db879b7aae4d378ce905042ddbd4cd, type: 2}
   - {fileID: 11400000, guid: 55fd018a762149fabdaa0dac1d461951, type: 2}
   treePosition: {x: 7, y: -2}

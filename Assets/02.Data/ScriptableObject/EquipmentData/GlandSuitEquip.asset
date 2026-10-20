@@ -13,22 +13,26 @@ MonoBehaviour:
   m_Name: GlandSuitEquip
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   itemData: {fileID: 11400000, guid: 3c7e08a9bb9b46bbb8d035311d74f558, type: 2}
-  description: "옷 칸. 견딜 수 있는 침식 30."
-  slot: 0
+  description: "\uD5EC\uBA67 \uCE78. \uACAC\uB51C \uC218 \uC788\uB294 \uCE68\uC2DD
+    20."
+  slot: 1
   weaponClass: 0
   baseDamage: 0
   accuracy: 0
   penetration: 0
   attackRange: 1.5
   attackInterval: 1.2
+  aimTime: 0
   isDefensiveGear: 0
   coldProtectionLevel: 0
   heatTolerance: 0
-  erosionTolerance: 30
+  erosionTolerance: 20
   maxDurability: 180
   indestructible: 0
   workWearPerSecond: 0.02
   combatWearPerHit: 1
+  repairable: 0
+  repairCost: []
   statModifier:
     maxHealthModifier: 0
     maxMentalModifier: 0
@@ -49,6 +53,4 @@ MonoBehaviour:
     threshold: 0
     healthRestore: 0
     erosionReduce: 0
-  repairable: 0
-  repairCost: []
   abilities: []

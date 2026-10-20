@@ -13,8 +13,11 @@ MonoBehaviour:
   m_Name: xenops_gear_wear
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: xenops_gear_wear
-  nodeName: "제놉스 착용 장비 제작"
-  description: "제놉스 · 제작대에서 제놉스 전용 보호구·옷·장갑·신발 등를 만들 수 있게 됩니다. 각 장비는 그 제놉스 도감 100%도 필요합니다."
+  nodeName: "\uC81C\uB189\uC2A4 \uCC29\uC6A9 \uC7A5\uBE44 \uC81C\uC791"
+  description: "\uC81C\uB189\uC2A4 \xB7 \uC81C\uC791\uB300\uC5D0\uC11C \uC81C\uB189\uC2A4
+    \uC804\uC6A9 \uCC29\uC6A9 \uC7A5\uBE44(\uD5EC\uBA67\xB7\uBCF4\uD638\uAD6C\xB7\uC7A5\uAC11\xB7\uC2E0\uBC1C
+    \uB4F1)\uB97C \uB9CC\uB4E4 \uC218 \uC788\uAC8C \uB429\uB2C8\uB2E4. \uAC01 \uC7A5\uBE44\uB294
+    \uADF8 \uC81C\uB189\uC2A4 \uB3C4\uAC10 100%\uB3C4 \uD544\uC694\uD569\uB2C8\uB2E4."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - xenops_workbench
@@ -24,4 +27,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0529870f5b7c4381a9e6b7daef13c879, type: 2}
   - {fileID: 11400000, guid: 4616eac84943449a9c44eec2a2ff4919, type: 2}
   - {fileID: 11400000, guid: 1c94179d53a944cc9ac8df316af5065a, type: 2}
+  - {fileID: 11400000, guid: b8db879b7aae4d378ce905042ddbd4cd, type: 2}
   treePosition: {x: 8, y: -2}

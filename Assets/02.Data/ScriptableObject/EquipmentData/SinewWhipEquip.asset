@@ -13,14 +13,15 @@ MonoBehaviour:
   m_Name: SinewWhipEquip
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   itemData: {fileID: 11400000, guid: 6d02d9270423471c88f4d546aa73ae3e, type: 2}
-  description: "그래플러의 힘줄로 만든 사거리 긴 근접 무기."
-  slot: 2
+  description: "\uC2E0\uBC1C \uCE78. \uC774\uB3D9 \uC18D\uB3C4 +10%."
+  slot: 5
   weaponClass: 0
-  baseDamage: 15
-  accuracy: 0.88
-  penetration: 0.2
-  attackRange: 2.2
-  attackInterval: 1.1
+  baseDamage: 0
+  accuracy: 0
+  penetration: 0
+  attackRange: 1.5
+  attackInterval: 1.2
+  aimTime: 0
   isDefensiveGear: 0
   coldProtectionLevel: 0
   heatTolerance: 0
@@ -29,6 +30,8 @@ MonoBehaviour:
   indestructible: 0
   workWearPerSecond: 0.02
   combatWearPerHit: 1
+  repairable: 0
+  repairCost: []
   statModifier:
     maxHealthModifier: 0
     maxMentalModifier: 0
@@ -36,7 +39,7 @@ MonoBehaviour:
     workSpeedModifier: 0
     hungerRateModifier: 0
     fatigueRateModifier: 0
-    moveSpeedModifier: 0
+    moveSpeedModifier: 10
   passiveEffects:
     enableNightWork: 0
     rainProtection: 0
@@ -49,6 +52,4 @@ MonoBehaviour:
     threshold: 0
     healthRestore: 0
     erosionReduce: 0
-  repairable: 0
-  repairCost: []
   abilities: []

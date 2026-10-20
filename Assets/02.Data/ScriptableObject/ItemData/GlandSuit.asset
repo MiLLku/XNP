@@ -13,9 +13,10 @@ MonoBehaviour:
   m_Name: GlandSuit
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 375
-  itemName: "분비샘 방호복"
+  itemName: "\uBD84\uBE44\uC0D8 \uB450\uAC74"
   itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "옷 칸. 견딜 수 있는 침식 30."
+  description: "\uD5EC\uBA67 \uCE78. \uACAC\uB51C \uC218 \uC788\uB294 \uCE68\uC2DD
+    20."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -28,6 +29,7 @@ MonoBehaviour:
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

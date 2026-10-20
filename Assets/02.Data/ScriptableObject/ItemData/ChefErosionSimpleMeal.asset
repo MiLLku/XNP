@@ -31,6 +31,6 @@ MonoBehaviour:
   moodOnEat: -2
   moodOnEatHours: 3
   moodOnEatLabel: "\uCE68\uC2DD\uB41C \uC74C\uC2DD\uC744 \uBA39\uC74C"
-  chefMoodBonus: 1
+  chefDish: 1
   isDrug: 0
   funValue: 0

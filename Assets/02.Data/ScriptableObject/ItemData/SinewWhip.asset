@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: SinewWhip
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 309
-  itemName: "힘줄 채찍"
+  itemName: "\uD798\uC904 \uC7A5\uD654"
   itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "그래플러의 힘줄로 만든 사거리 긴 근접 무기."
+  description: "\uC2E0\uBC1C \uCE78. \uC774\uB3D9 \uC18D\uB3C4 +10%."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -28,6 +28,7 @@ MonoBehaviour:
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0
