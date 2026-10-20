@@ -584,8 +584,9 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             id       = (int)EntityType.BasicBed
         });
 
-        // ── 6. 직원 스폰 포인트 (방 오른쪽 바깥) ─────────────────────────────────
-        SetupEmployeeSpawn(roomLeft + roomWidth + 1, groundY + 1);
+        // ── 6. 직원 스폰 포인트 (하층 안쪽 오른편 빈 칸 lx=11) ────────────────────
+        //    방 바깥에 두면 지형에 따라 문 위 막힌 칸에 갇히는 맵이 생긴다 — 방 안은 항상 이어져 있다.
+        SetupEmployeeSpawn(roomLeft + 11, groundY + 1);
 
         // ── 7. 스타팅 룸 + 주변 1칸을 영구 안개 공개 ────────────────────────────
         //    벽/상자/사다리는 Building 컴포넌트 없이도 방 전체가 보이도록 영구 등록.
@@ -614,8 +615,8 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             return;
         }
 
-        // 직원은 바닥 위에 스폰되어야 함 (y+1이 발 위치)
-        Vector3 spawnPoint = new Vector3(x + 0.5f, y + 3, 0);
+        // y가 발 칸 — 직원 피벗이 발이라 살짝만 띄운다 (하층 높이가 2칸이라 더 띄우면 층 구분 벽에 낀다)
+        Vector3 spawnPoint = new Vector3(x + 0.5f, y + 0.05f, 0);
         EmployeeManager.instance.SetSpawnPoint(spawnPoint);
 
         // 시작 직원 3명 — 이후 인원은 채용 사무소에서 하루 1명씩
