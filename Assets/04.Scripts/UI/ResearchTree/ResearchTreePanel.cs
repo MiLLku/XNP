@@ -161,10 +161,13 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
             _codexLabel.name = "CodexLabel";
             var rt = _codexLabel.rectTransform;
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(16f, -56f);
-            rt.sizeDelta = new Vector2(340f, 120f);
+            rt.anchoredPosition = new Vector2(16f, -200f); // 왼쪽 위 가이드라인 HUD 아래
+            rt.sizeDelta = new Vector2(600f, 160f);
+            _codexLabel.enableAutoSizing = false;
+            _codexLabel.fontSize = 20f;
             _codexLabel.alignment = TextAlignmentOptions.TopLeft;
             _codexLabel.raycastTarget = false;
+            _codexLabel.gameObject.SetActive(true); // 진행 글자는 연구가 없으면 꺼져 있어 꺼진 채로 복제된다
         }
 
         var sb = new System.Text.StringBuilder("제놉스 도감\n");
