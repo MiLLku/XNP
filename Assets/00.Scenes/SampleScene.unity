@@ -6630,7 +6630,7 @@ MonoBehaviour:
   visualParent: {fileID: 0}
   allEmployees:
   - {fileID: 8438730378374910698, guid: 3845e0d24059d2043b614e4014676016, type: 3}
-  showDebugInfo: 1
+  showDebugInfo: 0
 --- !u!1 &267370281
 GameObject:
   m_ObjectHideFlags: 0
@@ -43783,7 +43783,7 @@ MonoBehaviour:
   isolationWarningColor: {r: 1, g: 0.6, b: 0.1, a: 0.5}
   constructionParent: {fileID: 0}
   activeConstructionSites: []
-  showDebugInfo: 1
+  showDebugInfo: 0
 --- !u!114 &1444640449
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -51362,7 +51362,7 @@ MonoBehaviour:
   allEmployees: []
   spawnPoint: {x: 105, y: 142, z: 0}
   spawnSpacing: 2
-  showDebugInfo: 1
+  showDebugInfo: 0
   generationConfig: {fileID: 11400000, guid: 600aa6dd1531c6247bc16994ed9c322a, type: 2}
   funConfig: {fileID: 11400000, guid: 6cee1892eb6af8f48b5c4258ce9765fb, type: 2}
   levelUpConfig: {fileID: 11400000, guid: 625b5639b91449d46ae56a728790d31b, type: 2}

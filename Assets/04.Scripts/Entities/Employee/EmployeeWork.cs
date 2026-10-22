@@ -37,7 +37,7 @@ public class EmployeeWork : MonoBehaviour
     [SerializeField] private List<WorkPriority> workPriorities;
 
     [Header("디버그")]
-    [SerializeField] private bool showDebugInfo = true;
+    [SerializeField] private bool showDebugInfo = false;
 
     /// <summary>현재 작업 대상</summary>
     private IWorkTarget currentWorkTarget;

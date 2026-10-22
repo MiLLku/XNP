@@ -108,17 +108,7 @@ public class MiningTaskSelector
             if (bestTask == null) return null;
         }
 
-        WorkTask selected = bestSafeTask ?? bestTask;
-
-        if (selected != null)
-        {
-            bool isRisky = (bestSafeTask == null);
-            string warningTag = isRisky ? " ⚠낙하위험(최후수단)" : "";
-            float displayScore = isRisky ? bestScore : bestSafeScore;
-            Debug.Log($"[MiningTaskSelector] 선택: {GetTaskTile(selected)} (점수: {displayScore:F2}{warningTag})");
-        }
-
-        return selected;
+        return bestSafeTask ?? bestTask;
     }
     
     /// <summary>
