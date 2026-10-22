@@ -228,13 +228,13 @@ public class CookingStation : MonoBehaviour, IPlanHost, IMaterialReceiver, IBuil
     }
 
     /// <summary>
-    /// 요리사 요리의 기분 보너스 = 영양 ÷ 20 × (0.5 + 조리 숙련 ÷ 10), +1~+5.
+    /// 요리사 요리의 기분 보너스 = 1 + 영양 ÷ 80 + 조리 숙련 × 0.25, +1~+5 (음식·실력이 따로 더해짐).
     /// shortcut: 임시 공식 — 요리 종류가 늘면 밸런스 다시 볼 것
     /// </summary>
     private static float ChefMood(float nutrition, Employee cook)
     {
         int level = cook != null && cook.Growth != null ? cook.Growth.GetAptitudeLevel(WorkType.Cooking) : 1;
-        return Mathf.Clamp(nutrition / 20f * (0.5f + level / 10f), 1f, 5f);
+        return Mathf.Clamp(1f + nutrition / 80f + level * 0.25f, 1f, 5f);
     }
 
     /// <summary>진행 중인 요리를 취소합니다. 이미 온 재료는 바닥에 돌려줍니다.</summary>

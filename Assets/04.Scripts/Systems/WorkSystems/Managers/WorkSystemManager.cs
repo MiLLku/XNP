@@ -26,7 +26,7 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     [SerializeField] private List<Employee> allEmployees = new List<Employee>();
 
     [Header("디버그")]
-    [SerializeField] private bool showDebugInfo = true;
+    [SerializeField] private bool showDebugInfo = false;
 
     #endregion
 

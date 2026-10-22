@@ -109,18 +109,12 @@ public class WorkTaskQueue
 
         WorkTask bestTask = MiningSelector.SelectBestTask(worker, validTasks);
 
-        if (bestTask == null)
-        {
-            Debug.LogWarning("[WorkTaskQueue] 적합한 작업을 찾을 수 없습니다.");
-            return null;
-        }
+        if (bestTask == null) return null; // 전부 도달 불가 — 지형이 바뀌면 다시 후보
 
         if (bestTask.Assign(worker))
         {
             pendingTasks.Remove(bestTask);
             assignedTasks.Add(bestTask);
-
-            Debug.Log($"[WorkTaskQueue] 작업 할당: {bestTask.GetPosition()}");
             return bestTask;
         }
 
