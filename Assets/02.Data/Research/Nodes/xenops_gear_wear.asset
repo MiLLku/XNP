@@ -28,4 +28,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4616eac84943449a9c44eec2a2ff4919, type: 2}
   - {fileID: 11400000, guid: 1c94179d53a944cc9ac8df316af5065a, type: 2}
   - {fileID: 11400000, guid: b8db879b7aae4d378ce905042ddbd4cd, type: 2}
-  treePosition: {x: 8, y: -2}
+  treePosition: {x: 4, y: -3}

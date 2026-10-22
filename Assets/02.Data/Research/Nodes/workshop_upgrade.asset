@@ -25,4 +25,4 @@ MonoBehaviour:
   unlockEffects:
   - {fileID: 11400000, guid: 1b69f327273cf9d4c9044186c327e3e4, type: 2}
   - {fileID: 11400000, guid: 5ac8954f7a9686343819671373f6d9f6, type: 2}
-  treePosition: {x: 13, y: -1}
+  treePosition: {x: -2, y: 0}

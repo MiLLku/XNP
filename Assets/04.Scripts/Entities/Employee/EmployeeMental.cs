@@ -81,6 +81,9 @@ public class EmployeeMental : MonoBehaviour
     /// <summary>
     /// 폭력 정신 이상 — 일반 계열 후보에 섞인다. 폭력적 특성은 이것만, 비폭력주의는 이것을 빼고 고른다.
     /// </summary>
+    /// <summary>일반 정신 이상 중 폭력 계열이 뽑힐 몫 (임시 16%)</summary>
+    private const float VIOLENT_SHARE = 0.16f;
+
     private static readonly List<AbnormalBehaviorType> VIOLENT_POOL = new List<AbnormalBehaviorType>
     {
         AbnormalBehaviorType.Tantrum,
@@ -478,12 +481,12 @@ public class EmployeeMental : MonoBehaviour
             .Where(b => b != null && b.CanExecute(employee))
             .ToList();
 
-        int total = normal.Length + violent.Count;
-        if (total == 0) return false;
+        if (normal.Length + violent.Count == 0) return false;
 
-        int pick = Random.Range(0, total);
-        if (pick < normal.Length) ApplyNormalEvent(normal[pick]);
-        else ApplyErosionEvent(violent[pick - normal.Length]);
+        // 둘 다 가능하면 폭력 계열은 VIOLENT_SHARE 확률로만 (폭력적은 normal이 비어 항상 폭력, 비폭력주의는 violent가 비어 절대 안 나옴)
+        bool pickViolent = violent.Count > 0 && (normal.Length == 0 || Random.value < VIOLENT_SHARE);
+        if (pickViolent) ApplyErosionEvent(violent[Random.Range(0, violent.Count)]);
+        else ApplyNormalEvent(normal[Random.Range(0, normal.Length)]);
         return true;
     }
 
