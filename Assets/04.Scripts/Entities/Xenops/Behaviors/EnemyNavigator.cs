@@ -17,6 +17,8 @@ using UnityEngine.Tilemaps;
 /// 넘지 못하는 낭떠러지엔 다리를, 뛰어넘지 못하는 벽 앞엔 계단을 쌓는다. 벽을 부수는 것과 비용을 견줘 싼 쪽.
 /// 깔아야 할 칸 앞에 오면 멈춰 BUILD_TIME 동안 깐 뒤 지나간다. 습격당 개수 제한은 ErosionFloorField.
 ///
+/// 굴착(canDigTerrain): 위 어느 것도 없으면(막힌 굴) 자연 지형을 파며 직원 쪽으로 간다 — 칸마다 DIG_TIME, 자원 없음.
+///
 /// 성능: 경로는 REPATH_INTERVAL마다(개체마다 시점을 흩뜨려) 다시 계산하고, 그 사이에는 저장된 경로를 따른다.
 /// </summary>
 public class EnemyNavigator : MonoBehaviour
@@ -28,9 +30,11 @@ public class EnemyNavigator : MonoBehaviour
     private const float BUILD_REACH = 2.5f;
     private const float REPATH_RETRY = 0.3f;
     private const int MAX_BREACH_TARGETS = 3;
+    private const float DIG_TIME = 1.5f;   // shortcut: 임시 수치 — 지형 한 칸 파는 시간
+    private const float DIG_REACH = 4f;    // 뛰어오를 칸의 머리 높이까지 닿게
 
     // [돌파][발판] 조합별 길찾기
-    private static TilePathfinder _walkFinder, _breachFinder, _buildFinder, _breachBuildFinder;
+    private static TilePathfinder _walkFinder, _breachFinder, _buildFinder, _breachBuildFinder, _digFinder;
     private static GameMap _finderMap;
 
     private Xenops _xenops;
@@ -39,6 +43,8 @@ public class EnemyNavigator : MonoBehaviour
     private float _baseGravity = 1f;
     private bool _climbing;
     private float _buildTimer;
+    private float _digTimer;
+    private bool _digPath; // 지금 경로가 굴착 경로인지 (걷는 길에서는 파지 않는다)
     private readonly List<Vector2Int> _path = new List<Vector2Int>();
 
     /// <summary>노리는 직원 (걸어서 닿거나, 돌파해서 가려는 대상)</summary>
@@ -51,11 +57,29 @@ public class EnemyNavigator : MonoBehaviour
     public bool HasPath => _path.Count > 0;
 
     /// <summary>다음 경유점에 서려면 먼저 깔아야 하는 발판 칸. 없으면 null</summary>
+    /// <summary>다음 경유점으로 가려면 먼저 파야 하는 지형 칸 (그 칸 기둥에서 몸이 지나갈 칸). 없으면 null</summary>
+    public Vector2Int? PendingDig
+    {
+        get
+        {
+            if (!_digPath || _path.Count == 0 || _digFinder == null) return null;
+            var wp = _path[0];
+            var foot = Foot;
+            // 경유점 칸의 몸(발판 칸은 남긴다), 옆으로 지나가거나 떨어지는 높이까지
+            for (int y = wp.y; y <= Mathf.Max(foot.y, wp.y) + 1; y++)
+                if (_digFinder.IsDiggable(new Vector2Int(wp.x, y))) return new Vector2Int(wp.x, y);
+            // 뛰어오를 때 제 머리 위
+            for (int y = foot.y + 2; y <= wp.y + 1; y++)
+                if (_digFinder.IsDiggable(new Vector2Int(foot.x, y))) return new Vector2Int(foot.x, y);
+            return null;
+        }
+    }
+
     public Vector2Int? PendingFloor
         => _path.Count > 0 && _buildFinder != null && _buildFinder.NeedsBuiltFloor(_path[0]) ? _path[0] + Vector2Int.down : (Vector2Int?)null;
 
-    private bool InBuildReach(Vector2Int cell)
-        => Vector2.Distance(transform.position, new Vector2(cell.x + 0.5f, cell.y + 0.5f)) <= BUILD_REACH;
+    private bool InBuildReach(Vector2Int cell, float reach = BUILD_REACH)
+        => Vector2.Distance(transform.position, new Vector2(cell.x + 0.5f, cell.y + 0.5f)) <= reach;
 
     private void Awake()
     {
@@ -80,6 +104,7 @@ public class EnemyNavigator : MonoBehaviour
             _breachFinder = new TilePathfinder(map) { BreachMode = true };
             _buildFinder = new TilePathfinder(map) { BuildMode = true };
             _breachBuildFinder = new TilePathfinder(map) { BreachMode = true, BuildMode = true };
+            _digFinder = new TilePathfinder(map) { BreachMode = true, DigMode = true };
         }
         return true;
     }
@@ -91,7 +116,9 @@ public class EnemyNavigator : MonoBehaviour
         // 노리던 직원이 죽었거나 건물이 부서졌으면 바로 다시 (목표를 못 찾은 상태에선 매 프레임 다시 돌리지 않는다)
         bool targetGone = (TargetEmployee != null && TargetEmployee.State == EmployeeState.Dead)
                        || (!ReferenceEquals(TargetBuilding, null) && TargetBuilding == null);
-        if (_repathTimer <= 0f || targetGone)
+        // 굴착 경로는 끝까지 판다 — 직원이 움직일 때마다 다시 짜면 굴이 이리저리 갈팡질팡한다
+        bool keepDigging = _digPath && _path.Count > 0 && !OffPath();
+        if ((_repathTimer <= 0f && !keepDigging) || targetGone)
         {
             _repathTimer = REPATH_INTERVAL;
             Replan();
@@ -106,6 +133,20 @@ public class EnemyNavigator : MonoBehaviour
             if (wp == foot || (reachedX && wp.y <= foot.y)) _path.RemoveAt(0);
             else break;
         }
+
+        // 앞을 막은 지형은 파낸다
+        var dig = PendingDig;
+        if (dig.HasValue && InBuildReach(dig.Value, DIG_REACH))
+        {
+            _digTimer += dt;
+            if (_digTimer >= DIG_TIME)
+            {
+                _digTimer = 0f;
+                DigOut(dig.Value);
+            }
+            return;
+        }
+        _digTimer = 0f;
 
         // 다음 칸 발밑이 비었으면 멈춰서 발판을 깐다
         var floor = PendingFloor;
@@ -147,6 +188,7 @@ public class EnemyNavigator : MonoBehaviour
         var foot = stand.Value;
 
         _path.Clear();
+        _digPath = false;
         TargetEmployee = null;
         TargetBuilding = null;
         var reach = ReachabilityMap.Current;
@@ -201,7 +243,32 @@ public class EnemyNavigator : MonoBehaviour
             if (p == null) continue;
             best = b; bestD = d; bestPath = p;
         }
-        if (best != null) { TargetBuilding = best; _path.AddRange(bestPath); }
+        if (best != null) { TargetBuilding = best; _path.AddRange(bestPath); return; }
+
+        // 4. 막힌 굴 — 자연 지형을 파며 가장 가까운 직원 쪽으로 (길 위의 건물은 부순다)
+        bool canDig = _xenops == null || _xenops.Data == null || _xenops.Data.canDigTerrain;
+        for (int i = 0; canDig && i < Mathf.Min(staff.Count, MAX_BREACH_TARGETS); i++)
+        {
+            var p = _digFinder.FindPath(foot, FootOf(staff[i].transform.position));
+            if (p == null) continue;
+            TargetEmployee = staff[i];
+            _path.AddRange(p);
+            _digPath = true;
+            TargetBuilding = FirstBlockingBuildingOnPath();
+            if (TargetBuilding != null) TrimPathBefore(TargetBuilding);
+            return;
+        }
+    }
+
+    /// <summary>지형 한 칸을 없앤다 (침식 사수 탄처럼 자원 없음)</summary>
+    private void DigOut(Vector2Int c)
+    {
+        var mr = MapGenerator.instance != null ? MapGenerator.instance.MapRendererInstance : null;
+        if (_finderMap == null || mr == null) return;
+        if (WorkSystemManager.instance != null && WorkSystemManager.instance.IsTileUnderWork(new Vector3Int(c.x, c.y, 0))) return;
+        _finderMap.SetTile(c.x, c.y, 0);
+        _finderMap.UnmarkTileOccupied(c.x, c.y);
+        mr.UpdateTileVisual(c.x, c.y);
     }
 
     /// <summary>이번 습격에 남은 발판 수로 이 길을 다 깔 수 있는지</summary>
@@ -262,6 +329,15 @@ public class EnemyNavigator : MonoBehaviour
     {
         if (_rb == null || _path.Count == 0) { StopClimb(); return false; }
 
+        // 지형을 파는 중 — 제자리
+        var dig = PendingDig;
+        if (dig.HasValue && InBuildReach(dig.Value, DIG_REACH))
+        {
+            StopClimb();
+            _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+            return true;
+        }
+
         // 발판을 까는 중 — 제자리
         var floor = PendingFloor;
         if (floor.HasValue && InBuildReach(floor.Value))
@@ -274,6 +350,15 @@ public class EnemyNavigator : MonoBehaviour
         var wp = _path[0];
         var foot = Foot;
         float dx = wp.x + 0.5f - transform.position.x;
+
+        // 바로 위인데 사다리가 없다 = 올라설 턱 밑으로 들어와 버렸다 → 옆 칸으로 빠져나와 다시 뛴다
+        if (wp.x == foot.x && wp.y > foot.y && !IsClimbable(foot) && !IsClimbable(foot + Vector2Int.up))
+        {
+            StopClimb();
+            float away = transform.position.x < wp.x + 0.5f ? -1f : 1f;
+            _rb.linearVelocity = new Vector2(away * moveSpeed, _rb.linearVelocity.y);
+            return true;
+        }
 
         // 바로 위 (사다리) — 중력을 끄고 올라간다
         if (wp.x == foot.x && wp.y > foot.y)
@@ -294,8 +379,36 @@ public class EnemyNavigator : MonoBehaviour
             float g = Mathf.Abs(Physics2D.gravity.y * _rb.gravityScale);
             vy = Mathf.Sqrt(2f * g * h);
         }
-        _rb.linearVelocity = new Vector2(dir * moveSpeed, vy);
+        // 오를 턱 옆면·밑면에 몸을 밀어붙이면 마찰로 붙어 못 올라간다 — 턱 높이를 넘을 때까지는 제 칸 가운데서 수직으로만
+        float vx = dir * moveSpeed;
+        if (wp.y > foot.y && dir != 0f && transform.position.y < wp.y && _finderMap != null)
+        {
+            int sideX = foot.x + (int)dir;
+            for (int y = Mathf.FloorToInt(transform.position.y); y < wp.y; y++)
+                if (sideX >= 0 && sideX < GameMap.MAP_WIDTH && y >= 0 && y < GameMap.MAP_HEIGHT
+                    && (_finderMap.TileGrid[sideX, y] != 0 || _finderMap.DoesTileBlockMovement(sideX, y)))
+                {
+                    vx = (foot.x + 0.5f - transform.position.x) * 4f;
+                    break;
+                }
+        }
+        _rb.linearVelocity = new Vector2(vx, vy);
         return true;
+    }
+
+    /// <summary>땅에 선 채로 다음 경유점이 한 걸음(옆 1칸·위 2칸)보다 멀다 — 떨어지거나 밀려 길에서 벗어났다</summary>
+    private bool OffPath()
+    {
+        if (_path.Count == 0 || _rb == null || Mathf.Abs(_rb.linearVelocity.y) > 0.05f) return false;
+        var wp = _path[0];
+        var foot = Foot;
+        return Mathf.Abs(wp.x - foot.x) > 1 || wp.y - foot.y > 2;
+    }
+
+    private static bool IsClimbable(Vector2Int c)
+    {
+        var ft = FloorTile.GetFloorTileAt(c);
+        return (ft != null && ft.AllowsVerticalMovement()) || Building.AllowsVerticalMovementAt(c);
     }
 
     private void StopClimb()
