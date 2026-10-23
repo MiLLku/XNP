@@ -15,6 +15,22 @@ public class TilePathfinder
     private GameMap gameMap;
     private const int EMPLOYEE_HEIGHT = 2;
 
+    /// <summary>
+    /// 돌파 모드 (적 전용 인스턴스) — 플레이어가 지은 건물(벽·문·바닥 등)을 비용을 치르고 지나갈 수 있는 칸으로 본다.
+    /// 길이 막혔을 때 "어느 건물을 부수면 닿는가"를 찾는 데 쓴다. 자연 지형은 그대로 막힌다.
+    /// </summary>
+    public bool BreachMode;
+
+    /// <summary>돌파 모드에서 건물 한 칸을 지나가는 추가 비용 — 돌아가는 길이 있으면 그쪽을 고른다</summary>
+    private const float BREACH_COST = 12f;
+
+    /// <summary>플레이어가 지은, 부술 수 있는 건물이 그 칸에 있는지</summary>
+    public static bool IsBreachable(Vector2Int pos)
+    {
+        var b = Building.GetBuildingAt(pos);
+        return b != null && b.buildingData != null && b.buildingData.maxHealth > 0 && b.IsFunctional;
+    }
+
     // ── 최소 힙 ─────────────────────────────────────────────────────────
 
     private class PathNode
@@ -357,6 +373,7 @@ public class TilePathfinder
     private bool IsSpaceClear(int x, int y)
     {
         if (!IsInBounds(new Vector2Int(x, y))) return false;
+        if (BreachMode && IsBreachable(new Vector2Int(x, y))) return true;
 
         int tileId = gameMap.TileGrid[x, y];
         if (tileId == 0)
@@ -442,6 +459,8 @@ public class TilePathfinder
 
         int heightDifference = Mathf.Abs(to.y - from.y);
         if (heightDifference > 0) baseCost += heightDifference * 1f;
+
+        if (BreachMode && (IsBreachable(to) || IsBreachable(to + Vector2Int.up))) baseCost += BREACH_COST;
 
         // 허용 구역 외 타일 완전 차단
         // toZoneId == -1 (구역 미지정 = 중립 타일)은 항상 통과 허용

@@ -54,7 +54,13 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
     {
         _xenops = GetComponent<Xenops>();
         _rb     = GetComponent<Rigidbody2D>();
+        _nav    = GetComponent<EnemyNavigator>() ?? gameObject.AddComponent<EnemyNavigator>();
     }
+
+    private EnemyNavigator _nav;
+
+    /// <summary>같은 높이로 볼 세로 차이 — 이보다 떨어진 직원은 길을 따라 먼저 내려가거나 올라간다</summary>
+    private const float SAME_LEVEL_DY = 1.5f;
 
     private void Start()
     {
@@ -122,12 +128,33 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
 
     private void UpdatePositioning()
     {
-        _target = FindNearestEmployee();
+        // 길을 막은 건물 — 사거리 안이면 산을 뱉어 부순다
+        var wall = _nav.TargetBuilding;
+        if (wall != null && EnemyNavigator.DistanceToBuilding(transform.position, wall) <= _attackRange)
+        {
+            _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+            if (_cooldownTimer <= 0f)
+            {
+                wall.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(_attackDamage)));
+                _cooldownTimer = _attackInterval;
+                _state = State.Cooldown;
+            }
+            return;
+        }
+
+        _target = _nav.TargetEmployee ?? FindNearestEmployee();
 
         if (_target == null)
         {
-            _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+            if (!_nav.Steer(_moveSpeed)) _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
             _state       = State.Idle;
+            return;
+        }
+
+        // 다른 층이면 사거리 계산보다 길 따라가기가 먼저
+        if (Mathf.Abs(_target.transform.position.y - transform.position.y) > SAME_LEVEL_DY && _nav.Steer(_moveSpeed))
+        {
+            _state = State.Positioning;
             return;
         }
 
@@ -142,9 +169,12 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
         }
         else if (dist > _attackRange)
         {
-            // 사거리 밖이면 접근
-            float dir = Mathf.Sign(_target.transform.position.x - transform.position.x);
-            _rb.linearVelocity = new Vector2(dir * _moveSpeed, _rb.linearVelocity.y);
+            // 사거리 밖이면 접근 — 길이 있으면 길을 따라
+            if (!_nav.Steer(_moveSpeed))
+            {
+                float dir = Mathf.Sign(_target.transform.position.x - transform.position.x);
+                _rb.linearVelocity = new Vector2(dir * _moveSpeed, _rb.linearVelocity.y);
+            }
             _state       = State.Positioning;
         }
         else
@@ -226,6 +256,7 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
     // (스턴은 Xenops.Stun이 이 컴포넌트의 enabled를 꺼서 정지시킨다)
     private void Update()
     {
+        if (_isActive) _nav.Tick(Time.deltaTime);
         UpdateBehavior();
     }
 

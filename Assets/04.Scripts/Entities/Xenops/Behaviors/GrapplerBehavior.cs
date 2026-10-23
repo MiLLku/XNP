@@ -25,7 +25,11 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
 
     private Xenops    _xenops;
     private Rigidbody2D _rb;
+    private EnemyNavigator _nav;
     private bool      _isActive;
+
+    /// <summary>같은 높이로 볼 세로 차이 — 이보다 위아래로 떨어진 직원은 바닥 너머로 때리지 않는다</summary>
+    private const float SAME_LEVEL_DY = 1.2f;
 
     // 스탯 (Start에서 XenopsData로부터 읽음)
     private float _moveSpeed;
@@ -45,6 +49,7 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
     {
         _xenops = GetComponent<Xenops>();
         _rb     = GetComponent<Rigidbody2D>();
+        _nav    = GetComponent<EnemyNavigator>() ?? gameObject.AddComponent<EnemyNavigator>();
     }
 
     private void Start()
@@ -102,39 +107,61 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
 
     private void UpdateChase()
     {
-        _target = FindNearestEmployee();
+        // 길을 막은 건물(닫힌 문·벽) — 닿으면 부순다
+        var wall = _nav.TargetBuilding;
+        if (wall != null && EnemyNavigator.DistanceToBuilding(transform.position, wall) <= _attackRange + 0.6f)
+        {
+            _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+            _state = State.Attacking;
+            return;
+        }
 
-        if (_target == null)
+        _target = _nav.TargetEmployee ?? FindNearestEmployee();
+
+        if (_target == null && wall == null)
         {
             _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
             _state       = State.Idle;
             return;
         }
 
-        float dist = HorizontalDist(_target);
-
-        if (dist <= _attackRange)
+        if (_target != null && InMeleeRange(_target))
         {
             _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
             _state       = State.Attacking;
         }
         else
         {
-            float dir = Mathf.Sign(_target.transform.position.x - transform.position.x);
-            _rb.linearVelocity = new Vector2(dir * _moveSpeed, _rb.linearVelocity.y);
+            if (!_nav.Steer(_moveSpeed) && _target != null)
+            {
+                float dir = Mathf.Sign(_target.transform.position.x - transform.position.x);
+                _rb.linearVelocity = new Vector2(dir * _moveSpeed, _rb.linearVelocity.y);
+            }
             _state       = State.Chasing;
         }
     }
 
+    private bool InMeleeRange(Employee e)
+        => HorizontalDist(e) <= _attackRange && Mathf.Abs(e.transform.position.y - transform.position.y) <= SAME_LEVEL_DY;
+
     private void Attack()
     {
+        var wall = _nav.TargetBuilding;
+        if (wall != null && EnemyNavigator.DistanceToBuilding(transform.position, wall) <= _attackRange + 0.6f)
+        {
+            wall.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(_attackDamage)));
+            _cooldownTimer = _attackInterval;
+            _state         = State.Cooldown;
+            return;
+        }
+
         if (_target == null || _target.State == EmployeeState.Dead)
         {
             _state = State.Idle;
             return;
         }
 
-        if (HorizontalDist(_target) > _attackRange)
+        if (!InMeleeRange(_target))
         {
             _state = State.Chasing;
             return;
@@ -171,6 +198,7 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
     // (스턴은 Xenops.Stun이 이 컴포넌트의 enabled를 꺼서 정지시킨다)
     private void Update()
     {
+        if (_isActive) _nav.Tick(Time.deltaTime);
         UpdateBehavior();
     }
 
