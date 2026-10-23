@@ -55,6 +55,9 @@ public class XenopsData : ScriptableObject
     [Tooltip("직원에게 가는 길이 막히면 가로막는 건물(벽·문 등)을 부수고 들어온다")]
     public bool canBreachBuildings = true;
 
+    [Tooltip("넘지 못하는 낭떠러지·높은 벽 앞에서 침식 발판을 깔아 다리·계단을 만든다 (습격당 개수 제한은 ErosionFloorField)")]
+    public bool canBuildFloor = true;
+
     [Tooltip("브리칭형 — 직원보다 벽을 먼저 노린다 (지금은 표시만, 브리칭 습격에서 사용 예정)")]
     public bool prefersBreaching = false;
 

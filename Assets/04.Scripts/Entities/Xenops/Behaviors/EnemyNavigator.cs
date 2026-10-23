@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 /// <summary>
 /// 적 길찾기 — 직원과 같은 타일 이동 규칙(옆 걸음 ±2칸, 사다리)으로 목표까지 경로를 잡고,
@@ -12,6 +13,10 @@ using UnityEngine;
 ///   3. 그것도 없으면 걸어서 닿는 가장 가까운 플레이어 건물
 /// 닫힌 문도 그 길 위에 있으면 부술 대상이다 (적은 문을 열 수 없다).
 ///
+/// 발판 깔기(canBuildFloor): 2의 길은 "발밑이 빈 칸에 침식 발판을 깔고 지나가기"도 섞어 고른다 —
+/// 넘지 못하는 낭떠러지엔 다리를, 뛰어넘지 못하는 벽 앞엔 계단을 쌓는다. 벽을 부수는 것과 비용을 견줘 싼 쪽.
+/// 깔아야 할 칸 앞에 오면 멈춰 BUILD_TIME 동안 깐 뒤 지나간다. 습격당 개수 제한은 ErosionFloorField.
+///
 /// 성능: 경로는 REPATH_INTERVAL마다(개체마다 시점을 흩뜨려) 다시 계산하고, 그 사이에는 저장된 경로를 따른다.
 /// </summary>
 public class EnemyNavigator : MonoBehaviour
@@ -19,8 +24,13 @@ public class EnemyNavigator : MonoBehaviour
     private const float REPATH_INTERVAL = 1.5f;
     private const float WAYPOINT_REACH_X = 0.2f;
     private const float CLIMB_SPEED = 2.5f;
+    private const float BUILD_TIME = 2f;   // shortcut: 임시 수치 — 발판 한 칸 까는 시간
+    private const float BUILD_REACH = 2.5f;
+    private const float REPATH_RETRY = 0.3f;
+    private const int MAX_BREACH_TARGETS = 3;
 
-    private static TilePathfinder _walkFinder, _breachFinder;
+    // [돌파][발판] 조합별 길찾기
+    private static TilePathfinder _walkFinder, _breachFinder, _buildFinder, _breachBuildFinder;
     private static GameMap _finderMap;
 
     private Xenops _xenops;
@@ -28,6 +38,7 @@ public class EnemyNavigator : MonoBehaviour
     private float _repathTimer;
     private float _baseGravity = 1f;
     private bool _climbing;
+    private float _buildTimer;
     private readonly List<Vector2Int> _path = new List<Vector2Int>();
 
     /// <summary>노리는 직원 (걸어서 닿거나, 돌파해서 가려는 대상)</summary>
@@ -38,6 +49,13 @@ public class EnemyNavigator : MonoBehaviour
 
     /// <summary>따라갈 경로가 있는지</summary>
     public bool HasPath => _path.Count > 0;
+
+    /// <summary>다음 경유점에 서려면 먼저 깔아야 하는 발판 칸. 없으면 null</summary>
+    public Vector2Int? PendingFloor
+        => _path.Count > 0 && _buildFinder != null && _buildFinder.NeedsBuiltFloor(_path[0]) ? _path[0] + Vector2Int.down : (Vector2Int?)null;
+
+    private bool InBuildReach(Vector2Int cell)
+        => Vector2.Distance(transform.position, new Vector2(cell.x + 0.5f, cell.y + 0.5f)) <= BUILD_REACH;
 
     private void Awake()
     {
@@ -60,6 +78,8 @@ public class EnemyNavigator : MonoBehaviour
             _finderMap = map;
             _walkFinder = new TilePathfinder(map);
             _breachFinder = new TilePathfinder(map) { BreachMode = true };
+            _buildFinder = new TilePathfinder(map) { BuildMode = true };
+            _breachBuildFinder = new TilePathfinder(map) { BreachMode = true, BuildMode = true };
         }
         return true;
     }
@@ -68,8 +88,9 @@ public class EnemyNavigator : MonoBehaviour
     public void Tick(float dt)
     {
         _repathTimer -= dt;
+        // 노리던 직원이 죽었거나 건물이 부서졌으면 바로 다시 (목표를 못 찾은 상태에선 매 프레임 다시 돌리지 않는다)
         bool targetGone = (TargetEmployee != null && TargetEmployee.State == EmployeeState.Dead)
-                       || (TargetBuilding == null && TargetEmployee == null);
+                       || (!ReferenceEquals(TargetBuilding, null) && TargetBuilding == null);
         if (_repathTimer <= 0f || targetGone)
         {
             _repathTimer = REPATH_INTERVAL;
@@ -85,18 +106,53 @@ public class EnemyNavigator : MonoBehaviour
             if (wp == foot || (reachedX && wp.y <= foot.y)) _path.RemoveAt(0);
             else break;
         }
+
+        // 다음 칸 발밑이 비었으면 멈춰서 발판을 깐다
+        var floor = PendingFloor;
+        if (floor.HasValue && InBuildReach(floor.Value))
+        {
+            _buildTimer += dt;
+            if (_buildTimer >= BUILD_TIME)
+            {
+                _buildTimer = 0f;
+                var field = ErosionFloorField.instance;
+                if (field == null || !field.TryPlace(floor.Value)) _repathTimer = 0f; // 못 깔았으면 길을 다시
+            }
+        }
+        else _buildTimer = 0f;
+    }
+
+    /// <summary>
+    /// 경로 계산 출발 칸 — 발 위치 칸에 설 수 없으면(도약·낙하 중, 비탈) 가까운 설 수 있는 칸으로 맞춘다.
+    /// 공중에서 계산하면 출발 칸이 무효라 경로가 통째로 실패했다.
+    /// </summary>
+    private Vector2Int? StandCell()
+    {
+        var foot = Foot;
+        if (_walkFinder.IsValidPosition(foot)) return foot;
+        for (int dy = 1; dy <= 4; dy++)
+            if (_walkFinder.IsValidPosition(foot + Vector2Int.down * dy)) return foot + Vector2Int.down * dy;
+        foreach (var d in new[] { Vector2Int.up, Vector2Int.left, Vector2Int.right, new Vector2Int(-1, -1), new Vector2Int(1, -1) })
+            if (_walkFinder.IsValidPosition(foot + d)) return foot + d;
+        return null;
     }
 
     private void Replan()
     {
+        if (!EnsureFinders() || EmployeeManager.instance == null) return;
+
+        // 공중이라 설 칸을 못 찾으면 지금 길을 유지하고 곧 다시
+        var stand = StandCell();
+        if (!stand.HasValue) { _repathTimer = REPATH_RETRY; return; }
+        var foot = stand.Value;
+
         _path.Clear();
         TargetEmployee = null;
         TargetBuilding = null;
-        if (!EnsureFinders() || EmployeeManager.instance == null) return;
-
-        var foot = Foot;
         var reach = ReachabilityMap.Current;
         bool canBreach = _xenops == null || _xenops.Data == null || _xenops.Data.canBreachBuildings;
+        bool canBuild = (_xenops == null || _xenops.Data == null || _xenops.Data.canBuildFloor)
+                        && ErosionFloorField.instance != null && ErosionFloorField.instance.CanBuildMore;
 
         // 직원을 가까운 순으로
         var staff = new List<Employee>();
@@ -117,13 +173,14 @@ public class EnemyNavigator : MonoBehaviour
             TargetBuilding = FirstClosedDoorOnPath(); // 길 위의 닫힌 문은 부수고 지나간다
             return;
         }
-        if (!canBreach) return;
-
-        // 2. 돌파 경로 — 가장 가까운 직원에게, 처음 막는 건물을 부순다
-        foreach (var e in staff)
+        // 2. 돌파·발판 경로 — 가장 가까운 직원에게, 처음 막는 건물을 부수고 빈 발밑엔 발판을 깐다
+        var finder = canBreach ? (canBuild ? _breachBuildFinder : _breachFinder) : (canBuild ? _buildFinder : null);
+        // 실패한 탐색은 반복 상한까지 돌므로(발판 모드는 하늘도 칸이다) 가까운 몇 명만 본다
+        for (int i = 0; finder != null && i < Mathf.Min(staff.Count, MAX_BREACH_TARGETS); i++)
         {
-            var p = _breachFinder.FindPath(foot, FootOf(e.transform.position));
-            if (p == null) continue;
+            var e = staff[i];
+            var p = finder.FindPath(foot, FootOf(e.transform.position));
+            if (p == null || !WithinFloorBudget(p)) continue;
             TargetEmployee = e;
             _path.AddRange(p);
             TargetBuilding = FirstBlockingBuildingOnPath();
@@ -145,6 +202,15 @@ public class EnemyNavigator : MonoBehaviour
             best = b; bestD = d; bestPath = p;
         }
         if (best != null) { TargetBuilding = best; _path.AddRange(bestPath); }
+    }
+
+    /// <summary>이번 습격에 남은 발판 수로 이 길을 다 깔 수 있는지</summary>
+    private bool WithinFloorBudget(List<Vector2Int> p)
+    {
+        int need = 0;
+        foreach (var c in p) if (_buildFinder.NeedsBuiltFloor(c)) need++;
+        var field = ErosionFloorField.instance;
+        return need == 0 || (field != null && field.BuiltThisRaid + need <= ErosionFloorField.MAX_PER_RAID);
     }
 
     private Building FirstClosedDoorOnPath()
@@ -196,6 +262,15 @@ public class EnemyNavigator : MonoBehaviour
     {
         if (_rb == null || _path.Count == 0) { StopClimb(); return false; }
 
+        // 발판을 까는 중 — 제자리
+        var floor = PendingFloor;
+        if (floor.HasValue && InBuildReach(floor.Value))
+        {
+            StopClimb();
+            _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+            return true;
+        }
+
         var wp = _path[0];
         var foot = Foot;
         float dx = wp.x + 0.5f - transform.position.x;
@@ -242,4 +317,24 @@ public class EnemyNavigator : MonoBehaviour
     }
 
     private void OnDisable() => StopClimb();
+
+    /// <summary>
+    /// 길찾기상 지나갈 수 있는 것(나무·식물·통과 건물·떨어진 아이템)에 몸이 걸리면 그 충돌을 끈다.
+    /// 지형·바닥 타일·막는 건물·발판 건물·문·다른 몸(직원·적)은 그대로 부딪힌다.
+    /// </summary>
+    private void OnCollisionEnter2D(Collision2D c)
+    {
+        var other = c.collider;
+        if (other is TilemapCollider2D || other is CompositeCollider2D) return;
+        if (other.attachedRigidbody != null && other.attachedRigidbody.bodyType == RigidbodyType2D.Dynamic) return;
+        if (other.GetComponentInParent<FloorTile>() != null || other.GetComponentInParent<Door>() != null) return;
+
+        var b = other.GetComponentInParent<Building>();
+        if (b != null && _finderMap != null)
+        {
+            var cell = FootOf(b.transform.position);
+            if (_finderMap.DoesTileBlockMovement(cell.x, cell.y) || _finderMap.IsFloorSupport(cell.x, cell.y)) return;
+        }
+        Physics2D.IgnoreCollision(c.otherCollider, other);
+    }
 }
