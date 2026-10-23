@@ -136,15 +136,20 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
 
     private void ShowResult(RunResult r)
     {
-        var canvas = FindCanvas();
-        if (canvas == null) return;
+        // 전용 캔버스를 맨 위에 — 기존 오버레이 캔버스는 반투명하게 그려져 어두운 막이 안 보였다
+        resultScreen = new GameObject("RunResultScreen", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvas = resultScreen.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 1000;
+        var scaler = resultScreen.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
 
-        resultScreen = new GameObject("RunResultScreen", typeof(RectTransform), typeof(Image));
-        resultScreen.transform.SetParent(canvas.transform, false);
-        var rt = (RectTransform)resultScreen.transform;
+        var dim = new GameObject("Dim", typeof(RectTransform), typeof(Image));
+        dim.transform.SetParent(resultScreen.transform, false);
+        var rt = (RectTransform)dim.transform;
         rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = rt.offsetMax = Vector2.zero;
-        resultScreen.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.75f); // 뒤를 막는 어두운 막
-        resultScreen.transform.SetAsLastSibling();
+        dim.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.75f); // 뒤를 막는 어두운 막
 
         var panel = new GameObject("Panel", typeof(RectTransform));
         panel.transform.SetParent(resultScreen.transform, false);
@@ -163,15 +168,6 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
         var menu = RuntimeUI.Btn(row, "메인 메뉴 (준비 중)", 190, () => { }, RuntimeUI.BTN_DIM);
         menu.interactable = false; // shortcut: 메인 메뉴 씬이 아직 없다 — 생기면 여기서 불러올 것
         RuntimeUI.Btn(row, "새 게임", 190, NewGame, RuntimeUI.BTN_ON);
-    }
-
-    private static Canvas FindCanvas()
-    {
-        Canvas best = null;
-        foreach (var c in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
-            if (c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay && (best == null || c.sortingOrder > best.sortingOrder))
-                best = c;
-        return best;
     }
 
     private static void NewGame()
