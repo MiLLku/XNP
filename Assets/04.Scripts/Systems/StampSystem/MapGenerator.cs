@@ -1504,13 +1504,15 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                 if (plant != null) growth = plant.Growth;
             }
 
+            var building = identity.GetComponentInChildren<Building>();
             entities.Add(new MapEntitySaveData
             {
                 x = Mathf.FloorToInt(identity.transform.position.x),
                 y = Mathf.FloorToInt(identity.transform.position.y),
                 entityType        = (int)ToObjectType(def.kind),
                 variantId         = def.id,
-                remainingResource = growth
+                remainingResource = growth,
+                buildingHealth    = building != null && building.buildingData != null ? building.CurrentHealth : 0
             });
         }
 
@@ -1589,6 +1591,23 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
 
         // 5. 성장 상태 복원 (hasGrowthState가 켜진 개체만)
         ApplyGrowthStates(entities);
+
+        // 6. 건물 개체(시작 방 문 등)의 깎인 체력 복원
+        ApplyBuildingHealth(entities);
+    }
+
+    private void ApplyBuildingHealth(List<MapEntitySaveData> entities)
+    {
+        var identities = FindObjectsByType<MapEntityIdentity>();
+        foreach (var saved in entities)
+        {
+            if (saved.buildingHealth <= 0) continue;
+            var identity = System.Array.Find(identities, t => t != null &&
+                Mathf.FloorToInt(t.transform.position.x) == saved.x &&
+                Mathf.FloorToInt(t.transform.position.y) == saved.y &&
+                t.GetComponentInChildren<Building>() != null);
+            if (identity != null) identity.GetComponentInChildren<Building>().RestoreHealth(saved.buildingHealth);
+        }
     }
 
     /// <summary>
