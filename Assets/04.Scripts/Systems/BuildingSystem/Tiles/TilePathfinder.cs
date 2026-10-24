@@ -15,6 +15,68 @@ public class TilePathfinder
     private GameMap gameMap;
     private const int EMPLOYEE_HEIGHT = 2;
 
+    /// <summary>
+    /// 돌파 모드 (적 전용 인스턴스) — 플레이어가 지은 건물(벽·문·바닥 등)을 비용을 치르고 지나갈 수 있는 칸으로 본다.
+    /// 길이 막혔을 때 "어느 건물을 부수면 닿는가"를 찾는 데 쓴다. 자연 지형은 그대로 막힌다.
+    /// </summary>
+    public bool BreachMode;
+
+    /// <summary>돌파 모드에서 건물 한 칸을 지나가는 추가 비용 — 돌아가는 길이 있으면 그쪽을 고른다</summary>
+    private const float BREACH_COST = 12f;
+
+    /// <summary>
+    /// 발판 모드 (적 전용 인스턴스) — 발밑이 빈 칸도 "발판을 깔면 설 수 있는 칸"으로 보고 비용을 치르고 지나간다.
+    /// 낭떠러지에 다리를 놓거나 높은 벽 앞에 계단을 쌓는 길을 찾는다. 돌파 모드와 같이 켜면 더 싼 쪽을 섞어 고른다.
+    /// </summary>
+    public bool BuildMode;
+
+    /// <summary>발판 모드에서 발판 한 칸을 까는 추가 비용 (건물 한 칸 돌파 12보다 조금 싸다)</summary>
+    private const float BUILD_COST = 10f;
+
+    /// <summary>
+    /// 굴착 모드 (적 전용, 마지막 수단) — 캘 수 있는 자연 지형 칸을 비용을 치르고 지나가는 칸으로 본다.
+    /// 돌파·발판으로도 닿지 않는 막힌 굴에서 직원 쪽으로 파고드는 길을 찾는다.
+    /// </summary>
+    public bool DigMode;
+
+    /// <summary>굴착 모드에서 지형 한 칸을 파는 추가 비용</summary>
+    private const float DIG_COST = 6f;
+
+    /// <summary>적이 파낼 수 있는 자연 지형 칸인지 (건물 칸·캘 수 없는 암반 제외)</summary>
+    public bool IsDiggable(Vector2Int pos)
+    {
+        if (!IsInBounds(pos)) return false;
+        int id = gameMap.TileGrid[pos.x, pos.y];
+        if (id == 0 || Building.GetBuildingAt(pos) != null) return false;
+        var def = TileDefinitionLookup.Find(id);
+        return def != null && def.isMineable;
+    }
+
+    /// <summary>발판 모드에서 뛰어내릴 수 있는 최대 높이</summary>
+    private const int MAX_ENEMY_DROP = 8;
+
+    /// <summary>발판을 깔 수 있는 빈 칸인지 (지형·건물·바닥 타일·용암 없음)</summary>
+    private bool IsFloorBuildable(int x, int y)
+    {
+        var p = new Vector2Int(x, y);
+        return IsInBounds(p) && gameMap.TileGrid[x, y] == 0 && !gameMap.DoesTileBlockMovement(x, y)
+               && !FloorTile.HasFloorTileAt(p) && Building.GetBuildingAt(p) == null && !FluidManager.IsLavaAt(x, y);
+    }
+
+    /// <summary>발판 모드에서 이 칸에 서려면 발밑에 발판을 새로 깔아야 하는지</summary>
+    public bool NeedsBuiltFloor(Vector2Int pos)
+    {
+        if (!BuildMode || pos.y < 1 || !IsInBounds(pos)) return false;
+        return !HasFooting(pos.x, pos.y) && IsFloorBuildable(pos.x, pos.y - 1);
+    }
+
+    /// <summary>플레이어가 지은, 부술 수 있는 건물이 그 칸에 있는지</summary>
+    public static bool IsBreachable(Vector2Int pos)
+    {
+        var b = Building.GetBuildingAt(pos);
+        return b != null && b.buildingData != null && b.buildingData.maxHealth > 0 && b.IsFunctional;
+    }
+
     // ── 최소 힙 ─────────────────────────────────────────────────────────
 
     private class PathNode
@@ -217,6 +279,7 @@ public class TilePathfinder
             }
         }
 
+        if (BreachMode || BuildMode || DigMode) return null; // 적 전용 탐색은 실패가 흔하다 — 경고 로그(스택 추적 비용)를 남기지 않는다
         if (iterations >= MAX)
             Debug.LogWarning($"[Pathfinder] 최대 반복 횟수 초과: {start} -> {goal}");
         else
@@ -260,7 +323,9 @@ public class TilePathfinder
 
     private float GetHeuristic(Vector2Int from, Vector2Int to)
     {
-        return Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
+        float h = Mathf.Abs(to.x - from.x) + Mathf.Abs(to.y - from.y);
+        // 굴착 모드는 거의 모든 칸이 지나갈 수 있어 탐색이 넓게 퍼진다 — 목표 쪽으로 기울여(최적은 포기) 빨리 찾는다
+        return DigMode ? h * DIG_COST : h;
     }
 
     private List<Vector2Int> GetNeighbors(Vector2Int pos)
@@ -276,6 +341,15 @@ public class TilePathfinder
             TryAdd(neighbors, pos, pos + dir + new Vector2Int(0,  2));
             TryAdd(neighbors, pos, pos + dir + new Vector2Int(0, -1));
             TryAdd(neighbors, pos, pos + dir + new Vector2Int(0, -2));
+
+            // 발판 모드(적)는 높은 곳에서 그냥 뛰어내린다 — 내려가는 계단까지 깔지 않게
+            if (BuildMode && IsSpaceClear(pos.x + dir.x, pos.y) && IsSpaceClear(pos.x + dir.x, pos.y + 1))
+                for (int drop = 3; drop <= MAX_ENEMY_DROP; drop++)
+                {
+                    var to = pos + dir + new Vector2Int(0, -drop);
+                    if (!IsInBounds(to) || !IsSpaceClear(to.x, to.y + EMPLOYEE_HEIGHT)) break; // 떨어질 길이 막힘
+                    if (CanStandAt(to.x, to.y) && HasFooting(to.x, to.y)) { neighbors.Add(to); break; }
+                }
         }
 
         TryAdd(neighbors, pos, pos + new Vector2Int(0,  1));
@@ -357,6 +431,8 @@ public class TilePathfinder
     private bool IsSpaceClear(int x, int y)
     {
         if (!IsInBounds(new Vector2Int(x, y))) return false;
+        if (BreachMode && IsBreachable(new Vector2Int(x, y))) return true;
+        if (DigMode && IsDiggable(new Vector2Int(x, y))) return true;
 
         int tileId = gameMap.TileGrid[x, y];
         if (tileId == 0)
@@ -374,9 +450,24 @@ public class TilePathfinder
     private bool CanStandAt(int x, int y)
     {
         if (!IsInBounds(new Vector2Int(x, y))) return false;
+        if (y < 1) return false;
+        if (!HasFooting(x, y) && !(BuildMode && IsFloorBuildable(x, y - 1))) return false;
 
+        for (int i = 0; i < EMPLOYEE_HEIGHT; i++)
+        {
+            int checkY = y + i;
+            if (!IsInBounds(new Vector2Int(x, checkY))) return false;
+            if (!IsSpaceClear(x, checkY))               return false;
+            if (FluidManager.IsLavaAt(x, checkY))       return false; // 용암은 피해 간다 (물은 비용만 — GetMovementCost)
+        }
+
+        return true;
+    }
+
+    /// <summary>발밑(또는 서 있는 칸)에 디딜 것이 있는지 — 땅·바닥 타일·밟을 수 있는 건물·사다리</summary>
+    private bool HasFooting(int x, int y)
+    {
         int groundY = y - 1;
-        if (groundY < 0) return false;
 
         int groundTileId = gameMap.TileGrid[x, groundY];
         bool hasFloorTile     = FloorTile.HasFloorTileAt(new Vector2Int(x, groundY));
@@ -397,15 +488,6 @@ public class TilePathfinder
             if (!floorLadder && !floorCurrentLadder && !buildingLadder)
                 return false;
         }
-
-        for (int i = 0; i < EMPLOYEE_HEIGHT; i++)
-        {
-            int checkY = y + i;
-            if (!IsInBounds(new Vector2Int(x, checkY))) return false;
-            if (!IsSpaceClear(x, checkY))               return false;
-            if (FluidManager.IsLavaAt(x, checkY))       return false; // 용암은 피해 간다 (물은 비용만 — GetMovementCost)
-        }
-
         return true;
     }
 
@@ -442,6 +524,14 @@ public class TilePathfinder
 
         int heightDifference = Mathf.Abs(to.y - from.y);
         if (heightDifference > 0) baseCost += heightDifference * 1f;
+
+        if (BreachMode && (IsBreachable(to) || IsBreachable(to + Vector2Int.up))) baseCost += BREACH_COST;
+        if (BuildMode && NeedsBuiltFloor(to)) baseCost += BUILD_COST;
+        if (DigMode)
+        {
+            if (IsDiggable(to)) baseCost += DIG_COST;
+            if (IsDiggable(to + Vector2Int.up)) baseCost += DIG_COST;
+        }
 
         // 허용 구역 외 타일 완전 차단
         // toZoneId == -1 (구역 미지정 = 중립 타일)은 항상 통과 허용

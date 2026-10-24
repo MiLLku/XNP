@@ -258,6 +258,12 @@ public class Building : MonoBehaviour, IHeatSource
         };
     }
 
+    /// <summary>맵 개체로 복원되는 건물(시작 방 문 등)의 깎인 체력만 되돌린다</summary>
+    public void RestoreHealth(int health)
+    {
+        if (buildingData != null) _currentHealth = Mathf.Clamp(health, 1, buildingData.maxHealth);
+    }
+
     /// <summary>
     /// 저장된 데이터로 상태를 복원합니다.
     /// Instantiate + Awake(Initialize) 이후에 호출됩니다.

@@ -58,6 +58,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
     // ─── 컴포넌트 참조 ───────────────────────────
     private Xenops             _xenops;
     private ErosionShooterData _data;
+    private EnemyNavigator _nav;
     private Rigidbody2D        _rb;
     private Animator           _animator;
     private SpriteRenderer     _sr;
@@ -115,6 +116,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
     {
         _xenops   = GetComponent<Xenops>();
         _rb       = GetComponent<Rigidbody2D>();
+        _nav      = GetComponent<EnemyNavigator>() ?? gameObject.AddComponent<EnemyNavigator>();
         _animator = GetComponent<Animator>();
         _sr       = GetComponent<SpriteRenderer>();
         _collider = GetComponent<CircleCollider2D>();
@@ -244,6 +246,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         }
 
         float dt = Time.deltaTime;
+        _nav.Tick(dt);
         if (_stepUpCooldown > 0f) _stepUpCooldown -= dt;
         if (_cooldownTimer  > 0f) _cooldownTimer  -= dt;
 
@@ -303,7 +306,20 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
             if (Mathf.Approximately(dir, 0f))
                 dir = (_sr != null && _sr.flipX) ? -1f : 1f; // 수직으로만 떨어진 경우
 
-            if (ScanBlockingWall(dir, out Vector2 wallPoint))
+            var navWall = _nav.TargetBuilding;
+            if (navWall != null && EnemyNavigator.DistanceToBuilding(myPos, navWall) <= attackRangeX)
+            {
+                // 길을 막은 건물(닫힌 문·벽) → 멈춰서 쏜다
+                _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+                if (_cooldownTimer <= 0f)
+                    FireProjectile((Vector2)navWall.transform.position + new Vector2(0.5f, 0.5f));
+                _engageTimer = 0f;
+            }
+            else if (_nav.Steer(_moveSpeed))
+            {
+                // 타일 경로를 따라 이동 (오르내림·사다리 포함)
+            }
+            else if (ScanBlockingWall(dir, out Vector2 wallPoint))
             {
                 // 사정거리 안에 넘을 수 없는 벽 → 부딪히기 전에 정지하고 벽을 공격
                 _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);

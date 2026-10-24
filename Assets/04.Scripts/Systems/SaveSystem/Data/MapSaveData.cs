@@ -50,4 +50,7 @@ public class MapEntitySaveData
 
     /// <summary>남은 자원량</summary>
     public float remainingResource;
+
+    /// <summary>건물인 개체(시작 방 문 등)의 남은 체력. 0이면 저장 안 됨(구 세이브) — 최대 체력 그대로</summary>
+    public int buildingHealth;
 }

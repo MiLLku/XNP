@@ -120,6 +120,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     {
         if (lastHireDay != Today) { lastHireDay = Today; hiresOnLastDay = 0; }
         hiresOnLastDay++;
+        RunStatsManager.instance?.OnHired();
     }
 
     /// <summary>오늘 쓴 채용 후보 다시 뽑기 횟수 (사무소와 무관한 전역)</summary>

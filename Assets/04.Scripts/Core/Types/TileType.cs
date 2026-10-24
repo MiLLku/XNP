@@ -74,6 +74,9 @@ public enum TileType
     /// <summary>담수 분출구 — 지하 호수에서 맑은 물이 솟는 구멍. 캘 수 없고, 물에 다 잠기기 직전까지 물을 낸다.</summary>
     FreshwaterVent = 20,
 
+    /// <summary>침식 발판 — 제놉스가 길을 내려고 깐 발판. 근처에 침식을 뿜는다 — 캐서 없애야 한다.</summary>
+    ErosionFloor = 21,
+
     /// <summary>특수</summary>
     Special = 99,
 }

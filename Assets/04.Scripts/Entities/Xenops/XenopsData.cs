@@ -49,6 +49,23 @@ public class XenopsData : ScriptableObject
 
     #endregion
 
+    #region 건물 공격
+
+    [Header("건물 공격")]
+    [Tooltip("직원에게 가는 길이 막히면 가로막는 건물(벽·문 등)을 부수고 들어온다")]
+    public bool canBreachBuildings = true;
+
+    [Tooltip("넘지 못하는 낭떠러지·높은 벽 앞에서 침식 발판을 깔아 다리·계단을 만든다 (습격당 개수 제한은 ErosionFloorField)")]
+    public bool canBuildFloor = true;
+
+    [Tooltip("돌파·발판으로도 닿을 곳이 없으면(막힌 굴) 자연 지형을 파며 직원 쪽으로 파고든다 (자원 없음)")]
+    public bool canDigTerrain = true;
+
+    [Tooltip("브리칭형 — 직원보다 벽을 먼저 노린다 (지금은 표시만, 브리칭 습격에서 사용 예정)")]
+    public bool prefersBreaching = false;
+
+    #endregion
+
     #region 원거리 사격 (원거리 적 전용 — 침식 사수·스피터)
 
     [Header("원거리 사격 (원거리 적 전용)")]
