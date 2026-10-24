@@ -44,6 +44,7 @@ public class ErosionFloorField : DestroySingleton<ErosionFloorField>, IEntityEro
 
     private static void Ensure()
     {
+        if (FindAnyObjectByType<MapGenerator>() == null) return; // 게임 씬에서만 (메인 메뉴 제외)
         if (FindAnyObjectByType<ErosionFloorField>() == null)
             new GameObject("ErosionFloorField").AddComponent<ErosionFloorField>();
     }

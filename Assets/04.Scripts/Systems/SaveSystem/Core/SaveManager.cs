@@ -94,11 +94,38 @@ public class SaveManager : DontDestroySingleton<SaveManager>
         {
             Debug.Log($"[SaveManager] 초기화 완료. 저장 경로: {SaveFolderPath}");
         }
+
+        // 씬을 넘어 살아남는 싱글턴이라 Start는 한 번뿐 — 이후 게임 씬 진입은 sceneLoaded로 받는다
+        UnityEngine.SceneManagement.SceneManager.sceneLoaded += OnSceneLoaded;
+        TryLoadPending();
+    }
+
+    private void OnDestroy() => UnityEngine.SceneManagement.SceneManager.sceneLoaded -= OnSceneLoaded;
+
+    private void OnSceneLoaded(UnityEngine.SceneManagement.Scene scene, UnityEngine.SceneManagement.LoadSceneMode mode) => TryLoadPending();
+
+    /// <summary>메인 메뉴의 '이어하기'가 남긴 슬롯 — 게임 씬이 뜨면 불러온다</summary>
+    public static string PendingLoadSlot;
+
+    private void TryLoadPending()
+    {
+        if (string.IsNullOrEmpty(PendingLoadSlot) || FindAnyObjectByType<MapGenerator>() == null) return;
+        string slot = PendingLoadSlot;
+        PendingLoadSlot = null;
+        LoadPendingAsync(slot).Forget();
+    }
+
+    private async UniTaskVoid LoadPendingAsync(string slot)
+    {
+        // 맵 생성·다른 매니저 초기화가 끝난 뒤에 덮어쓴다
+        await UniTask.DelayFrame(3, cancellationToken: this.GetCancellationTokenOnDestroy());
+        if (SaveExists(slot)) Load(slot);
     }
 
     private void Update()
     {
-        if (enableAutoSave && !_isLoading)
+        // 메인 메뉴에서는 저장할 게임이 없다 (씬을 넘어 살아남는 싱글턴)
+        if (enableAutoSave && !_isLoading && MapGenerator.instance != null)
         {
             _autoSaveTimer += Time.unscaledDeltaTime;
             if (_autoSaveTimer >= autoSaveInterval)

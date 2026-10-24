@@ -61,7 +61,7 @@ public class XenopsData : ScriptableObject
     [Tooltip("돌파·발판으로도 닿을 곳이 없으면(막힌 굴) 자연 지형을 파며 직원 쪽으로 파고든다 (자원 없음)")]
     public bool canDigTerrain = true;
 
-    [Tooltip("브리칭형 — 직원보다 벽을 먼저 노린다 (지금은 표시만, 브리칭 습격에서 사용 예정)")]
+    [Tooltip("브리칭형 — 직원보다 벽(막는 건물)을 먼저 노린다 (EnemyNavigator 0단계, 자폭체)")]
     public bool prefersBreaching = false;
 
     #endregion

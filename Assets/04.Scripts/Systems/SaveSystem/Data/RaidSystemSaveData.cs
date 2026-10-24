@@ -30,6 +30,9 @@ public class RaidSystemSaveData
     /// <summary>이번 레이드의 스폰 수량 배수 (시작 시점 계산값 보존)</summary>
     public float activeMultiplier = 1f;
 
+    /// <summary>진행 중인 습격의 종류 (RaidType 정수값, 구 세이브에는 없음 — 0 = 일반)</summary>
+    public int raidType;
+
     public RaidSystemSaveData()
     {
         activeRaidId = -1;

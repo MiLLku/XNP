@@ -113,6 +113,79 @@ public static class RaidSpawnPlacer
         return anchors;
     }
 
+    // 땅굴 습격 자리 — 직원에게서 이만큼 떨어지되(바로 옆에서 튀어나오지 않게) 이 반경 안(직원 활동 범위)
+    private const float TUNNEL_MIN_FROM_STAFF = 8f;   // shortcut: 임시 수치
+    private const float TUNNEL_MAX_FROM_STAFF = 22f;
+
+    /// <summary>
+    /// 땅굴 습격 자리: 살아 있는 직원 근처(TUNNEL_MAX_FROM_STAFF)이면서 모든 직원에게서 TUNNEL_MIN_FROM_STAFF 이상 떨어진
+    /// 지하(위가 막힌) 빈 공간 — 두 칸 높이로 설 수 있고 건물이 없는 칸. 빈 공간이 없으면 같은 범위의 캘 수 있는 지형에 굴을 판다.
+    /// </summary>
+    public static bool TryFindTunnelPosition(out Vector3 position)
+    {
+        position = Vector3.zero;
+        var gameMap = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
+        if (gameMap == null || EmployeeManager.instance == null) return false;
+
+        var staff = new List<Vector2>();
+        foreach (var e in EmployeeManager.instance.AllEmployees)
+            if (e != null && e.State != EmployeeState.Dead) staff.Add(e.transform.position);
+        if (staff.Count == 0) return false;
+
+        var open = new List<Vector2Int>();
+        var solid = new List<Vector2Int>();
+        foreach (var s in staff)
+        {
+            int r = Mathf.CeilToInt(TUNNEL_MAX_FROM_STAFF);
+            for (int x = Mathf.Max(0, (int)s.x - r); x <= Mathf.Min(GameMap.MAP_WIDTH - 1, (int)s.x + r); x++)
+            for (int y = Mathf.Max(1, (int)s.y - r); y <= Mathf.Min(GameMap.MAP_HEIGHT - 3, (int)s.y + r); y++)
+            {
+                if (!InStaffBand(staff, x, y) || gameMap.TileGrid[x, y - 1] == 0 || IsSkyOpen(gameMap, x, y)) continue;
+                var c = new Vector2Int(x, y);
+                if (Building.GetBuildingAt(c) != null || Building.GetBuildingAt(c + Vector2Int.up) != null) continue;
+                if (gameMap.TileGrid[x, y] == 0 && gameMap.TileGrid[x, y + 1] == 0) open.Add(c);
+                else if (IsMineable(gameMap, x, y) && IsMineable(gameMap, x, y + 1)) solid.Add(c);
+            }
+        }
+
+        Vector2Int pick;
+        if (open.Count > 0) pick = open[Random.Range(0, open.Count)];
+        else if (solid.Count > 0)
+        {
+            pick = solid[Random.Range(0, solid.Count)];
+            var mr = MapGenerator.instance.MapRendererInstance;
+            for (int dy = 0; dy <= 1; dy++)
+            {
+                gameMap.SetTile(pick.x, pick.y + dy, 0);
+                gameMap.UnmarkTileOccupied(pick.x, pick.y + dy);
+                mr?.UpdateTileVisual(pick.x, pick.y + dy);
+            }
+        }
+        else return false;
+
+        position = new Vector3(pick.x + 0.5f, pick.y + 0.3f, 0f);
+        return true;
+    }
+
+    private static bool InStaffBand(List<Vector2> staff, int x, int y)
+    {
+        var p = new Vector2(x + 0.5f, y + 0.5f);
+        bool nearAny = false;
+        foreach (var s in staff)
+        {
+            float d = Vector2.Distance(s, p);
+            if (d < TUNNEL_MIN_FROM_STAFF) return false;
+            if (d <= TUNNEL_MAX_FROM_STAFF) nearAny = true;
+        }
+        return nearAny;
+    }
+
+    private static bool IsMineable(GameMap map, int x, int y)
+    {
+        var def = TileDefinitionLookup.Find(map.TileGrid[x, y]);
+        return def != null && def.isMineable;
+    }
+
     private static bool IsNearAnchors(List<Vector2> anchors, int x, int y)
     {
         if (anchors.Count == 0) return false;

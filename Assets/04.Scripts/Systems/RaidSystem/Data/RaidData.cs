@@ -119,6 +119,21 @@ public enum RaidSpawnLocation
     BaseInterior = 2,
 }
 
+/// <summary>
+/// 습격 종류 — 적 구성(RaidData)과 별개로 습격마다 무작위로 정해진다.
+/// </summary>
+public enum RaidType
+{
+    /// <summary>일반 — RaidData의 스폰 위치에서 온다</summary>
+    Normal = 0,
+
+    /// <summary>땅굴 — 기지 근처 지하 빈 공간에서 경고 뒤 솟아 나온다. 직원만 노린다</summary>
+    Tunnel = 1,
+
+    /// <summary>브리칭 — 벽을 노리는 자폭체가 섞여 온다</summary>
+    Breach = 2,
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// <summary>

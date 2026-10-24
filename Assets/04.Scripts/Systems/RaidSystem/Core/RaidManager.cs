@@ -53,6 +53,23 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Tooltip("한 번 습격의 적 수 절대 상한")]
     [Min(1)] [SerializeField] private int maxEnemiesPerRaid = 12;
 
+    [Header("습격 종류 — 습격마다 무작위 (임시 가중치)")]
+    [Min(0f)] [SerializeField] private float normalWeight = 60f;
+    [Min(0f)] [SerializeField] private float tunnelWeight = 20f;
+    [Min(0f)] [SerializeField] private float breachWeight = 20f;
+
+    [Tooltip("땅굴·브리칭 습격이 나올 수 있는 가장 이른 날")]
+    [Min(0)] [SerializeField] private int specialRaidMinDay = 5;
+
+    [Tooltip("땅굴 경고 뒤 적이 솟아 나오기까지 (초)")]
+    [Min(0f)] [SerializeField] private float tunnelWarningSeconds = 4f;
+
+    [Tooltip("브리칭 습격에 섞이는 자폭체 ID")]
+    [SerializeField] private int bomberXenopsId = 6103;
+
+    [Tooltip("브리칭 습격 — 웨이브 적 수 대비 자폭체 비율 (최소 1마리)")]
+    [Min(0f)] [SerializeField] private float bomberRatio = 0.5f;
+
     [Header("디버그")]
     [SerializeField] private bool showDebugLogs = false;
 
@@ -62,6 +79,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     private RaidState currentState = RaidState.None;
     private RaidData activeRaid;
+    private RaidType activeRaidType = RaidType.Normal;
     private int currentWaveIndex;
     private float waveTimer;
     private bool waitingForNextWave;
@@ -85,6 +103,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     public RaidState CurrentState => currentState;
     public RaidData ActiveRaid => activeRaid;
+    public RaidType ActiveRaidType => activeRaidType;
+
+    /// <summary>알림·UI용 습격 종류 이름</summary>
+    public static string TypeLabel(RaidType t) => t == RaidType.Tunnel ? "땅굴 습격" : t == RaidType.Breach ? "브리칭 습격" : "일반 습격";
     public bool IsRaidActive => currentState == RaidState.InProgress || currentState == RaidState.Approaching;
 
     #endregion
@@ -103,6 +125,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             currentWaveIndex = currentWaveIndex,
             waveTimer   = waveTimer,
             activeMultiplier = activeMultiplier,
+            raidType = (int)activeRaidType,
             lastRaidGameDay = lastRaidGameDay,
             nextRaidGameDay = nextRaidGameDay
         };
@@ -126,6 +149,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         activeMultiplier = data.raidSystem.activeMultiplier > 0f ? data.raidSystem.activeMultiplier : 1f;
         lastRaidGameDay  = data.raidSystem.lastRaidGameDay;
         nextRaidGameDay  = data.raidSystem.nextRaidGameDay;
+        activeRaidType   = (RaidType)data.raidSystem.raidType;
 
         int raidId = data.raidSystem.activeRaidId;
         if (raidId >= 0)
@@ -143,7 +167,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             if (RuntimeIDRegistry.instance == null) continue;
             var obj = RuntimeIDRegistry.instance.ResolveComponent<Xenops>(id);
             if (obj != null)
+            {
                 spawnedEntities.Add(obj);
+                ApplyRaidTypeTo(obj);
+            }
         }
 
         // InProgress 상태로 저장됐다면 감시 재시작
@@ -174,7 +201,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// <summary>
     /// RaidData로 레이드를 시작합니다.
     /// </summary>
-    public void StartRaid(RaidData raid)
+    public void StartRaid(RaidData raid) => StartRaid(raid, RaidType.Normal);
+
+    /// <summary>RaidData와 습격 종류로 레이드를 시작합니다.</summary>
+    public void StartRaid(RaidData raid, RaidType type)
     {
         if (raid == null) return;
 
@@ -192,6 +222,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         }
 
         activeRaid = raid;
+        activeRaidType = type;
         currentWaveIndex = 0;
         spawnedEntities.Clear();
         activeMultiplier = ComputeMultiplier(raid);
@@ -199,7 +230,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         ScheduleNextRaid();
 
         if (showDebugLogs)
-            Debug.Log($"[RaidManager] 레이드 시작: {raid.raidName} (배수 {activeMultiplier:F2}, 위치 {raid.spawnLocation})");
+            Debug.Log($"[RaidManager] 레이드 시작: {raid.raidName} ({TypeLabel(type)}, 배수 {activeMultiplier:F2}, 위치 {raid.spawnLocation})");
 
         RunRaidAsync(raid, RestartRaidTask()).Forget();
     }
@@ -228,7 +259,19 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             Debug.LogWarning("[RaidManager] 랜덤 레이드 풀이 비어 있습니다.");
             return;
         }
-        StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)]);
+        StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)], RollRaidType(day));
+    }
+
+    /// <summary>습격 종류를 가중치로 뽑는다 — 땅굴·브리칭은 specialRaidMinDay부터</summary>
+    private RaidType RollRaidType(int day)
+    {
+        bool special = day >= specialRaidMinDay;
+        float t = special ? tunnelWeight : 0f, b = special ? breachWeight : 0f;
+        float total = normalWeight + t + b;
+        if (total <= 0f) return RaidType.Normal;
+        float r = UnityEngine.Random.value * total;
+        if (r < normalWeight) return RaidType.Normal;
+        return r < normalWeight + t ? RaidType.Tunnel : RaidType.Breach;
     }
 
     #endregion
@@ -275,8 +318,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 위협 레터 + 강제 일시정지 (확인 시 NotificationManager가 재개)
         NotificationManager.instance?.PushLetter(new Letter
         {
-            title = "침공 발생",
-            body = $"{raid.raidName} — 적대 개체가 접근했습니다. 직원을 소집해 방어하세요.",
+            title = $"침공 발생 — {TypeLabel(activeRaidType)}",
+            body = $"{raid.raidName} — {TypeDescription(activeRaidType)} 직원을 소집해 방어하세요.",
             type = LetterType.Threat,
             pauseUntilRead = true
         });
@@ -303,21 +346,69 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         await MonitorRaidCompletionAsync(ct);
     }
 
+    private static string TypeDescription(RaidType t)
+        => t == RaidType.Tunnel ? "땅 밑을 파고 기지 근처로 직원을 노리는 적이 옵니다."
+         : t == RaidType.Breach ? "벽을 터뜨리는 자폭체가 섞여 접근합니다."
+         : "적대 개체가 접근했습니다.";
+
     private async UniTask SpawnWaveAsync(RaidWave wave, CancellationToken ct)
     {
+        // 땅굴: 웨이브마다 한 자리에서 — 경고를 띄우고 잠시 뒤 솟아 나온다 (자리가 없으면 일반 위치)
+        Vector3? tunnelPos = null;
+        if (activeRaidType == RaidType.Tunnel && RaidSpawnPlacer.TryFindTunnelPosition(out var p))
+        {
+            tunnelPos = p;
+            NotificationManager.instance?.PushLetter(new Letter
+            {
+                title = "땅이 울립니다",
+                body = "기지 근처 땅 밑에서 무언가 파고 올라옵니다.",
+                type = LetterType.Threat,
+                onClick = () => CameraFocus(p)
+            });
+            await UniTask.Delay(TimeSpan.FromSeconds(tunnelWarningSeconds), cancellationToken: ct);
+        }
+
+        int waveTotal = 0;
         foreach (var entry in wave.entries)
         {
             // 진행 상황 배수 적용 (최소 1마리)
             int count = Mathf.Max(1, Mathf.RoundToInt(entry.count * activeMultiplier));
+            waveTotal += count;
 
             for (int i = 0; i < count; i++)
             {
-                SpawnRaidXenops(entry);
+                SpawnRaidXenops(entry, tunnelPos);
 
                 if (entry.spawnInterval > 0f)
                     await UniTask.Delay(TimeSpan.FromSeconds(entry.spawnInterval), cancellationToken: ct);
             }
         }
+
+        // 브리칭: 자폭체를 섞는다
+        if (activeRaidType == RaidType.Breach)
+        {
+            var bomber = new RaidSpawnEntry { xenopsDataId = bomberXenopsId, count = 1, spawnRadius = 2f };
+            int bombers = Mathf.Max(1, Mathf.RoundToInt(waveTotal * bomberRatio));
+            for (int i = 0; i < bombers; i++)
+            {
+                SpawnRaidXenops(bomber, null);
+                await UniTask.Delay(TimeSpan.FromSeconds(0.5f), cancellationToken: ct);
+            }
+        }
+    }
+
+    private static void CameraFocus(Vector3 p)
+    {
+        var cam = Camera.main;
+        if (cam != null) cam.transform.position = new Vector3(p.x, p.y, cam.transform.position.z);
+    }
+
+    /// <summary>습격 종류에 따른 개체 설정 — 땅굴 적은 직원만 노린다 (건물만 있으면 부수러 가지 않음)</summary>
+    private void ApplyRaidTypeTo(Xenops xenops)
+    {
+        if (activeRaidType != RaidType.Tunnel || xenops == null) return;
+        var nav = xenops.GetComponent<EnemyNavigator>() ?? xenops.gameObject.AddComponent<EnemyNavigator>();
+        nav.StaffOnly = true;
     }
 
     private async UniTask MonitorRaidCompletionAsync(CancellationToken ct)
@@ -340,16 +431,18 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// <summary>습격으로 온 적인지 (처치 시 전리품 드롭 판정)</summary>
     public bool IsRaider(Xenops xenops) => xenops != null && spawnedEntities.Contains(xenops);
 
-    private void SpawnRaidXenops(RaidSpawnEntry entry)
+    private void SpawnRaidXenops(RaidSpawnEntry entry, Vector3? at)
     {
         if (XenopsManager.instance == null) return;
 
-        Vector3 spawnPos = GetSpawnPosition(entry);
+        // 땅굴 자리는 좁은 굴이라 흩뿌리지 않는다
+        Vector3 spawnPos = at.HasValue ? at.Value + new Vector3(UnityEngine.Random.Range(-0.3f, 0.3f), 0f, 0f) : GetSpawnPosition(entry);
         var xenops = XenopsManager.instance.SpawnXenops(entry.xenopsDataId, spawnPos);
 
         if (xenops != null)
         {
             spawnedEntities.Add(xenops);
+            ApplyRaidTypeTo(xenops);
 
             if (showDebugLogs)
                 Debug.Log($"[RaidManager] 제놉스 스폰: ID {entry.xenopsDataId} at {spawnPos}");
@@ -456,6 +549,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
         // 상태 리셋
         activeRaid = null;
+        activeRaidType = RaidType.Normal;
         currentWaveIndex = 0;
         waveTimer = 0f;
         spawnedEntities.Clear();
