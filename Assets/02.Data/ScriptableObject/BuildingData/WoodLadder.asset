@@ -22,7 +22,7 @@ MonoBehaviour:
   pivot: {x: 0, y: 0}
   constructionTime: 5
   requiredResources:
-  - item: {fileID: 11400000, guid: 3f38772a5b4e7de4885eaeba813711b7, type: 2}
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
     amount: 3
   maxHealth: 60
   blocksMovement: 0

@@ -56,6 +56,9 @@ public class EnemyNavigator : MonoBehaviour
     /// <summary>따라갈 경로가 있는지</summary>
     public bool HasPath => _path.Count > 0;
 
+    /// <summary>직원만 노린다 (땅굴 습격) — 닿는 직원이 없어도 건물을 부수러 가지 않는다</summary>
+    public bool StaffOnly { get; set; }
+
     /// <summary>다음 경유점에 서려면 먼저 깔아야 하는 발판 칸. 없으면 null</summary>
     /// <summary>다음 경유점으로 가려면 먼저 파야 하는 지형 칸 (그 칸 기둥에서 몸이 지나갈 칸). 없으면 null</summary>
     public Vector2Int? PendingDig
@@ -203,6 +206,9 @@ public class EnemyNavigator : MonoBehaviour
         staff.Sort((a, b) => Vector2.Distance(transform.position, a.transform.position)
                               .CompareTo(Vector2.Distance(transform.position, b.transform.position)));
 
+        // 0. 브리칭형(자폭체) — 직원보다 벽을 먼저: 가장 가까운 막는 건물(벽·문)을, 없으면 가장 가까운 건물을 노린다
+        if (_xenops != null && _xenops.Data != null && _xenops.Data.prefersBreaching && PlanBreachTarget(foot, canBuild)) return;
+
         // 1. 걸어서 닿는 직원
         foreach (var e in staff)
         {
@@ -243,7 +249,7 @@ public class EnemyNavigator : MonoBehaviour
             if (p == null) continue;
             best = b; bestD = d; bestPath = p;
         }
-        if (best != null) { TargetBuilding = best; _path.AddRange(bestPath); return; }
+        if (best != null && !StaffOnly) { TargetBuilding = best; _path.AddRange(bestPath); return; }
 
         // 4. 막힌 굴 — 자연 지형을 파며 가장 가까운 직원 쪽으로 (길 위의 건물은 부순다)
         bool canDig = _xenops == null || _xenops.Data == null || _xenops.Data.canDigTerrain;
@@ -269,6 +275,41 @@ public class EnemyNavigator : MonoBehaviour
         _finderMap.SetTile(c.x, c.y, 0);
         _finderMap.UnmarkTileOccupied(c.x, c.y);
         mr.UpdateTileVisual(c.x, c.y);
+    }
+
+    /// <summary>
+    /// 브리칭형 목표: 막는 건물(벽·닫힌 문 — 칸이 이동을 막는 것)을 가까운 순으로 먼저, 그다음 나머지 건물.
+    /// 돌파·발판 경로로 가며, 그 길에 먼저 막아선 건물이 있으면 그것이 목표가 된다. 경로가 없으면 false.
+    /// </summary>
+    private bool PlanBreachTarget(Vector2Int foot, bool canBuild)
+    {
+        var cands = new List<Building>();
+        foreach (var b in UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None))
+            if (b != null && b.buildingData != null && b.IsFunctional && b.buildingData.maxHealth > 0) cands.Add(b);
+        cands.Sort((a, b) =>
+        {
+            int wa = IsBlockingBuilding(a) ? 0 : 1, wb = IsBlockingBuilding(b) ? 0 : 1;
+            if (wa != wb) return wa.CompareTo(wb);
+            return Vector2.Distance(transform.position, a.transform.position).CompareTo(Vector2.Distance(transform.position, b.transform.position));
+        });
+
+        var finder = canBuild ? _breachBuildFinder : _breachFinder;
+        for (int i = 0; i < Mathf.Min(cands.Count, MAX_BREACH_TARGETS); i++)
+        {
+            var p = finder.FindPath(foot, FootOf(cands[i].transform.position));
+            if (p == null || !WithinFloorBudget(p)) continue;
+            _path.AddRange(p);
+            TargetBuilding = FirstBlockingBuildingOnPath() ?? cands[i];
+            TrimPathBefore(TargetBuilding);
+            return true;
+        }
+        return false;
+    }
+
+    private bool IsBlockingBuilding(Building b)
+    {
+        var c = FootOf(b.transform.position);
+        return _finderMap != null && (_finderMap.DoesTileBlockMovement(c.x, c.y) || b.GetComponent<Door>() != null);
     }
 
     /// <summary>이번 습격에 남은 발판 수로 이 길을 다 깔 수 있는지</summary>

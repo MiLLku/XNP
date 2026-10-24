@@ -63,6 +63,7 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
 
     private static void Ensure()
     {
+        if (FindAnyObjectByType<MapGenerator>() == null) return; // 게임 씬에서만 (메인 메뉴 제외)
         if (FindAnyObjectByType<RunStatsManager>() == null)
             new GameObject("RunStatsManager").AddComponent<RunStatsManager>();
     }
@@ -165,8 +166,7 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
         RuntimeUI.Text(panel.transform, $"채용한 직원: {r.staffHired}명 · 잃은 직원: {r.staffDead}명", 20);
 
         var row = RuntimeUI.Row(panel.transform, 12);
-        var menu = RuntimeUI.Btn(row, "메인 메뉴 (준비 중)", 190, () => { }, RuntimeUI.BTN_DIM);
-        menu.interactable = false; // shortcut: 메인 메뉴 씬이 아직 없다 — 생기면 여기서 불러올 것
+        RuntimeUI.Btn(row, "메인 메뉴", 190, MainMenuController.GoToMenu, RuntimeUI.BTN);
         RuntimeUI.Btn(row, "새 게임", 190, NewGame, RuntimeUI.BTN_ON);
     }
 
