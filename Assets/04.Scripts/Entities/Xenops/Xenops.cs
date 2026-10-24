@@ -69,6 +69,21 @@ public class Xenops : MonoBehaviour
     /// <summary>기절 중 여부 (장비 능력 Stun — 행동 정지)</summary>
     public bool IsStunned => stunTimer > 0f;
 
+    /// <summary>위협 단계 배율 — 행동들이 피해에 곱한다 (습격이 스폰 직후 정함, 1 = 기본)</summary>
+    public float StatMultiplier { get; private set; } = 1f;
+
+    /// <summary>
+    /// 위협 단계 배율을 건다. rescaleHealth면 최대 체력도 배율만큼 다시 채운다 (스폰 직후용 —
+    /// 불러온 개체는 저장된 체력을 지키도록 false).
+    /// </summary>
+    public void ApplyThreatScaling(float multiplier, bool rescaleHealth)
+    {
+        StatMultiplier = Mathf.Max(0.1f, multiplier);
+        if (!rescaleHealth || xenopsData == null || xenopsData.xenopsType != XenopsType.Hostile) return;
+        var health = GetComponent<XenopsHealth>();
+        if (health != null) health.Initialize(xenopsData.hostileStats.maxHealth * StatMultiplier, xenopsData.hostileStats.defense);
+    }
+
     #endregion
 
     #region 스턴
@@ -428,8 +443,16 @@ public class Xenops : MonoBehaviour
     /// <summary>
     /// 저장된 데이터에서 복원합니다.
     /// </summary>
-    public void RestoreFromSaveData(XenopsSaveData data)
+    public void RestoreFromSaveData(XenopsSaveData data, XenopsData template = null)
     {
+        // 프리팹에 데이터가 비어 있는 개체(침식 사수 등)는 템플릿으로 채운다 — 없으면 이름 Unknown·체력 0으로 복원됐다
+        if (template != null) xenopsData = template;
+        if (xenopsData != null && xenopsData.xenopsType == XenopsType.Hostile)
+        {
+            var health = GetComponent<XenopsHealth>();
+            if (health != null) health.Initialize(xenopsData.hostileStats.maxHealth, xenopsData.hostileStats.defense); // 체력은 저장하지 않는다 — 가득 찬 채로
+        }
+
         instanceId = data.instanceId;
         currentState = (XenopsState)data.state;
         transform.position = new Vector3(data.posX, data.posY, 0f);

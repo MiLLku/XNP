@@ -264,7 +264,7 @@ public class XenopsManager : DestroySingleton<XenopsManager>, ISaveModule
             return;
         }
 
-        xenops.RestoreFromSaveData(saveData);
+        xenops.RestoreFromSaveData(saveData, xenopsData);
         RegisterXenops(xenops);
     }
 
