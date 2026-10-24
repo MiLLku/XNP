@@ -279,6 +279,7 @@ public class TilePathfinder
             }
         }
 
+        if (BreachMode || BuildMode || DigMode) return null; // 적 전용 탐색은 실패가 흔하다 — 경고 로그(스택 추적 비용)를 남기지 않는다
         if (iterations >= MAX)
             Debug.LogWarning($"[Pathfinder] 최대 반복 횟수 초과: {start} -> {goal}");
         else

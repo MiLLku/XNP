@@ -360,12 +360,23 @@ public class EnemyNavigator : MonoBehaviour
             return true;
         }
 
-        // 바로 위 (사다리) — 중력을 끄고 올라간다
-        if (wp.x == foot.x && wp.y > foot.y)
+        // 사다리 칸에 있거나 사다리로 오르내림 — 중력을 끄고 경유점 쪽으로 타고 간다 (사다리 콜라이더는 OnCollisionEnter2D에서 무시)
+        // 같은 높이로 사다리를 벗어날 때도 이 방식이어야 사다리 꼭대기 옆 바닥 모서리에 걸리지 않는다
+        // 발 칸은 몸 중심 기준이라 실제 발보다 한 칸 위로 잡힐 수 있다 — 바로 아래 사다리 꼭대기도 본다
+        bool ladderHere = IsClimbable(foot) || IsClimbable(foot + Vector2Int.up) || IsClimbable(foot + Vector2Int.down);
+        if (ladderHere || (wp.y != foot.y && IsClimbable(wp)))
         {
             _climbing = true;
             _rb.gravityScale = 0f;
-            _rb.linearVelocity = new Vector2(dx * 4f, CLIMB_SPEED);
+            float dy = wp.y + 0.35f - transform.position.y; // 몸 중심이 발보다 약 0.27 위 — 바닥 모서리를 넘을 만큼
+            // 사다리 칸으로 옮기고 → 높이를 맞추고 → 경유점 칸으로 (대각선으로 가면 위아래 바닥 모서리에 걸린다)
+            int climbX = wp.y > foot.y ? (ladderHere ? foot.x : wp.x) : (IsClimbable(wp) || IsClimbable(wp + Vector2Int.up) ? wp.x : foot.x);
+            float toClimbX = climbX + 0.5f - transform.position.x;
+            float cvx, cvy;
+            if (Mathf.Abs(dy) > 0.1f && Mathf.Abs(toClimbX) > 0.1f) { cvx = toClimbX * 4f; cvy = 0f; }
+            else if (Mathf.Abs(dy) > 0.1f) { cvx = toClimbX * 4f; cvy = dy * 4f; }
+            else { cvx = dx * 4f; cvy = dy * 4f; }
+            _rb.linearVelocity = new Vector2(Mathf.Clamp(cvx, -moveSpeed, moveSpeed), Mathf.Clamp(cvy, -CLIMB_SPEED, CLIMB_SPEED));
             return true;
         }
         StopClimb();
@@ -440,7 +451,9 @@ public class EnemyNavigator : MonoBehaviour
         var other = c.collider;
         if (other is TilemapCollider2D || other is CompositeCollider2D) return;
         if (other.attachedRigidbody != null && other.attachedRigidbody.bodyType == RigidbodyType2D.Dynamic) return;
-        if (other.GetComponentInParent<FloorTile>() != null || other.GetComponentInParent<Door>() != null) return;
+        var floorTile = other.GetComponentInParent<FloorTile>();
+        if (floorTile != null && floorTile.AllowsVerticalMovement()) { Physics2D.IgnoreCollision(c.otherCollider, other); return; } // 사다리는 타고 지나간다
+        if (floorTile != null || other.GetComponentInParent<Door>() != null) return;
 
         var b = other.GetComponentInParent<Building>();
         if (b != null && _finderMap != null)
