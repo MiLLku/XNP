@@ -33,6 +33,9 @@ public class RaidSystemSaveData
     /// <summary>진행 중인 습격의 종류 (RaidType 정수값, 구 세이브에는 없음 — 0 = 일반)</summary>
     public int raidType;
 
+    /// <summary>진행 중인 습격의 위협 단계 (구 세이브에는 없음 — 0)</summary>
+    public int threatStage;
+
     public RaidSystemSaveData()
     {
         activeRaidId = -1;

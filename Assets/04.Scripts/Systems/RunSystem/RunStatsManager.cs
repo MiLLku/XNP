@@ -83,6 +83,33 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
     /// <summary>채용 기록 (EmployeeManager.RecordHire가 부름)</summary>
     public void OnHired() => stats.staffHired++;
 
+    /// <summary>이번 런에서 직원이 내려간 가장 깊은 칸 수 (시작 스폰 높이 기준)</summary>
+    public int DeepestDepth => stats.deepestDepth;
+
+    /// <summary>
+    /// 위협 단계 (0부터) = 최대 깊이가 속한 지층이 지표에서 몇 층 아래인지.
+    /// 지층 목록의 첫 층(하늘 — 언덕 꼭대기만 걸침)은 지표와 같은 0단계로 친다.
+    /// 지표 0 → 바위 동굴(침식 동굴 포함) 1 → 심부 2 → 경계층 3 → 최하층 4. 지층 정보가 없으면 0.
+    /// </summary>
+    public int ThreatStage
+    {
+        get
+        {
+            var layout = DefinitionDatabase.Instance != null ? DefinitionDatabase.Instance.StrataLayout : null;
+            var em = EmployeeManager.instance;
+            if (layout == null || layout.IsEmpty || em == null) return 0;
+            int deepestY = Mathf.FloorToInt(em.SpawnPoint.y) - stats.deepestDepth;
+            return Mathf.Max(0, BandIndexFromTop(layout, deepestY) - 1);
+        }
+    }
+
+    private static int BandIndexFromTop(StrataLayout layout, int y)
+    {
+        int above = 0;
+        foreach (var b in layout.Bands) if (b.bottomY > y) above++;
+        return above;
+    }
+
     private static int AliveStaff()
     {
         var em = EmployeeManager.instance;

@@ -70,6 +70,20 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Tooltip("브리칭 습격 — 웨이브 적 수 대비 자폭체 비율 (최소 1마리)")]
     [Min(0f)] [SerializeField] private float bomberRatio = 0.5f;
 
+    [Header("깊이 위협 — 단계 = 최대 깊이가 지표에서 몇 지층 아래인지 (RunStatsManager.ThreatStage, 임시 수치)")]
+    [Tooltip("단계마다 습격 적 수 +이만큼 (적 수 상한은 그대로)")]
+    [Min(0)] [SerializeField] private int extraEnemiesPerStage = 1;
+
+    [Tooltip("단계마다 적 체력·피해 +이 비율")]
+    [Min(0f)] [SerializeField] private float statBonusPerStage = 0.2f;
+
+    [Tooltip("단계마다 땅굴 습격 가중치 +이만큼")]
+    [Min(0f)] [SerializeField] private float tunnelWeightPerStage = 10f;
+
+    [Tooltip("심층 전용 적 ID — 이 단계부터 늘어난 적 자리를 채운다")]
+    [SerializeField] private int deepXenopsId = 6104;
+    [Min(0)] [SerializeField] private int deepEnemyMinStage = 1;
+
     [Header("디버그")]
     [SerializeField] private bool showDebugLogs = false;
 
@@ -80,6 +94,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private RaidState currentState = RaidState.None;
     private RaidData activeRaid;
     private RaidType activeRaidType = RaidType.Normal;
+
+    /// <summary>이번 습격의 위협 단계 (시작 시점) · 그 단계로 늘어난 적 수</summary>
+    private int activeThreatStage;
+    private int activeExtraEnemies;
     private int currentWaveIndex;
     private float waveTimer;
     private bool waitingForNextWave;
@@ -105,6 +123,18 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     public RaidData ActiveRaid => activeRaid;
     public RaidType ActiveRaidType => activeRaidType;
 
+    public int ActiveThreatStage => activeThreatStage;
+
+    /// <summary>지금 런의 위협 단계 (런 기록이 없으면 0)</summary>
+    private static int CurrentThreatStage => RunStatsManager.instance != null ? RunStatsManager.instance.ThreatStage : 0;
+
+    /// <summary>알림용 단계 이름 — 0단계부터 Ⅰ단계</summary>
+    public static string StageLabel(int stage)
+    {
+        string[] roman = { "Ⅰ", "Ⅱ", "Ⅲ", "Ⅳ", "Ⅴ", "Ⅵ", "Ⅶ", "Ⅷ" };
+        return (stage >= 0 && stage < roman.Length ? roman[stage] : (stage + 1).ToString()) + "단계";
+    }
+
     /// <summary>알림·UI용 습격 종류 이름</summary>
     public static string TypeLabel(RaidType t) => t == RaidType.Tunnel ? "땅굴 습격" : t == RaidType.Breach ? "브리칭 습격" : "일반 습격";
     public bool IsRaidActive => currentState == RaidState.InProgress || currentState == RaidState.Approaching;
@@ -126,6 +156,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             waveTimer   = waveTimer,
             activeMultiplier = activeMultiplier,
             raidType = (int)activeRaidType,
+            threatStage = activeThreatStage,
             lastRaidGameDay = lastRaidGameDay,
             nextRaidGameDay = nextRaidGameDay
         };
@@ -150,6 +181,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         lastRaidGameDay  = data.raidSystem.lastRaidGameDay;
         nextRaidGameDay  = data.raidSystem.nextRaidGameDay;
         activeRaidType   = (RaidType)data.raidSystem.raidType;
+        activeThreatStage = data.raidSystem.threatStage;
 
         int raidId = data.raidSystem.activeRaidId;
         if (raidId >= 0)
@@ -170,6 +202,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             {
                 spawnedEntities.Add(obj);
                 ApplyRaidTypeTo(obj);
+                obj.ApplyThreatScaling(StageMultiplier, true); // 개체 체력은 저장되지 않아 가득 찬 채로 복원된다 — 단계 배율로 다시 채움
             }
         }
 
@@ -223,9 +256,11 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
         activeRaid = raid;
         activeRaidType = type;
+        activeThreatStage = CurrentThreatStage;
         currentWaveIndex = 0;
         spawnedEntities.Clear();
         activeMultiplier = ComputeMultiplier(raid);
+        activeExtraEnemies = Mathf.Clamp(EnemyCap() - PlannedCount(raid), 0, activeThreatStage * extraEnemiesPerStage);
         lastRaidGameDay = GameDayNow;
         ScheduleNextRaid();
 
@@ -266,7 +301,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private RaidType RollRaidType(int day)
     {
         bool special = day >= specialRaidMinDay;
-        float t = special ? tunnelWeight : 0f, b = special ? breachWeight : 0f;
+        float t = special ? tunnelWeight + tunnelWeightPerStage * CurrentThreatStage : 0f, b = special ? breachWeight : 0f;
         float total = normalWeight + t + b;
         if (total <= 0f) return RaidType.Normal;
         float r = UnityEngine.Random.value * total;
@@ -318,7 +353,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 위협 레터 + 강제 일시정지 (확인 시 NotificationManager가 재개)
         NotificationManager.instance?.PushLetter(new Letter
         {
-            title = $"침공 발생 — {TypeLabel(activeRaidType)}",
+            title = $"침공 발생 — {TypeLabel(activeRaidType)} · {StageLabel(activeThreatStage)}",
             body = $"{raid.raidName} — {TypeDescription(activeRaidType)} 직원을 소집해 방어하세요.",
             type = LetterType.Threat,
             pauseUntilRead = true
@@ -384,6 +419,18 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             }
         }
 
+        // 깊이 위협: 첫 웨이브에 단계만큼 적을 더한다 — 심층에 닿았으면 심층 전용 적으로
+        if (currentWaveIndex == 0 && activeExtraEnemies > 0 && wave.entries.Count > 0)
+        {
+            for (int i = 0; i < activeExtraEnemies; i++)
+            {
+                var basis = wave.entries[UnityEngine.Random.Range(0, wave.entries.Count)];
+                int id = activeThreatStage >= deepEnemyMinStage ? deepXenopsId : basis.xenopsDataId;
+                SpawnRaidXenops(new RaidSpawnEntry { xenopsDataId = id, count = 1, spawnRadius = basis.spawnRadius }, tunnelPos);
+                await UniTask.Delay(TimeSpan.FromSeconds(0.5f), cancellationToken: ct);
+            }
+        }
+
         // 브리칭: 자폭체를 섞는다
         if (activeRaidType == RaidType.Breach)
         {
@@ -436,17 +483,44 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         if (XenopsManager.instance == null) return;
 
         // 땅굴 자리는 좁은 굴이라 흩뿌리지 않는다
-        Vector3 spawnPos = at.HasValue ? at.Value + new Vector3(UnityEngine.Random.Range(-0.3f, 0.3f), 0f, 0f) : GetSpawnPosition(entry);
+        Vector3 spawnPos = SnapToStandable(at.HasValue ? at.Value + new Vector3(UnityEngine.Random.Range(-0.3f, 0.3f), 0f, 0f) : GetSpawnPosition(entry));
         var xenops = XenopsManager.instance.SpawnXenops(entry.xenopsDataId, spawnPos);
 
         if (xenops != null)
         {
             spawnedEntities.Add(xenops);
             ApplyRaidTypeTo(xenops);
+            xenops.ApplyThreatScaling(StageMultiplier, true);
 
             if (showDebugLogs)
                 Debug.Log($"[RaidManager] 제놉스 스폰: ID {entry.xenopsDataId} at {spawnPos}");
         }
+    }
+
+    private TilePathfinder standChecker;
+    private GameMap standCheckerMap;
+
+    /// <summary>
+    /// 흩뿌린 스폰 지점이 지형 속이면 가까운(4칸 안) 설 수 있는 칸으로 옮긴다 —
+    /// 바위 속에 낀 적은 길을 못 잡아 제자리에 멈췄다. 못 찾으면 그대로.
+    /// </summary>
+    private Vector3 SnapToStandable(Vector3 pos)
+    {
+        var map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
+        if (map == null) return pos;
+        if (standCheckerMap != map) { standCheckerMap = map; standChecker = new TilePathfinder(map); }
+
+        var foot = new Vector2Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y));
+        if (standChecker.IsValidPosition(foot)) return pos;
+        for (int r = 1; r <= 4; r++)
+            for (int dy = -r; dy <= r; dy++)
+                for (int dx = -r; dx <= r; dx++)
+                {
+                    if (Mathf.Abs(dx) != r && Mathf.Abs(dy) != r) continue;
+                    var c = foot + new Vector2Int(dx, dy);
+                    if (standChecker.IsValidPosition(c)) return new Vector3(c.x + 0.5f, c.y + 0.3f, pos.z);
+                }
+        return pos;
     }
 
     private Vector3 GetSpawnPosition(RaidSpawnEntry entry)
@@ -518,11 +592,34 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         foreach (var wave in raid.waves)
             foreach (var entry in wave.entries)
                 baseCount += entry.count;
-        int cap = Mathf.Min(maxEnemiesPerRaid, Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(1, employees) * maxEnemiesPerEmployee)));
+        int cap = EnemyCap();
         if (baseCount > 0 && baseCount * m > cap) m = cap / (float)baseCount;
 
         return Mathf.Max(0.1f, m);
     }
+
+    /// <summary>한 번 습격의 적 수 상한 = 살아 있는 직원 × maxEnemiesPerEmployee, 절대 maxEnemiesPerRaid</summary>
+    private int EnemyCap()
+    {
+        int employees = 0;
+        if (EmployeeManager.instance != null)
+            foreach (var e in EmployeeManager.instance.AllEmployees)
+                if (e != null && e.State != EmployeeState.Dead) employees++;
+        return Mathf.Min(maxEnemiesPerRaid, Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(1, employees) * maxEnemiesPerEmployee)));
+    }
+
+    /// <summary>배수를 적용해 실제로 스폰될 적 수 (SpawnWaveAsync와 같은 반올림, 자폭체·단계 추가분 제외)</summary>
+    private int PlannedCount(RaidData raid)
+    {
+        int n = 0;
+        foreach (var wave in raid.waves)
+            foreach (var entry in wave.entries)
+                n += Mathf.Max(1, Mathf.RoundToInt(entry.count * activeMultiplier));
+        return n;
+    }
+
+    /// <summary>위협 단계의 체력·피해 배율</summary>
+    private float StageMultiplier => 1f + statBonusPerStage * activeThreatStage;
 
     private void CompleteRaid()
     {

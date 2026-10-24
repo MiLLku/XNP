@@ -32,6 +32,9 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
     // 스탯 (Start에서 읽음)
     private float _moveSpeed;
     private float _attackDamage;
+
+    /// <summary>위협 단계 배율이 붙은 피해 (Xenops.StatMultiplier)</summary>
+    private float Damage => _attackDamage * (_xenops != null ? _xenops.StatMultiplier : 1f);
     private float _attackRange;
     private float _attackInterval;
     private float _minRange;          // 최소 유지 거리 = attackRange * 0.6
@@ -135,7 +138,7 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
             _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
             if (_cooldownTimer <= 0f)
             {
-                wall.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(_attackDamage)));
+                wall.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(Damage)));
                 _cooldownTimer = _attackInterval;
                 _state = State.Cooldown;
             }
@@ -215,7 +218,7 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
 
         // ── 공격 적중 처리 ──
         // 1. 즉시 체력 피해
-        _target.TakeDamage(_attackDamage);
+        _target.TakeDamage(Damage);
 
         // 2. 지속 피해 (DoT)
         if (_dotDps > 0f && _dotDuration > 0f)

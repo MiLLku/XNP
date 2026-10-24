@@ -34,6 +34,9 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
     // 스탯 (Start에서 XenopsData로부터 읽음)
     private float _moveSpeed;
     private float _attackDamage;
+
+    /// <summary>위협 단계 배율이 붙은 피해 (Xenops.StatMultiplier)</summary>
+    private float Damage => _attackDamage * (_xenops != null ? _xenops.StatMultiplier : 1f);
     private float _attackRange;
     private float _attackInterval; // 1 / attackSpeed
 
@@ -149,7 +152,7 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
         var wall = _nav.TargetBuilding;
         if (wall != null && EnemyNavigator.DistanceToBuilding(transform.position, wall) <= _attackRange + 0.6f)
         {
-            wall.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(_attackDamage)));
+            wall.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(Damage)));
             _cooldownTimer = _attackInterval;
             _state         = State.Cooldown;
             return;
@@ -167,7 +170,7 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
             return;
         }
 
-        _target.TakeDamage(_attackDamage);
+        _target.TakeDamage(Damage);
         _cooldownTimer = _attackInterval;
         _state         = State.Cooldown;
     }
