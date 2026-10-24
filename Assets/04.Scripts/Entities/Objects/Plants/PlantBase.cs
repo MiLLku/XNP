@@ -63,6 +63,11 @@ public abstract class PlantBase : MonoBehaviour, IHarvestable
     [Tooltip("성장도 0에서 다 자랄 때까지 걸리는 시간(초). 0이면 생성 즉시 성체.")]
     [SerializeField] protected float growthTime = 60f;
 
+    [Tooltip("0보다 크고 growthTime보다 크면 성장 시간이 growthTime~이 값 사이 무작위 (수확할 때마다 새로 굴림).")]
+    [SerializeField, Min(0f)] protected float growthTimeMax = 0f;
+
+    private float activeGrowthTime;
+
     [Tooltip("수확 후 되돌아갈 성장도(0~1). 재성장 부류만 사용합니다.")]
     [SerializeField, Range(0f, 1f)] protected float regrowFrom = 0f;
 
@@ -167,8 +172,16 @@ public abstract class PlantBase : MonoBehaviour, IHarvestable
         }
         if (IsGrowthBlocked) return;
 
-        SetGrowth(growthTime > 0f ? growth + Time.deltaTime * growthRate / growthTime : 1f);
+        if (activeGrowthTime <= 0f) RollGrowthTime();
+        SetGrowth(activeGrowthTime > 0f ? growth + Time.deltaTime * growthRate / activeGrowthTime : 1f);
     }
+
+    /// <summary>
+    /// 이번 성장에 걸릴 시간을 정한다 — growthTimeMax가 growthTime보다 크면 그 사이 무작위 (나무: 벌목할 때마다 새로).
+    /// 굴린 값은 저장하지 않는다 — 불러오면 성장도는 그대로, 남은 시간만 새로 굴린다.
+    /// </summary>
+    private void RollGrowthTime()
+        => activeGrowthTime = growthTimeMax > growthTime ? Random.Range(growthTime, growthTimeMax) : growthTime;
 
     #endregion
 
@@ -230,7 +243,11 @@ public abstract class PlantBase : MonoBehaviour, IHarvestable
         DropYields();
 
         if (lifecycle == PlantLifecycle.SingleUse) Remove();
-        else SetGrowth(regrowFrom);
+        else
+        {
+            RollGrowthTime();
+            SetGrowth(regrowFrom);
+        }
     }
 
     public float GetHarvestTime() => harvestTime;

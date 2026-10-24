@@ -106,7 +106,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   lifecycle: 1
-  growthTime: 60
+  growthTime: 300
+  growthTimeMax: 600
   regrowFrom: 0
   harvestTime: 5
   weedTime: 6
