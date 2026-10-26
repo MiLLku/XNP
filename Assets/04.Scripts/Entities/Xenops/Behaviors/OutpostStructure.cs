@@ -4,10 +4,10 @@ using UnityEngine;
 /// <summary>거점 습격 구조물 종류</summary>
 public enum OutpostKind
 {
-    /// <summary>침식 송신탑 — 반경 안의 칸 침식·방 침식을 서서히 올림</summary>
+    /// <summary>침식 송신탑 — 서 있는 동안 맵 전체 칸 침식을 일정량 올림</summary>
     ErosionTower = 0,
 
-    /// <summary>공포 토템 — 반경 안 직원 무드 하락 + 정신 이상 저항 하락</summary>
+    /// <summary>공포 토템 — 모든 직원 무드가 시간이 갈수록 내려감</summary>
     FearTotem = 1,
 }
 
@@ -16,20 +16,17 @@ public enum OutpostKind
 ///
 /// 흐름: 건설자(경비 중 1마리)가 BUILD_REACH 안에 붙어 있는 동안 buildTime에 걸쳐 지어진다(진행 막대).
 ///       건설 중 건설자가 죽으면 구조물은 생기지 않고 사라진다(드롭 없음). 정화 수류탄은 진행도를 0으로 되돌린다.
-///       다 지어지면 종류별 효과를 낸다. 부서지면 XenopsData의 처치 드롭(침식 결정체)이 떨어진다.
-/// 정화 등(<see cref="PurifyLamp"/>) 반경 안이면 건설 속도·효과가 절반.
+///       다 지어지면 <b>맵 전체</b>에 효과를 낸다(범위 계산 없음). 부서지면 효과가 바로 풀리고 처치 드롭(침식 결정체)이 떨어진다.
 /// </summary>
 [RequireComponent(typeof(Xenops))]
-public class OutpostStructure : MonoBehaviour, IXenopsBehavior, IEntityErosionSource
+public class OutpostStructure : MonoBehaviour, IXenopsBehavior
 {
     // shortcut: 임시 수치 — 밸런스 확정 시 데이터로 뺄 것
     private const float BUILD_REACH = 3f;
-    private const float TOWER_RADIUS = 15f;
-    private const float TOWER_RATE = 0.5f;     // 초당 침식 상승
-    private const float TOWER_MAX = 30f;
-    private const float TOTEM_RADIUS = 20f;
-    private const float TOTEM_MOOD = -10f;
-    private const float TOTEM_RESIST_MULT = 0.8f; // 정신 이상 저항 ×0.8 = 임계점이 올라 더 잘 무너진다
+    private const float TOWER_EROSION = 10f;        // 송신탑 하나당 맵 전체 칸 침식 +
+    private const float TOTEM_START_MOOD = -1f;
+    private const float TOTEM_MAX_MOOD = -12f;
+    private const float TOTEM_STEP_SECONDS = 250f;  // 이 시간마다 무드 -1 (0.25일)
     private const float EFFECT_TICK = 1f;
 
     [SerializeField] private OutpostKind kind = OutpostKind.ErosionTower;
@@ -39,8 +36,6 @@ public class OutpostStructure : MonoBehaviour, IXenopsBehavior, IEntityErosionSo
 
     private Xenops _xenops;
     private float _effectTimer;
-    private float _builtSeconds;
-    private bool _registered;
     private Transform _bar;
 
     /// <summary>건설 진행도 0~1 (1 = 완성)</summary>
@@ -48,10 +43,24 @@ public class OutpostStructure : MonoBehaviour, IXenopsBehavior, IEntityErosionSo
     public bool IsBuilt => Progress >= 1f;
     public OutpostKind Kind => kind;
 
+    /// <summary>다 지어진 뒤 흐른 시간(초) — 토템 무드가 깊어지는 기준, 저장됨</summary>
+    public float BuiltSeconds { get; private set; }
+
     /// <summary>짓는 개체 — 건설 중 죽으면 구조물이 사라진다. 불러온 뒤에는 근처 습격 적 중에서 다시 고른다</summary>
     public Xenops Builder { get; set; }
 
     public static string KindLabel(OutpostKind k) => k == OutpostKind.FearTotem ? "공포 토템" : "침식 송신탑";
+
+    /// <summary>다 지어진 침식 송신탑들이 더하는 맵 전체 칸 침식 (TerrainErosionManager가 실효 침식 상한에도 더한다)</summary>
+    public static float GlobalErosionBonus
+    {
+        get
+        {
+            float sum = 0f;
+            foreach (var s in active) if (s != null && s.IsBuilt && s.kind == OutpostKind.ErosionTower) sum += TOWER_EROSION;
+            return sum;
+        }
+    }
 
     public XenopsType BehaviorType => XenopsType.Hostile;
     public bool IsActive { get; private set; }
@@ -63,6 +72,8 @@ public class OutpostStructure : MonoBehaviour, IXenopsBehavior, IEntityErosionSo
     private SpriteRenderer _renderer;
     private Sprite _ownSprite;
     private Color _ownColor;
+
+    private string EffectKey => $"outpost_{(int)kind}_{(_xenops != null ? _xenops.InstanceId : 0)}";
 
     private void Awake()
     {
@@ -76,12 +87,16 @@ public class OutpostStructure : MonoBehaviour, IXenopsBehavior, IEntityErosionSo
     private void OnDestroy()
     {
         active.Remove(this);
-        if (_registered) EntityErosionField.instance?.UnregisterSource(this);
-        ClearTotemMood();
+        ClearEffects();
     }
 
-    /// <summary>불러온 진행도 (구조물이 아닌 세이브 값 -1은 무시)</summary>
-    public void RestoreProgress(float p) { if (p >= 0f) Progress = Mathf.Clamp01(p); }
+    /// <summary>불러온 진행도·완성 후 경과 시간 (구조물이 아닌 세이브 값 -1은 무시)</summary>
+    public void RestoreProgress(float p, float builtSeconds = 0f)
+    {
+        if (p < 0f) return;
+        Progress = Mathf.Clamp01(p);
+        BuiltSeconds = Mathf.Max(0f, builtSeconds);
+    }
 
     /// <summary>정화 수류탄 — 체력 50% 피해, 건설 중이면 진행도 0</summary>
     public void HitByPurifyGrenade()
@@ -98,7 +113,6 @@ public class OutpostStructure : MonoBehaviour, IXenopsBehavior, IEntityErosionSo
         if (SaveManager.instance != null && SaveManager.instance.IsLoading) return;
 
         if (_renderer != null) { _renderer.sprite = _ownSprite; _renderer.color = IsBuilt ? _ownColor : _ownColor * new Color(1f, 1f, 1f, 0.5f); }
-        bool suppressed = PurifyLamp.Suppresses(transform.position);
         UpdateBar();
 
         if (!IsBuilt)
@@ -106,18 +120,19 @@ public class OutpostStructure : MonoBehaviour, IXenopsBehavior, IEntityErosionSo
             if (Builder == null) Builder = FindBuilder();
             if (Builder == null) { Collapse(); return; }
             if (Vector2.Distance(Builder.transform.position, transform.position) <= BUILD_REACH)
-                Progress = Mathf.Min(1f, Progress + Time.deltaTime / Mathf.Max(1f, buildTime) * (suppressed ? 0.5f : 1f));
+                Progress = Mathf.Min(1f, Progress + Time.deltaTime / Mathf.Max(1f, buildTime));
             return;
         }
 
-        _builtSeconds += Time.deltaTime;
+        BuiltSeconds += Time.deltaTime;
         _effectTimer -= Time.deltaTime;
         if (_effectTimer > 0f) return;
         _effectTimer = EFFECT_TICK;
 
-        float mult = suppressed ? 0.5f : 1f;
-        if (kind == OutpostKind.ErosionTower) TickTower(mult);
-        else TickTotem(mult);
+        if (kind == OutpostKind.ErosionTower)
+            TerrainErosionManager.instance?.SetOutdoorErosionModifier(EffectKey, "침식 송신탑", TOWER_EROSION);
+        else
+            TickTotem();
     }
 
     /// <summary>건설자 없이 짓던 자리는 무너진다 — 드롭 없이 사라짐</summary>
@@ -139,78 +154,25 @@ public class OutpostStructure : MonoBehaviour, IXenopsBehavior, IEntityErosionSo
         return null;
     }
 
-    #region 침식 송신탑
+    /// <summary>공포 토템 무드 — 다 지어진 순간 -1, TOTEM_STEP_SECONDS마다 -1, 최대 TOTEM_MAX_MOOD</summary>
+    public float TotemMood => Mathf.Max(TOTEM_MAX_MOOD, TOTEM_START_MOOD - Mathf.Floor(BuiltSeconds / TOTEM_STEP_SECONDS));
 
-    private void TickTower(float mult)
-    {
-        if (!_registered && EntityErosionField.instance != null) { EntityErosionField.instance.RegisterSource(this); _registered = true; }
-        towerMult = mult;
-
-        // 반경 안 방의 침식도 서서히 올린다 (방 대표 칸 기준)
-        var rooms = RoomManager.instance;
-        if (rooms == null) return;
-        foreach (var pair in rooms.Rooms)
-        {
-            var room = pair.Value;
-            if (Vector2.Distance(new Vector2(room.AverageX, room.AverageY), transform.position) > TOWER_RADIUS) continue;
-            if (room.Erosion < TOWER_MAX) room.Erosion = Mathf.Min(TOWER_MAX, room.Erosion + TOWER_RATE * mult * EFFECT_TICK);
-        }
-    }
-
-    private float towerMult = 1f;
-
-    public Vector2 EmitPosition => transform.position;
-    public float EmitRadius => TOWER_RADIUS;
-    public float FixedErosionAmount => Mathf.Min(TOWER_MAX, TOWER_RATE * _builtSeconds) * towerMult;
-    public bool IsEmitting => isActiveAndEnabled && IsBuilt && kind == OutpostKind.ErosionTower && FixedErosionAmount > 0f;
-    public string ErosionSourceKey => $"outpost_tower_{GetEntityId().GetHashCode()}";
-    public string ErosionSourceName => "침식 송신탑";
-    public bool HorizontalOnly => false;
-    public bool Covers(Vector2 worldPosition) => Vector2.Distance(worldPosition, transform.position) <= TOWER_RADIUS;
-
-    #endregion
-
-    #region 공포 토템
-
-    private string MoodKey => $"outpost_totem_{GetEntityId().GetHashCode()}";
-
-    private void TickTotem(float mult)
+    private void TickTotem()
     {
         if (EmployeeManager.instance == null) return;
+        float mood = TotemMood;
         foreach (var e in EmployeeManager.instance.AllEmployees)
-        {
-            if (e == null || e.State == EmployeeState.Dead) continue;
-            bool inRange = Vector2.Distance(e.transform.position, transform.position) <= TOTEM_RADIUS;
-            e.SetConditionalMental(MoodKey, "공포 토템", TOTEM_MOOD * mult, inRange);
-        }
+            if (e != null && e.State != EmployeeState.Dead) e.SetConditionalMental(EffectKey, "공포 토템", mood, true);
     }
 
-    private void ClearTotemMood()
+    /// <summary>부서지거나 사라지면 효과를 바로 푼다</summary>
+    private void ClearEffects()
     {
-        if (kind != OutpostKind.FearTotem || EmployeeManager.instance == null) return;
-        foreach (var e in EmployeeManager.instance.AllEmployees)
-            if (e != null) e.SetConditionalMental(MoodKey, "공포 토템", 0f, false);
+        if (kind == OutpostKind.ErosionTower) TerrainErosionManager.instance?.RemoveOutdoorErosionModifier(EffectKey);
+        else if (EmployeeManager.instance != null)
+            foreach (var e in EmployeeManager.instance.AllEmployees)
+                if (e != null) e.SetConditionalMental(EffectKey, "공포 토템", 0f, false);
     }
-
-    /// <summary>
-    /// 이 자리의 정신 이상 저항 배율 — 다 지어진 공포 토템 반경 안이면 낮아진다(정화 등이 효과 절반).
-    /// EmployeeMental.GetBreakResistance가 곱한다.
-    /// </summary>
-    public static float TotemResistFactorAt(Vector2 pos)
-    {
-        float f = 1f;
-        foreach (var s in active)
-        {
-            if (s == null || !s.IsBuilt || s.kind != OutpostKind.FearTotem) continue;
-            if (Vector2.Distance(pos, s.transform.position) > TOTEM_RADIUS) continue;
-            float drop = 1f - TOTEM_RESIST_MULT;
-            if (PurifyLamp.Suppresses(s.transform.position)) drop *= 0.5f;
-            f = Mathf.Min(f, 1f - drop);
-        }
-        return f;
-    }
-
-    #endregion
 
     #region 진행 막대
 

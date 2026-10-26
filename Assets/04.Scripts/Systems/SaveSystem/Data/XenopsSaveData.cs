@@ -60,5 +60,8 @@ public class XenopsSaveData
     /// <summary>거점 구조물 건설 진행도 (-1 = 구조물 아님)</summary>
     public float buildProgress = -1f;
 
+    /// <summary>거점 구조물이 다 지어진 뒤 흐른 시간(초) — 공포 토템 무드 진행</summary>
+    public float builtSeconds;
+
     #endregion
 }

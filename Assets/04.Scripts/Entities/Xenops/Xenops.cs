@@ -436,7 +436,8 @@ public class Xenops : MonoBehaviour
             infiltratedBuildingInstanceId = infiltratedBuildingInstanceId,
             equippedSlot = -1, // 직원 장착 제놉스는 폐지(제놉스 도감 → 장비 제작으로 대체)
             health = GetComponent<XenopsHealth>() != null ? GetComponent<XenopsHealth>().CurrentHealth : 0f,
-            buildProgress = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().Progress : -1f
+            buildProgress = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().Progress : -1f,
+            builtSeconds = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().BuiltSeconds : 0f
         };
 
         // 서브 컴포넌트 데이터 수집
@@ -459,7 +460,7 @@ public class Xenops : MonoBehaviour
         }
 
         if (data.health > 0f) GetComponent<XenopsHealth>()?.SetCurrentHealth(data.health);
-        GetComponent<OutpostStructure>()?.RestoreProgress(data.buildProgress);
+        GetComponent<OutpostStructure>()?.RestoreProgress(data.buildProgress, data.builtSeconds);
 
         instanceId = data.instanceId;
         currentState = (XenopsState)data.state;
