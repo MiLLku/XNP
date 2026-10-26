@@ -47,6 +47,7 @@ public class MainMenuController : MonoBehaviour
         var title = RuntimeUI.Text(panel.transform, "XENOPS", 40);
         title.alignment = TextAlignmentOptions.Center;
 
+        BuildDifficultyRow(panel.transform);
         RuntimeUI.Btn(panel.transform, "새 게임", 0, NewGame, RuntimeUI.BTN_ON);
         var latest = LatestSaveSlot();
         var cont = RuntimeUI.Btn(panel.transform, latest != null ? "이어하기" : "이어하기 (세이브 없음)", 0, () => Continue(latest),
@@ -55,9 +56,36 @@ public class MainMenuController : MonoBehaviour
         RuntimeUI.Btn(panel.transform, "종료", 0, Quit, RuntimeUI.BTN);
     }
 
+    /// <summary>새 게임 난이도 (ThreatDifficulty.order) — 기본 보통</summary>
+    private static int selectedDifficulty = 1;
+    private readonly System.Collections.Generic.List<(Button button, int order)> difficultyButtons = new System.Collections.Generic.List<(Button, int)>();
+
+    private void BuildDifficultyRow(Transform parent)
+    {
+        var diffs = RunStatsManager.Difficulties;
+        if (diffs.Length == 0) return;
+        RuntimeUI.Text(parent, "난이도", 16);
+        var row = RuntimeUI.Row(parent, 6);
+        foreach (var d in diffs)
+        {
+            int order = d.order;
+            var b = RuntimeUI.Btn(row, d.displayName, 110, () => SelectDifficulty(order), RuntimeUI.BTN);
+            difficultyButtons.Add((b, order));
+        }
+        SelectDifficulty(selectedDifficulty);
+    }
+
+    private void SelectDifficulty(int order)
+    {
+        selectedDifficulty = order;
+        foreach (var (button, o) in difficultyButtons)
+            button.GetComponent<Image>().color = o == order ? RuntimeUI.BTN_ON : RuntimeUI.BTN;
+    }
+
     private static void NewGame()
     {
         SaveManager.PendingLoadSlot = null;
+        RunStatsManager.PendingDifficulty = selectedDifficulty;
         SceneManager.LoadScene(GAME_SCENE);
     }
 

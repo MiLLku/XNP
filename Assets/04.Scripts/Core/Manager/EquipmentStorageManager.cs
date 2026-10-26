@@ -85,6 +85,9 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
     /// <summary>남은 보관 칸. 풀이 이미 넘쳐 있으면 0.</summary>
     public int FreeSlots => Mathf.Max(0, Capacity - pool.Count);
 
+    /// <summary>보관 중인 장비 수 (착용 중인 것 제외)</summary>
+    public int PooledCount => pool.Count;
+
     /// <summary>
     /// 이 산출물을 만들 자리가 있는지. 장비가 아니면 항상 true.
     ///

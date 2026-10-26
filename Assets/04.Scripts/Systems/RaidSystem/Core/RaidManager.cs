@@ -41,17 +41,16 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Tooltip("습격 사이 간격 (게임일, 최소~최대 무작위)")]
     [SerializeField] private Vector2 raidIntervalDays = new Vector2(0.7f, 1.5f);
 
-    [Tooltip("지난 습격 뒤 최소 간격을 넘긴 하루마다 더해지는 배수 — 텀이 길었으면 더 많이 온다")]
-    [Min(0f)] [SerializeField] private float overdueMultiplierPerDay = 0.5f;
-
     [Tooltip("지난 습격 뒤 이 일수를 넘기면 '강한 습격'(RaidData.isStrong)도 뽑힐 수 있다")]
     [Min(0f)] [SerializeField] private float strongRaidAfterDays = 1.5f;
 
-    [Tooltip("한 번 습격의 적 수 상한 = 살아 있는 직원 수 × 이 값 (클리어 가능하게)")]
-    [Min(0.5f)] [SerializeField] private float maxEnemiesPerEmployee = 1.5f;
+    [Header("습격 규모 — 마리 수 = 위협 점수 ÷ 습격 종류의 한 마리당 점수 (ThreatScore, 임시 수치)")]
+    [Min(1f)] [SerializeField] private float normalPointsPerEnemy = 10f;
+    [Min(1f)] [SerializeField] private float tunnelPointsPerEnemy = 12f;
+    [Min(1f)] [SerializeField] private float breachPointsPerEnemy = 12f;
 
-    [Tooltip("한 번 습격의 적 수 절대 상한")]
-    [Min(1)] [SerializeField] private int maxEnemiesPerRaid = 12;
+    [Tooltip("성능을 위한 기술적 최대 마리 수 (난이도 상한이 아님)")]
+    [Min(1)] [SerializeField] private int maxEnemiesTechnical = 30;
 
     [Header("습격 종류 — 습격마다 무작위 (임시 가중치)")]
     [Min(0f)] [SerializeField] private float normalWeight = 60f;
@@ -67,12 +66,13 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Tooltip("브리칭 습격에 섞이는 자폭체 ID")]
     [SerializeField] private int bomberXenopsId = 6103;
 
-    [Tooltip("브리칭 습격 — 웨이브 적 수 대비 자폭체 비율 (최소 1마리)")]
-    [Min(0f)] [SerializeField] private float bomberRatio = 0.5f;
+    [Tooltip("브리칭 습격 — 전체 마리 수 중 자폭체 비율 (최소 1마리)")]
+    [Range(0f, 1f)] [SerializeField] private float bomberShare = 0.33f;
 
     [Header("깊이 위협 — 단계 = 최대 깊이가 지표에서 몇 지층 아래인지 (RunStatsManager.ThreatStage, 임시 수치)")]
-    [Tooltip("단계마다 습격 적 수 +이만큼 (적 수 상한은 그대로)")]
-    [Min(0)] [SerializeField] private int extraEnemiesPerStage = 1;
+    [Tooltip("심층 전용 적 비율 — 단계당 (deepEnemyMinStage부터, 최대 deepShareMax)")]
+    [Range(0f, 1f)] [SerializeField] private float deepSharePerStage = 0.15f;
+    [Range(0f, 1f)] [SerializeField] private float deepShareMax = 0.5f;
 
     [Tooltip("단계마다 적 체력·피해 +이 비율")]
     [Min(0f)] [SerializeField] private float statBonusPerStage = 0.2f;
@@ -97,7 +97,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     /// <summary>이번 습격의 위협 단계 (시작 시점) · 그 단계로 늘어난 적 수</summary>
     private int activeThreatStage;
-    private int activeExtraEnemies;
+    private readonly List<List<RaidSpawnEntry>> activePlan = new List<List<RaidSpawnEntry>>();
+
+    /// <summary>마지막으로 계산한 위협 점수와 항목 내역 (디버그·개발용 표시)</summary>
+    public ThreatScore.Breakdown LastThreat { get; private set; }
     private int currentWaveIndex;
     private float waveTimer;
     private bool waitingForNextWave;
@@ -259,13 +262,16 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         activeThreatStage = CurrentThreatStage;
         currentWaveIndex = 0;
         spawnedEntities.Clear();
-        activeMultiplier = ComputeMultiplier(raid);
-        activeExtraEnemies = Mathf.Clamp(EnemyCap() - PlannedCount(raid), 0, activeThreatStage * extraEnemiesPerStage);
+        activeMultiplier = 1f; // 구 배수 방식 — 세이브 호환용으로만 남김
+        LastThreat = CurrentThreat();
+        int total = EnemyCountFor(LastThreat.total, type);
+        BuildSpawnPlan(raid, type, total);
+        Debug.Log($"[RaidManager] {raid.raidName} {TypeLabel(type)} · {StageLabel(activeThreatStage)} — {LastThreat} → {total}마리 (한 마리당 {PointsPerEnemy(type)})");
         lastRaidGameDay = GameDayNow;
         ScheduleNextRaid();
 
         if (showDebugLogs)
-            Debug.Log($"[RaidManager] 레이드 시작: {raid.raidName} ({TypeLabel(type)}, 배수 {activeMultiplier:F2}, 위치 {raid.spawnLocation})");
+            Debug.Log($"[RaidManager] 레이드 시작: {raid.raidName} ({TypeLabel(type)}, 위치 {raid.spawnLocation})");
 
         RunRaidAsync(raid, RestartRaidTask()).Forget();
     }
@@ -354,7 +360,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         NotificationManager.instance?.PushLetter(new Letter
         {
             title = $"침공 발생 — {TypeLabel(activeRaidType)} · {StageLabel(activeThreatStage)}",
-            body = $"{raid.raidName} — {TypeDescription(activeRaidType)} 직원을 소집해 방어하세요.",
+            body = $"{raid.raidName} — {TypeDescription(activeRaidType)} 직원을 소집해 방어하세요.\n(위협 점수 {LastThreat.total:F0})",
             type = LetterType.Threat,
             pauseUntilRead = true
         });
@@ -403,43 +409,14 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             await UniTask.Delay(TimeSpan.FromSeconds(tunnelWarningSeconds), cancellationToken: ct);
         }
 
-        int waveTotal = 0;
-        foreach (var entry in wave.entries)
+        // 계획된 적을 차례로 (StartRaid에서 위협 점수로 정해 둔 마리 수 — BuildSpawnPlan)
+        if (currentWaveIndex < activePlan.Count)
         {
-            // 진행 상황 배수 적용 (최소 1마리)
-            int count = Mathf.Max(1, Mathf.RoundToInt(entry.count * activeMultiplier));
-            waveTotal += count;
-
-            for (int i = 0; i < count; i++)
+            foreach (var spawn in activePlan[currentWaveIndex])
             {
-                SpawnRaidXenops(entry, tunnelPos);
-
-                if (entry.spawnInterval > 0f)
-                    await UniTask.Delay(TimeSpan.FromSeconds(entry.spawnInterval), cancellationToken: ct);
-            }
-        }
-
-        // 깊이 위협: 첫 웨이브에 단계만큼 적을 더한다 — 심층에 닿았으면 심층 전용 적으로
-        if (currentWaveIndex == 0 && activeExtraEnemies > 0 && wave.entries.Count > 0)
-        {
-            for (int i = 0; i < activeExtraEnemies; i++)
-            {
-                var basis = wave.entries[UnityEngine.Random.Range(0, wave.entries.Count)];
-                int id = activeThreatStage >= deepEnemyMinStage ? deepXenopsId : basis.xenopsDataId;
-                SpawnRaidXenops(new RaidSpawnEntry { xenopsDataId = id, count = 1, spawnRadius = basis.spawnRadius }, tunnelPos);
-                await UniTask.Delay(TimeSpan.FromSeconds(0.5f), cancellationToken: ct);
-            }
-        }
-
-        // 브리칭: 자폭체를 섞는다
-        if (activeRaidType == RaidType.Breach)
-        {
-            var bomber = new RaidSpawnEntry { xenopsDataId = bomberXenopsId, count = 1, spawnRadius = 2f };
-            int bombers = Mathf.Max(1, Mathf.RoundToInt(waveTotal * bomberRatio));
-            for (int i = 0; i < bombers; i++)
-            {
-                SpawnRaidXenops(bomber, null);
-                await UniTask.Delay(TimeSpan.FromSeconds(0.5f), cancellationToken: ct);
+                SpawnRaidXenops(spawn, spawn.xenopsDataId == bomberXenopsId ? null : tunnelPos);
+                if (spawn.spawnInterval > 0f)
+                    await UniTask.Delay(TimeSpan.FromSeconds(spawn.spawnInterval), cancellationToken: ct);
             }
         }
     }
@@ -564,58 +541,69 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     #endregion
 
-    /// <summary>
-    /// 진행 상황 기반 스폰 배수: base + 일수·직원수 가산 + 텀 보너스(지난 습격 뒤 최소 간격을 넘긴 하루마다),
-    /// 상한 클램프. 그 뒤 적 수 상한(직원 수 × maxEnemiesPerEmployee, 절대 maxEnemiesPerRaid)에 맞춰 줄입니다.
-    /// </summary>
-    private float ComputeMultiplier(RaidData raid)
+    /// <summary>지금 런의 위협 점수 (난이도·적응 보정은 런 기록에서)</summary>
+    private ThreatScore.Breakdown CurrentThreat()
     {
-        int day = DayCycle.instance != null ? DayCycle.instance.Day : 0;
+        var rs = RunStatsManager.instance;
+        return ThreatScore.Compute(rs != null ? rs.Difficulty : null, rs != null ? rs.ThreatAdapt : 1f, activeThreatStage);
+    }
 
-        int employees = 0;
-        if (EmployeeManager.instance != null)
+    /// <summary>습격 종류의 한 마리당 점수</summary>
+    private float PointsPerEnemy(RaidType type)
+        => type == RaidType.Tunnel ? tunnelPointsPerEnemy : type == RaidType.Breach ? breachPointsPerEnemy : normalPointsPerEnemy;
+
+    /// <summary>마리 수 = 위협 점수 ÷ 한 마리당 점수 (반올림, 최소 1, 기술적 최대)</summary>
+    public int EnemyCountFor(float threat, RaidType type)
+        => Mathf.Clamp(Mathf.RoundToInt(threat / PointsPerEnemy(type)), 1, maxEnemiesTechnical);
+
+    /// <summary>
+    /// 이번 습격의 스폰 계획 — 정해진 마리 수를 RaidData 웨이브 항목의 count 비율대로 나누고(큰 나머지 순),
+    /// 깊이 단계면 그 비율만큼 심층 전용 적, 브리칭이면 자폭체로 첫 웨이브 몫을 바꾼다.
+    /// </summary>
+    private void BuildSpawnPlan(RaidData raid, RaidType type, int total)
+    {
+        activePlan.Clear();
+        foreach (var _ in raid.waves) activePlan.Add(new List<RaidSpawnEntry>());
+        if (activePlan.Count == 0) return;
+
+        int deep = activeThreatStage >= deepEnemyMinStage
+            ? Mathf.Max(1, Mathf.RoundToInt(total * Mathf.Min(deepShareMax, deepSharePerStage * activeThreatStage))) : 0;
+        int bombers = type == RaidType.Breach ? Mathf.Max(1, Mathf.RoundToInt(total * bomberShare)) : 0;
+        if (deep + bombers > total) deep = Mathf.Max(0, total - bombers);
+        int regular = total - deep - bombers;
+
+        // 일반 적 — 항목 count 비율대로 (큰 나머지 순)
+        var slots = new List<(int wave, RaidSpawnEntry entry)>();
+        int weightSum = 0;
+        for (int w = 0; w < raid.waves.Count; w++)
+            foreach (var e in raid.waves[w].entries) { slots.Add((w, e)); weightSum += Mathf.Max(1, e.count); }
+        if (slots.Count > 0 && regular > 0)
         {
-            foreach (var e in EmployeeManager.instance.AllEmployees)
-                if (e != null && e.State != EmployeeState.Dead) employees++;
+            var counts = new int[slots.Count];
+            var rem = new float[slots.Count];
+            int given = 0;
+            for (int i = 0; i < slots.Count; i++)
+            {
+                float exact = regular * Mathf.Max(1, slots[i].entry.count) / (float)weightSum;
+                counts[i] = Mathf.FloorToInt(exact);
+                rem[i] = exact - counts[i];
+                given += counts[i];
+            }
+            for (; given < regular; given++)
+            {
+                int best = 0;
+                for (int i = 1; i < rem.Length; i++) if (rem[i] > rem[best]) best = i;
+                counts[best]++; rem[best] = -1f;
+            }
+            for (int i = 0; i < slots.Count; i++)
+                for (int k = 0; k < counts[i]; k++) activePlan[slots[i].wave].Add(slots[i].entry);
         }
 
-        float overdueDays = lastRaidGameDay < 0f ? 0f : Mathf.Max(0f, GameDayNow - lastRaidGameDay - raidIntervalDays.x);
-
-        float m = raid.baseMultiplier
-                + raid.multiplierPerDay * day
-                + raid.multiplierPerEmployee * employees
-                + overdueMultiplierPerDay * overdueDays;
-        m = Mathf.Clamp(m, 0.1f, raid.maxMultiplier);
-
-        // 적 수 상한 — 클리어할 수 있게
-        int baseCount = 0;
-        foreach (var wave in raid.waves)
-            foreach (var entry in wave.entries)
-                baseCount += entry.count;
-        int cap = EnemyCap();
-        if (baseCount > 0 && baseCount * m > cap) m = cap / (float)baseCount;
-
-        return Mathf.Max(0.1f, m);
-    }
-
-    /// <summary>한 번 습격의 적 수 상한 = 살아 있는 직원 × maxEnemiesPerEmployee, 절대 maxEnemiesPerRaid</summary>
-    private int EnemyCap()
-    {
-        int employees = 0;
-        if (EmployeeManager.instance != null)
-            foreach (var e in EmployeeManager.instance.AllEmployees)
-                if (e != null && e.State != EmployeeState.Dead) employees++;
-        return Mathf.Min(maxEnemiesPerRaid, Mathf.Max(1, Mathf.CeilToInt(Mathf.Max(1, employees) * maxEnemiesPerEmployee)));
-    }
-
-    /// <summary>배수를 적용해 실제로 스폰될 적 수 (SpawnWaveAsync와 같은 반올림, 자폭체·단계 추가분 제외)</summary>
-    private int PlannedCount(RaidData raid)
-    {
-        int n = 0;
-        foreach (var wave in raid.waves)
-            foreach (var entry in wave.entries)
-                n += Mathf.Max(1, Mathf.RoundToInt(entry.count * activeMultiplier));
-        return n;
+        float radius = slots.Count > 0 ? slots[0].entry.spawnRadius : 2f;
+        for (int i = 0; i < deep; i++)
+            activePlan[0].Add(new RaidSpawnEntry { xenopsDataId = deepXenopsId, count = 1, spawnInterval = 0.5f, spawnRadius = radius });
+        for (int i = 0; i < bombers; i++)
+            activePlan[0].Add(new RaidSpawnEntry { xenopsDataId = bomberXenopsId, count = 1, spawnInterval = 0.5f, spawnRadius = 2f });
     }
 
     /// <summary>위협 단계의 체력·피해 배율</summary>
