@@ -57,6 +57,18 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Min(0f)] [SerializeField] private float tunnelWeight = 20f;
     [Min(0f)] [SerializeField] private float breachWeight = 20f;
 
+    [Header("거점 습격 — 구조물을 짓고 지킨다 (임시 수치)")]
+    [Min(0f)] [SerializeField] private float outpostWeight = 15f;
+    [Min(0)] [SerializeField] private int outpostMinDay = 7;
+    [Tooltip("구조물 하나가 먼저 차지하는 위협 점수 — 나머지로 경비 마리 수")]
+    [Min(0f)] [SerializeField] private float outpostStructurePoints = 25f;
+    [Tooltip("구조물 XenopsData ID (무작위 하나): 침식 송신탑, 공포 토템")]
+    [SerializeField] private int[] outpostStructureIds = { 6201, 6202 };
+    [Min(1f)] [SerializeField] private float outpostGuardRadius = 7f;
+    [Tooltip("경비로 못 쓰는 적(자체 조준 사격) → 이 ID로 바꿔 보냄")]
+    [SerializeField] private int outpostShooterId = 6100;
+    [SerializeField] private int outpostShooterReplacementId = 6101;
+
     [Tooltip("땅굴·브리칭 습격이 나올 수 있는 가장 이른 날")]
     [Min(0)] [SerializeField] private int specialRaidMinDay = 5;
 
@@ -94,6 +106,12 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private RaidState currentState = RaidState.None;
     private RaidData activeRaid;
     private RaidType activeRaidType = RaidType.Normal;
+
+    // 거점 습격 — 자리·구조물 종류(스폰 전)와 지어지는 구조물(스폰 후)
+    private Vector3? activeOutpostSite;
+    private int activeOutpostId;
+    private Xenops activeOutpost;
+    private bool outpostGuardReleased;
 
     /// <summary>이번 습격의 위협 단계 (시작 시점) · 그 단계로 늘어난 적 수</summary>
     private int activeThreatStage;
@@ -139,7 +157,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     }
 
     /// <summary>알림·UI용 습격 종류 이름</summary>
-    public static string TypeLabel(RaidType t) => t == RaidType.Tunnel ? "땅굴 습격" : t == RaidType.Breach ? "브리칭 습격" : "일반 습격";
+    public static string TypeLabel(RaidType t) => t == RaidType.Tunnel ? "땅굴 습격" : t == RaidType.Breach ? "브리칭 습격" : t == RaidType.Outpost ? "거점 습격" : "일반 습격";
     public bool IsRaidActive => currentState == RaidState.InProgress || currentState == RaidState.Approaching;
 
     #endregion
@@ -204,10 +222,15 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             if (obj != null)
             {
                 spawnedEntities.Add(obj);
-                ApplyRaidTypeTo(obj);
-                obj.ApplyThreatScaling(StageMultiplier, true); // 개체 체력은 저장되지 않아 가득 찬 채로 복원된다 — 단계 배율로 다시 채움
+                obj.ApplyThreatScaling(StageMultiplier, true); // 체력 비율은 유지한 채 단계 배율로 최대 체력 다시 맞춤
             }
         }
+
+        // 거점 습격: 남은 구조물을 다시 잡고, 경비는 그 자리를 지킨다
+        activeOutpost = activeRaidType == RaidType.Outpost ? spawnedEntities.Find(x => x != null && x.GetComponent<OutpostStructure>() != null) : null;
+        outpostGuardReleased = activeRaidType == RaidType.Outpost && activeOutpost == null;
+        activeOutpostSite = activeOutpost != null ? activeOutpost.transform.position : (Vector3?)null;
+        foreach (var x in spawnedEntities) ApplyRaidTypeTo(x);
 
         // InProgress 상태로 저장됐다면 감시 재시작
         if (currentState == RaidState.InProgress && activeRaid != null)
@@ -264,7 +287,18 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         spawnedEntities.Clear();
         activeMultiplier = 1f; // 구 배수 방식 — 세이브 호환용으로만 남김
         LastThreat = CurrentThreat();
-        int total = EnemyCountFor(LastThreat.total, type);
+        int total = type == RaidType.Outpost
+            ? Mathf.Clamp(Mathf.RoundToInt((LastThreat.total - outpostStructurePoints) / PointsPerEnemy(type)), 1, maxEnemiesTechnical)
+            : EnemyCountFor(LastThreat.total, type);
+        activeOutpost = null;
+        outpostGuardReleased = false;
+        activeOutpostSite = null;
+        if (type == RaidType.Outpost)
+        {
+            activeOutpostId = outpostStructureIds[UnityEngine.Random.Range(0, outpostStructureIds.Length)];
+            if (RaidSpawnPlacer.TryFindOutpostPosition(out var site)) activeOutpostSite = site;
+            else { type = RaidType.Normal; activeRaidType = type; total = EnemyCountFor(LastThreat.total, type); } // 자리가 없으면 일반 습격으로
+        }
         BuildSpawnPlan(raid, type, total);
         Debug.Log($"[RaidManager] {raid.raidName} {TypeLabel(type)} · {StageLabel(activeThreatStage)} — {LastThreat} → {total}마리 (한 마리당 {PointsPerEnemy(type)})");
         lastRaidGameDay = GameDayNow;
@@ -308,11 +342,13 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     {
         bool special = day >= specialRaidMinDay;
         float t = special ? tunnelWeight + tunnelWeightPerStage * CurrentThreatStage : 0f, b = special ? breachWeight : 0f;
-        float total = normalWeight + t + b;
+        float o = day >= outpostMinDay ? outpostWeight : 0f;
+        float total = normalWeight + t + b + o;
         if (total <= 0f) return RaidType.Normal;
         float r = UnityEngine.Random.value * total;
         if (r < normalWeight) return RaidType.Normal;
-        return r < normalWeight + t ? RaidType.Tunnel : RaidType.Breach;
+        if (r < normalWeight + t) return RaidType.Tunnel;
+        return r < normalWeight + t + b ? RaidType.Breach : RaidType.Outpost;
     }
 
     #endregion
@@ -359,7 +395,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 위협 레터 + 강제 일시정지 (확인 시 NotificationManager가 재개)
         NotificationManager.instance?.PushLetter(new Letter
         {
-            title = $"침공 발생 — {TypeLabel(activeRaidType)} · {StageLabel(activeThreatStage)}",
+            title = $"침공 발생 — {TypeLabel(activeRaidType)}{OutpostSuffix} · {StageLabel(activeThreatStage)}",
+            onClick = activeOutpostSite.HasValue ? () => CameraFocus(activeOutpostSite.Value) : (Action)null,
             body = $"{raid.raidName} — {TypeDescription(activeRaidType)} 직원을 소집해 방어하세요.\n(위협 점수 {LastThreat.total:F0})",
             type = LetterType.Threat,
             pauseUntilRead = true
@@ -390,7 +427,20 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private static string TypeDescription(RaidType t)
         => t == RaidType.Tunnel ? "땅 밑을 파고 기지 근처로 직원을 노리는 적이 옵니다."
          : t == RaidType.Breach ? "벽을 터뜨리는 자폭체가 섞여 접근합니다."
+         : t == RaidType.Outpost ? "기지 바깥에 해로운 구조물을 세우고 지키려 합니다. 다 지어지기 전에 건설자를 막으세요."
          : "적대 개체가 접근했습니다.";
+
+    /// <summary>알림 제목에 붙는 구조물 종류 (' · 침식 송신탑')</summary>
+    private string OutpostSuffix
+    {
+        get
+        {
+            if (activeRaidType != RaidType.Outpost) return "";
+            var d = GameDatabase.Instance != null ? GameDatabase.Instance.GetXenopsData(activeOutpostId) : null;
+            var s = d != null && d.prefab != null ? d.prefab.GetComponent<OutpostStructure>() : null;
+            return s != null ? " · " + OutpostStructure.KindLabel(s.Kind) : "";
+        }
+    }
 
     private async UniTask SpawnWaveAsync(RaidWave wave, CancellationToken ct)
     {
@@ -409,12 +459,17 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             await UniTask.Delay(TimeSpan.FromSeconds(tunnelWarningSeconds), cancellationToken: ct);
         }
 
+        // 거점: 모두 그 자리에 — 첫 경비가 건설자, 구조물은 그 곁에 짓기 시작
+        if (activeRaidType == RaidType.Outpost && activeOutpostSite.HasValue) tunnelPos = activeOutpostSite;
+
         // 계획된 적을 차례로 (StartRaid에서 위협 점수로 정해 둔 마리 수 — BuildSpawnPlan)
         if (currentWaveIndex < activePlan.Count)
         {
             foreach (var spawn in activePlan[currentWaveIndex])
             {
-                SpawnRaidXenops(spawn, spawn.xenopsDataId == bomberXenopsId ? null : tunnelPos);
+                var x = SpawnRaidXenops(spawn, spawn.xenopsDataId == bomberXenopsId ? null : tunnelPos);
+                if (x != null && activeRaidType == RaidType.Outpost && activeOutpost == null && !outpostGuardReleased && activeOutpostSite.HasValue)
+                    StartOutpost(x);
                 if (spawn.spawnInterval > 0f)
                     await UniTask.Delay(TimeSpan.FromSeconds(spawn.spawnInterval), cancellationToken: ct);
             }
@@ -427,12 +482,48 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         if (cam != null) cam.transform.position = new Vector3(p.x, p.y, cam.transform.position.z);
     }
 
-    /// <summary>습격 종류에 따른 개체 설정 — 땅굴 적은 직원만 노린다 (건물만 있으면 부수러 가지 않음)</summary>
+    /// <summary>
+    /// 습격 종류에 따른 개체 설정 — 땅굴 적은 직원만 노린다(건물만 있으면 부수러 가지 않음),
+    /// 거점 경비는 구조물이 서 있는 동안 그 자리를 지킨다.
+    /// </summary>
     private void ApplyRaidTypeTo(Xenops xenops)
     {
-        if (activeRaidType != RaidType.Tunnel || xenops == null) return;
+        if (xenops == null || xenops.GetComponent<OutpostStructure>() != null) return;
+        bool tunnel = activeRaidType == RaidType.Tunnel;
+        bool guard = activeRaidType == RaidType.Outpost && !outpostGuardReleased && activeOutpostSite.HasValue;
+        if (!tunnel && !guard) return;
         var nav = xenops.GetComponent<EnemyNavigator>() ?? xenops.gameObject.AddComponent<EnemyNavigator>();
-        nav.StaffOnly = true;
+        if (tunnel) nav.StaffOnly = true;
+        if (guard) { nav.GuardAnchor = activeOutpostSite.Value; nav.GuardRadius = outpostGuardRadius; }
+    }
+
+    /// <summary>거점 구조물을 건설자 곁에 세운다 (진행도 0에서 시작)</summary>
+    private void StartOutpost(Xenops builder)
+    {
+        var site = activeOutpostSite.Value;
+        // 구조물 그림은 피벗이 좌하단 — 칸 모서리에 맞춘다
+        var structure = XenopsManager.instance != null ? XenopsManager.instance.SpawnXenops(activeOutpostId, new Vector3(Mathf.Floor(site.x), Mathf.Floor(site.y), 0f)) : null;
+        if (structure == null) { outpostGuardReleased = true; return; }
+        spawnedEntities.Add(structure);
+        structure.ApplyThreatScaling(StageMultiplier, true);
+        var s = structure.GetComponent<OutpostStructure>();
+        if (s != null) s.Builder = builder;
+        activeOutpost = structure;
+        // 안개 속에 지어도 보이게 — 구조물 주변을 밝힌다
+        FogOfWarManager.instance?.PermanentlyRevealArea(new Vector2Int(Mathf.FloorToInt(site.x) - 4, Mathf.FloorToInt(site.y) - 2), new Vector2Int(9, 7));
+        Debug.Log($"[RaidManager] 거점 구조물 건설 시작: {structure.name} @ {site}, 건설자 {builder.name}");
+    }
+
+    /// <summary>구조물이 사라지면(부서짐·건설 실패) 남은 경비는 일반 습격처럼 행동한다</summary>
+    private void ReleaseOutpostGuards()
+    {
+        outpostGuardReleased = true;
+        foreach (var x in spawnedEntities)
+        {
+            var nav = x != null ? x.GetComponent<EnemyNavigator>() : null;
+            if (nav != null) nav.GuardAnchor = null;
+        }
+        Debug.Log("[RaidManager] 거점 구조물이 사라져 경비가 풀렸습니다");
     }
 
     private async UniTask MonitorRaidCompletionAsync(CancellationToken ct)
@@ -455,13 +546,15 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// <summary>습격으로 온 적인지 (처치 시 전리품 드롭 판정)</summary>
     public bool IsRaider(Xenops xenops) => xenops != null && spawnedEntities.Contains(xenops);
 
-    private void SpawnRaidXenops(RaidSpawnEntry entry, Vector3? at)
+    private Xenops SpawnRaidXenops(RaidSpawnEntry entry, Vector3? at)
     {
-        if (XenopsManager.instance == null) return;
+        if (XenopsManager.instance == null) return null;
 
         // 땅굴 자리는 좁은 굴이라 흩뿌리지 않는다
         Vector3 spawnPos = SnapToStandable(at.HasValue ? at.Value + new Vector3(UnityEngine.Random.Range(-0.3f, 0.3f), 0f, 0f) : GetSpawnPosition(entry));
-        var xenops = XenopsManager.instance.SpawnXenops(entry.xenopsDataId, spawnPos);
+        // 거점 경비로 못 쓰는 적(자체 조준 사격 — 지키기 모드가 없다)은 다른 적으로 바꿔 보낸다
+        int id = activeRaidType == RaidType.Outpost && entry.xenopsDataId == outpostShooterId ? outpostShooterReplacementId : entry.xenopsDataId;
+        var xenops = XenopsManager.instance.SpawnXenops(id, spawnPos);
 
         if (xenops != null)
         {
@@ -470,8 +563,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             xenops.ApplyThreatScaling(StageMultiplier, true);
 
             if (showDebugLogs)
-                Debug.Log($"[RaidManager] 제놉스 스폰: ID {entry.xenopsDataId} at {spawnPos}");
+                Debug.Log($"[RaidManager] 제놉스 스폰: ID {id} at {spawnPos}");
         }
+        return xenops;
     }
 
     private TilePathfinder standChecker;
@@ -531,6 +625,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     private void Update()
     {
+        // 거점 구조물이 사라졌으면 경비를 푼다 (Unity null — 파괴된 개체)
+        if (activeRaidType == RaidType.Outpost && !outpostGuardReleased && !ReferenceEquals(activeOutpost, null) && activeOutpost == null)
+            ReleaseOutpostGuards();
+
         if (!autoSchedule || IsRaidActive || DayCycle.instance == null) return;
         if (nextRaidGameDay < 0f) { ScheduleNextRaid(); return; }
         if (GameDayNow < nextRaidGameDay) return;
@@ -635,6 +733,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 상태 리셋
         activeRaid = null;
         activeRaidType = RaidType.Normal;
+        activeOutpost = null;
+        activeOutpostSite = null;
         currentWaveIndex = 0;
         waveTimer = 0f;
         spawnedEntities.Clear();

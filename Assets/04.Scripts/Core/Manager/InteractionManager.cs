@@ -373,11 +373,38 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         if (Input.GetMouseButtonDown(1))
         {
             if (!IsPointerOverInteractiveUI() &&
-                _selectedEmployee != null && _selectedEmployee.IsDrafted)
+                _selectedEmployee != null && _selectedEmployee.IsDrafted &&
+                !TryThrowPurifyGrenade(_selectedEmployee, mousePos))
             {
                 _selectedEmployee.CommandMoveTo(mousePos);
             }
         }
+    }
+
+    private const float GRENADE_RANGE = 6f; // shortcut: 임시 수치 — 정화 수류탄 사거리
+
+    /// <summary>
+    /// 소집 직원 우클릭이 적 구조물(거점 습격) 위면 다용도구 칸의 정화 수류탄을 던진다.
+    /// 수류탄이 없거나 구조물이 아니면 false(평소처럼 이동). 사거리 밖이면 그쪽으로 걸어간다.
+    /// </summary>
+    private bool TryThrowPurifyGrenade(Employee employee, Vector3 mousePos)
+    {
+        OutpostStructure target = null;
+        foreach (var c in Physics2D.OverlapPointAll(mousePos))
+            if ((target = c.GetComponentInParent<OutpostStructure>()) != null) break;
+        if (target == null) return false;
+
+        var eq = employee.GetComponent<EmployeeEquipment>();
+        var tool = eq != null ? eq.GetItemInSlot(EquipmentSlot.MultiTool) : null;
+        if (tool == null || !tool.IsConsumable || tool.consumable.trigger != ConsumableTrigger.Command) return false;
+
+        if (Vector2.Distance(employee.transform.position, target.transform.position) > GRENADE_RANGE)
+        {
+            employee.CommandMoveTo(target.transform.position);
+            return true;
+        }
+        if (eq.UseCommandConsumable(EquipmentSlot.MultiTool)) target.HitByPurifyGrenade();
+        return true;
     }
 
     /// <summary>

@@ -185,7 +185,10 @@ public enum ConsumableTrigger
     LowHealth,
 
     /// <summary>직원 침식이 '침식 유지 수치 + 문턱' 이상이면</summary>
-    HighErosion
+    HighErosion,
+
+    /// <summary>저절로 쓰이지 않음 — 플레이어 명령으로 쓴다 (정화 수류탄: 소집 직원 우클릭)</summary>
+    Command
 }
 
 /// <summary>

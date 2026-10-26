@@ -81,7 +81,10 @@ public class Xenops : MonoBehaviour
         StatMultiplier = Mathf.Max(0.1f, multiplier);
         if (!rescaleHealth || xenopsData == null || xenopsData.xenopsType != XenopsType.Hostile) return;
         var health = GetComponent<XenopsHealth>();
-        if (health != null) health.Initialize(xenopsData.hostileStats.maxHealth * StatMultiplier, xenopsData.hostileStats.defense);
+        if (health == null) return;
+        float ratio = health.MaxHealth > 0f ? health.CurrentHealth / health.MaxHealth : 1f; // 불러온 개체의 깎인 체력 비율 유지
+        health.Initialize(xenopsData.hostileStats.maxHealth * StatMultiplier, xenopsData.hostileStats.defense);
+        health.SetCurrentHealth(health.MaxHealth * ratio);
     }
 
     #endregion
@@ -431,7 +434,9 @@ public class Xenops : MonoBehaviour
             posX = transform.position.x,
             posY = transform.position.y,
             infiltratedBuildingInstanceId = infiltratedBuildingInstanceId,
-            equippedSlot = -1 // 직원 장착 제놉스는 폐지(제놉스 도감 → 장비 제작으로 대체)
+            equippedSlot = -1, // 직원 장착 제놉스는 폐지(제놉스 도감 → 장비 제작으로 대체)
+            health = GetComponent<XenopsHealth>() != null ? GetComponent<XenopsHealth>().CurrentHealth : 0f,
+            buildProgress = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().Progress : -1f
         };
 
         // 서브 컴포넌트 데이터 수집
@@ -452,6 +457,9 @@ public class Xenops : MonoBehaviour
             var health = GetComponent<XenopsHealth>();
             if (health != null) health.Initialize(xenopsData.hostileStats.maxHealth, xenopsData.hostileStats.defense); // 체력은 저장하지 않는다 — 가득 찬 채로
         }
+
+        if (data.health > 0f) GetComponent<XenopsHealth>()?.SetCurrentHealth(data.health);
+        GetComponent<OutpostStructure>()?.RestoreProgress(data.buildProgress);
 
         instanceId = data.instanceId;
         currentState = (XenopsState)data.state;

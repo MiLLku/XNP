@@ -243,6 +243,7 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
     // ─────────────────────────────────────────
     private Employee FindNearestEmployee()
     {
+        if (_nav.IsGuarding) return null; // 지키는 중엔 반경 안 직원만 (EnemyNavigator가 고름)
         // 방어 태세 직원 어그로 가중 (CombatTargeting 공통 헬퍼)
         return CombatTargeting.PickEmployeeTarget(transform.position);
     }

@@ -54,5 +54,11 @@ public class XenopsSaveData
     /// <summary>장착된 장비 슬롯 (EquipmentSlot enum, -1 = 미장착)</summary>
     public int equippedSlot = -1;
 
+    /// <summary>현재 체력 (0 = 구 세이브 — 가득 찬 채 복원)</summary>
+    public float health;
+
+    /// <summary>거점 구조물 건설 진행도 (-1 = 구조물 아님)</summary>
+    public float buildProgress = -1f;
+
     #endregion
 }

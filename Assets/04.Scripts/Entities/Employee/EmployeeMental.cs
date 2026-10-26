@@ -332,7 +332,8 @@ public class EmployeeMental : MonoBehaviour
         if (statsController == null) return 1f;
 
         float resist = statsController.CachedAbnormalResistMult;
-        return resist > 0f ? resist : 1f;
+        // 공포 토템(거점 습격) 반경 안이면 저항이 낮아진다 — 특성 외 유일한 예외 (구조물을 부수면 사라짐)
+        return (resist > 0f ? resist : 1f) * OutpostStructure.TotemResistFactorAt(transform.position);
     }
 
     /// <summary>

@@ -155,4 +155,6 @@ public enum ItemType
     PurifyingGland    = 503,
     GrapplingGrip     = 504,
     AntidoteSac       = 505,
+    /// <summary>정화 수류탄 — 다용도구 칸 1회용. 소집 직원에게 우클릭으로 적 구조물을 지정해 던짐 (거점 습격 파훼)</summary>
+    PurifyGrenade     = 506,
 }

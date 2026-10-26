@@ -225,6 +225,15 @@ public class EmployeeEquipment : MonoBehaviour
         }
     }
 
+    /// <summary>명령형 1회용(<see cref="ConsumableTrigger.Command"/>)을 쓴다 — 그 칸에 없으면 false</summary>
+    public bool UseCommandConsumable(EquipmentSlot slot)
+    {
+        var data = GetItemInSlot(slot);
+        if (data == null || !data.IsConsumable || data.consumable.trigger != ConsumableTrigger.Command) return false;
+        UseConsumable(slot, data);
+        return true;
+    }
+
     /// <summary>1회용 장비를 쓰고 없앱니다 (해제 + 인스턴스 소멸). 보관소에서 자동으로 다시 끼우지는 않습니다.</summary>
     private void UseConsumable(EquipmentSlot slot, EquipmentData data)
     {

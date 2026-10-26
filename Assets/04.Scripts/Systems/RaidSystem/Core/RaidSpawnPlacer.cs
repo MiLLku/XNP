@@ -167,6 +167,44 @@ public static class RaidSpawnPlacer
         return true;
     }
 
+    // 거점 습격 자리 — 기지 앵커(건물·직원)에서 이 거리 사이의 바깥 지면
+    private const float OUTPOST_MIN_FROM_BASE = 10f;  // shortcut: 임시 수치
+    private const float OUTPOST_MAX_FROM_BASE = 25f;
+
+    /// <summary>
+    /// 거점 습격 자리: 하늘이 열린(바깥) 두 칸 높이 빈 지면 중, 가장 가까운 기지 앵커까지 거리가
+    /// OUTPOST_MIN~MAX_FROM_BASE인 칸 — 직원 활동 범위의 가장자리. 없으면 false.
+    /// </summary>
+    public static bool TryFindOutpostPosition(out Vector3 position)
+    {
+        position = Vector3.zero;
+        var gameMap = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
+        var anchors = CollectBaseAnchors();
+        if (gameMap == null || anchors.Count == 0) return false;
+
+        float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
+        foreach (var a in anchors) { minX = Mathf.Min(minX, a.x); maxX = Mathf.Max(maxX, a.x); minY = Mathf.Min(minY, a.y); maxY = Mathf.Max(maxY, a.y); }
+        int r = Mathf.CeilToInt(OUTPOST_MAX_FROM_BASE);
+
+        var pool = new List<Vector2Int>();
+        for (int x = Mathf.Max(0, (int)minX - r); x <= Mathf.Min(GameMap.MAP_WIDTH - 1, (int)maxX + r); x++)
+        for (int y = Mathf.Max(1, (int)minY - r); y <= Mathf.Min(GameMap.MAP_HEIGHT - 3, (int)maxY + r); y++)
+        {
+            if (gameMap.TileGrid[x, y] != 0 || gameMap.TileGrid[x, y + 1] != 0 || gameMap.TileGrid[x, y - 1] == 0) continue;
+            if (!IsSkyOpen(gameMap, x, y)) continue;
+            var c = new Vector2Int(x, y);
+            if (Building.GetBuildingAt(c) != null || Building.GetBuildingAt(c + Vector2Int.up) != null) continue;
+            float d = float.MaxValue;
+            var p = new Vector2(x + 0.5f, y + 0.5f);
+            foreach (var a in anchors) d = Mathf.Min(d, Vector2.Distance(a, p));
+            if (d >= OUTPOST_MIN_FROM_BASE && d <= OUTPOST_MAX_FROM_BASE) pool.Add(c);
+        }
+        if (pool.Count == 0) return false;
+        var pick = pool[Random.Range(0, pool.Count)];
+        position = new Vector3(pick.x + 0.5f, pick.y + 0.3f, 0f);
+        return true;
+    }
+
     private static bool InStaffBand(List<Vector2> staff, int x, int y)
     {
         var p = new Vector2(x + 0.5f, y + 0.5f);

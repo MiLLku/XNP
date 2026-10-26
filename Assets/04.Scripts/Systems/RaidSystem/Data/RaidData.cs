@@ -132,6 +132,9 @@ public enum RaidType
 
     /// <summary>브리칭 — 벽을 노리는 자폭체가 섞여 온다</summary>
     Breach = 2,
+
+    /// <summary>거점 — 기지 바깥에 해로운 구조물을 짓고 지킨다 (구조물: OutpostStructure)</summary>
+    Outpost = 3,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

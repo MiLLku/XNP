@@ -123,7 +123,8 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
 
         if (_target == null && wall == null)
         {
-            _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+            // 지키는 중이면 자리로 돌아가는 길을 따른다
+            if (!_nav.Steer(_moveSpeed)) _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
             _state       = State.Idle;
             return;
         }
@@ -185,6 +186,7 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
     // ─────────────────────────────────────────
     private Employee FindNearestEmployee()
     {
+        if (_nav.IsGuarding) return null; // 지키는 중엔 반경 안 직원만 (EnemyNavigator가 고름)
         // 방어 태세 직원 어그로 가중 (CombatTargeting 공통 헬퍼)
         return CombatTargeting.PickEmployeeTarget(transform.position);
     }

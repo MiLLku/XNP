@@ -59,6 +59,11 @@ public class EnemyNavigator : MonoBehaviour
     /// <summary>직원만 노린다 (땅굴 습격) — 닿는 직원이 없어도 건물을 부수러 가지 않는다</summary>
     public bool StaffOnly { get; set; }
 
+    /// <summary>지키기 (거점 습격 경비) — 이 자리 GuardRadius 안에 들어온 직원만 노리고, 없으면 자리로 돌아간다. null이면 해제</summary>
+    public Vector2? GuardAnchor { get; set; }
+    public float GuardRadius { get; set; } = 7f;
+    public bool IsGuarding => GuardAnchor.HasValue;
+
     /// <summary>다음 경유점에 서려면 먼저 깔아야 하는 발판 칸. 없으면 null</summary>
     /// <summary>다음 경유점으로 가려면 먼저 파야 하는 지형 칸 (그 칸 기둥에서 몸이 지나갈 칸). 없으면 null</summary>
     public Vector2Int? PendingDig
@@ -199,10 +204,21 @@ public class EnemyNavigator : MonoBehaviour
         bool canBuild = (_xenops == null || _xenops.Data == null || _xenops.Data.canBuildFloor)
                         && ErosionFloorField.instance != null && ErosionFloorField.instance.CanBuildMore;
 
-        // 직원을 가까운 순으로
+        // 직원을 가까운 순으로 (지키는 중이면 지키는 반경 안의 직원만)
         var staff = new List<Employee>();
         foreach (var e in EmployeeManager.instance.AllEmployees)
-            if (e != null && e.State != EmployeeState.Dead) staff.Add(e);
+            if (e != null && e.State != EmployeeState.Dead
+                && (!IsGuarding || Vector2.Distance(e.transform.position, GuardAnchor.Value) <= GuardRadius)) staff.Add(e);
+        if (IsGuarding && staff.Count == 0)
+        {
+            // 들어온 직원이 없으면 자리로 — 2칸 넘게 벗어났을 때만
+            if (Vector2.Distance(transform.position, GuardAnchor.Value) > 2f)
+            {
+                var p = _walkFinder.FindPath(foot, FootOf(GuardAnchor.Value));
+                if (p != null) _path.AddRange(p);
+            }
+            return;
+        }
         staff.Sort((a, b) => Vector2.Distance(transform.position, a.transform.position)
                               .CompareTo(Vector2.Distance(transform.position, b.transform.position)));
 
@@ -249,7 +265,7 @@ public class EnemyNavigator : MonoBehaviour
             if (p == null) continue;
             best = b; bestD = d; bestPath = p;
         }
-        if (best != null && !StaffOnly) { TargetBuilding = best; _path.AddRange(bestPath); return; }
+        if (best != null && !StaffOnly && !IsGuarding) { TargetBuilding = best; _path.AddRange(bestPath); return; }
 
         // 4. 막힌 굴 — 자연 지형을 파며 가장 가까운 직원 쪽으로 (길 위의 건물은 부순다)
         bool canDig = _xenops == null || _xenops.Data == null || _xenops.Data.canDigTerrain;
