@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81b1092194e3d004da8e7e4473dea7f9, type: 3}
+  m_Name: DisguiseData
+  m_EditorClassIdentifier: Assembly-CSharp::XenopsData
+  xenopsID: 6105
+  xenopsName: "위장체"
+  description: "직원의 모습을 복사해 기지에 섞이는 침식체. 서 있는 방의 침식을 올리고 곁의 직원을 침식시킨다. 공격받거나 소집하려 하면 정체를 드러낸다. 부수면 위장 피막."
+  icon: {fileID: -444769877, guid: 87dca31d0a40bff45ae4612cc4113c61, type: 3}
+  xenopsType: 1
+  grade: 1
+  prefab: {fileID: 4465952956501963786, guid: ed146db5981d4ffb809c2f20aff13562, type: 3}
+  benefits: []
+  drawbacks: []
+  codexObservePercent: 4
+  codexKillPercent: 12
+  maxInterpretationLevel: 10
+  baseExpRequired: 50
+  expPerInteraction: 10
+  equipmentSlot: 0
+  effectRadius: 3
+  infiltrateInterval: 30
+  hostileStats:
+    moveSpeed: 3.5
+    maxHealth: 250
+    defense: 0.1
+    attackSpeed: 1.25
+    attackDamage: 15
+    attackRange: 1.5
+    size: 1
+    aoeErosionPerSecond: 0
+    aoeErosionRange: 2
+    subdueDropItemId: 20
+    subdueDropAmount: 2
