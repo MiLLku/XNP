@@ -27,10 +27,20 @@ public static class RaidSpawnPlacer
     public static bool TryFindPosition(RaidSpawnLocation location, out Vector3 position)
     {
         position = Vector3.zero;
+        var pool = FindCandidates(location);
+        if (pool == null || pool.Count == 0) return false;
 
+        var pick = pool[Random.Range(0, pool.Count)];
+        position = new Vector3(pick.x + 0.5f, pick.y + 0.5f, 0f);
+        return true;
+    }
+
+    /// <summary>스폰 위치 후보 칸 전부 (안개 유형은 기지 근처 후보 우선). 맵을 한 번 훑는다 — 여러 자리가 필요하면 이것을 한 번만</summary>
+    public static List<Vector2Int> FindCandidates(RaidSpawnLocation location)
+    {
         var mapGen = MapGenerator.instance;
         var gameMap = mapGen != null ? mapGen.GameMapInstance : null;
-        if (gameMap == null) return false;
+        if (gameMap == null) return null;
 
         var fogMgr = FogOfWarManager.instance;
         var anchors = CollectBaseAnchors();
@@ -69,15 +79,8 @@ public static class RaidSpawnPlacer
             }
         }
 
-        if (candidates.Count == 0) return false;
-
         // 안개 유형은 기지 근처 후보 우선 (없으면 전체에서)
-        var pool = (location != RaidSpawnLocation.BaseInterior && nearBase.Count > 0)
-            ? nearBase : candidates;
-
-        var pick = pool[Random.Range(0, pool.Count)];
-        position = new Vector3(pick.x + 0.5f, pick.y + 0.5f, 0f);
-        return true;
+        return (location != RaidSpawnLocation.BaseInterior && nearBase.Count > 0) ? nearBase : candidates;
     }
 
     /// <summary>위로 SKY_SCAN_HEIGHT칸 안에 솔리드 타일이 없으면 '하늘 열림(지상)'.</summary>
@@ -92,7 +95,7 @@ public static class RaidSpawnPlacer
     }
 
     /// <summary>기지 앵커(건설물 + 생존 직원 위치) 수집.</summary>
-    private static List<Vector2> CollectBaseAnchors()
+    public static List<Vector2> CollectBaseAnchors()
     {
         var anchors = new List<Vector2>();
 

@@ -79,6 +79,18 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [SerializeField] private int[] spawnerPatternIds = { 6101, 6102, 6100 };
     [SerializeField] private Vector2 spawnerDistance = new Vector2(15f, 30f);
 
+    [Header("분산 습격 — 여러 곳에서 나눠 오는 대신 규모가 작다 (임시 수치)")]
+    [Min(0f)] [SerializeField] private float splitWeight = 15f;
+    [Min(0)] [SerializeField] private int splitMinDay = 7;
+    [Tooltip("위협 점수에 곱해 마리 수를 줄인다")]
+    [Range(0.1f, 1f)] [SerializeField] private float splitThreatFactor = 0.8f;
+    [Tooltip("스폰 지점 수 (최소~최대, 무작위)")]
+    [SerializeField] private Vector2Int splitPointCount = new Vector2Int(3, 4);
+    [Tooltip("스폰 지점끼리 최소 거리(칸)")]
+    [Min(0f)] [SerializeField] private float splitMinSeparation = 15f;
+    [Tooltip("기지(가장 가까운 앵커)에서 이보다 먼 후보는 버린다 — 근처 안개 후보가 없으면 맵 반대편까지 잡혔다")]
+    [Min(1f)] [SerializeField] private float splitMaxFromBase = 40f;
+
     [Tooltip("땅굴·브리칭 습격이 나올 수 있는 가장 이른 날")]
     [Min(0)] [SerializeField] private int specialRaidMinDay = 5;
 
@@ -122,6 +134,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private int activeOutpostId;
     private Xenops activeOutpost;
     private bool outpostGuardReleased;
+
+    // 분산 습격 — 이번 습격의 스폰 지점들 (스폰 순서대로 돌아가며 쓴다)
+    private readonly List<Vector3> splitPoints = new List<Vector3>();
 
     /// <summary>이번 습격의 위협 단계 (시작 시점) · 그 단계로 늘어난 적 수</summary>
     private int activeThreatStage;
@@ -167,7 +182,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     }
 
     /// <summary>알림·UI용 습격 종류 이름</summary>
-    public static string TypeLabel(RaidType t) => t == RaidType.Tunnel ? "땅굴 습격" : t == RaidType.Breach ? "브리칭 습격" : t == RaidType.Outpost ? "거점 습격" : t == RaidType.Spawner ? "스포너 습격" : "일반 습격";
+    public static string TypeLabel(RaidType t) => t == RaidType.Tunnel ? "땅굴 습격" : t == RaidType.Breach ? "브리칭 습격" : t == RaidType.Outpost ? "거점 습격" : t == RaidType.Spawner ? "스포너 습격" : t == RaidType.Split ? "분산 습격" : "일반 습격";
     public bool IsRaidActive => currentState == RaidState.InProgress || currentState == RaidState.Approaching;
 
     #endregion
@@ -301,7 +316,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         LastThreat = CurrentThreat();
         int total = type == RaidType.Outpost
             ? Mathf.Clamp(Mathf.RoundToInt((LastThreat.total - outpostStructurePoints) / PointsPerEnemy(type)), 1, maxEnemiesTechnical)
-            : type == RaidType.Spawner ? 0 : EnemyCountFor(LastThreat.total, type);
+            : type == RaidType.Spawner ? 0
+            : type == RaidType.Split ? EnemyCountFor(LastThreat.total * splitThreatFactor, type)
+            : EnemyCountFor(LastThreat.total, type);
         activeOutpost = null;
         outpostGuardReleased = false;
         activeOutpostSite = null;
@@ -316,6 +333,12 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             if (RaidSpawnPlacer.TryFindOutpostPosition(out var site, spawnerDistance.x, spawnerDistance.y)) activeOutpostSite = site;
             else { type = RaidType.Normal; activeRaidType = type; total = EnemyCountFor(LastThreat.total, type); }
         }
+        splitPoints.Clear();
+        if (type == RaidType.Split && !PickSplitPoints(raid))
+        {
+            type = RaidType.Normal; activeRaidType = type; total = EnemyCountFor(LastThreat.total, type); // 한 곳밖에 못 찾으면 일반 습격으로
+        }
+        if (type == RaidType.Split) total = Mathf.Max(total, splitPoints.Count); // 지점마다 최소 1마리
         if (type == RaidType.Spawner) activePlan.Clear(); // 처음엔 스포너만 — 적은 스포너가 내보낸다
         else BuildSpawnPlan(raid, type, total);
         Debug.Log($"[RaidManager] {raid.raidName} {TypeLabel(type)} · {StageLabel(activeThreatStage)} — {LastThreat} → {total}마리 (한 마리당 {PointsPerEnemy(type)})");
@@ -362,13 +385,15 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         float t = special ? tunnelWeight + tunnelWeightPerStage * CurrentThreatStage : 0f, b = special ? breachWeight : 0f;
         float o = day >= outpostMinDay ? outpostWeight : 0f;
         float sp = day >= spawnerMinDay ? spawnerWeight : 0f;
-        float total = normalWeight + t + b + o + sp;
+        float sl = day >= splitMinDay ? splitWeight : 0f;
+        float total = normalWeight + t + b + o + sp + sl;
         if (total <= 0f) return RaidType.Normal;
         float r = UnityEngine.Random.value * total;
         if (r < normalWeight) return RaidType.Normal;
         if (r < normalWeight + t) return RaidType.Tunnel;
         if (r < normalWeight + t + b) return RaidType.Breach;
-        return r < normalWeight + t + b + o ? RaidType.Outpost : RaidType.Spawner;
+        if (r < normalWeight + t + b + o) return RaidType.Outpost;
+        return r < normalWeight + t + b + o + sp ? RaidType.Spawner : RaidType.Split;
     }
 
     #endregion
@@ -415,8 +440,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 위협 레터 + 강제 일시정지 (확인 시 NotificationManager가 재개)
         NotificationManager.instance?.PushLetter(new Letter
         {
-            title = $"침공 발생 — {TypeLabel(activeRaidType)}{OutpostSuffix} · {StageLabel(activeThreatStage)}",
-            onClick = activeOutpostSite.HasValue ? () => CameraFocus(activeOutpostSite.Value) : (Action)null,
+            title = $"침공 발생 — {TypeLabel(activeRaidType)}{OutpostSuffix}{(activeRaidType == RaidType.Split ? $" · {splitPoints.Count}곳" : "")} · {StageLabel(activeThreatStage)}",
+            onClick = activeOutpostSite.HasValue ? () => CameraFocus(activeOutpostSite.Value)
+                    : activeRaidType == RaidType.Split && splitPoints.Count > 0 ? () => CameraFocus(splitPoints[0]) : (Action)null,
             body = $"{raid.raidName} — {TypeDescription(activeRaidType)} 직원을 소집해 방어하세요.\n(위협 점수 {LastThreat.total:F0}{(activeRaidType == RaidType.Spawner ? $" · 스포너 {spawnerPoints:F0}점" : "")})",
             type = LetterType.Threat,
             pauseUntilRead = true
@@ -452,6 +478,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
          : t == RaidType.Breach ? "벽을 터뜨리는 자폭체가 섞여 접근합니다."
          : t == RaidType.Outpost ? "기지 바깥에 해로운 구조물을 세우고 지키려 합니다. 다 지어지기 전에 건설자를 막으세요."
          : t == RaidType.Spawner ? "기지 바깥에 스포너가 생겼습니다. 부수기 전까지 적을 계속 내보냅니다."
+         : t == RaidType.Split ? "적이 여러 방향에서 나눠 접근합니다. 수는 적지만 방어를 나눠야 합니다."
          : "적대 개체가 접근했습니다.";
 
     /// <summary>알림 제목에 붙는 구조물 종류 (' · 침식 송신탑')</summary>
@@ -491,7 +518,13 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         {
             foreach (var spawn in activePlan[currentWaveIndex])
             {
-                var x = SpawnRaidXenops(spawn, spawn.xenopsDataId == bomberXenopsId ? null : tunnelPos);
+                // 분산: 스폰 지점을 돌아가며 (지점 주변으로 흩뿌림)
+                if (activeRaidType == RaidType.Split && splitPoints.Count > 0)
+                {
+                    Vector2 off = UnityEngine.Random.insideUnitCircle * spawn.spawnRadius;
+                    tunnelPos = splitPoints[splitIndex++ % splitPoints.Count] + new Vector3(off.x, off.y, 0f);
+                }
+                var x = SpawnRaidXenops(spawn, spawn.xenopsDataId == bomberXenopsId && activeRaidType != RaidType.Split ? null : tunnelPos);
                 if (x != null && activeRaidType == RaidType.Outpost && activeOutpost == null && !outpostGuardReleased && activeOutpostSite.HasValue)
                     StartOutpost(x);
                 if (spawn.spawnInterval > 0f)
@@ -536,6 +569,55 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 안개 속에 지어도 보이게 — 구조물 주변을 밝힌다
         FogOfWarManager.instance?.PermanentlyRevealArea(new Vector2Int(Mathf.FloorToInt(site.x) - 4, Mathf.FloorToInt(site.y) - 2), new Vector2Int(9, 7));
         Debug.Log($"[RaidManager] 거점 구조물 건설 시작: {structure.name} @ {site}, 건설자 {builder.name}");
+    }
+
+    private int splitIndex;
+
+    /// <summary>
+    /// 분산 습격 스폰 지점 3~4곳 — 기존 지상·지하(안개) 스폰 후보에서 뽑되, 기지 중심 기준 방향(좌·우·지하)이
+    /// 다른 곳을 먼저 고르고, 지점끼리 splitMinSeparation 이상 떨어지게 한다. 2곳 미만이면 false. 지점마다 안개를 밝힌다.
+    /// </summary>
+    private bool PickSplitPoints(RaidData raid)
+    {
+        int want = UnityEngine.Random.Range(splitPointCount.x, Mathf.Max(splitPointCount.x, splitPointCount.y) + 1);
+        splitIndex = 0;
+
+        var anchors = RaidSpawnPlacer.CollectBaseAnchors();
+        Vector2 center = Vector2.zero;
+        foreach (var a in anchors) center += a;
+        if (anchors.Count > 0) center /= anchors.Count;
+        // 방향: 0 왼쪽 지상, 1 오른쪽 지상, 2 지하
+        int Dir(Vector3 p, bool under) => under ? 2 : (p.x < center.x ? 0 : 1);
+
+        // 지상·지하 후보를 한 번씩만 훑고(맵 전체 스캔이라 비싸다), 기지에서 먼 칸은 버린 뒤 섞는다
+        var pool = new List<(Vector3 p, int dir)>();
+        foreach (bool under in new[] { false, true })
+        {
+            var cells = RaidSpawnPlacer.FindCandidates(under ? RaidSpawnLocation.FogUnderground : RaidSpawnLocation.FogGround);
+            if (cells == null) continue;
+            foreach (var c in cells)
+            {
+                var p = new Vector3(c.x + 0.5f, c.y + 0.5f, 0f);
+                if (anchors.Count > 0 && !anchors.Exists(a => Vector2.Distance(a, p) <= splitMaxFromBase)) continue;
+                pool.Add((p, Dir(p, under)));
+            }
+        }
+        for (int i = pool.Count - 1; i > 0; i--) { int j = UnityEngine.Random.Range(0, i + 1); var t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
+        var usedDirs = new HashSet<int>();
+        for (int pass = 0; pass < 2 && splitPoints.Count < want; pass++) // 1회차: 새 방향만, 2회차: 아무 방향
+            foreach (var c in pool)
+            {
+                if (splitPoints.Count >= want) break;
+                if (pass == 0 && usedDirs.Contains(c.dir)) continue;
+                if (!splitPoints.TrueForAll(q => Vector2.Distance(q, c.p) >= splitMinSeparation)) continue;
+                splitPoints.Add(c.p);
+                usedDirs.Add(c.dir);
+            }
+
+        foreach (var p in splitPoints)
+            FogOfWarManager.instance?.PermanentlyRevealArea(new Vector2Int(Mathf.FloorToInt(p.x) - 3, Mathf.FloorToInt(p.y) - 2), new Vector2Int(7, 5));
+        Debug.Log($"[RaidManager] 분산 습격 스폰 지점 {splitPoints.Count}곳 (목표 {want}): {string.Join(" ", splitPoints)}");
+        return splitPoints.Count >= 2;
     }
 
     /// <summary>스포너를 자리에 세우고 패턴을 정한다</summary>
