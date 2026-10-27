@@ -69,5 +69,11 @@ public class XenopsSaveData
     public int spawnerIndex;
     public float spawnerTimer;
 
+    /// <summary>위장체 — 정체 공개 여부·경고 쿨다운·복사한 원본 직원·원본 작업 종류(우선순위 순)</summary>
+    public bool disguiseRevealed;
+    public float disguiseAlertCooldown;
+    public int disguiseSourceEmployeeId;
+    public List<int> disguiseWorkTypes = new List<int>();
+
     #endregion
 }

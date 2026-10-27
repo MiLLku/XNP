@@ -365,6 +365,16 @@ public class EmployeeEquipment : MonoBehaviour
         return itemSlots.TryGetValue(slot, out var data) ? data : null;
     }
 
+    /// <summary>적의 공격 대상에서 빠지는 장비(위장 피막 외투 등)를 하나라도 착용했는지</summary>
+    public bool IsHiddenFromXenops
+    {
+        get
+        {
+            foreach (var d in itemSlots.Values) if (d != null && d.hiddenFromXenops) return true;
+            return false;
+        }
+    }
+
 
     #endregion
 

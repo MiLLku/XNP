@@ -44,6 +44,7 @@ public enum ItemType
     GrapplerSinew = 17, // 그래플러
     AcidSac       = 18, // 스피터
     SpawnerCore   = 19, // 스포너 — 증식 핵
+    DisguiseFilm  = 20, // 위장체 — 위장 피막
 
     // ─── 가공 자원 (101~200) ────────────────────
     IronIngot   = 101,
@@ -132,6 +133,8 @@ public enum ItemType
     GlandSuit     = 375,
     SinewArmor    = 376,
     AcidGloves    = 377,
+    /// <summary>위장 피막 외투 — 위장체 도감 보호구. 착용자는 적의 공격 대상에서 빠진다(광역 피해는 받음)</summary>
+    DisguiseCloak = 378,
 
     // ─── 식물 (401~450) ─────────────────────────
     /// <summary>나무 묘목 — 나무를 제초하면 나오고, 파종하면 나무로 자랍니다.</summary>

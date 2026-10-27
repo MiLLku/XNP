@@ -54,7 +54,7 @@ public class XenopsCodexManager : DestroySingleton<XenopsCodexManager>, ISaveMod
 
         foreach (var x in xenopsManager.GetAllXenops())
         {
-            if (x == null || x.Data == null || observed.Contains(x.InstanceId)) continue;
+            if (x == null || x.Data == null || observed.Contains(x.InstanceId) || DisguiseBehavior.IsDisguised(x)) continue; // 위장체는 정체를 드러내야 관찰
             Vector3 p = x.transform.position;
             if (!fog.IsRevealed(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y))) continue;
 

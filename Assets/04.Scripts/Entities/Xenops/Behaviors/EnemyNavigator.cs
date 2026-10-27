@@ -233,7 +233,7 @@ public class EnemyNavigator : MonoBehaviour
         // 직원을 가까운 순으로 (지키는 중이면 지키는 반경 안의 직원만)
         var staff = new List<Employee>();
         foreach (var e in EmployeeManager.instance.AllEmployees)
-            if (e != null && e.State != EmployeeState.Dead
+            if (CombatTargeting.IsTargetable(e)
                 && (!IsGuarding || Vector2.Distance(e.transform.position, GuardAnchor.Value) <= GuardRadius)) staff.Add(e);
         if (IsGuarding && staff.Count == 0)
         {

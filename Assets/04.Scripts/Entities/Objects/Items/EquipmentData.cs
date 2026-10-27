@@ -65,6 +65,9 @@ public class EquipmentData : ScriptableObject
              "그 칸의 침식이 합산 이하면 전부 막고, 넘으면 그 칸 침식을 전부 받습니다(문턱).")]
     [Min(0)] public int erosionTolerance = 0;
 
+    [Tooltip("착용하면 적(제놉스)의 공격 대상 선정에서 빠집니다. 광역 피해(폭발·산성 등)는 그대로 받습니다.")]
+    public bool hiddenFromXenops = false;
+
     [Header("내구도")]
     [Tooltip("최대 내구도. 작업 마모·전투 소모로 감소하며 0이 되면 파괴됩니다.")]
     [Min(1)] public float maxDurability = 100f;

@@ -64,6 +64,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Min(0f)] [SerializeField] private float outpostMinThreat = 50f;
     [Min(0f)] [SerializeField] private float spawnerMinThreat = 50f;
     [Min(0f)] [SerializeField] private float splitMinThreat = 90f;
+    [Min(0f)] [SerializeField] private float disguiseMinThreat = 40f;
 
     [Tooltip("바로 직전 습격과 같은 종류의 가중치 배율")]
     [Range(0f, 1f)] [SerializeField] private float repeatLastFactor = 0.25f;
@@ -89,6 +90,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Tooltip("스포너 패턴 후보 적 ID — 심층 단계부터 deepXenopsId도 섞인다")]
     [SerializeField] private int[] spawnerPatternIds = { 6101, 6102, 6100 };
     [SerializeField] private Vector2 spawnerDistance = new Vector2(15f, 30f);
+
+    [Header("위장체 습격 — 알림 없이 기지 안에 직원 모습으로 하나 (임시 수치)")]
+    [Min(0f)] [SerializeField] private float disguiseWeight = 10f;
+    [SerializeField] private int disguiseXenopsId = 6105;
 
     [Header("분산 습격 — 여러 곳에서 나눠 오는 대신 규모가 작다 (임시 수치)")]
     [Min(0f)] [SerializeField] private float splitWeight = 15f;
@@ -193,7 +198,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     }
 
     /// <summary>알림·UI용 습격 종류 이름</summary>
-    public static string TypeLabel(RaidType t) => t == RaidType.Tunnel ? "땅굴 습격" : t == RaidType.Breach ? "브리칭 습격" : t == RaidType.Outpost ? "거점 습격" : t == RaidType.Spawner ? "스포너 습격" : t == RaidType.Split ? "분산 습격" : "일반 습격";
+    public static string TypeLabel(RaidType t) => t == RaidType.Tunnel ? "땅굴 습격" : t == RaidType.Breach ? "브리칭 습격" : t == RaidType.Outpost ? "거점 습격" : t == RaidType.Spawner ? "스포너 습격" : t == RaidType.Split ? "분산 습격" : t == RaidType.Disguise ? "위장체 습격" : "일반 습격";
     public bool IsRaidActive => currentState == RaidState.InProgress || currentState == RaidState.Approaching;
 
     #endregion
@@ -340,7 +345,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         LastThreat = CurrentThreat();
         int total = type == RaidType.Outpost
             ? Mathf.Clamp(Mathf.RoundToInt((LastThreat.total - outpostStructurePoints) / PointsPerEnemy(type)), 1, maxEnemiesTechnical)
-            : type == RaidType.Spawner ? 0
+            : type == RaidType.Spawner || type == RaidType.Disguise ? 0
             : type == RaidType.Split ? EnemyCountFor(LastThreat.total * splitThreatFactor, type)
             : EnemyCountFor(LastThreat.total, type);
         activeOutpost = null;
@@ -365,7 +370,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         if (type == RaidType.Split) total = Mathf.Max(total, splitPoints.Count); // 지점마다 최소 1마리
         recentRaidTypes.Insert(0, type); // 실제로 나온 종류 (자리가 없어 일반으로 바뀐 것까지)
         if (recentRaidTypes.Count > 2) recentRaidTypes.RemoveRange(2, recentRaidTypes.Count - 2);
-        if (type == RaidType.Spawner) activePlan.Clear(); // 처음엔 스포너만 — 적은 스포너가 내보낸다
+        if (type == RaidType.Spawner || type == RaidType.Disguise) activePlan.Clear(); // 처음엔 스포너만 — 적은 스포너가 내보낸다
         else BuildSpawnPlan(raid, type, total);
         Debug.Log($"[RaidManager] {raid.raidName} {TypeLabel(type)} · {StageLabel(activeThreatStage)} — {LastThreat} → {total}마리 (한 마리당 {PointsPerEnemy(type)})");
         lastRaidGameDay = GameDayNow;
@@ -413,7 +418,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// </summary>
     public RaidType RollRaidType(float threat)
     {
-        var types = new[] { RaidType.Normal, RaidType.Tunnel, RaidType.Breach, RaidType.Outpost, RaidType.Spawner, RaidType.Split };
+        var types = new[] { RaidType.Normal, RaidType.Tunnel, RaidType.Breach, RaidType.Outpost, RaidType.Spawner, RaidType.Split, RaidType.Disguise };
         var weights = new float[types.Length];
         float total = 0f;
         for (int i = 0; i < types.Length; i++)
@@ -438,12 +443,13 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private float BaseWeight(RaidType t)
         => t == RaidType.Tunnel ? tunnelWeight + tunnelWeightPerStage * CurrentThreatStage
          : t == RaidType.Breach ? breachWeight : t == RaidType.Outpost ? outpostWeight
-         : t == RaidType.Spawner ? spawnerWeight : t == RaidType.Split ? splitWeight : normalWeight;
+         : t == RaidType.Spawner ? spawnerWeight : t == RaidType.Split ? splitWeight
+         : t == RaidType.Disguise ? disguiseWeight : normalWeight;
 
     private float MinThreat(RaidType t)
         => t == RaidType.Tunnel ? tunnelMinThreat : t == RaidType.Breach ? breachMinThreat
          : t == RaidType.Outpost ? outpostMinThreat : t == RaidType.Spawner ? spawnerMinThreat
-         : t == RaidType.Split ? splitMinThreat : normalMinThreat;
+         : t == RaidType.Split ? splitMinThreat : t == RaidType.Disguise ? disguiseMinThreat : normalMinThreat;
 
     #endregion
 
@@ -481,6 +487,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         currentState = RaidState.Approaching;
         if (showDebugLogs) Debug.Log($"[RaidManager] {raid.raidName} 접근 중... ({raid.approachDuration}초)");
         await UniTask.Delay(TimeSpan.FromSeconds(raid.approachDuration), cancellationToken: ct);
+
+        // 위장체: 알림·정지·화면 이동 없이 하나만 두고 습격은 조용히 닫는다 — 위장체는 처치될 때까지 남는다
+        // (습격으로 남겨 두면 찾지 못하는 동안 다음 습격이 영영 오지 않는다)
+        if (activeRaidType == RaidType.Disguise) { StartDisguise(); ResetRaidState(); return; }
 
         // 레이드 시작
         currentState = RaidState.InProgress;
@@ -667,6 +677,20 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             FogOfWarManager.instance?.PermanentlyRevealArea(new Vector2Int(Mathf.FloorToInt(p.x) - 3, Mathf.FloorToInt(p.y) - 2), new Vector2Int(7, 5));
         Debug.Log($"[RaidManager] 분산 습격 스폰 지점 {splitPoints.Count}곳 (목표 {want}): {string.Join(" ", splitPoints)}");
         return splitPoints.Count >= 2;
+    }
+
+    /// <summary>위장체를 화면 밖 기지 안에 둔다 (자리가 없으면 아무것도 나오지 않는다)</summary>
+    private void StartDisguise()
+    {
+        if (XenopsManager.instance == null || !RaidSpawnPlacer.TryFindHiddenBasePosition(out var pos))
+        {
+            Debug.Log("[RaidManager] 위장체 자리를 찾지 못해 나오지 않았습니다");
+            return;
+        }
+        var x = XenopsManager.instance.SpawnXenops(disguiseXenopsId, pos);
+        if (x == null) return;
+        x.ApplyThreatScaling(StageMultiplier, true);
+        x.GetComponent<DisguiseBehavior>()?.OnSpawned();
     }
 
     /// <summary>스포너를 자리에 세우고 패턴을 정한다</summary>
@@ -917,7 +941,12 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 레이드 종료 후 가속 회복은 v10에서 제거됐다 —
         // 침식 회복 경로는 자연 회복(하한까지)·세척 시설·무작위 이벤트 셋뿐이다.
 
-        // 상태 리셋
+        ResetRaidState();
+    }
+
+    /// <summary>습격 상태를 비운다 (완료 알림 없음)</summary>
+    private void ResetRaidState()
+    {
         activeRaid = null;
         activeRaidType = RaidType.Normal;
         activeOutpost = null;

@@ -402,7 +402,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         {
             foreach (var emp in EmployeeManager.instance.AllEmployees)
             {
-                if (emp == null || emp.State == EmployeeState.Dead) continue;
+                if (!CombatTargeting.IsTargetable(emp)) continue;
                 if (excludeBlacklisted && IsBlacklisted(emp)) continue;
                 float d = CombatTargeting.EffectiveDistance(myPos, emp);
                 if (d < bestDist) { bestDist = d; nearest = emp; }

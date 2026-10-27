@@ -51,7 +51,10 @@ public class Xenops : MonoBehaviour
     public int InstanceId => instanceId;
 
     /// <summary>표시 이름</summary>
-    public string DisplayName => xenopsData != null ? xenopsData.xenopsName : "Unknown Xenops";
+    public string DisplayName => !string.IsNullOrEmpty(NameOverride) ? NameOverride : xenopsData != null ? xenopsData.xenopsName : "Unknown Xenops";
+
+    /// <summary>위장체가 복사한 직원 이름 — 비어 있으면 데이터 이름</summary>
+    public string NameOverride { get; set; }
 
     /// <summary>제노프스 데이터 (템플릿)</summary>
     public XenopsData Data => xenopsData;
@@ -439,6 +442,14 @@ public class Xenops : MonoBehaviour
             buildProgress = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().Progress : -1f,
             builtSeconds = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().BuiltSeconds : 0f
         };
+        var disguise = GetComponent<DisguiseBehavior>();
+        if (disguise != null)
+        {
+            saveData.disguiseRevealed = disguise.Revealed;
+            saveData.disguiseAlertCooldown = disguise.AlertCooldown;
+            saveData.disguiseSourceEmployeeId = disguise.SourceEmployeeId;
+            saveData.disguiseWorkTypes.AddRange(disguise.WorkTypes);
+        }
         var spawner = GetComponent<SpawnerStructure>();
         if (spawner != null)
         {
@@ -469,6 +480,7 @@ public class Xenops : MonoBehaviour
         if (data.health > 0f) GetComponent<XenopsHealth>()?.SetCurrentHealth(data.health);
         GetComponent<OutpostStructure>()?.RestoreProgress(data.buildProgress, data.builtSeconds);
         GetComponent<SpawnerStructure>()?.RestoreState(data.spawnerPattern, data.spawnerIndex, data.spawnerTimer);
+        GetComponent<DisguiseBehavior>()?.RestoreState(data.disguiseRevealed, data.disguiseAlertCooldown, data.disguiseSourceEmployeeId, data.disguiseWorkTypes);
 
         instanceId = data.instanceId;
         currentState = (XenopsState)data.state;
