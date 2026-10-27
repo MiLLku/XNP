@@ -210,6 +210,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 19cf8897f88a4772ba0ea28852134c29, type: 2}
   - {fileID: 11400000, guid: 386d0ae747c44206a81f568e804e9577, type: 2}
   - {fileID: 11400000, guid: ccdadc80c57a49c6a23df2cb0f80a9a6, type: 2}
+  - {fileID: 11400000, guid: 034e61bbd38f495d971183048aecd599, type: 2}
   workPosition: {fileID: 0}
   workingEffectPrefab: {fileID: 0}
   effectOffset: {x: 0, y: 0.5, z: 0}
