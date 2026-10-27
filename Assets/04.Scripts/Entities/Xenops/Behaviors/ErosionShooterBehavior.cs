@@ -250,6 +250,14 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         if (_stepUpCooldown > 0f) _stepUpCooldown -= dt;
         if (_cooldownTimer  > 0f) _cooldownTimer  -= dt;
 
+        // ── 0. 미끼에 끌리는 중 — 쏘지 않고 미끼 쪽으로만 ──
+        if (_nav.IsLured)
+        {
+            _lockedTarget = null;
+            if (!_nav.Steer(_moveSpeed)) _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+            return;
+        }
+
         // ── 1. 타겟 선정 — 가장 가까운 공격 대상 (주기적 재평가) ──
         _retargetTimer -= dt;
         if (_lockedTarget == null || !IsTargetAlive(_lockedTarget) || _retargetTimer <= 0f)

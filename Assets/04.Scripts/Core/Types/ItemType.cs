@@ -43,6 +43,7 @@ public enum ItemType
     ErosionGland  = 16, // 침식 사수
     GrapplerSinew = 17, // 그래플러
     AcidSac       = 18, // 스피터
+    SpawnerCore   = 19, // 스포너 — 증식 핵
 
     // ─── 가공 자원 (101~200) ────────────────────
     IronIngot   = 101,
@@ -157,4 +158,6 @@ public enum ItemType
     AntidoteSac       = 505,
     /// <summary>정화 수류탄 — 다용도구 칸 1회용. 소집 직원에게 우클릭으로 적 구조물을 지정해 던짐 (거점 습격 파훼)</summary>
     PurifyGrenade     = 506,
+    /// <summary>증식 핵 미끼 — 스포너 도감 다용도구 1회용. 소집 직원 우클릭으로 적 근처 지점에 던지면 반경 8칸 적이 10초 동안 끌려감</summary>
+    SpawnerCoreLure   = 507,
 }

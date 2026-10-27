@@ -175,7 +175,7 @@ public class Xenops : MonoBehaviour
     {
         if (instanceId > 0 && RuntimeIDRegistry.instance != null)
         {
-            RuntimeIDRegistry.instance.Unregister(instanceId);
+            RuntimeIDRegistry.instance.Unregister(instanceId, this);
         }
 
         // 잠입 해제
@@ -439,6 +439,13 @@ public class Xenops : MonoBehaviour
             buildProgress = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().Progress : -1f,
             builtSeconds = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().BuiltSeconds : 0f
         };
+        var spawner = GetComponent<SpawnerStructure>();
+        if (spawner != null)
+        {
+            saveData.spawnerPattern.AddRange(spawner.Pattern);
+            saveData.spawnerIndex = spawner.Index;
+            saveData.spawnerTimer = spawner.Timer;
+        }
 
         // 서브 컴포넌트 데이터 수집
         interpretation?.PopulateSaveData(saveData);
@@ -461,6 +468,7 @@ public class Xenops : MonoBehaviour
 
         if (data.health > 0f) GetComponent<XenopsHealth>()?.SetCurrentHealth(data.health);
         GetComponent<OutpostStructure>()?.RestoreProgress(data.buildProgress, data.builtSeconds);
+        GetComponent<SpawnerStructure>()?.RestoreState(data.spawnerPattern, data.spawnerIndex, data.spawnerTimer);
 
         instanceId = data.instanceId;
         currentState = (XenopsState)data.state;

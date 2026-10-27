@@ -2,6 +2,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>거점 습격 구조물 종류</summary>
+/// <summary>정화 수류탄을 맞을 수 있는 적 구조물 (거점 구조물·스포너)</summary>
+public interface IPurifyTarget
+{
+    void HitByPurifyGrenade();
+}
+
 public enum OutpostKind
 {
     /// <summary>침식 송신탑 — 서 있는 동안 맵 전체 칸 침식을 일정량 올림</summary>
@@ -19,7 +25,7 @@ public enum OutpostKind
 ///       다 지어지면 <b>맵 전체</b>에 효과를 낸다(범위 계산 없음). 부서지면 효과가 바로 풀리고 처치 드롭(침식 결정체)이 떨어진다.
 /// </summary>
 [RequireComponent(typeof(Xenops))]
-public class OutpostStructure : MonoBehaviour, IXenopsBehavior
+public class OutpostStructure : MonoBehaviour, IXenopsBehavior, IPurifyTarget
 {
     // shortcut: 임시 수치 — 밸런스 확정 시 데이터로 뺄 것
     private const float BUILD_REACH = 3f;

@@ -225,7 +225,7 @@ public class Employee : MonoBehaviour
     {
         if (instanceId > 0 && RuntimeIDRegistry.instance != null)
         {
-            RuntimeIDRegistry.instance.Unregister(instanceId);
+            RuntimeIDRegistry.instance.Unregister(instanceId, this);
         }
         if (WorkSystemManager.instance != null)
         {

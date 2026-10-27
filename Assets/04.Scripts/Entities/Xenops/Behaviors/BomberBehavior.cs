@@ -66,8 +66,8 @@ public class BomberBehavior : MonoBehaviour, IXenopsBehavior
             return;
         }
 
-        // 노릴 건물이 없으면 직원에게
-        var target = wall == null ? (_nav.TargetEmployee ?? CombatTargeting.PickEmployeeTarget(transform.position)) : null;
+        // 노릴 건물이 없으면 직원에게 (미끼에 끌리는 중엔 아무도)
+        var target = wall == null && !_nav.IsLured ? (_nav.TargetEmployee ?? CombatTargeting.PickEmployeeTarget(transform.position)) : null;
         if (target != null && Vector2.Distance(target.transform.position, transform.position) <= TRIGGER_DISTANCE)
         {
             Explode();

@@ -64,6 +64,26 @@ public class EnemyNavigator : MonoBehaviour
     public float GuardRadius { get; set; } = 7f;
     public bool IsGuarding => GuardAnchor.HasValue;
 
+    // 유인(증식 핵 미끼) — 끝날 때까지 지키기를 미끼 지점(반경 0 = 직원을 노리지 않음)으로 덮어쓰고, 끝나면 되돌린다
+    private float _lureTimer;
+    private Vector2 _lurePoint;
+    private Vector2? _lureSavedAnchor;
+    private float _lureSavedRadius;
+
+    /// <summary>미끼에 끌려가는 중인지</summary>
+    public bool IsLured => _lureTimer > 0f;
+
+    /// <summary>seconds 동안 point로 끌려간다 (직원을 노리지 않음)</summary>
+    public void Lure(Vector2 point, float seconds)
+    {
+        if (!IsLured) { _lureSavedAnchor = GuardAnchor; _lureSavedRadius = GuardRadius; }
+        _lurePoint = point;
+        GuardAnchor = point;
+        GuardRadius = 0f;
+        _lureTimer = seconds;
+        _repathTimer = 0f;
+    }
+
     /// <summary>다음 경유점에 서려면 먼저 깔아야 하는 발판 칸. 없으면 null</summary>
     /// <summary>다음 경유점으로 가려면 먼저 파야 하는 지형 칸 (그 칸 기둥에서 몸이 지나갈 칸). 없으면 null</summary>
     public Vector2Int? PendingDig
@@ -120,6 +140,12 @@ public class EnemyNavigator : MonoBehaviour
     /// <summary>매 프레임 호출 — 주기적으로 목표·경로를 갱신하고 지나간 경유점을 지운다</summary>
     public void Tick(float dt)
     {
+        if (IsLured && (_lureTimer -= dt) <= 0f)
+        {
+            // 그사이 지키기가 풀렸으면(거점 구조물 파괴) 되살리지 않는다
+            if (GuardAnchor.HasValue && GuardAnchor.Value == _lurePoint) { GuardAnchor = _lureSavedAnchor; GuardRadius = _lureSavedRadius; }
+            _repathTimer = 0f;
+        }
         _repathTimer -= dt;
         // 노리던 직원이 죽었거나 건물이 부서졌으면 바로 다시 (목표를 못 찾은 상태에선 매 프레임 다시 돌리지 않는다)
         bool targetGone = (TargetEmployee != null && TargetEmployee.State == EmployeeState.Dead)

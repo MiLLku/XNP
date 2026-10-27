@@ -812,7 +812,7 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
     {
         if (_instanceId >= 0 && RuntimeIDRegistry.instance != null)
         {
-            RuntimeIDRegistry.instance.Unregister(_instanceId);
+            RuntimeIDRegistry.instance.Unregister(_instanceId, this);
         }
     }
 

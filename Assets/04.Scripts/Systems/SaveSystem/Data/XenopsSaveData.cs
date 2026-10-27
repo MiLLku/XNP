@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// 제노프스 저장 데이터.
@@ -62,6 +63,11 @@ public class XenopsSaveData
 
     /// <summary>거점 구조물이 다 지어진 뒤 흐른 시간(초) — 공포 토템 무드 진행</summary>
     public float builtSeconds;
+
+    /// <summary>스포너 패턴(내보낼 적 ID 순서)·다음 칸·남은 타이머 — 스포너가 아니면 비어 있음</summary>
+    public List<int> spawnerPattern = new List<int>();
+    public int spawnerIndex;
+    public float spawnerTimer;
 
     #endregion
 }

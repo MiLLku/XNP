@@ -135,6 +135,9 @@ public enum RaidType
 
     /// <summary>거점 — 기지 바깥에 해로운 구조물을 짓고 지킨다 (구조물: OutpostStructure)</summary>
     Outpost = 3,
+
+    /// <summary>스포너 — 기지 바깥 스포너가 부서지기 전까지 패턴대로 적을 내보낸다 (SpawnerStructure)</summary>
+    Spawner = 4,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

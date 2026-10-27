@@ -374,7 +374,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         {
             if (!IsPointerOverInteractiveUI() &&
                 _selectedEmployee != null && _selectedEmployee.IsDrafted &&
-                !TryThrowPurifyGrenade(_selectedEmployee, mousePos))
+                !TryThrowPurifyGrenade(_selectedEmployee, mousePos) &&
+                !TryThrowLure(_selectedEmployee, mousePos))
             {
                 _selectedEmployee.CommandMoveTo(mousePos);
             }
@@ -389,22 +390,73 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     /// </summary>
     private bool TryThrowPurifyGrenade(Employee employee, Vector3 mousePos)
     {
-        OutpostStructure target = null;
+        IPurifyTarget target = null;
         foreach (var c in Physics2D.OverlapPointAll(mousePos))
-            if ((target = c.GetComponentInParent<OutpostStructure>()) != null) break;
-        if (target == null) return false;
+            if ((target = c.GetComponentInParent<IPurifyTarget>()) != null) break;
+        if (target == null || !HasCommandTool(employee, ItemType.PurifyGrenade)) return false;
 
-        var eq = employee.GetComponent<EmployeeEquipment>();
-        var tool = eq != null ? eq.GetItemInSlot(EquipmentSlot.MultiTool) : null;
-        if (tool == null || !tool.IsConsumable || tool.consumable.trigger != ConsumableTrigger.Command) return false;
-
-        if (Vector2.Distance(employee.transform.position, target.transform.position) > GRENADE_RANGE)
+        var targetPos = ((Component)target).transform.position;
+        if (Vector2.Distance(employee.transform.position, targetPos) > GRENADE_RANGE)
         {
-            employee.CommandMoveTo(target.transform.position);
+            employee.CommandMoveTo(targetPos);
             return true;
         }
-        if (eq.UseCommandConsumable(EquipmentSlot.MultiTool)) target.HitByPurifyGrenade();
+        if (employee.GetComponent<EmployeeEquipment>().UseCommandConsumable(EquipmentSlot.MultiTool)) target.HitByPurifyGrenade();
         return true;
+    }
+
+    private const float LURE_RADIUS = 8f;    // shortcut: 임시 수치 — 증식 핵 미끼 끄는 반경·시간
+    private const float LURE_SECONDS = 10f;
+
+    /// <summary>
+    /// 소집 직원 우클릭 지점 반경 LURE_RADIUS 안에 적이 있으면 다용도구 칸의 증식 핵 미끼를 던진다 —
+    /// 그 적들이 LURE_SECONDS 동안 그 지점으로 끌려간다. 미끼가 없거나 근처에 적이 없으면 false(평소처럼 이동).
+    /// 사거리(GRENADE_RANGE) 밖이면 그쪽으로 걸어간다.
+    /// </summary>
+    private bool TryThrowLure(Employee employee, Vector3 mousePos)
+    {
+        if (!HasCommandTool(employee, ItemType.SpawnerCoreLure) || XenopsManager.instance == null) return false;
+        var lured = new List<EnemyNavigator>();
+        foreach (var x in XenopsManager.instance.GetXenopsByType(XenopsType.Hostile))
+        {
+            var nav = x != null ? x.GetComponent<EnemyNavigator>() : null;
+            if (nav != null && Vector2.Distance(x.transform.position, mousePos) <= LURE_RADIUS) lured.Add(nav);
+        }
+        if (lured.Count == 0) return false;
+
+        if (Vector2.Distance(employee.transform.position, mousePos) > GRENADE_RANGE)
+        {
+            employee.CommandMoveTo(mousePos);
+            return true;
+        }
+        if (!employee.GetComponent<EmployeeEquipment>().UseCommandConsumable(EquipmentSlot.MultiTool)) return false;
+        foreach (var nav in lured) nav.Lure(mousePos, LURE_SECONDS);
+        ShowLureMarker(mousePos);
+        Debug.Log($"[Interaction] 증식 핵 미끼 — {lured.Count}마리 유인 @ {mousePos}");
+        return true;
+    }
+
+    /// <summary>다용도구 칸에 그 종류의 명령형 1회용이 끼워져 있는지</summary>
+    private static bool HasCommandTool(Employee employee, ItemType type)
+    {
+        var eq = employee.GetComponent<EmployeeEquipment>();
+        var tool = eq != null ? eq.GetItemInSlot(EquipmentSlot.MultiTool) : null;
+        return tool != null && tool.IsConsumable && tool.consumable.trigger == ConsumableTrigger.Command
+               && tool.itemData != null && tool.itemData.itemType == type;
+    }
+
+    /// <summary>미끼 자리 표시 — 끄는 시간 동안만</summary>
+    private static void ShowLureMarker(Vector3 at)
+    {
+        var tex = Texture2D.whiteTexture;
+        var go = new GameObject("LureMarker", typeof(SpriteRenderer));
+        go.transform.position = new Vector3(at.x, at.y, 0f);
+        go.transform.localScale = new Vector3(0.4f, 0.4f, 1f);
+        var sr = go.GetComponent<SpriteRenderer>();
+        sr.sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), tex.width);
+        sr.color = new Color(0.9f, 0.3f, 0.6f, 0.9f);
+        sr.sortingOrder = 50;
+        Destroy(go, LURE_SECONDS);
     }
 
     /// <summary>

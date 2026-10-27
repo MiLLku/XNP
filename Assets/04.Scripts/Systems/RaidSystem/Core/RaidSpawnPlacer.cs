@@ -175,7 +175,10 @@ public static class RaidSpawnPlacer
     /// 거점 습격 자리: 하늘이 열린(바깥) 두 칸 높이 빈 지면 중, 가장 가까운 기지 앵커까지 거리가
     /// OUTPOST_MIN~MAX_FROM_BASE인 칸 — 직원 활동 범위의 가장자리. 없으면 false.
     /// </summary>
-    public static bool TryFindOutpostPosition(out Vector3 position)
+    public static bool TryFindOutpostPosition(out Vector3 position) => TryFindOutpostPosition(out position, OUTPOST_MIN_FROM_BASE, OUTPOST_MAX_FROM_BASE);
+
+    /// <summary>기지에서 minFromBase~maxFromBase 떨어진 하늘 열린 지면 (스포너 습격은 더 멀리)</summary>
+    public static bool TryFindOutpostPosition(out Vector3 position, float minFromBase, float maxFromBase)
     {
         position = Vector3.zero;
         var gameMap = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
@@ -184,7 +187,7 @@ public static class RaidSpawnPlacer
 
         float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
         foreach (var a in anchors) { minX = Mathf.Min(minX, a.x); maxX = Mathf.Max(maxX, a.x); minY = Mathf.Min(minY, a.y); maxY = Mathf.Max(maxY, a.y); }
-        int r = Mathf.CeilToInt(OUTPOST_MAX_FROM_BASE);
+        int r = Mathf.CeilToInt(maxFromBase);
 
         var pool = new List<Vector2Int>();
         for (int x = Mathf.Max(0, (int)minX - r); x <= Mathf.Min(GameMap.MAP_WIDTH - 1, (int)maxX + r); x++)
@@ -197,7 +200,7 @@ public static class RaidSpawnPlacer
             float d = float.MaxValue;
             var p = new Vector2(x + 0.5f, y + 0.5f);
             foreach (var a in anchors) d = Mathf.Min(d, Vector2.Distance(a, p));
-            if (d >= OUTPOST_MIN_FROM_BASE && d <= OUTPOST_MAX_FROM_BASE) pool.Add(c);
+            if (d >= minFromBase && d <= maxFromBase) pool.Add(c);
         }
         if (pool.Count == 0) return false;
         var pick = pool[Random.Range(0, pool.Count)];
