@@ -148,10 +148,10 @@ public class CombatStanceBarUI : MonoBehaviour
 
     private void OnDraftClicked()
     {
-        // 직원인 줄 알고 고른 위장체를 소집하면 — 경고 후 정체를 드러낸다 (원본 직원은 소집되지 않음)
-        var disguise = InteractionManager.instance != null ? InteractionManager.instance.SelectedDisguise : null;
-        if (disguise != null) { disguise.ExposeByDraft(); return; }
         if (draft == null) return;
+        // 직원인 줄 알고 고른 위장체를 소집하면 — 경고 후 정체를 드러낸다
+        var disguise = draft.GetComponent<DisguisedEmployee>();
+        if (disguise != null) { disguise.ExposeByDraft(); return; }
         draft.ToggleDraft();
         Refresh();
     }

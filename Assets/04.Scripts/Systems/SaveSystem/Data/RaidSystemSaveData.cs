@@ -39,9 +39,21 @@ public class RaidSystemSaveData
     /// <summary>최근 습격 종류 (RaidType 정수값, 0번 = 바로 직전) — 구 세이브에는 없음</summary>
     public List<int> recentRaidTypes = new List<int>();
 
+    /// <summary>위장 중인 위장체(직원 복제체) — 직원 목록 밖이라 여기 저장</summary>
+    public List<DisguiseSaveData> disguises = new List<DisguiseSaveData>();
+
     public RaidSystemSaveData()
     {
         activeRaidId = -1;
         spawnedEntityIds = new List<int>();
     }
+}
+
+/// <summary>위장 중인 위장체 하나 — 복제체 직원 데이터·원본 직원·경고 쿨다운</summary>
+[Serializable]
+public class DisguiseSaveData
+{
+    public EmployeeSaveData employee;
+    public int sourceEmployeeId;
+    public float alertCooldown;
 }

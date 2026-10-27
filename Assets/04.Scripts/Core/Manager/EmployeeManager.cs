@@ -490,22 +490,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
                 continue;
             }
 
-            if (employeePrefab == null)
-            {
-                Debug.LogError("[EmployeeManager] Employee 프리팹이 설정되지 않았습니다!");
-                continue;
-            }
-
-            Vector3 pos = new Vector3(esd.posX, esd.posY, 0);
-            GameObject employeeObj = Instantiate(employeePrefab, pos, Quaternion.identity);
-
-            Employee employee = employeeObj.GetComponent<Employee>();
-            if (employee != null)
-            {
-                employee.Initialize(empData, esd.instanceId);
-                employee.RestoreFromSaveData(esd);
-                allEmployees.Add(employee);
-            }
+            var employee = InstantiateFromSave(esd, empData);
+            if (employee != null) allEmployees.Add(employee);
         }
 
         if (showDebugInfo)
@@ -515,6 +501,36 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     }
 
     public void PostRestore(SaveData data) { }
+
+    /// <summary>
+    /// 저장 데이터로 직원 개체를 만든다 — 직원 목록에는 넣지 않는다(호출자가 정함).
+    /// 위장체(DisguisedEmployee)가 목록 밖 복제체를 만들 때도 쓴다.
+    /// </summary>
+    public Employee InstantiateFromSave(EmployeeSaveData esd, EmployeeData empData = null)
+    {
+        if (esd == null) return null;
+        var db = GameDatabase.Instance;
+        if (empData == null && db != null) empData = db.GetEmployeeData(esd.templateId);
+        if (empData == null && esd.generated != null && esd.generated.isGenerated)
+            empData = RandomEmployeeGenerator.Rebuild(esd.generated, esd.templateId, esd.abilities, generationConfig);
+        if (empData == null)
+        {
+            Debug.LogWarning($"[EmployeeManager] 직원 데이터 없음: ID {esd.templateId}");
+            return null;
+        }
+        if (employeePrefab == null)
+        {
+            Debug.LogError("[EmployeeManager] Employee 프리팹이 설정되지 않았습니다!");
+            return null;
+        }
+
+        GameObject employeeObj = Instantiate(employeePrefab, new Vector3(esd.posX, esd.posY, 0), Quaternion.identity);
+        Employee employee = employeeObj.GetComponent<Employee>();
+        if (employee == null) return null;
+        employee.Initialize(empData, esd.instanceId);
+        employee.RestoreFromSaveData(esd);
+        return employee;
+    }
 
     #endregion
 

@@ -124,10 +124,6 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     /// <summary>현재 선택된 직원 (없으면 null)</summary>
     public Employee SelectedEmployee => _selectedEmployee;
 
-    /// <summary>직원인 줄 알고 고른 위장체 — 선택 창은 원본 직원을 보여 주고, 소집하면 정체를 드러낸다</summary>
-    private DisguiseBehavior _selectedDisguise;
-    public DisguiseBehavior SelectedDisguise => _selectedDisguise;
-
     /// <summary>
     /// 선택된 직원 전부. 지금은 단일 선택이라 최대 1명이지만,
     /// 다중 선택이 생기면 여기만 바꾸면 되도록 읽는 쪽(침식 필터 안전 표시 등)은 이걸 순회합니다.
@@ -374,11 +370,6 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         }
 
         // 우클릭: 선택된 소집 직원에게 이동 명령
-        if (Input.GetMouseButtonDown(1) && _selectedDisguise != null && !IsPointerOverInteractiveUI())
-        {
-            _selectedDisguise.FakeMoveTo(mousePos); // 위장체는 따르는 척만
-            return;
-        }
         if (Input.GetMouseButtonDown(1))
         {
             if (!IsPointerOverInteractiveUI() &&
@@ -498,17 +489,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             ConstructionSite site = col.GetComponent<ConstructionSite>();
             if (site != null) { DeselectEmployee(); OnConstructionSiteClicked(site); return true; }
         }
-        // 우선순위 3: Employee (직원으로 위장한 위장체 포함)
-        foreach (var col in hits)
-        {
-            var disguise = col.GetComponentInParent<DisguiseBehavior>();
-            if (disguise != null && !disguise.Revealed && disguise.SourceEmployee != null)
-            {
-                SelectEmployee(disguise.SourceEmployee); // shortcut: 선택 창은 원본 직원 그대로 — 창의 다른 명령은 원본에 간다
-                _selectedDisguise = disguise;
-                return true;
-            }
-        }
+        // 우선순위 3: Employee (위장 중인 위장체도 직원 개체라 똑같이 선택된다)
         foreach (var col in hits)
         {
             Employee emp = col.GetComponent<Employee>();
@@ -707,7 +688,6 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     /// <summary>직원을 선택합니다 (태세 바 표시). 다른 UI에서도 호출 가능.</summary>
     public void SelectEmployee(Employee employee)
     {
-        _selectedDisguise = null;
         if (_selectedEmployee == employee) return;
         _selectedEmployee = employee;
         GameMessageBus.Publish(new EmployeeSelectionChangedMessage(employee));
@@ -717,7 +697,6 @@ public class InteractionManager : DestroySingleton<InteractionManager>
     /// <summary>직원 선택을 해제합니다 (선택이 없으면 무시).</summary>
     public void DeselectEmployee()
     {
-        _selectedDisguise = null;
         if (_selectedEmployee == null) return;
         _selectedEmployee = null;
         GameMessageBus.Publish(new EmployeeSelectionChangedMessage(null));

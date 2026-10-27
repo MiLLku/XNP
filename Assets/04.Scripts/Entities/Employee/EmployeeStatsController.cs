@@ -466,6 +466,14 @@ public class EmployeeStatsController : MonoBehaviour
     /// </summary>
     private void CheckCriticalNeeds()
     {
+        // 위장체 복제체는 죽거나 정신 붕괴하지 않고 정체를 드러낸다
+        var disguise = GetComponent<DisguisedEmployee>();
+        if (disguise != null)
+        {
+            if (currentStats.health <= 0f) disguise.Reveal();
+            return;
+        }
+
         if (currentStats.health <= 0f)
         {
             employee.SetState(EmployeeState.Dead);

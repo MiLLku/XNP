@@ -381,7 +381,7 @@ public class EmployeeCombat : MonoBehaviour
 
         foreach (var x in XenopsManager.instance.GetXenopsByType(XenopsType.Hostile))
         {
-            if (x == null || x.State == XenopsState.Subdued || DisguiseBehavior.IsDisguised(x)) continue; // 위장 중엔 직원으로 보인다
+            if (x == null || x.State == XenopsState.Subdued) continue;
             float d = Vector2.Distance(origin, x.transform.position);
             if (d <= radius && d < bestDist) { best = x; bestDist = d; }
         }

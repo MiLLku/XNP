@@ -296,9 +296,16 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     ///
     /// 재미는 여기에 관여하지 않는다 — 재미의 역할은 정신 이상 임계점 조절뿐이다.
     /// </summary>
+    /// <summary>위장체 복제체 — 이 직원의 속도 대신 원본(SpeedSource)의 속도를 쓴다. null이면 자기 속도</summary>
+    public Employee SpeedSource { get; set; }
+
+    /// <summary>최종 작업 속도 배율 (위장체 0.1)</summary>
+    public float SpeedScale { get; set; } = 1f;
+
     public float GetWorkSpeed(WorkType type)
     {
         if (!CanPerformWork(type)) return 0f;
+        if (SpeedSource != null && SpeedSource != employee) return SpeedSource.GetWorkSpeed(type) * SpeedScale;
 
         WorkAbilities abilities = Abilities;
         float baseSpeed = abilities.GetWorkSpeed(type);
@@ -316,7 +323,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         int aptitude = employee != null && employee.Growth != null ? employee.Growth.GetAptitudeLevel(type) : 1;
         float aptitudeModifier = levelCfg != null ? 1f + levelCfg.workSpeedPerAptitudeLevel * Mathf.Max(0, aptitude - 1) : 1f;
 
-        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier * equipmentModifier * aptitudeModifier;
+        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier * equipmentModifier * aptitudeModifier * SpeedScale;
     }
 
     /// <summary>

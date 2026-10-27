@@ -93,7 +93,6 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     [Header("위장체 습격 — 알림 없이 기지 안에 직원 모습으로 하나 (임시 수치)")]
     [Min(0f)] [SerializeField] private float disguiseWeight = 10f;
-    [SerializeField] private int disguiseXenopsId = 6105;
 
     [Header("분산 습격 — 여러 곳에서 나눠 오는 대신 규모가 작다 (임시 수치)")]
     [Min(0f)] [SerializeField] private float splitWeight = 15f;
@@ -220,6 +219,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             raidType = (int)activeRaidType,
             threatStage = activeThreatStage,
             recentRaidTypes = recentRaidTypes.ConvertAll(t => (int)t),
+            disguises = DisguisedEmployeeSaves(),
             lastRaidGameDay = lastRaidGameDay,
             nextRaidGameDay = nextRaidGameDay
         };
@@ -272,6 +272,11 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
                 obj.ApplyThreatScaling(StageMultiplier, true); // 체력 비율은 유지한 채 단계 배율로 최대 체력 다시 맞춤
             }
         }
+
+        // 위장 중인 위장체 (직원 목록 밖이라 직원 세이브에 없다)
+        foreach (var d in UnityEngine.Object.FindObjectsByType<DisguisedEmployee>(FindObjectsSortMode.None)) Destroy(d.gameObject);
+        if (data.raidSystem.disguises != null)
+            foreach (var d in data.raidSystem.disguises) DisguisedEmployee.Restore(d.employee, d.sourceEmployeeId, d.alertCooldown);
 
         // 거점 습격: 남은 구조물을 다시 잡고, 경비는 그 자리를 지킨다
         activeOutpost = activeRaidType == RaidType.Outpost ? spawnedEntities.Find(x => x != null && x.GetComponent<OutpostStructure>() != null) : null;
@@ -679,19 +684,30 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         return splitPoints.Count >= 2;
     }
 
-    /// <summary>위장체를 화면 밖 기지 안에 둔다 (자리가 없으면 아무것도 나오지 않는다)</summary>
+    /// <summary>위장체 — 살아 있는 직원 하나를 복제해 화면 밖 기지 안에 둔다 (자리·직원이 없으면 아무것도 나오지 않는다)</summary>
     private void StartDisguise()
     {
-        if (XenopsManager.instance == null || !RaidSpawnPlacer.TryFindHiddenBasePosition(out var pos))
+        var alive = EmployeeManager.instance != null
+            ? EmployeeManager.instance.AllEmployees.FindAll(e => e != null && e.State != EmployeeState.Dead) : new List<Employee>();
+        if (alive.Count == 0 || !RaidSpawnPlacer.TryFindHiddenBasePosition(out var pos))
         {
-            Debug.Log("[RaidManager] 위장체 자리를 찾지 못해 나오지 않았습니다");
+            Debug.Log("[RaidManager] 위장체 자리·원본 직원이 없어 나오지 않았습니다");
             return;
         }
-        var x = XenopsManager.instance.SpawnXenops(disguiseXenopsId, pos);
-        if (x == null) return;
-        x.ApplyThreatScaling(StageMultiplier, true);
-        x.GetComponent<DisguiseBehavior>()?.OnSpawned();
+        DisguisedEmployee.Spawn(alive[UnityEngine.Random.Range(0, alive.Count)], pos);
     }
+
+    private static List<DisguiseSaveData> DisguisedEmployeeSaves()
+    {
+        var list = new List<DisguiseSaveData>();
+        foreach (var d in DisguisedEmployee.All)
+            if (d != null && d.Body != null)
+                list.Add(new DisguiseSaveData { employee = d.Body.CreateSaveData(), sourceEmployeeId = d.SourceEmployeeId, alertCooldown = d.AlertCooldown });
+        return list;
+    }
+
+    /// <summary>위협 단계의 체력·피해 배율 (정체를 드러낸 위장체용)</summary>
+    public float StageMultiplierFor(int stage) => 1f + statBonusPerStage * stage;
 
     /// <summary>스포너를 자리에 세우고 패턴을 정한다</summary>
     private void StartSpawner()
