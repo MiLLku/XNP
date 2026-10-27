@@ -36,6 +36,9 @@ public class RaidSystemSaveData
     /// <summary>진행 중인 습격의 위협 단계 (구 세이브에는 없음 — 0)</summary>
     public int threatStage;
 
+    /// <summary>최근 습격 종류 (RaidType 정수값, 0번 = 바로 직전) — 구 세이브에는 없음</summary>
+    public List<int> recentRaidTypes = new List<int>();
+
     public RaidSystemSaveData()
     {
         activeRaidId = -1;

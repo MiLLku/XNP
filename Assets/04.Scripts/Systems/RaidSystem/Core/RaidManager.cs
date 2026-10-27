@@ -57,9 +57,21 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Min(0f)] [SerializeField] private float tunnelWeight = 20f;
     [Min(0f)] [SerializeField] private float breachWeight = 20f;
 
+    [Header("습격 후보 풀 — 위협 점수가 이 이상이어야 후보에 든다 (임시 수치, 일수 조건 대체)")]
+    [Min(0f)] [SerializeField] private float normalMinThreat = 0f;
+    [Min(0f)] [SerializeField] private float tunnelMinThreat = 35f;
+    [Min(0f)] [SerializeField] private float breachMinThreat = 35f;
+    [Min(0f)] [SerializeField] private float outpostMinThreat = 50f;
+    [Min(0f)] [SerializeField] private float spawnerMinThreat = 50f;
+    [Min(0f)] [SerializeField] private float splitMinThreat = 90f;
+
+    [Tooltip("바로 직전 습격과 같은 종류의 가중치 배율")]
+    [Range(0f, 1f)] [SerializeField] private float repeatLastFactor = 0.25f;
+    [Tooltip("그 전 습격과 같은 종류의 가중치 배율")]
+    [Range(0f, 1f)] [SerializeField] private float repeatPrevFactor = 0.6f;
+
     [Header("거점 습격 — 구조물을 짓고 지킨다 (임시 수치)")]
     [Min(0f)] [SerializeField] private float outpostWeight = 15f;
-    [Min(0)] [SerializeField] private int outpostMinDay = 7;
     [Tooltip("구조물 하나가 먼저 차지하는 위협 점수 — 나머지로 경비 마리 수")]
     [Min(0f)] [SerializeField] private float outpostStructurePoints = 25f;
     [Tooltip("구조물 XenopsData ID (무작위 하나): 침식 송신탑, 공포 토템")]
@@ -71,7 +83,6 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     [Header("스포너 습격 — 부수기 전까지 적을 계속 내보낸다 (임시 수치)")]
     [Min(0f)] [SerializeField] private float spawnerWeight = 15f;
-    [Min(0)] [SerializeField] private int spawnerMinDay = 7;
     [Tooltip("스포너가 차지하는 위협 점수 (호위 없이 스포너만 — 알림 표시용)")]
     [Min(0f)] [SerializeField] private float spawnerPoints = 30f;
     [SerializeField] private int spawnerXenopsId = 6301;
@@ -81,7 +92,6 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     [Header("분산 습격 — 여러 곳에서 나눠 오는 대신 규모가 작다 (임시 수치)")]
     [Min(0f)] [SerializeField] private float splitWeight = 15f;
-    [Min(0)] [SerializeField] private int splitMinDay = 7;
     [Tooltip("위협 점수에 곱해 마리 수를 줄인다")]
     [Range(0.1f, 1f)] [SerializeField] private float splitThreatFactor = 0.8f;
     [Tooltip("스폰 지점 수 (최소~최대, 무작위)")]
@@ -91,8 +101,6 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Tooltip("기지(가장 가까운 앵커)에서 이보다 먼 후보는 버린다 — 근처 안개 후보가 없으면 맵 반대편까지 잡혔다")]
     [Min(1f)] [SerializeField] private float splitMaxFromBase = 40f;
 
-    [Tooltip("땅굴·브리칭 습격이 나올 수 있는 가장 이른 날")]
-    [Min(0)] [SerializeField] private int specialRaidMinDay = 5;
 
     [Tooltip("땅굴 경고 뒤 적이 솟아 나오기까지 (초)")]
     [Min(0f)] [SerializeField] private float tunnelWarningSeconds = 4f;
@@ -128,6 +136,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private RaidState currentState = RaidState.None;
     private RaidData activeRaid;
     private RaidType activeRaidType = RaidType.Normal;
+
+    /// <summary>최근 습격 종류 (0 = 바로 직전, 1 = 그 전), 세이브됨 — 같은 종류가 연달아 나오지 않게</summary>
+    private readonly List<RaidType> recentRaidTypes = new List<RaidType>();
 
     // 거점 습격 — 자리·구조물 종류(스폰 전)와 지어지는 구조물(스폰 후). 스포너 습격도 자리(activeOutpostSite)를 같이 쓴다
     private Vector3? activeOutpostSite;
@@ -203,6 +214,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             activeMultiplier = activeMultiplier,
             raidType = (int)activeRaidType,
             threatStage = activeThreatStage,
+            recentRaidTypes = recentRaidTypes.ConvertAll(t => (int)t),
             lastRaidGameDay = lastRaidGameDay,
             nextRaidGameDay = nextRaidGameDay
         };
@@ -230,6 +242,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         nextRaidGameDay  = data.raidSystem.nextRaidGameDay;
         activeRaidType   = (RaidType)data.raidSystem.raidType;
         activeThreatStage = data.raidSystem.threatStage;
+        recentRaidTypes.Clear();
+        if (data.raidSystem.recentRaidTypes != null)
+            foreach (var t in data.raidSystem.recentRaidTypes) recentRaidTypes.Add((RaidType)t);
 
         int raidId = data.raidSystem.activeRaidId;
         if (raidId >= 0)
@@ -263,6 +278,15 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         if (currentState == RaidState.InProgress && activeRaid != null)
         {
             MonitorRaidCompletionAsync(RestartRaidTask()).Forget();
+        }
+        // 접근 중에 저장됐다면 — 스폰 계획(자리·마리 수)은 저장하지 않으므로 같은 습격·종류로 다시 시작 (전엔 영영 멈춰 있었다)
+        else if (currentState == RaidState.Approaching && activeRaid != null)
+        {
+            var raid = activeRaid;
+            var type = activeRaidType;
+            if (recentRaidTypes.Count > 0) recentRaidTypes.RemoveAt(0); // StartRaid가 다시 기록한다
+            currentState = RaidState.None;
+            StartRaid(raid, type);
         }
     }
 
@@ -339,6 +363,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             type = RaidType.Normal; activeRaidType = type; total = EnemyCountFor(LastThreat.total, type); // 한 곳밖에 못 찾으면 일반 습격으로
         }
         if (type == RaidType.Split) total = Mathf.Max(total, splitPoints.Count); // 지점마다 최소 1마리
+        recentRaidTypes.Insert(0, type); // 실제로 나온 종류 (자리가 없어 일반으로 바뀐 것까지)
+        if (recentRaidTypes.Count > 2) recentRaidTypes.RemoveRange(2, recentRaidTypes.Count - 2);
         if (type == RaidType.Spawner) activePlan.Clear(); // 처음엔 스포너만 — 적은 스포너가 내보낸다
         else BuildSpawnPlan(raid, type, total);
         Debug.Log($"[RaidManager] {raid.raidName} {TypeLabel(type)} · {StageLabel(activeThreatStage)} — {LastThreat} → {total}마리 (한 마리당 {PointsPerEnemy(type)})");
@@ -375,26 +401,49 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             Debug.LogWarning("[RaidManager] 랜덤 레이드 풀이 비어 있습니다.");
             return;
         }
-        StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)], RollRaidType(day));
+        // 위협 점수 산출 → 그 점수로 가능한 습격 종류 풀에서 고른다
+        var rs = RunStatsManager.instance;
+        float threat = ThreatScore.Compute(rs != null ? rs.Difficulty : null, rs != null ? rs.ThreatAdapt : 1f, CurrentThreatStage).total;
+        StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)], RollRaidType(threat));
     }
 
-    /// <summary>습격 종류를 가중치로 뽑는다 — 땅굴·브리칭은 specialRaidMinDay부터</summary>
-    private RaidType RollRaidType(int day)
+    /// <summary>
+    /// 습격 종류를 고른다 — 위협 점수가 종류별 최소 점수 이상인 것만 후보, 가중치로 뽑되
+    /// 바로 직전과 같은 종류는 ×repeatLastFactor, 그 전과 같으면 ×repeatPrevFactor. 땅굴은 깊이 단계마다 가중치 +.
+    /// </summary>
+    public RaidType RollRaidType(float threat)
     {
-        bool special = day >= specialRaidMinDay;
-        float t = special ? tunnelWeight + tunnelWeightPerStage * CurrentThreatStage : 0f, b = special ? breachWeight : 0f;
-        float o = day >= outpostMinDay ? outpostWeight : 0f;
-        float sp = day >= spawnerMinDay ? spawnerWeight : 0f;
-        float sl = day >= splitMinDay ? splitWeight : 0f;
-        float total = normalWeight + t + b + o + sp + sl;
+        var types = new[] { RaidType.Normal, RaidType.Tunnel, RaidType.Breach, RaidType.Outpost, RaidType.Spawner, RaidType.Split };
+        var weights = new float[types.Length];
+        float total = 0f;
+        for (int i = 0; i < types.Length; i++)
+        {
+            if (threat < MinThreat(types[i])) continue;
+            float w = BaseWeight(types[i]);
+            if (recentRaidTypes.Count > 0 && recentRaidTypes[0] == types[i]) w *= repeatLastFactor;
+            if (recentRaidTypes.Count > 1 && recentRaidTypes[1] == types[i]) w *= repeatPrevFactor;
+            weights[i] = w;
+            total += w;
+        }
         if (total <= 0f) return RaidType.Normal;
         float r = UnityEngine.Random.value * total;
-        if (r < normalWeight) return RaidType.Normal;
-        if (r < normalWeight + t) return RaidType.Tunnel;
-        if (r < normalWeight + t + b) return RaidType.Breach;
-        if (r < normalWeight + t + b + o) return RaidType.Outpost;
-        return r < normalWeight + t + b + o + sp ? RaidType.Spawner : RaidType.Split;
+        for (int i = 0; i < types.Length; i++)
+        {
+            if (r < weights[i]) return types[i];
+            r -= weights[i];
+        }
+        return RaidType.Normal;
     }
+
+    private float BaseWeight(RaidType t)
+        => t == RaidType.Tunnel ? tunnelWeight + tunnelWeightPerStage * CurrentThreatStage
+         : t == RaidType.Breach ? breachWeight : t == RaidType.Outpost ? outpostWeight
+         : t == RaidType.Spawner ? spawnerWeight : t == RaidType.Split ? splitWeight : normalWeight;
+
+    private float MinThreat(RaidType t)
+        => t == RaidType.Tunnel ? tunnelMinThreat : t == RaidType.Breach ? breachMinThreat
+         : t == RaidType.Outpost ? outpostMinThreat : t == RaidType.Spawner ? spawnerMinThreat
+         : t == RaidType.Split ? splitMinThreat : normalMinThreat;
 
     #endregion
 
