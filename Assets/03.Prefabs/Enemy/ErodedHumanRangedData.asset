@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8834010dd0185a74682fc5b84b501adf, type: 3}
+  m_Name: ErodedHumanRangedData
+  m_EditorClassIdentifier: Assembly-CSharp::ErosionShooterData
+  xenopsID: 6107
+  xenopsName: "침식된 인간 (원거리)"
+  description: "완전히 침식돼 적이 된 사람. 무작위 장비를 입고 온다. 쓰러뜨린 뒤 정화 혈청으로 되돌릴 수 있다."
+  icon: {fileID: -140982544, guid: f510959a14aaa6645bf49a5cd48bc5b5, type: 3}
+  xenopsType: 1
+  grade: 2
+  prefab: {fileID: 5663392544619772851, guid: 8c61781a89b14147b78aa35a3060de82, type: 3}
+  benefits: []
+  drawbacks: []
+  codexObservePercent: 0
+  codexKillPercent: 0
+  maxInterpretationLevel: 10
+  baseExpRequired: 50
+  expPerInteraction: 10
+  equipmentSlot: 0
+  effectRadius: 3
+  infiltrateInterval: 30
+  hostileStats:
+    moveSpeed: 2.5
+    maxHealth: 120
+    defense: 0
+    attackSpeed: 1.36
+    attackDamage: 1
+    attackRange: 8
+    size: 1
+    aoeErosionPerSecond: 0
+    aoeErosionRange: 2.5
+    subdueDropItemId: 0
+    subdueDropAmount: 0
+  projectilePrefab: {fileID: 1201937194289528831, guid: fbb3f9640d05c064896017bed360a676, type: 3}
+  projectileSpeed: 8
+  projectileLifetime: 3
+  erosionOnHit: 12
+  healthDamageOnHit: 1
+  structureDamage: 50
