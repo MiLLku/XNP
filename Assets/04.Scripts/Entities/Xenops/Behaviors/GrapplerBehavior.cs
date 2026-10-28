@@ -14,7 +14,7 @@ using UnityEngine;
 /// </summary>
 [RequireComponent(typeof(Xenops))]
 [RequireComponent(typeof(Rigidbody2D))]
-public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
+public class GrapplerBehavior : MonoBehaviour, IWeaponWielder, IXenopsBehavior
 {
     // ─── IXenopsBehavior ──────────────────────
     public XenopsType BehaviorType => XenopsType.Hostile;
@@ -63,6 +63,27 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
         _attackDamage   = s.attackDamage;
         _attackRange    = s.attackRange;
         _attackInterval = s.attackSpeed > 0f ? 1f / s.attackSpeed : 1f;
+        ApplyWeaponNow();
+    }
+
+    // 침식된 인간 — 무기 값 (Start 전에 오면 Start 뒤에 적용)
+    private bool _weaponSet;
+    private float _wDamage, _wInterval, _wRange, _wMoveMult = 1f;
+
+    public void ApplyWeapon(float damage, float interval, float range, float moveMult)
+    {
+        _weaponSet = true;
+        _wDamage = damage; _wInterval = interval; _wRange = range; _wMoveMult = moveMult;
+        ApplyWeaponNow();
+    }
+
+    private void ApplyWeaponNow()
+    {
+        if (!_weaponSet || _xenops?.Data?.hostileStats == null) return;
+        _attackDamage = _wDamage;
+        _attackInterval = Mathf.Max(0.1f, _wInterval);
+        _attackRange = _wRange;
+        _moveSpeed = _xenops.Data.hostileStats.moveSpeed * _wMoveMult;
     }
 
     #endregion

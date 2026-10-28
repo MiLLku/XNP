@@ -439,6 +439,8 @@ public class Xenops : MonoBehaviour
             buildProgress = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().Progress : -1f,
             builtSeconds = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().BuiltSeconds : 0f
         };
+        var eroded = GetComponent<ErodedHuman>();
+        if (eroded != null) saveData.erodedHuman = eroded.Capture();
         var spawner = GetComponent<SpawnerStructure>();
         if (spawner != null)
         {
@@ -469,6 +471,7 @@ public class Xenops : MonoBehaviour
         if (data.health > 0f) GetComponent<XenopsHealth>()?.SetCurrentHealth(data.health);
         GetComponent<OutpostStructure>()?.RestoreProgress(data.buildProgress, data.builtSeconds);
         GetComponent<SpawnerStructure>()?.RestoreState(data.spawnerPattern, data.spawnerIndex, data.spawnerTimer);
+        GetComponent<ErodedHuman>()?.Restore(data.erodedHuman);
 
         instanceId = data.instanceId;
         currentState = (XenopsState)data.state;

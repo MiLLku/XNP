@@ -208,7 +208,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     /// true면 기본 옷 4종을 새로 만들어 입힌다(시작 직원·이벤트 합류).
     /// false면 장비 보관소에 있는 기본 옷만 꺼내 입는다(채용 — 옷을 미리 만들어 둬야 한다).
     /// </param>
-    public Employee SpawnEmployee(EmployeeData employeeData, Vector3 position, bool freeOutfit = true)
+    public Employee SpawnEmployee(EmployeeData employeeData, Vector3 position, bool freeOutfit = true, bool equipOutfit = true)
     {
         if (employeePrefab == null)
         {
@@ -242,7 +242,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         GrantInitialFood(employee);
 
         // 새 직원의 기본 옷·장갑·신발·모자 — 시작 직원은 그냥 입고 오고, 채용 직원은 보관소에서 꺼내 입는다
-        EquipmentStorageManager.instance?.EquipStartingOutfit(employee, fromStorage: !freeOutfit);
+        if (equipOutfit) EquipmentStorageManager.instance?.EquipStartingOutfit(employee, fromStorage: !freeOutfit);
 
         GameMessageBus.Publish(new EmployeeSpawnedMessage(employee));
 

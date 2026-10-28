@@ -69,5 +69,22 @@ public class XenopsSaveData
     public int spawnerIndex;
     public float spawnerTimer;
 
+    /// <summary>침식된 인간 — 원래 사람·착용 장비·제압 남은 시간</summary>
+    public ErodedHumanSaveData erodedHuman = new ErodedHumanSaveData();
+
     #endregion
+}
+
+/// <summary>침식된 인간 세이브 — 무작위 생성 사람 스냅샷과 칸별 장비(ID·내구도)</summary>
+[Serializable]
+public class ErodedHumanSaveData
+{
+    public bool has;
+    public GeneratedEmployeeSaveData person;
+    public int templateId;
+    public WorkAbilitiesSaveData abilities;
+    public List<int> slots = new List<int>();
+    public List<int> equipmentIds = new List<int>();
+    public List<float> durabilities = new List<float>();
+    public float downedRemaining;
 }

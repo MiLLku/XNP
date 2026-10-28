@@ -223,6 +223,13 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         }
     }
 
+    /// <summary>보관소에 넣지 않은 새 인스턴스 (바로 입힐 때 — 정화된 침식된 인간의 장비)</summary>
+    public EquipmentInstance NewInstance(EquipmentData data)
+    {
+        if (data == null || data.itemData == null) return null;
+        return new EquipmentInstance { instanceId = nextInstanceId++, equipmentId = data.itemData.itemID, durability = data.maxDurability };
+    }
+
     /// <summary>기존 인스턴스를 풀에 반납합니다 (장착 해제 시).</summary>
     public void ReturnInstance(EquipmentInstance inst)
     {

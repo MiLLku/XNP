@@ -34,6 +34,7 @@ public class XenopsHealth : MonoBehaviour
     /// <summary>체력 비율 (0~1)</summary>
     public float HealthRatio   => maxHealth > 0f ? currentHealth / maxHealth : 0f;
     public bool  IsDead        => _isDead;
+    public float Defense       => defense;
 
     #endregion
 
@@ -113,10 +114,21 @@ public class XenopsHealth : MonoBehaviour
 
     #region 사망
 
+    /// <summary>체력과 무관하게 바로 죽인다 (침식된 인간 제압 시간 초과)</summary>
+    public void ForceDie()
+    {
+        currentHealth = 0f;
+        Die();
+    }
+
     private void Die()
     {
         if (_isDead) return;
+        // 침식된 인간은 처음 쓰러지면 제압 상태로 남는다 (정화 혈청 대상)
+        var eroded = GetComponent<ErodedHuman>();
+        if (eroded != null && eroded.InterceptDeath()) return;
         _isDead = true;
+        eroded?.OnDied();
 
         // 드랍 처리
         TryDrop();

@@ -283,6 +283,9 @@ public class EmployeeMental : MonoBehaviour
     {
         // 디버그: 침식 계열 차단 시 계열 추첨을 건너뛰고 일반 계열만 사용한다
         bool blockErosionKind = DebugManager.IsBlocked(DebugFlag.ErosionKind);
+        // 정화 직후 직원은 침식 계열이 일어나지 않는다
+        var erosionCtl = GetComponent<EmployeeErosionController>();
+        if (erosionCtl != null && erosionCtl.PurifiedRemaining > 0f) blockErosionKind = true;
         bool preferErosion = !blockErosionKind && Random.value < GetErosionKindChance();
 
         // 선택한 계열에 후보가 없으면 반대 계열로 폴백한다

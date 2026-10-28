@@ -34,7 +34,7 @@ public enum TrackTargetType
 [RequireComponent(typeof(Xenops))]
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(HostileErosionAura))]
-public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
+public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior, IWeaponWielder
 {
     // ─── 인스펙터 설정 ────────────────────────────
     [Header("추적 설정")]
@@ -109,6 +109,26 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
     /// <summary>TryStepUp 결과 — 장애물없음 / 도약함 / 가로막힘(4칸+·천장) / 처리불가(쿨다운·공중)</summary>
     private enum StepResult { NoObstacle, Stepped, Blocked, Busy }
 
+    // 침식된 인간 — 무기 값 (Start 전에 오면 Start 뒤에 적용)
+    private bool _weaponSet;
+    private float _wDamage, _wInterval, _wRange, _wMoveMult = 1f;
+
+    public void ApplyWeapon(float damage, float interval, float range, float moveMult)
+    {
+        _weaponSet = true;
+        _wDamage = damage; _wInterval = interval; _wRange = range; _wMoveMult = moveMult;
+        ApplyWeaponNow();
+    }
+
+    private void ApplyWeaponNow()
+    {
+        if (!_weaponSet || _data == null) return;
+        _healthDamageOnHit = _wDamage;
+        _attackInterval = Mathf.Max(0.1f, _wInterval);
+        attackRangeX = _wRange;
+        _moveSpeed = _data.hostileStats.moveSpeed * _wMoveMult;
+    }
+
     // ─────────────────────────────────────────────
     #region 초기화
 
@@ -156,6 +176,8 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         _projectileLifetime = _data.projectileLifetime;
         _erosionOnHit       = _data.erosionOnHit;
         _healthDamageOnHit  = _data.healthDamageOnHit;
+
+        ApplyWeaponNow();
 
         // 도달 불가 판정 시간 — 공격 간격의 3배 또는 최소 5초
         _unreachableTimeout = Mathf.Max(5f, _attackInterval * 3f);

@@ -375,7 +375,8 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             if (!IsPointerOverInteractiveUI() &&
                 _selectedEmployee != null && _selectedEmployee.IsDrafted &&
                 !TryThrowPurifyGrenade(_selectedEmployee, mousePos) &&
-                !TryThrowLure(_selectedEmployee, mousePos))
+                !TryThrowLure(_selectedEmployee, mousePos) &&
+                !TryUseSerum(_selectedEmployee, mousePos))
             {
                 _selectedEmployee.CommandMoveTo(mousePos);
             }
@@ -436,6 +437,28 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         return true;
     }
 
+    private const float SERUM_RANGE = 2f; // shortcut: 임시 수치 — 정화 혈청은 곁에서 놓는다
+
+    /// <summary>
+    /// 소집 직원 우클릭이 제압된 침식된 인간 위면 다용도구 칸의 정화 혈청을 쓴다 — 직원으로 되돌린다.
+    /// 혈청이 없거나 제압 상태가 아니면 false(평소처럼 이동). 멀면 그쪽으로 걸어간다.
+    /// </summary>
+    private bool TryUseSerum(Employee employee, Vector3 mousePos)
+    {
+        ErodedHuman target = null;
+        foreach (var c in Physics2D.OverlapPointAll(mousePos))
+            if ((target = c.GetComponentInParent<ErodedHuman>()) != null) break;
+        if (target == null || !target.IsDowned || !HasCommandTool(employee, ItemType.PurificationSerum)) return false;
+
+        if (Vector2.Distance(employee.transform.position, target.transform.position) > SERUM_RANGE)
+        {
+            employee.CommandMoveTo(target.transform.position);
+            return true;
+        }
+        if (employee.GetComponent<EmployeeEquipment>().UseCommandConsumable(EquipmentSlot.MultiTool)) target.Purify();
+        return true;
+    }
+
     /// <summary>다용도구 칸에 그 종류의 명령형 1회용이 끼워져 있는지</summary>
     private static bool HasCommandTool(Employee employee, ItemType type)
     {
@@ -488,6 +511,12 @@ public class InteractionManager : DestroySingleton<InteractionManager>
         {
             ConstructionSite site = col.GetComponent<ConstructionSite>();
             if (site != null) { DeselectEmployee(); OnConstructionSiteClicked(site); return true; }
+        }
+        // 침식된 인간 — 정보 창 (읽기 전용)
+        foreach (var col in hits)
+        {
+            var eroded = col.GetComponentInParent<ErodedHuman>();
+            if (eroded != null) { eroded.ShowInfo(); return true; }
         }
         // 우선순위 3: Employee (위장 중인 위장체도 직원 개체라 똑같이 선택된다)
         foreach (var col in hits)

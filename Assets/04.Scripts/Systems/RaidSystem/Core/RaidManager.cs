@@ -65,6 +65,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Min(0f)] [SerializeField] private float spawnerMinThreat = 50f;
     [Min(0f)] [SerializeField] private float splitMinThreat = 90f;
     [Min(0f)] [SerializeField] private float disguiseMinThreat = 40f;
+    [Min(0f)] [SerializeField] private float erodedHumansMinThreat = 40f;
 
     [Tooltip("바로 직전 습격과 같은 종류의 가중치 배율")]
     [Range(0f, 1f)] [SerializeField] private float repeatLastFactor = 0.25f;
@@ -93,6 +94,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     [Header("위장체 습격 — 알림 없이 기지 안에 직원 모습으로 하나 (임시 수치)")]
     [Min(0f)] [SerializeField] private float disguiseWeight = 10f;
+
+    [Header("침식된 인간 습격 — 무작위 장비를 입은 침식된 사람들 (임시 수치)")]
+    [Min(0f)] [SerializeField] private float erodedHumansWeight = 12f;
+    [Min(1f)] [SerializeField] private float erodedHumanPointsPerEnemy = 15f;
 
     [Header("분산 습격 — 여러 곳에서 나눠 오는 대신 규모가 작다 (임시 수치)")]
     [Min(0f)] [SerializeField] private float splitWeight = 15f;
@@ -197,7 +202,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     }
 
     /// <summary>알림·UI용 습격 종류 이름</summary>
-    public static string TypeLabel(RaidType t) => t == RaidType.Tunnel ? "땅굴 습격" : t == RaidType.Breach ? "브리칭 습격" : t == RaidType.Outpost ? "거점 습격" : t == RaidType.Spawner ? "스포너 습격" : t == RaidType.Split ? "분산 습격" : t == RaidType.Disguise ? "위장체 습격" : "일반 습격";
+    public static string TypeLabel(RaidType t) => t == RaidType.Tunnel ? "땅굴 습격" : t == RaidType.Breach ? "브리칭 습격" : t == RaidType.Outpost ? "거점 습격" : t == RaidType.Spawner ? "스포너 습격" : t == RaidType.Split ? "분산 습격" : t == RaidType.Disguise ? "위장체 습격" : t == RaidType.ErodedHumans ? "침식된 인간 습격" : "일반 습격";
     public bool IsRaidActive => currentState == RaidState.InProgress || currentState == RaidState.Approaching;
 
     #endregion
@@ -423,7 +428,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// </summary>
     public RaidType RollRaidType(float threat)
     {
-        var types = new[] { RaidType.Normal, RaidType.Tunnel, RaidType.Breach, RaidType.Outpost, RaidType.Spawner, RaidType.Split, RaidType.Disguise };
+        var types = new[] { RaidType.Normal, RaidType.Tunnel, RaidType.Breach, RaidType.Outpost, RaidType.Spawner, RaidType.Split, RaidType.Disguise, RaidType.ErodedHumans };
         var weights = new float[types.Length];
         float total = 0f;
         for (int i = 0; i < types.Length; i++)
@@ -449,12 +454,12 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         => t == RaidType.Tunnel ? tunnelWeight + tunnelWeightPerStage * CurrentThreatStage
          : t == RaidType.Breach ? breachWeight : t == RaidType.Outpost ? outpostWeight
          : t == RaidType.Spawner ? spawnerWeight : t == RaidType.Split ? splitWeight
-         : t == RaidType.Disguise ? disguiseWeight : normalWeight;
+         : t == RaidType.Disguise ? disguiseWeight : t == RaidType.ErodedHumans ? erodedHumansWeight : normalWeight;
 
     private float MinThreat(RaidType t)
         => t == RaidType.Tunnel ? tunnelMinThreat : t == RaidType.Breach ? breachMinThreat
          : t == RaidType.Outpost ? outpostMinThreat : t == RaidType.Spawner ? spawnerMinThreat
-         : t == RaidType.Split ? splitMinThreat : t == RaidType.Disguise ? disguiseMinThreat : normalMinThreat;
+         : t == RaidType.Split ? splitMinThreat : t == RaidType.Disguise ? disguiseMinThreat : t == RaidType.ErodedHumans ? erodedHumansMinThreat : normalMinThreat;
 
     #endregion
 
@@ -543,6 +548,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
          : t == RaidType.Outpost ? "기지 바깥에 해로운 구조물을 세우고 지키려 합니다. 다 지어지기 전에 건설자를 막으세요."
          : t == RaidType.Spawner ? "기지 바깥에 스포너가 생겼습니다. 부수기 전까지 적을 계속 내보냅니다."
          : t == RaidType.Split ? "적이 여러 방향에서 나눠 접근합니다. 수는 적지만 방어를 나눠야 합니다."
+         : t == RaidType.ErodedHumans ? "완전히 침식된 사람들이 무기와 방어구를 갖추고 접근합니다. 쓰러뜨린 뒤 정화 혈청을 쓰면 되돌릴 수 있습니다."
          : "적대 개체가 접근했습니다.";
 
     /// <summary>알림 제목에 붙는 구조물 종류 (' · 침식 송신탑')</summary>
@@ -781,7 +787,18 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         Vector3 spawnPos = SnapToStandable(at.HasValue ? at.Value + new Vector3(UnityEngine.Random.Range(-0.3f, 0.3f), 0f, 0f) : GetSpawnPosition(entry));
         // 거점 경비로 못 쓰는 적(자체 조준 사격 — 지키기 모드가 없다)은 다른 적으로 바꿔 보낸다
         int id = activeRaidType == RaidType.Outpost && entry.xenopsDataId == outpostShooterId ? outpostShooterReplacementId : entry.xenopsDataId;
+
+        // 침식된 인간: 계획의 모든 자리를 사람으로 — 장비의 무기 종류가 몸(근접·원거리)을 정한다
+        EmployeeData person = null;
+        Dictionary<EquipmentSlot, EquipmentData> loadout = null;
+        if (activeRaidType == RaidType.ErodedHumans)
+        {
+            person = ErodedHuman.RollPerson();
+            loadout = ErodedHuman.RollLoadout(person);
+            id = ErodedHuman.BodyIdFor(loadout);
+        }
         var xenops = XenopsManager.instance.SpawnXenops(id, spawnPos);
+        if (xenops != null && person != null) xenops.GetComponent<ErodedHuman>()?.Setup(person, loadout);
 
         if (xenops != null)
         {
@@ -875,7 +892,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     /// <summary>습격 종류의 한 마리당 점수</summary>
     private float PointsPerEnemy(RaidType type)
-        => type == RaidType.Tunnel ? tunnelPointsPerEnemy : type == RaidType.Breach ? breachPointsPerEnemy : normalPointsPerEnemy;
+        => type == RaidType.Tunnel ? tunnelPointsPerEnemy : type == RaidType.Breach ? breachPointsPerEnemy
+         : type == RaidType.ErodedHumans ? erodedHumanPointsPerEnemy : normalPointsPerEnemy;
 
     /// <summary>마리 수 = 위협 점수 ÷ 한 마리당 점수 (반올림, 최소 1, 기술적 최대)</summary>
     public int EnemyCountFor(float threat, RaidType type)

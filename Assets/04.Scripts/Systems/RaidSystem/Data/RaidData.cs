@@ -144,6 +144,9 @@ public enum RaidType
 
     /// <summary>위장체 — 알림 없이 화면 밖 기지 안에 직원 하나를 복제한 위장체 (DisguisedEmployee)</summary>
     Disguise = 6,
+
+    /// <summary>침식된 인간 — 완전히 침식된 사람들이 연구 수준에 맞는 무작위 장비를 입고 온다 (ErodedHuman)</summary>
+    ErodedHumans = 7,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -173,7 +173,7 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
         var sb = new System.Text.StringBuilder("제놉스 도감\n");
         foreach (var x in db.allXenopsData)
         {
-            if (x == null) continue;
+            if (x == null || (x.codexObservePercent <= 0f && x.codexKillPercent <= 0f)) continue; // 도감 없는 개체
             float p = XenopsCodexManager.instance != null ? XenopsCodexManager.instance.GetProgress(x.xenopsID) : 0f;
             int filled = Mathf.RoundToInt(p / 10f);
             sb.Append($"{x.xenopsName}  [{new string('■', filled)}{new string('□', 10 - filled)}] {p:F0}%{(p >= 100f ? " — 전용 장비 제작 가능" : "")}\n");

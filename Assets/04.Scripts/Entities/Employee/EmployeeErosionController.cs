@@ -215,8 +215,18 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
 
     #region 틱
 
+    // shortcut: 임시 수치 — 정화 혈청으로 되돌린 직원의 '정화 직후' 효과
+    private const float PURIFIED_SECONDS = 1000f;   // 1게임일
+    private const float PURIFIED_GAIN_MULT = 0.25f; // 침식 75% 덜 쌓임
+
+    /// <summary>'정화 직후' 남은 시간 — 그동안 침식이 덜 쌓이고 침식 계열 정신 이상이 일어나지 않는다 (저장됨)</summary>
+    public float PurifiedRemaining { get; private set; }
+
+    public void StartPurifiedAftercare() => PurifiedRemaining = PURIFIED_SECONDS;
+
     private void Update()
     {
+        if (PurifiedRemaining > 0f) PurifiedRemaining = Mathf.Max(0f, PurifiedRemaining - Time.deltaTime);
         if (employee == null || employee.State == EmployeeState.Dead || hasMutated) return;
         if (statsController == null || stageConfig == null) return;
 
@@ -387,6 +397,7 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
         if (DebugManager.IsBlocked(DebugFlag.ErosionGain)) return;
 
         float amount = rawAmount * statsController.CachedErosionDamageMult;
+        if (PurifiedRemaining > 0f) amount *= PURIFIED_GAIN_MULT; // 정화 직후 — 덜 쌓인다
         if (amount <= 0f) return;
 
         statsController.SetErosion(statsController.ErosionLevel + amount);
@@ -663,6 +674,7 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
         data.erosionLevel = statsController != null ? statsController.ErosionLevel : 0f;
         data.timeSinceLastAuraExposure = timeSinceLastAuraExposure;
         data.erosionMaintainTarget = erosionMaintainTarget;
+        data.purifiedRemaining = PurifiedRemaining;
 
         data.erosionSources = new List<ErosionSourceEntry>();
         foreach (var s in erosionSources)
@@ -682,6 +694,7 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
     {
         timeSinceLastAuraExposure = data.timeSinceLastAuraExposure;
         ErosionMaintainTarget = data.erosionMaintainTarget;   // 프로퍼티 경유 — 범위를 벗어난 값 보정
+        PurifiedRemaining = data.purifiedRemaining;
 
         if (statsController != null)
             statsController.SetErosion(data.erosionLevel);

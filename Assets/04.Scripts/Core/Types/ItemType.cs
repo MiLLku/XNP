@@ -163,4 +163,6 @@ public enum ItemType
     PurifyGrenade     = 506,
     /// <summary>증식 핵 미끼 — 스포너 도감 다용도구 1회용. 소집 직원 우클릭으로 적 근처 지점에 던지면 반경 8칸 적이 10초 동안 끌려감</summary>
     SpawnerCoreLure   = 507,
+    /// <summary>정화 혈청 — 다용도구 1회용. 소집 직원 우클릭으로 제압된 침식된 인간에게 써서 직원으로 되돌린다</summary>
+    PurificationSerum = 508,
 }
