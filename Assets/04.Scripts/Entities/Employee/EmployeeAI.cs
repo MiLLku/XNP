@@ -27,6 +27,8 @@ public class EmployeeAI : MonoBehaviour
     private const float FREE_MENTAL_RATIO        = 0.5f;
     private const float FREE_HUNGER_THRESHOLD    = 50f;
     private const float HUNGER_FULL_THRESHOLD    = 80f;
+    /// <summary>자는 중이라도 배고픔이 이 아래면 깨서 먹는다 — 안 그러면 침대에서 굶어 죽는다</summary>
+    private const float SLEEP_WAKE_HUNGER        = 10f;
 
     /// <summary>자유 시간 중 욕구 재확인 간격 (초). 스케줄 체크와 분리.</summary>
     private const float NEEDS_CHECK_INTERVAL = 8f;
@@ -287,6 +289,15 @@ public class EmployeeAI : MonoBehaviour
         if (isSleeping)
         {
             if (employee.State != EmployeeState.Resting) StopSleeping(); // 다른 이유로 깨움(징집·정신 이상 등)
+            else if (employee.Needs.hunger <= SLEEP_WAKE_HUNGER)
+            {
+                hungerCheckTimer -= Time.deltaTime;
+                if (hungerCheckTimer <= 0f)
+                {
+                    hungerCheckTimer = NEEDS_CHECK_INTERVAL;
+                    EatWhileSleeping();
+                }
+            }
             return;
         }
 
@@ -1252,6 +1263,18 @@ public class EmployeeAI : MonoBehaviour
             return false;
         }
         return GoToStockpileForFood(work, eatAfterStocking: true);
+    }
+
+    /// <summary>
+    /// 굶주린 채 자는 직원 — 소지 음식은 누운 채 먹고, 없으면 일어나 창고에서 먹은 뒤
+    /// 지금 시간대(수면)로 돌아가 다시 잔다. 먹을 것이 없으면 그대로 잔다.
+    /// </summary>
+    private void EatWhileSleeping()
+    {
+        var work = employee.GetComponent<EmployeeWork>();
+        if (work == null) return;
+        if (work.HasFood) { EatHeldFood(work, keepState: true); return; }
+        if (Time.time >= seekingFoodUntil) GoToStockpileForFood(work, eatAfterStocking: true);
     }
 
     /// <summary>
