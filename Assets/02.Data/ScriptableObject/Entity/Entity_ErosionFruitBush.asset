@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6e2a6b7164fb3f4198573d809fcd852, type: 3}
+  m_Name: Entity_ErosionFruitBush
+  m_EditorClassIdentifier: Assembly-CSharp::EntityDefinition
+  codeName: ErosionFruitBush
+  id: 7003
+  displayName: "침식 열매 덤불"
+  description: 
+  kind: 1
+  prefab: {fileID: 5254875874074808394, guid: 579da013f28d4255b98de2baf5ccf33d, type: 3}
+  spawnOnMapGeneration: 1
+  placementOrder: 20
+  placementMode: 0
+  stampKey: 
+  scanMode: 0
+  footprintWidth: 1
+  spawnChance: 0.3
+  minSpacing: 5
+  allowedGroundTiles: 06000000
+  avoidSpawnArea: 1
+  minDistanceFromBase: 8
+  maxDistanceFromBase: 60
+  spawnConditions:
+    erosion:
+      use: 0
+      min: 0
+      max: 100
+    temperature:
+      use: 0
+      min: 0
+      max: 0
+    habitat: 1
+  neighborRadius: 8
+  maxNeighbors: 2
+  spawnAtRuntime: 1
+  runtimeSpawnInterval: 300
+  growthConditions:
+    erosion:
+      use: 0
+      min: 0
+      max: 100
+    temperature:
+      use: 0
+      min: 0
+      max: 0
+    habitat: 0
+  persistInSave: 1
+  hasGrowthState: 1

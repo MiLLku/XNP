@@ -271,7 +271,20 @@ public class EmployeeStatsController : MonoBehaviour
     public float CachedSkillGainRateModifier => cachedSkillGainRateModifier;
 
     /// <summary>이 직원의 기본 정신력 (모디파이어가 전부 사라지면 여기로 돌아온다)</summary>
-    public float BaseMental => baseMental;
+    /// <summary>
+    /// 기본 정신력 = 기대감(단련장 레벨)에 따른 값 × 특성 정신 배율.
+    /// 성장한 직원일수록 기대가 높아 같은 환경에서 정신력이 낮다 — 고급 직원은 좋은 생활 환경이 필요하다.
+    /// (저장된 baseMental은 세이브 호환용으로만 남김)
+    /// </summary>
+    public float BaseMental => ExpectationBaseMental(Expectation) * cachedMentalMult;
+
+    /// <summary>지금 기대감 (단련장 레벨로)</summary>
+    public MentalExpectation Expectation => ExpectationFor(employee != null ? employee.Level : 1);
+
+    // shortcut: 임시 수치 — 기대감 구간·기본 정신력 (사용자 확정 대기, 여기만 바꾸면 됨). 정신 이상 임계 40은 그대로
+    public static MentalExpectation ExpectationFor(int level) => level >= 7 ? MentalExpectation.High : level >= 4 ? MentalExpectation.Mid : MentalExpectation.Low;
+    public static float ExpectationBaseMental(MentalExpectation e) => e == MentalExpectation.High ? 30f : e == MentalExpectation.Mid ? 40f : 50f;
+    public static string ExpectationLabel(MentalExpectation e) => e == MentalExpectation.High ? "높음" : e == MentalExpectation.Mid ? "중간" : "낮음";
 
     /// <summary>활성 정신력 모디파이어 목록 (UI 표시용, 읽기 전용)</summary>
     public IReadOnlyList<MentalModifier> MentalModifiers => mentalModifiers;
@@ -863,7 +876,7 @@ public class EmployeeStatsController : MonoBehaviour
         for (int i = 0; i < mentalModifiers.Count; i++)
             sum += mentalModifiers[i].value;
 
-        currentStats.mental = Mathf.Clamp(baseMental + sum, 0f, currentStats.maxMental);
+        currentStats.mental = Mathf.Clamp(BaseMental + sum, 0f, currentStats.maxMental);
     }
 
     /// <summary>시간형 모디파이어의 남은 시간을 줄이고 만료된 것을 제거합니다.</summary>
@@ -1174,3 +1187,6 @@ public class EmployeeStatsController : MonoBehaviour
 
     #endregion
 }
+
+/// <summary>직원의 생활 기대감 — 단련장 레벨이 오를수록 높아져 기본 정신력이 낮아진다</summary>
+public enum MentalExpectation { Low, Mid, High }

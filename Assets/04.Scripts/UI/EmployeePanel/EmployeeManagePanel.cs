@@ -354,11 +354,12 @@ public class EmployeeManagePanel : BasePanel
         if (statsCtrl == null) return string.Empty;
 
         var mods = statsCtrl.MentalModifiers;
+        string expect = $"기대감 {EmployeeStatsController.ExpectationLabel(statsCtrl.Expectation)} · 기본 {statsCtrl.BaseMental:F0}";
         if (mods == null || mods.Count == 0)
-            return $"  (기본 {statsCtrl.BaseMental:F0})";
+            return $"  ({expect})";
 
         var sb = new System.Text.StringBuilder();
-        sb.Append($"  (기본 {statsCtrl.BaseMental:F0}");
+        sb.Append($"  ({expect}");
         foreach (var m in mods)
         {
             if (m == null) continue;

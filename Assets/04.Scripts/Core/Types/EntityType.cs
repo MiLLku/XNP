@@ -76,4 +76,7 @@ public enum EntityType
 
     /// <summary>장비 보관소</summary>
     Armory = 7002,
+
+    /// <summary>침식 열매 덤불</summary>
+    ErosionFruitBush = 7003,
 }
