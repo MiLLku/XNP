@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: SimpleResearchBench
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 4011
+  buildingName: "간이 연구대"
+  icon: {fileID: 0}
+  category: 4
+  description: "나무만으로 지을 수 있는 간이 연구대. 연구 속도가 기본 연구대의 절반이다."
+  buildingPrefab: {fileID: 3488678066343277963, guid: 79303ee8edf74ca8b27a372d9bf36aeb, type: 3}
+  size: {x: 1, y: 1}
+  pivot: {x: 0, y: 0}
+  constructionTime: 30
+  requiredResources:
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 10
+  maxHealth: 100
+  blocksMovement: 1
+  requiresFloorSupport: 1
+  destructionDrops: []
+  paybackRatio: 0.5

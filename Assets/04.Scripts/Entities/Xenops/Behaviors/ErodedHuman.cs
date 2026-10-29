@@ -250,7 +250,7 @@ public class ErodedHuman : MonoBehaviour
     {
         if (!IsDowned || Person == null || EmployeeManager.instance == null) return null;
         var pos = transform.position;
-        var emp = EmployeeManager.instance.SpawnEmployee(Person, pos, freeOutfit: true, equipOutfit: false);
+        var emp = EmployeeManager.instance.SpawnEmployee(Person, pos, equipOutfit: false);
         if (emp == null) return null;
         var esm = EquipmentStorageManager.instance;
         foreach (var kv in Loadout)

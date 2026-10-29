@@ -67,6 +67,15 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Min(0f)] [SerializeField] private float disguiseMinThreat = 40f;
     [Min(0f)] [SerializeField] private float erodedHumansMinThreat = 40f;
 
+    [Header("습격 후보 풀 — 이 일차 전에는 위협이 높아도 후보에서 빠진다 (임시 수치)")]
+    [Min(0f)] [SerializeField] private float tunnelMinDay = 8f;
+    [Min(0f)] [SerializeField] private float breachMinDay = 8f;
+    [Min(0f)] [SerializeField] private float outpostMinDay = 14f;
+    [Min(0f)] [SerializeField] private float spawnerMinDay = 14f;
+    [Min(0f)] [SerializeField] private float disguiseMinDay = 14f;
+    [Min(0f)] [SerializeField] private float erodedHumansMinDay = 14f;
+    [Min(0f)] [SerializeField] private float splitMinDay = 20f;
+
     [Tooltip("바로 직전 습격과 같은 종류의 가중치 배율")]
     [Range(0f, 1f)] [SerializeField] private float repeatLastFactor = 0.25f;
     [Tooltip("그 전 습격과 같은 종류의 가중치 배율")]
@@ -432,9 +441,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         var types = new[] { RaidType.Normal, RaidType.Tunnel, RaidType.Breach, RaidType.Outpost, RaidType.Spawner, RaidType.Split, RaidType.Disguise, RaidType.ErodedHumans };
         var weights = new float[types.Length];
         float total = 0f;
+        float day = DayCycle.instance != null ? DayCycle.instance.Day : float.MaxValue;
         for (int i = 0; i < types.Length; i++)
         {
-            if (threat < MinThreat(types[i])) continue;
+            if (threat < MinThreat(types[i]) || day < MinDay(types[i])) continue;
             float w = BaseWeight(types[i]);
             if (recentRaidTypes.Count > 0 && recentRaidTypes[0] == types[i]) w *= repeatLastFactor;
             if (recentRaidTypes.Count > 1 && recentRaidTypes[1] == types[i]) w *= repeatPrevFactor;
@@ -461,6 +471,11 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         => t == RaidType.Tunnel ? tunnelMinThreat : t == RaidType.Breach ? breachMinThreat
          : t == RaidType.Outpost ? outpostMinThreat : t == RaidType.Spawner ? spawnerMinThreat
          : t == RaidType.Split ? splitMinThreat : t == RaidType.Disguise ? disguiseMinThreat : t == RaidType.ErodedHumans ? erodedHumansMinThreat : normalMinThreat;
+
+    private float MinDay(RaidType t)
+        => t == RaidType.Tunnel ? tunnelMinDay : t == RaidType.Breach ? breachMinDay
+         : t == RaidType.Outpost ? outpostMinDay : t == RaidType.Spawner ? spawnerMinDay
+         : t == RaidType.Split ? splitMinDay : t == RaidType.Disguise ? disguiseMinDay : t == RaidType.ErodedHumans ? erodedHumansMinDay : 0f;
 
     #endregion
 

@@ -204,11 +204,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     /// <param name="employeeData">직원 템플릿 데이터</param>
     /// <param name="position">스폰 월드 좌표</param>
     /// <returns>생성된 직원 (실패 시 null)</returns>
-    /// <param name="freeOutfit">
-    /// true면 기본 옷 4종을 새로 만들어 입힌다(시작 직원·이벤트 합류).
-    /// false면 장비 보관소에 있는 기본 옷만 꺼내 입는다(채용 — 옷을 미리 만들어 둬야 한다).
-    /// </param>
-    public Employee SpawnEmployee(EmployeeData employeeData, Vector3 position, bool freeOutfit = true, bool equipOutfit = true)
+    /// <param name="hired">채용 — 기본 복장을 새로 입고 오되, 진압봉을 못 드는 직원은 원거리 무기를 쥔다</param>
+    public Employee SpawnEmployee(EmployeeData employeeData, Vector3 position, bool hired = false, bool equipOutfit = true)
     {
         if (employeePrefab == null)
         {
@@ -241,8 +238,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         // RestoreFromSaveData가 소지 식량을 복원한다.
         GrantInitialFood(employee);
 
-        // 새 직원의 기본 옷·장갑·신발·모자 — 시작 직원은 그냥 입고 오고, 채용 직원은 보관소에서 꺼내 입는다
-        if (equipOutfit) EquipmentStorageManager.instance?.EquipStartingOutfit(employee, fromStorage: !freeOutfit);
+        // 새 직원의 기본 옷·장갑·신발·모자·무기 — 시작·채용 모두 새로 만들어 입고 온다
+        if (equipOutfit) EquipmentStorageManager.instance?.EquipStartingOutfit(employee, hired);
 
         GameMessageBus.Publish(new EmployeeSpawnedMessage(employee));
 

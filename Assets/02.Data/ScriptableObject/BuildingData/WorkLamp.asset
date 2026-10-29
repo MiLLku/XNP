@@ -49,5 +49,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 1
-  addonForBuildingIds: e50c0000e40c000065000000ec0c0000a10f0000ea0c0000eb0c0000
+  addonForBuildingIds: e50c0000e40c000065000000ec0c0000a10f0000ea0c0000eb0c0000ab0f0000ac0f0000
   addonWorkSpeedBonus: 0.1

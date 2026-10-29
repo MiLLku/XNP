@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: ResearchTreeConfig
   m_EditorClassIdentifier: Assembly-CSharp::ResearchTreeConfig
   nodes:
+  - {fileID: 11400000, guid: 31c3a23ce7654e4a8b99eaf9aed51d87, type: 2}
   - {fileID: 11400000, guid: b07643fdb1fc4622880b47500d1039c6, type: 2}
   - {fileID: 11400000, guid: 5d818631fce91174dad96a138b20f396, type: 2}
   - {fileID: 11400000, guid: 8f47eb62358130a44aea380af282efb9, type: 2}
