@@ -116,7 +116,6 @@ public class ErosionProjectile : MonoBehaviour, IPoolable
         {
             int dmg = Mathf.CeilToInt(_structureDamage);
             building.TakeDamage(dmg);
-            Debug.Log($"[ErosionProjectile] 건물 명중: {building.name} -{dmg} (남은 체력 {building.CurrentHealth})");
         }
     }
 

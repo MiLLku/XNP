@@ -223,6 +223,25 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         }
     }
 
+    /// <summary>
+    /// 새 게임 시작 직원 중 1명에게 최하급 원거리 무기를 쥐여 준다 — 근접 무기를 못 드는 직원(총기광)이 있으면 그 직원, 없으면 무작위.
+    /// 들고 있던 무기는 보관소로.
+    /// </summary>
+    public void GiveStartingRangedWeapon(List<Employee> staff)
+    {
+        var weapon = startingConfig != null ? startingConfig.startingRangedWeapon : null;
+        if (weapon == null || staff == null || staff.Count == 0) return;
+        var able = staff.FindAll(e => e != null && e.StatsController != null && !e.StatsController.CannotEquip(WeaponClass.Ranged));
+        if (able.Count == 0) return;
+        Employee target = able.Find(e => e.StatsController.CannotEquip(WeaponClass.Melee)) ?? able[Random.Range(0, able.Count)];
+        if (target == null || target.Equipment == null) return;
+        var old = target.Equipment.UnequipToInstance(EquipmentSlot.Weapon);
+        if (old != null) ReturnInstance(old);
+        var inst = NewInstance(weapon);
+        if (!target.Equipment.EquipInstance(EquipmentSlot.Weapon, inst)) ReturnInstance(inst);
+        Debug.Log($"[EquipmentStorage] 시작 원거리 무기 {weapon.itemData.itemName} → {target.DisplayName}");
+    }
+
     /// <summary>보관소에 넣지 않은 새 인스턴스 (바로 입힐 때 — 정화된 침식된 인간의 장비)</summary>
     public EquipmentInstance NewInstance(EquipmentData data)
     {

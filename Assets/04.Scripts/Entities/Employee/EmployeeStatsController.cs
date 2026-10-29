@@ -45,6 +45,24 @@ public class EmployeeStatsController : MonoBehaviour
 
     /// <summary>굶주림 시 체력 감소 속도 (포인트/초)</summary>
     private const float STARVATION_HEALTH_DECAY = 1f;
+    // shortcut: 임시 수치 — 배고픔 0이 된 뒤 체력 피해가 시작되기까지 (0.5일)
+    private const float STARVATION_GRACE = 500f;
+
+    /// <summary>배고픔 0으로 지낸 시간 (먹으면 0)</summary>
+    private float _starvingTime;
+
+    private void PushStarvationWarning()
+    {
+        if (employee == null || GetComponent<DisguisedEmployee>() != null) return;
+        NotificationManager.instance?.PushLetter(new Letter
+        {
+            title = $"굶주림 — {employee.DisplayName}",
+            body = $"{employee.DisplayName}이(가) 굶주리고 있습니다. 약 반나절 안에 먹지 못하면 체력이 줄기 시작합니다. (소집 중에는 먹지 않습니다)",
+            type = LetterType.Threat,
+            pauseUntilRead = true
+        });
+        TimeManager.instance?.ForcePause();
+    }
 
     // ── 정신력 모디파이어 기본값 (MentalModifierConfig 미할당 시 사용) ──
     private const float DEFAULT_STARVATION_PENALTY  = -25f;
@@ -365,11 +383,15 @@ public class EmployeeStatsController : MonoBehaviour
         // ── 욕구 3종은 모두 여기서 정신력 상태형 모디파이어로 환산된다 ──
         // 정신 이상 판정(임계점)을 욕구가 직접 건드리는 경로는 없다. 욕구 → 정신력 → 발생 확률.
 
-        // 기아: 체력은 지속 감소(생존 위협), 정신력은 상태형 모디파이어 — 먹이면 즉시 원상복구된다
+        // 기아: 배고픔 0이 되면 경고(정지) → STARVATION_GRACE 동안은 피해 없음 → 그 뒤 체력 지속 감소.
+        // 정신력은 상태형 모디파이어 — 먹이면 즉시 원상복구된다
         if (currentNeeds.hunger <= 0f)
         {
-            currentStats.health -= STARVATION_HEALTH_DECAY * deltaTime;
+            if (_starvingTime <= 0f) PushStarvationWarning();
+            _starvingTime += deltaTime;
+            if (_starvingTime > STARVATION_GRACE) currentStats.health -= STARVATION_HEALTH_DECAY * deltaTime;
         }
+        else _starvingTime = 0f;
         UpdateNeedPenalty(MentalReason.STARVATION, "굶주림",
             StarvationPenalty, currentNeeds.hunger <= 0f);
 

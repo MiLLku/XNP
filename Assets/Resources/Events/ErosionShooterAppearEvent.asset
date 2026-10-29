@@ -26,7 +26,12 @@ MonoBehaviour:
   isPersistent: 0
   minDuration: 60
   maxDuration: 180
-  conditions: []
+  conditions:
+  - type: 12
+    comparison: 1
+    value: 5
+    targetId: 0
+    description: "5일차부터"
   effects:
   - type: 20
     target: 12

@@ -536,7 +536,7 @@ public class EmployeeMental : MonoBehaviour
 
         normalCooldowns[type] = cooldown;
 
-        PushBreakLetter(BreakLabel(type), NormalBreakBody(type, duration), LetterType.Neutral, false);
+        PushBreakLetter(BreakLabel(type), NormalBreakBody(type, duration), LetterType.Neutral, true); // 정신 이상은 위험 레터 — 확인할 때까지 정지
     }
 
     #endregion
@@ -591,10 +591,9 @@ public class EmployeeMental : MonoBehaviour
 
         erosionCooldowns[behavior.BehaviorType] = cooldown;
 
-        bool destructive = IsDestructiveKind(behavior.BehaviorType);
         PushBreakLetter(BreakLabel(behavior.BehaviorType),
                         ErosionBreakBody(behavior.BehaviorType, duration),
-                        LetterType.Threat, destructive);
+                        LetterType.Threat, true); // 정신 이상은 모두 정지
 
         Debug.Log($"[Mental] {employee.DisplayName}: 침식 계열 정신 이상 — {behavior.BehaviorType} ({duration:F0}초)");
     }
@@ -633,14 +632,6 @@ public class EmployeeMental : MonoBehaviour
 
         if (pause) TimeManager.instance?.ForcePause();
     }
-
-    /// <summary>손실이 커서 플레이어가 즉시 개입해야 하는 침식 계열인지.</summary>
-    private static bool IsDestructiveKind(AbnormalBehaviorType type)
-        => type == AbnormalBehaviorType.ErosionOutburst
-        || type == AbnormalBehaviorType.AttackBuilding
-        || type == AbnormalBehaviorType.FriendlyAttack
-        || type == AbnormalBehaviorType.Tantrum
-        || type == AbnormalBehaviorType.Berserk;
 
     private static string BreakLabel(MentalEventType type) => type switch
     {

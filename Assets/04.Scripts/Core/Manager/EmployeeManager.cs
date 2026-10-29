@@ -287,6 +287,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
             EmployeeData data = RandomEmployeeGenerator.Generate(generationConfig);
             if (data != null) SpawnEmployee(data, spawnPoint); // 같은 자리 — 옆으로 벌리면 시작 방 밖 낮은 지형으로 떨어진다
         }
+        EquipmentStorageManager.instance?.GiveStartingRangedWeapon(allEmployees);
     }
 
     /// <summary>

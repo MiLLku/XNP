@@ -101,6 +101,9 @@ public abstract class PlantBase : MonoBehaviour, IHarvestable
     /// <summary>품고 있는 건물 칸 (야생이면 null)</summary>
     public IPlantHost Host { get; set; }
 
+    /// <summary>성장 속도 배율 — 심어진 곳이 정한다 (간이 밭 0.5)</summary>
+    public float GrowthMultiplier { get; set; } = 1f;
+
     /// <summary>현재 성장 속도 배율 (적정 온도 반영, 마지막 검사 결과)</summary>
     public float GrowthRate => IsGrowthBlocked ? 0f : growthRate;
 
@@ -173,7 +176,7 @@ public abstract class PlantBase : MonoBehaviour, IHarvestable
         if (IsGrowthBlocked) return;
 
         if (activeGrowthTime <= 0f) RollGrowthTime();
-        SetGrowth(activeGrowthTime > 0f ? growth + Time.deltaTime * growthRate / activeGrowthTime : 1f);
+        SetGrowth(activeGrowthTime > 0f ? growth + Time.deltaTime * growthRate * GrowthMultiplier / activeGrowthTime : 1f);
     }
 
     /// <summary>

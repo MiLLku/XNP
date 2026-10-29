@@ -37,6 +37,16 @@ public class ResearchWorkbench : MonoBehaviour, IBuildingFunction
     // 컴포넌트 참조
     private Building _building;
 
+    /// <summary>맵에 있는 연구 작업대 (자동 배정용)</summary>
+    public static readonly System.Collections.Generic.List<ResearchWorkbench> All = new System.Collections.Generic.List<ResearchWorkbench>();
+    private void OnEnable() { if (!All.Contains(this)) All.Add(this); }
+    private void OnDisable() => All.Remove(this);
+
+    /// <summary>자동 배정 가능 — 기능 중이고 연구가 진행 중이며 아무도 앉아 있지 않음</summary>
+    public bool CanAutoAssign
+        => !_isResearching && (_building == null || _building.IsFunctional)
+        && ResearchTreeManager.instance != null && ResearchTreeManager.instance.IsResearchActive;
+
     #endregion
 
     #region 프로퍼티

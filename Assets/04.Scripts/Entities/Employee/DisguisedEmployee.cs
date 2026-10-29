@@ -260,11 +260,13 @@ public class DisguisedEmployee : MonoBehaviour, ITerrainErosionSource
             title = title,
             body = body,
             type = LetterType.Threat,
+            pauseUntilRead = true,
             onClick = withLocation ? () =>
             {
                 var cam = Camera.main;
                 if (cam != null) cam.transform.position = new Vector3(at.x, at.y, cam.transform.position.z);
             } : (System.Action)null
         });
+        TimeManager.instance?.ForcePause();
     }
 }

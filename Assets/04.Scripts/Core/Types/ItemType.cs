@@ -73,6 +73,8 @@ public enum ItemType
     /// <summary>요리사가 만든 간단한 식사 — 먹으면 추가 기분 (사이코패스 제외)</summary>
     ChefSimpleMeal = 208,
     ChefErosionSimpleMeal = 209,
+    /// <summary>침식 열매 — 기지 밖 침식된 덤불에서 채집. 날로 먹을 수 있지만 침식 +8</summary>
+    ErosionFruit = 210,
 
     // ─── 약물 (251~300) ─────────────────────────
     Sedative    = 251,

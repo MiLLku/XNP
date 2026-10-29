@@ -380,6 +380,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         if (type == RaidType.Split) total = Mathf.Max(total, splitPoints.Count); // 지점마다 최소 1마리
         recentRaidTypes.Insert(0, type); // 실제로 나온 종류 (자리가 없어 일반으로 바뀐 것까지)
         if (recentRaidTypes.Count > 2) recentRaidTypes.RemoveRange(2, recentRaidTypes.Count - 2);
+        if (lastRaidGameDay < 0f && total > 1) total = 1; // 첫 습격은 1마리 — 장비·방어 시설이 하나도 없을 때다
         if (type == RaidType.Spawner || type == RaidType.Disguise) activePlan.Clear(); // 처음엔 스포너만 — 적은 스포너가 내보낸다
         else BuildSpawnPlan(raid, type, total);
         Debug.Log($"[RaidManager] {raid.raidName} {TypeLabel(type)} · {StageLabel(activeThreatStage)} — {LastThreat} → {total}마리 (한 마리당 {PointsPerEnemy(type)})");
@@ -713,7 +714,21 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     }
 
     /// <summary>위협 단계의 체력·피해 배율 (정체를 드러낸 위장체용)</summary>
-    public float StageMultiplierFor(int stage) => 1f + statBonusPerStage * stage;
+    public float StageMultiplierFor(int stage) => (1f + statBonusPerStage * stage) * EarlyDayStatFactor;
+
+    // shortcut: 임시 수치 — 초반 적 약화(체력·피해 배율): 3일차 0.5 → 12일차 1.0 선형. 위협 점수(마리 수)는 그대로
+    private const float EARLY_FACTOR_MIN = 0.5f;
+    private const float EARLY_FACTOR_START_DAY = 3f, EARLY_FACTOR_FULL_DAY = 12f;
+
+    /// <summary>초반 적 체력·피해 배율 — 습격 적과 이벤트로 나오는 적 공통</summary>
+    public static float EarlyDayStatFactor
+    {
+        get
+        {
+            float day = DayCycle.instance != null ? DayCycle.instance.Day + DayCycle.instance.TimeNormalized : EARLY_FACTOR_FULL_DAY;
+            return Mathf.Lerp(EARLY_FACTOR_MIN, 1f, Mathf.InverseLerp(EARLY_FACTOR_START_DAY, EARLY_FACTOR_FULL_DAY, day));
+        }
+    }
 
     /// <summary>스포너를 자리에 세우고 패턴을 정한다</summary>
     private void StartSpawner()
@@ -950,7 +965,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     }
 
     /// <summary>위협 단계의 체력·피해 배율</summary>
-    private float StageMultiplier => 1f + statBonusPerStage * activeThreatStage;
+    private float StageMultiplier => StageMultiplierFor(activeThreatStage);
 
     private void CompleteRaid()
     {

@@ -504,7 +504,10 @@ public static class EventEffectApplier
             spawnPos = new Vector3(camPos.x + offsetX, camPos.y + offsetY, 0f);
         }
 
-        XenopsManager.instance.SpawnXenops(xenopsDataId, spawnPos);
+        var x = XenopsManager.instance.SpawnXenops(xenopsDataId, spawnPos);
+        // 적대 개체는 습격 적과 같은 배율 (초반 약화 포함)
+        if (x != null && x.Data != null && x.Data.xenopsType == XenopsType.Hostile && RaidManager.instance != null)
+            x.ApplyThreatScaling(RaidManager.instance.StageMultiplierFor(RunStatsManager.instance != null ? RunStatsManager.instance.ThreatStage : 0), true);
         Debug.Log($"[EventEffectApplier] 제노프스 등장: ID {xenopsDataId} at {spawnPos}");
     }
 
