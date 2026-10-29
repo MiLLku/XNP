@@ -435,7 +435,8 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior, IWeaponWie
             var buildings = UnityEngine.Object.FindObjectsByType<Building>();
             foreach (var b in buildings)
             {
-                if (b == null) continue;
+                // 부술 수 없는 건물(맵에 찍힌 바닥 등 데이터 없음·체력 0)을 노리면 영영 쏘며 습격이 끝나지 않는다 — EnemyNavigator와 같은 기준
+                if (b == null || b.buildingData == null || !b.IsFunctional || b.buildingData.maxHealth <= 0) continue;
                 if (excludeBlacklisted && IsBlacklisted(b)) continue;
                 float d = Vector2.Distance((Vector2)b.transform.position, myPos);
                 if (d < bestDist) { bestDist = d; nearest = b; }
