@@ -1275,11 +1275,12 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         int width = Mathf.Max(1, def.footprintWidth);
         int lastPlacedX = int.MinValue;
         int placed = 0;
+        int padding = def.spawnAreaPaddingOverride >= 0 ? def.spawnAreaPaddingOverride : spawnAreaPadding;
 
         for (int x = 0; x + width <= GameMap.MAP_WIDTH; x++)
         {
             if (def.avoidSpawnArea &&
-                x >= spawnX - spawnAreaPadding && x <= spawnX + spawnAreaPadding) continue;
+                x >= spawnX - padding && x <= spawnX + padding) continue;
 
             // 기지로부터의 거리 띠 — 위험 지대에만 나는 식생을 만든다
             int distance = Mathf.Abs(x - spawnX);
