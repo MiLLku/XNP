@@ -22,7 +22,7 @@ MonoBehaviour:
   category: 7
   weight: 10
   maxOccurrences: 0
-  cooldown: 120
+  cooldown: 1000
   isPersistent: 0
   minDuration: 60
   maxDuration: 180

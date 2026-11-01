@@ -46,6 +46,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     [Header("습격 규모 — 마리 수 = 위협 점수 ÷ 습격 종류의 한 마리당 점수 (ThreatScore, 임시 수치)")]
     [Min(1f)] [SerializeField] private float normalPointsPerEnemy = 10f;
+
+    [Tooltip("초반 습격 마리 수 상한 — x일차까지 최대 y마리 (일차 오름차순). 마지막 x 이후는 위협 계산 그대로. 위협 점수·스탯 배율은 그대로 (임시 수치)")]
+    [SerializeField] private Vector2Int[] earlyEnemyCaps = { new Vector2Int(5, 2), new Vector2Int(8, 3), new Vector2Int(11, 4) };
     [Min(1f)] [SerializeField] private float tunnelPointsPerEnemy = 12f;
     [Min(1f)] [SerializeField] private float breachPointsPerEnemy = 12f;
 
@@ -390,6 +393,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         recentRaidTypes.Insert(0, type); // 실제로 나온 종류 (자리가 없어 일반으로 바뀐 것까지)
         if (recentRaidTypes.Count > 2) recentRaidTypes.RemoveRange(2, recentRaidTypes.Count - 2);
         if (lastRaidGameDay < 0f && total > 1) total = 1; // 첫 습격은 1마리 — 장비·방어 시설이 하나도 없을 때다
+        total = Mathf.Min(total, EarlyEnemyCap());
         if (type == RaidType.Spawner || type == RaidType.Disguise) activePlan.Clear(); // 처음엔 스포너만 — 적은 스포너가 내보낸다
         else BuildSpawnPlan(raid, type, total);
         Debug.Log($"[RaidManager] {raid.raidName} {TypeLabel(type)} · {StageLabel(activeThreatStage)} — {LastThreat} → {total}마리 (한 마리당 {PointsPerEnemy(type)})");
@@ -924,6 +928,14 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private float PointsPerEnemy(RaidType type)
         => type == RaidType.Tunnel ? tunnelPointsPerEnemy : type == RaidType.Breach ? breachPointsPerEnemy
          : type == RaidType.ErodedHumans ? erodedHumanPointsPerEnemy : normalPointsPerEnemy;
+
+    /// <summary>오늘의 초반 마리 수 상한 (상한 구간이 지났으면 int.MaxValue)</summary>
+    public int EarlyEnemyCap()
+    {
+        int day = DayCycle.instance != null ? DayCycle.instance.Day : int.MaxValue;
+        foreach (var c in earlyEnemyCaps) if (day <= c.x) return Mathf.Max(1, c.y);
+        return int.MaxValue;
+    }
 
     /// <summary>마리 수 = 위협 점수 ÷ 한 마리당 점수 (반올림, 최소 1, 기술적 최대)</summary>
     public int EnemyCountFor(float threat, RaidType type)

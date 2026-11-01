@@ -56,6 +56,13 @@ public class MentalBreakConfig : ScriptableObject
     [Range(0f, 8f)]
     public float depthMtbFactor = 4f;
 
+    [Header("초반 완화 (임시 수치)")]
+    [Tooltip("이 일차까지는 정신 이상 발생 확률에 earlyChanceMultiplier를 곱합니다. 0이면 끔.")]
+    [Min(0)] public int earlyDays = 5;
+
+    [Tooltip("초반 정신 이상 발생 확률 배율 (임계점·특성 임계는 그대로)")]
+    [Range(0f, 1f)] public float earlyChanceMultiplier = 0.5f;
+
     #endregion
 
     #region 정신차림 (회복 버프)

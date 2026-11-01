@@ -273,6 +273,9 @@ public class EmployeeMental : MonoBehaviour
         if (mtbSeconds <= 0f) return true;
 
         float chance = 1f - Mathf.Exp(-interval / mtbSeconds);
+        var cfg = Cfg;
+        if (cfg != null && DayCycle.instance != null && DayCycle.instance.Day <= cfg.earlyDays)
+            chance *= cfg.earlyChanceMultiplier; // 초반 완화 — 오락 시설이 없을 때다
         return Random.value < chance;
     }
 

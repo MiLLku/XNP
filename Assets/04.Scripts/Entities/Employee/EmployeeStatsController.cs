@@ -283,7 +283,7 @@ public class EmployeeStatsController : MonoBehaviour
 
     // shortcut: 임시 수치 — 기대감 구간·기본 정신력 (사용자 확정 대기, 여기만 바꾸면 됨). 정신 이상 임계 40은 그대로
     public static MentalExpectation ExpectationFor(int level) => level >= 7 ? MentalExpectation.High : level >= 4 ? MentalExpectation.Mid : MentalExpectation.Low;
-    public static float ExpectationBaseMental(MentalExpectation e) => e == MentalExpectation.High ? 30f : e == MentalExpectation.Mid ? 40f : 50f;
+    public static float ExpectationBaseMental(MentalExpectation e) => e == MentalExpectation.High ? 30f : e == MentalExpectation.Mid ? 40f : 55f;
     public static string ExpectationLabel(MentalExpectation e) => e == MentalExpectation.High ? "높음" : e == MentalExpectation.Mid ? "중간" : "낮음";
 
     /// <summary>활성 정신력 모디파이어 목록 (UI 표시용, 읽기 전용)</summary>
