@@ -201,6 +201,14 @@ public class HostileCombatStats
     [Tooltip("범위 침식 반경 (블럭 수)")]
     [Min(0)] public float aoeErosionRange = 3f;
 
+    [Tooltip("이 개체 하나가 직원 한 명에게 줄 수 있는 침식 총량(오라 + 공격). 음수면 오라 기준 자동: ≤10 → 60, ≤20 → 35, 그 이상 → 20.\n" +
+             "오라가 약한 적은 상한이 높아(방어구로 상쇄 유도) 여럿이 붙으면 위험하고, 강한 적은 상한이 낮다(애초에 적은 수로 온다).")]
+    public float erosionCapPerEmployee = -1f;
+
+    /// <summary>직원 한 명당 이 개체에게서 받을 수 있는 침식 상한</summary>
+    public float ErosionCapPerEmployee => erosionCapPerEmployee >= 0f ? erosionCapPerEmployee
+        : aoeErosionPerSecond <= 10f ? 60f : aoeErosionPerSecond <= 20f ? 35f : 20f; // shortcut: 임시 수치
+
     [Header("드랍")]
     [Tooltip("제압/사망 시 드랍 아이템 ID (0 = 없음)")]
     public int subdueDropItemId = 0;

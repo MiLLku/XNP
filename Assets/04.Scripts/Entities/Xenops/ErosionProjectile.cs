@@ -23,6 +23,9 @@ public class ErosionProjectile : MonoBehaviour, IPoolable
     private float _lifetime;
     private bool  _isReturned;
 
+    /// <summary>쏜 개체 — 개체당 침식 상한 판정용 (없으면 상한 없이 적용)</summary>
+    public Xenops Owner { get; set; }
+
     private Rigidbody2D _rb;
 
     private void Awake()
@@ -79,8 +82,8 @@ public class ErosionProjectile : MonoBehaviour, IPoolable
                 employee.ModifyHealth(-_healthDamage);
 
             if (_erosionAmount > 0f)
-                employee.ErosionController?.AddErosion(
-                    _erosionAmount, ErosionSource.PROJECTILE, "침식 투사체 피격");
+                employee.ErosionController?.AddErosionFrom(
+                    Owner, _erosionAmount, ErosionSource.PROJECTILE, "침식 투사체 피격");
 
             ReturnToPool();
             return;

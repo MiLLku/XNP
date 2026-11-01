@@ -482,6 +482,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior, IWeaponWie
         var proj = PoolManager.instance.Spawn<ErosionProjectile>(_data.projectilePrefab, transform.position);
         float mult = _xenops != null ? _xenops.StatMultiplier : 1f; // 위협 단계 배율 — 체력 피해에만
         proj.Init(direction, _projectileSpeed, _erosionOnHit, _healthDamageOnHit * mult, _erosionOnHit + _healthDamageOnHit * mult, _projectileLifetime);
+        proj.Owner = _xenops;
 
         _cooldownTimer = _attackInterval;
         _engageTimer   = 0f; // 공격(타겟·벽) = 진행 중 → 도달 불가 타이머 리셋

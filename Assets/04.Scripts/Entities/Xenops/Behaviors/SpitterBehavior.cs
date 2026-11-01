@@ -226,8 +226,8 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
 
         // 3. 피격 침식 누적
         if (_hitErosionAmount > 0f)
-            _target.ErosionController?.AddErosion(
-                _hitErosionAmount, ErosionSource.PROJECTILE, "원거리 피격");
+            _target.ErosionController?.AddErosionFrom(
+                _xenops, _hitErosionAmount, ErosionSource.PROJECTILE, "원거리 피격");
 
         _cooldownTimer = _attackInterval;
         _state         = State.Cooldown;
