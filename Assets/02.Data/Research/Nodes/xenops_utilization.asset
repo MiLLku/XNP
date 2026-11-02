@@ -19,11 +19,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - xenops_suppression
-  resourceCosts:
-  - item: {fileID: 11400000, guid: 506b5c22796be494bb67a91c9bd7802f, type: 2}
-    amount: 3
-  - item: {fileID: 11400000, guid: 0436ed0d1eb390b44830a471fdb1e83f, type: 2}
-    amount: 2
+  resourceCosts: []
   researchPointCost: 1500
   unlockEffects:
   - {fileID: 11400000, guid: cb3c77261fd71d548be25be4d471f716, type: 2}

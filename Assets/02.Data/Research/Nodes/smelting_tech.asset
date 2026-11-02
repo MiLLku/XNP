@@ -18,11 +18,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - crafting_basics
-  resourceCosts:
-  - item: {fileID: 11400000, guid: 3066b6303fe3824458224f0a49daf3c3, type: 2}
-    amount: 10
-  - item: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
-    amount: 5
+  resourceCosts: []
   researchPointCost: 720
   unlockEffects:
   - {fileID: 11400000, guid: 07274a0b850bdcc43938071b778c22e5, type: 2}

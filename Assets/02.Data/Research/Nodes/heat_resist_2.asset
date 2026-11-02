@@ -18,11 +18,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - heat_resist_1
-  resourceCosts:
-  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
-    amount: 5
-  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
-    amount: 2
+  resourceCosts: []
   researchPointCost: 1080
   unlockEffects:
   - {fileID: 11400000, guid: 5535327ba0b54523b79ba9188c315c4c, type: 2}

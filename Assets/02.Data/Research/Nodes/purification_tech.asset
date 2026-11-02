@@ -20,9 +20,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - xenops_ecology
-  resourceCosts:
-  - item: {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
-    amount: 3
+  resourceCosts: []
   researchPointCost: 500
   unlockEffects:
   - {fileID: 11400000, guid: 7e7445116ad02b84a941f8ca29565fde, type: 2}

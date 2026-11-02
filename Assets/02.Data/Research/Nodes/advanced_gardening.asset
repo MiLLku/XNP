@@ -19,9 +19,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - harvest_opt
-  resourceCosts:
-  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
-    amount: 30
+  resourceCosts: []
   researchPointCost: 900
   unlockEffects:
   - {fileID: 11400000, guid: 383dcbe4c0e761d40bb63f857fdda95f, type: 2}
