@@ -47,6 +47,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Header("습격 규모 — 마리 수 = 위협 점수 ÷ 습격 종류의 한 마리당 점수 (ThreatScore, 임시 수치)")]
     [Min(1f)] [SerializeField] private float normalPointsPerEnemy = 10f;
 
+    [Tooltip("일반·땅굴·브리칭·분산·침식된 인간 습격이 이 게임일 넘게 끝나지 않으면 남은 적이 물러난다 (0이면 끔).\n" +
+             "땅굴로 기지 바닥 밑에 들어간 적처럼 서로 닿지 못하는 적 때문에 습격이 영영 '진행 중'으로 남아 다음 습격이 오지 않던 문제를 막는다. 거점·스포너·위장체는 제외")]
+    [Min(0f)] [SerializeField] private float raidRetreatAfterDays = 1f;
+
     [Tooltip("초반 습격 마리 수 상한 — x일차까지 최대 y마리 (일차 오름차순). 마지막 x 이후는 위협 계산 그대로. 위협 점수·스탯 배율은 그대로 (임시 수치)")]
     [SerializeField] private Vector2Int[] earlyEnemyCaps = { new Vector2Int(5, 2), new Vector2Int(8, 3), new Vector2Int(11, 4) };
     [Min(1f)] [SerializeField] private float tunnelPointsPerEnemy = 12f;
@@ -800,6 +804,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         {
             spawnedEntities.RemoveAll(x => x == null);
             if (spawnedEntities.Count == 0) break;
+            if (ShouldRetreat()) { Retreat(); break; }
             await UniTask.Delay(TimeSpan.FromSeconds(1f), cancellationToken: ct);
         }
 
@@ -993,6 +998,24 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     /// <summary>위협 단계의 체력·피해 배율</summary>
     private float StageMultiplier => StageMultiplierFor(activeThreatStage);
+
+    private bool ShouldRetreat()
+        => raidRetreatAfterDays > 0f && lastRaidGameDay >= 0f && GameDayNow - lastRaidGameDay > raidRetreatAfterDays
+           && activeRaidType != RaidType.Outpost && activeRaidType != RaidType.Spawner && activeRaidType != RaidType.Disguise;
+
+    /// <summary>오래 끈 습격 — 남은 적이 전리품 없이 물러난다</summary>
+    private void Retreat()
+    {
+        int n = 0;
+        foreach (var x in spawnedEntities.ToArray())
+        {
+            if (x == null) continue;
+            XenopsManager.instance?.RemoveXenops(x);
+            n++;
+        }
+        spawnedEntities.Clear();
+        Debug.Log($"[RaidManager] 습격이 {raidRetreatAfterDays}일 넘게 끝나지 않아 남은 적 {n}마리가 물러났습니다");
+    }
 
     private void CompleteRaid()
     {
