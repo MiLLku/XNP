@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: DefinitionDatabase
   m_EditorClassIdentifier: Assembly-CSharp::DefinitionDatabase
   tiles:
+  - {fileID: 11400000, guid: 8f8fb0a449b54a47b76763fa1b89b55c, type: 2}
+  - {fileID: 11400000, guid: 4ca1b5824e0841f5a42c363b1abf9c77, type: 2}
   - {fileID: 11400000, guid: 8fb9511467b662b4590f55aa267315c6, type: 2}
   - {fileID: 11400000, guid: c94cc058d5166624cb53125a820836f8, type: 2}
   - {fileID: 11400000, guid: 2b8946de815e3eb4880e71c88704f7a5, type: 2}

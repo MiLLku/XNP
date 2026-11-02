@@ -14,12 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: mining_3
   nodeName: "채광 III"
-  description: "효율 · 금·수정·티타늄을 캘 수 있게 됩니다. 채광 속도 +25%. 심부의 철과 은으로 연구합니다."
+  description: "효율 · 철을 캘 수 있게 됩니다(100칸 아래). 채광 속도 +25%. 청동과 은으로 연구합니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - mining_2
   resourceCosts:
-  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+  - item: {fileID: 11400000, guid: 018346c855b34ed5b035b4102f1e7131, type: 2}
     amount: 5
   - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
     amount: 3

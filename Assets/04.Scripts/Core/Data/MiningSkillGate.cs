@@ -15,7 +15,7 @@
 public static class MiningSkillGate
 {
     /// <summary>최고 채광 등급 (경계암 — 에테리온)</summary>
-    public const int MAX_TIER = 4;
+    public const int MAX_TIER = 5;
 
     /// <summary>해당 타일을 캐는 데 필요한 채광 등급. 0이면 제한 없음.</summary>
     public static int RequiredTier(TileType tile) => RequiredTier((int)tile);
@@ -51,7 +51,7 @@ public static class MiningSkillGate
         return tier == 0 ? null : $"채광 {RomanNumeral(tier)}";
     }
 
-    /// <summary>등급 번호의 로마 숫자 표기 (1~4)</summary>
+    /// <summary>등급 번호의 로마 숫자 표기 (1~5)</summary>
     public static string RomanNumeral(int tier)
     {
         switch (tier)
@@ -60,6 +60,7 @@ public static class MiningSkillGate
             case 2: return "II";
             case 3: return "III";
             case 4: return "IV";
+            case 5: return "V";
             default: return tier.ToString();
         }
     }

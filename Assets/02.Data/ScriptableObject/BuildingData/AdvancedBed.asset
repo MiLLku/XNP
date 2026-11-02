@@ -26,7 +26,7 @@ MonoBehaviour:
   requiredResources:
   - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
     amount: 10
-  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+  - item: {fileID: 11400000, guid: 018346c855b34ed5b035b4102f1e7131, type: 2}
     amount: 3
   maxHealth: 100
   blocksMovement: 0

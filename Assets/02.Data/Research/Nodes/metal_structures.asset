@@ -21,7 +21,7 @@ MonoBehaviour:
   prerequisiteNodeIds:
   - construction_basics
   resourceCosts:
-  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+  - item: {fileID: 11400000, guid: 018346c855b34ed5b035b4102f1e7131, type: 2}
     amount: 5
   researchPointCost: 900
   unlockEffects:

@@ -27,8 +27,8 @@ MonoBehaviour:
   pivot: {x: 0, y: 0}
   workAmount: 8
   requiredResources:
-  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
-    amount: 5
+  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
+    amount: 3
   - item: {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
     amount: 2
   maxHealth: 150

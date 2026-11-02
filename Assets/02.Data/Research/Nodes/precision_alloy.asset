@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: precision_alloy
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: precision_alloy
+  nodeName: "정밀 합금"
+  description: "효율 · 금 주괴와 정련 합금(철·은·금) 제련법을 엽니다."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - ironworking
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+    amount: 5
+  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
+    amount: 3
+  researchPointCost: 1800
+  unlockEffects:
+  - {fileID: 11400000, guid: 0e26d8f27522d334092c9f310237c620, type: 2}
+  - {fileID: 11400000, guid: e5954901a787410795101156910c5805, type: 2}
+  treePosition: {x: -3, y: -5}

@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: Refinery
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 3311
+  buildingName: "정유기"
+  icon: {fileID: 0}
+  category: 1
+  description: "원유를 정제해 합성수지와 고급 연료를 만든다."
+  buildingPrefab: {fileID: 7198917510150037189, guid: efab580ae6cf4b9eb27c7269cbafe0c9, type: 3}
+  size: {x: 2, y: 2}
+  pivot: {x: 0, y: 0}
+  workAmount: 40
+  requiredResources:
+  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+    amount: 6
+  - item: {fileID: 11400000, guid: 6f0a834fec48481ea1ce48081eb49e41, type: 2}
+    amount: 2
+  maxHealth: 120
+  blocksMovement: 1
+  requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
+  destructionDrops: []
+  paybackRatio: 0.5
+  heatOutput: 30
+  heatConductivity: 0.8
+  useHeatTarget: 1
+  heatTargetTemperature: 45
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
+  powerConsumption: 0
+  allowOverlap: 0
+  requiresResearch: 1

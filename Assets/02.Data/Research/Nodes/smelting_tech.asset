@@ -14,8 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: smelting_tech
   nodeName: "\uC81C\uB828 \uAE30\uC220"
-  description: "\uD6A8\uC728 \xB7 \uC81C\uB828\uC18C\uC640 \uC8FC\uAD34 4\uC885 \uC81C\uC791\uBC95\uC744
-    \uD574\uAE08\uD569\uB2C8\uB2E4."
+  description: "효율 · 제련소와 구리 주괴 제련법을 엽니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - crafting_basics
@@ -28,7 +27,4 @@ MonoBehaviour:
   unlockEffects:
   - {fileID: 11400000, guid: 07274a0b850bdcc43938071b778c22e5, type: 2}
   - {fileID: 11400000, guid: fb3ec281a6123d64cabef3a33090f989, type: 2}
-  - {fileID: 11400000, guid: 63aa9ab37715f374a9fa4f8b3e5b5515, type: 2}
-  - {fileID: 11400000, guid: 4633d48867aa30a4d89a8a0d47f7cc37, type: 2}
-  - {fileID: 11400000, guid: 0e26d8f27522d334092c9f310237c620, type: 2}
   treePosition: {x: -1, y: -2}

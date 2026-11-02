@@ -30,7 +30,8 @@ public enum ItemType
     Wood      = 7,
     Coal      = 8,
     Crystal   = 9,
-    TitaniumOre = 10,
+    /// <summary>침정석 — 기지에서 좌우로 멀리(120칸+) 나가야 나오는 광물. 옛 티타늄 광석 자리(세이브 호환)</summary>
+    NeedleOre   = 10,
     Ether       = 11,
     AbyssFruit  = 12,
     /// <summary>물 — 물 흡수 시설이나 물 퍼내기로 얻는다</summary>
@@ -45,6 +46,10 @@ public enum ItemType
     AcidSac       = 18, // 스피터
     SpawnerCore   = 19, // 스포너 — 증식 핵
     DisguiseFilm  = 20, // 위장체 — 위장 피막
+    /// <summary>주석 광석 — 구리 곁 얕은 층. 구리와 섞어 청동을 만든다</summary>
+    TinOre        = 21,
+    /// <summary>원유 — 석유 분출구 위 유정이 뽑아낸다. 정유기에서 합성수지·고급 연료로</summary>
+    CrudeOil      = 22,
 
     // ─── 가공 자원 (101~200) ────────────────────
     IronIngot   = 101,
@@ -57,6 +62,13 @@ public enum ItemType
 
     /// <summary>에테리온 — 에테르를 제련한 것. 태워서 직원에게 최하층 경계 채굴 자격을 새깁니다.</summary>
     Etherion = 106,
+
+    // 금속 테크 사다리 (Lv2·5·7) 와 석유 화학
+    BronzeIngot    = 107, // 구리 광석 2 + 주석 광석 1 → 2 (제련소)
+    RefinedAlloy   = 108, // 철 주괴 2 + 은 주괴 1 + 금 주괴 1 → 2 (용광로)
+    NeedleAlloy    = 109, // 침정석 2 + 은 주괴 1 → 1 (용광로)
+    SyntheticResin = 110, // 원유 → (정유기)
+    HighGradeFuel  = 111, // 원유 → (정유기)
 
     // ─── 음식 (201~250) ─────────────────────────
     Berry       = 201,

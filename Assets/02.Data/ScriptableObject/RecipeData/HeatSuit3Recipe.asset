@@ -18,7 +18,7 @@ MonoBehaviour:
   requiredMaterials:
   - item: {fileID: 11400000, guid: 506b5c22796be494bb67a91c9bd7802f, type: 2}
     amount: 3
-  - item: {fileID: 11400000, guid: f84fa6a62b438d64ca3a339d2f915360, type: 2}
+  - item: {fileID: 11400000, guid: 6f0a834fec48481ea1ce48081eb49e41, type: 2}
     amount: 4
   craftingTime: 2000
   requiresResearch: 1
