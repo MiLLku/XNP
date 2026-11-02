@@ -245,7 +245,8 @@ public abstract class PlantBase : MonoBehaviour, IHarvestable
 
         DropYields();
 
-        if (lifecycle == PlantLifecycle.SingleUse) Remove();
+        // 재배 칸(밭·수경재배기)의 작물은 뿌리가 남아 0%부터 다시 자란다 — 씨앗은 처음 한 번만 쓴다
+        if (lifecycle == PlantLifecycle.SingleUse && Host == null) Remove();
         else
         {
             RollGrowthTime();

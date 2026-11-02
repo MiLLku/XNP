@@ -40,6 +40,15 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
     [Header("시각 설정")]
     [SerializeField] private Color blueprintColor = new Color(0.5f, 0.8f, 1f, 0.5f);
     [SerializeField] private Color inProgressColor = new Color(1f, 0.9f, 0.5f, 0.7f);
+    [Tooltip("자재 전달 위치에 창고에서 닿을 수 없을 때")]
+    [SerializeField] private Color unreachableColor = new Color(1f, 0.35f, 0.35f, 0.6f);
+
+    private const float REACH_CHECK_INTERVAL = 2f;
+    private float _reachCheckTimer;
+    private GameObject _unreachableMarker;
+
+    /// <summary>자재 전달 위치에 어느 창고에서도 닿을 수 없음 — 자재가 영영 오지 않는다</summary>
+    public bool IsUnreachable { get; private set; }
 
     // 컴포넌트
     private SpriteRenderer spriteRenderer;
@@ -522,6 +531,7 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
                 new Vector2Int(cx, gridPosition.y - 1),                 // 아래쪽
             };
 
+            Vector3? firstStandable = null;
             foreach (var pos in candidates)
             {
                 if (pos.x < 0 || pos.x >= GameMap.MAP_WIDTH) continue;
@@ -539,13 +549,64 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
                 );
                 if (!hasGround) continue;
 
-                return new Vector3(pos.x + 0.5f, pos.y, 0f);
+                // 창고에서 닿는 쪽을 우선 — 한쪽이 막혀 있어도 반대쪽으로 자재를 받는다
+                var standable = new Vector3(pos.x + 0.5f, pos.y, 0f);
+                if (IsReachableFromStockpile(pos)) return standable;
+                if (firstStandable == null) firstStandable = standable;
             }
+            if (firstStandable != null) return firstStandable.Value;
         }
 
         // fallback: 기존 동작 (사이트 중앙)
         return new Vector3(cx + 0.5f, cy, 0f);
     }
+
+    private static bool IsReachableFromStockpile(Vector2Int pos)
+    {
+        var sm = StockpileManager.instance;
+        if (sm == null || !sm.HasAnyStockpile || ReachabilityMap.Current == null) return true; // 판정 불가 — 막혔다고 하지 않는다
+        return sm.HasReachableStockpile(pos);
+    }
+
+    private void Update()
+    {
+        if (state == ConstructionState.Completed || IsMaterialsReady) { SetUnreachable(false); return; }
+        _reachCheckTimer -= Time.deltaTime;
+        if (_reachCheckTimer > 0f) return;
+        _reachCheckTimer = REACH_CHECK_INTERVAL;
+
+        Vector3 dp = GetDeliveryPosition();
+        SetUnreachable(!IsReachableFromStockpile(new Vector2Int(Mathf.FloorToInt(dp.x), Mathf.FloorToInt(dp.y))));
+    }
+
+    /// <summary>접근 불가 표시 — 청사진을 붉게 칠하고 머리 위에 '!'</summary>
+    private void SetUnreachable(bool value)
+    {
+        if (IsUnreachable == value) return;
+        IsUnreachable = value;
+        spriteRenderer.color = CurrentColor;
+
+        if (value && _unreachableMarker == null)
+        {
+            _unreachableMarker = new GameObject("UnreachableMarker");
+            _unreachableMarker.transform.SetParent(transform, false);
+            Vector2 size = buildingData != null ? (Vector2)buildingData.size : Vector2.one;
+            _unreachableMarker.transform.localPosition = new Vector3(size.x * 0.5f, size.y + 0.4f, 0f);
+            var tm = _unreachableMarker.AddComponent<TextMesh>();
+            tm.text = "!";
+            tm.color = Color.red;
+            tm.anchor = TextAnchor.MiddleCenter;
+            tm.characterSize = 0.15f;
+            tm.fontSize = 64;
+            tm.fontStyle = FontStyle.Bold;
+            _unreachableMarker.GetComponent<MeshRenderer>().sortingOrder = BLUEPRINT_SORTING_ORDER + 1;
+        }
+        if (_unreachableMarker != null) _unreachableMarker.SetActive(value);
+        if (value) Debug.Log($"[ConstructionSite] 접근 불가: {buildingData?.buildingName} — 자재 전달 위치에 창고에서 닿을 수 없음");
+    }
+
+    private Color CurrentColor => IsUnreachable ? unreachableColor
+        : state == ConstructionState.InProgress ? inProgressColor : blueprintColor;
 
     public bool IsRequestStillValid()
     {
@@ -849,7 +910,7 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
     {
         if (state == ConstructionState.Completed) return;
 
-        spriteRenderer.color = (state == ConstructionState.InProgress) ? inProgressColor : blueprintColor;
+        spriteRenderer.color = CurrentColor;
     }
 
     #endregion

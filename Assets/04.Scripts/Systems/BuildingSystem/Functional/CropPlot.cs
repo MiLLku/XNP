@@ -180,6 +180,9 @@ public class CropPlot : MonoBehaviour, IBuildingExtraSerializable, IBuildingFunc
         if (slot.Plant == null && slot.PendingSow == null && slot.SelectedSeed != null)
             slot.PendingSow = SowSite.CreateForOwner(slot.SelectedSeed, slot);
 
+        // 수확이 끝나 작물이 다시 자라는 중 — 끝난 수확 작업물은 작업 시스템이 이미 지웠다
+        if (slot.Plant != null && !slot.Plant.IsMature) slot.harvestOrder = null;
+
         // 다 자람 → 수확 작업 (제초 작업)
         if (slot.Plant != null && slot.Plant.IsMature && slot.harvestOrder == null && WorkSystemManager.instance != null)
         {

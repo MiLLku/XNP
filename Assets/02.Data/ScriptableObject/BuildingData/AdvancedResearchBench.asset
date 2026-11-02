@@ -29,7 +29,7 @@ MonoBehaviour:
   - item: {fileID: 11400000, guid: 0436ed0d1eb390b44830a471fdb1e83f, type: 2}
     amount: 4
   maxHealth: 100
-  blocksMovement: 1
+  blocksMovement: 0
   requiresFloorSupport: 1
   destructionDrops: []
   paybackRatio: 0.5
