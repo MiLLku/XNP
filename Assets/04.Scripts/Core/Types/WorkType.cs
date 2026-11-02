@@ -53,15 +53,16 @@ public static class WorkTypeDefaults
     public static readonly WorkType[] BaseOrder =
     {
         WorkType.Recuperation,   // 맨 앞: 기본값에선 요양이 가장 먼저
-        // 건설·운반·연구가 채광·수확보다 앞 — 뒤에 두면 채광·수확 지시가 쌓여 있는 동안 청사진 자재가 영영 안 온다
         WorkType.Building,
-        WorkType.Hauling,
+        // 식량 — 끊기면 판이 끝난다
+        WorkType.Cooking,
+        WorkType.Weeding,
+        WorkType.Sowing,
         WorkType.Research,
         WorkType.Mining,
-        WorkType.Weeding,
-        WorkType.Cooking,
-        WorkType.Sowing,
         WorkType.Crafting,
+        // 운반은 뒤 — 바닥 물건 운반은 늘 수백 건 쌓여 있어서 앞에 두면 채광·연구가 영영 밀린다
+        WorkType.Hauling,
         WorkType.Training,
         // Cleaning(방 세척 명령)은 삭제됐다 — 세척은 직원 전용(세척대). enum 값은 세이브 정수 호환용으로만 남는다.
         WorkType.Errand,
