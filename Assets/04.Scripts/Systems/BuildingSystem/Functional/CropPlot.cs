@@ -45,6 +45,9 @@ public class CropPlot : MonoBehaviour, IBuildingExtraSerializable, IBuildingFunc
     [Header("심을 수 있는 작물 (씨앗)")]
     [SerializeField] private List<ItemData> allowedSeeds = new List<ItemData>();
 
+    [Tooltip("새로 지었을 때 모든 칸에 미리 골라 둘 작물 (비우면 빈 밭). 불러오기는 저장된 선택이 덮어쓴다")]
+    [SerializeField] private ItemData defaultSeed;
+
     [Header("수경재배기 — 침식 결정체")]
     [SerializeField] private ItemSupply crystalSupply = new ItemSupply();
 
@@ -141,7 +144,7 @@ public class CropPlot : MonoBehaviour, IBuildingExtraSerializable, IBuildingFunc
         building = GetComponent<Building>();
         power = GetComponent<PowerConsumer>();
         crystalSupply.Bind(this);
-        for (int i = 0; i < slotCount; i++) slots.Add(new Slot(this, i));
+        for (int i = 0; i < slotCount; i++) slots.Add(new Slot(this, i) { SelectedSeed = defaultSeed });
     }
 
     private void Update()

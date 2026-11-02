@@ -179,6 +179,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d5796d620e761744d868a4d665bd8364, type: 2}
   - {fileID: 11400000, guid: 5c13d5343d6197d47b6d81977d9903ff, type: 2}
   - {fileID: 11400000, guid: 11ab2ae88505203419c509209c40bd05, type: 2}
+  defaultSeed: {fileID: 11400000, guid: d5796d620e761744d868a4d665bd8364, type: 2}
   crystalSupply:
     item: {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
     capacity: 5

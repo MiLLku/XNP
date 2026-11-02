@@ -17,6 +17,8 @@ MonoBehaviour:
     amount: 20
   - item: {fileID: 11400000, guid: 0ad4d990f3ad69347bb05a7a00afc93e, type: 2}
     amount: 30
+  - item: {fileID: 11400000, guid: d5796d620e761744d868a4d665bd8364, type: 2}
+    amount: 4
   startingEquipment: []
   startingOutfit:
   - {fileID: 11400000, guid: a52ef643c2699ef48a8abd15e9f482f1, type: 2}
