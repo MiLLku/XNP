@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: mining_4
   nodeName: "채광 IV"
-  description: "효율 · 금·수정(130칸 아래)과 침정석(기지 좌우 120칸 너머)을 캘 수 있게 됩니다. 철과 은으로 연구합니다."
+  description: "효율 · 금·수정(130칸 아래)과 침정석(기지 좌우 120칸 너머)을 캘 수 있게 됩니다. 채광 속도 +60%. 철과 은으로 연구합니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - mining_3
@@ -26,4 +26,5 @@ MonoBehaviour:
   researchPointCost: 2100
   unlockEffects:
   - {fileID: 11400000, guid: c14586595e1f4802ba5ef01765fca055, type: 2}
+  - {fileID: 11400000, guid: 57173d52cd724413825362941b2ae188, type: 2}
   treePosition: {x: -6, y: -4}

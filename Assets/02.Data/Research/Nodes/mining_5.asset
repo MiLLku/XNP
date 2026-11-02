@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: mining_5
   nodeName: "채광 V"
-  description: "효율 · 최하층을 봉인한 경계암을 캘 수 있게 됩니다. 금·수정과 에테리온으로 연구합니다."
+  description: "효율 · 최하층을 봉인한 경계암을 캘 수 있게 됩니다. 채광 속도 +100%. 금·수정과 에테리온으로 연구합니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - mining_4
@@ -29,4 +29,5 @@ MonoBehaviour:
   researchPointCost: 2100
   unlockEffects:
   - {fileID: 11400000, guid: 851b37b135ea45fdaed1bacdb2cc518b, type: 2}
+  - {fileID: 11400000, guid: 13ca08981261414585ba738489b6ea34, type: 2}
   treePosition: {x: -6, y: -5}
