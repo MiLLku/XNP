@@ -179,7 +179,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         {
             instanceId = nextInstanceId++,
             equipmentId = data.itemData.itemID,
-            durability = data.maxDurability
+            durability = data.MaxDurability
         };
         pool.Add(inst);
         GameMessageBus.Publish(new EquipmentPoolChangedMessage());
@@ -210,7 +210,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
             {
                 instanceId = nextInstanceId++,
                 equipmentId = item.itemData.itemID,
-                durability = item.maxDurability
+                durability = item.MaxDurability
             };
             if (!equipment.EquipInstance(item.slot, inst))
                 ReturnInstance(inst); // 특성상 못 입는 시작 장비(총기광의 진압봉 등)는 보관소로
@@ -240,7 +240,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
     public EquipmentInstance NewInstance(EquipmentData data)
     {
         if (data == null || data.itemData == null) return null;
-        return new EquipmentInstance { instanceId = nextInstanceId++, equipmentId = data.itemData.itemID, durability = data.maxDurability };
+        return new EquipmentInstance { instanceId = nextInstanceId++, equipmentId = data.itemData.itemID, durability = data.MaxDurability };
     }
 
     /// <summary>기존 인스턴스를 풀에 반납합니다 (장착 해제 시).</summary>

@@ -26,4 +26,7 @@ MonoBehaviour:
   researchPointCost: 2400
   unlockEffects:
   - {fileID: 11400000, guid: 82d9881f2e3c46c09b67d103bba98972, type: 2}
+  - {fileID: 11400000, guid: 37ff073c560c40d9b52c1a728e051784, type: 2}
+  - {fileID: 11400000, guid: 5b98fa98b4854afcb59607927b33c85f, type: 2}
+  - {fileID: 11400000, guid: a8ce891c9be941a8b170cfd0888a55df, type: 2}
   treePosition: {x: -3, y: -6}

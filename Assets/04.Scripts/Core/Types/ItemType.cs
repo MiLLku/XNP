@@ -109,6 +109,20 @@ public enum ItemType
     SinewWhip    = 309,
     AcidThrower  = 310,
 
+    /// <summary>금속 단계별 검·석궁 (EquipmentData.metalTier로 성능 배율) — 빈 단계만 신규</summary>
+    CopperSword = 311, // 구리 검
+    BronzeSword = 312, // 청동 검
+    SilverSword = 313, // 은 검
+    NeedleSword = 314, // 침정석 검
+    NeedleAlloySword = 315, // 침정 합금 검
+    EtherionSword = 316, // 에테리온 검
+    CopperCrossbow = 317, // 구리 석궁
+    SilverCrossbow = 318, // 은 석궁
+    IronCrossbow = 319, // 철 석궁
+    NeedleCrossbow = 320, // 침정석 석궁
+    NeedleAlloyCrossbow = 321, // 침정 합금 석궁
+    EtherionCrossbow = 322, // 에테리온 석궁
+
     // ─── 방어구 (351~400) ───────────────────────
     IronArmor   = 351,
     /// <summary>1단계 방어구 — 나무·돌</summary>
@@ -149,6 +163,14 @@ public enum ItemType
     AcidGloves    = 377,
     /// <summary>위장 피막 외투 — 위장체 도감 보호구. 착용자는 적의 공격 대상에서 빠진다(광역 피해는 받음)</summary>
     DisguiseCloak = 378,
+
+    /// <summary>금속 단계별 갑옷 — 빈 단계만 신규</summary>
+    CopperArmor = 379, // 구리 갑옷
+    BronzeArmor = 380, // 청동 갑옷
+    SilverArmor = 381, // 은 갑옷
+    NeedleArmor = 382, // 침정석 갑옷
+    NeedleAlloyArmor = 383, // 침정 합금 갑옷
+    EtherionArmor = 384, // 에테리온 갑옷
 
     // ─── 식물 (401~450) ─────────────────────────
     /// <summary>나무 묘목 — 나무를 제초하면 나오고, 파종하면 나무로 자랍니다.</summary>

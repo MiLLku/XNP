@@ -179,7 +179,7 @@ public class ErodedHuman : MonoBehaviour
         foreach (var kv in loadout)
         {
             Loadout[kv.Key] = kv.Value;
-            Durability[kv.Key] = kv.Value.maxDurability * Random.Range(0.3f, 1f);
+            Durability[kv.Key] = kv.Value.MaxDurability * Random.Range(0.3f, 1f);
         }
         ApplyStats(true);
     }
@@ -190,7 +190,7 @@ public class ErodedHuman : MonoBehaviour
         if (_xenops == null || _xenops.Data == null) return;
         var s = _xenops.Data.hostileStats;
         float armor = 0f;
-        foreach (var d in Loadout.Values) if (d != null && d.passiveEffects != null) armor += d.passiveEffects.damageReduction;
+        foreach (var d in Loadout.Values) if (d != null && d.passiveEffects != null) armor += d.DamageReduction;
         float hp = s.maxHealth * FxMult(Person, f => f.healthMult);
         float cur = _health != null ? _health.CurrentHealth : hp;
         _health?.Initialize(hp, Mathf.Min(0.8f, s.defense + armor / 100f));
@@ -198,7 +198,7 @@ public class ErodedHuman : MonoBehaviour
 
         Loadout.TryGetValue(EquipmentSlot.Weapon, out var w);
         bool ranged = w != null && w.weaponClass == WeaponClass.Ranged;
-        float dmg = (w != null ? w.baseDamage : FIST_DAMAGE) * FxMult(Person, f => ranged ? f.rangedDamageMult : f.meleeDamageMult);
+        float dmg = (w != null ? w.Damage : FIST_DAMAGE) * FxMult(Person, f => ranged ? f.rangedDamageMult : f.meleeDamageMult);
         float interval = (w != null ? w.attackInterval : FIST_INTERVAL)
                        * FxMult(Person, f => f.attackIntervalMult * (ranged ? f.rangedAttackIntervalMult : f.meleeAttackIntervalMult));
         float range = w != null ? w.attackRange : FIST_RANGE;
@@ -257,7 +257,7 @@ public class ErodedHuman : MonoBehaviour
         {
             var inst = esm != null ? esm.NewInstance(kv.Value) : null;
             if (inst == null) continue;
-            inst.durability = Durability.TryGetValue(kv.Key, out var dur) ? dur : kv.Value.maxDurability;
+            inst.durability = Durability.TryGetValue(kv.Key, out var dur) ? dur : kv.Value.MaxDurability;
             if (!emp.Equipment.EquipInstance(kv.Key, inst)) esm.ReturnInstance(inst); // 특성상 못 입으면 보관소로
         }
         emp.StatsController?.SetErosion(JOIN_EROSION);
@@ -332,8 +332,8 @@ public class ErodedHuman : MonoBehaviour
         foreach (var kv in Loadout)
         {
             if (kv.Value == null || kv.Value.itemData == null) continue;
-            float dur = Durability.TryGetValue(kv.Key, out var v) ? v : kv.Value.maxDurability;
-            sb.AppendLine($"· {EquipmentSlotNames.Label(kv.Key)}: {kv.Value.itemData.itemName} (내구도 {dur / Mathf.Max(1f, kv.Value.maxDurability) * 100f:F0}%)");
+            float dur = Durability.TryGetValue(kv.Key, out var v) ? v : kv.Value.MaxDurability;
+            sb.AppendLine($"· {EquipmentSlotNames.Label(kv.Key)}: {kv.Value.itemData.itemName} (내구도 {dur / Mathf.Max(1f, kv.Value.MaxDurability) * 100f:F0}%)");
         }
         return sb.ToString().TrimEnd();
     }
@@ -357,7 +357,7 @@ public class ErodedHuman : MonoBehaviour
             if (kv.Value == null || kv.Value.itemData == null) continue;
             s.slots.Add((int)kv.Key);
             s.equipmentIds.Add(kv.Value.itemData.itemID);
-            s.durabilities.Add(Durability.TryGetValue(kv.Key, out var d) ? d : kv.Value.maxDurability);
+            s.durabilities.Add(Durability.TryGetValue(kv.Key, out var d) ? d : kv.Value.MaxDurability);
         }
         return s;
     }

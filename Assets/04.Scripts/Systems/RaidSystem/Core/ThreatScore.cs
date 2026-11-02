@@ -92,7 +92,7 @@ public static class ThreatScore
             if (eq != null)
             {
                 var weapon = eq.GetItemInSlot(EquipmentSlot.Weapon);
-                if (weapon != null) c += weapon.baseDamage;
+                if (weapon != null) c += weapon.Damage;
                 c += eq.GetTotalDamageReduction();
             }
             if (e.Growth != null)

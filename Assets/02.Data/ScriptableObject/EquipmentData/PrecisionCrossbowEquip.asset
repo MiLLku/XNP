@@ -17,7 +17,7 @@ MonoBehaviour:
     9, \uAD00\uD1B5 25%. \uCE74\uC774\uD305 \uD0DC\uC138 \uC0AC\uC6A9 \uAC00\uB2A5."
   slot: 2
   weaponClass: 1
-  baseDamage: 17
+  baseDamage: 8.5
   accuracy: 0.88
   penetration: 0.25
   attackRange: 9
@@ -54,3 +54,4 @@ MonoBehaviour:
     healthRestore: 0
     erosionReduce: 0
   abilities: []
+  metalTier: 5

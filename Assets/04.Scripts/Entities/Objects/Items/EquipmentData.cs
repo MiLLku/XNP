@@ -107,6 +107,30 @@ public class EquipmentData : ScriptableObject
 
     /// <summary>1회용 장비인지</summary>
     public bool IsConsumable => consumable != null && consumable.trigger != ConsumableTrigger.None;
+
+    [Header("금속 단계 (레벨 스케일링)")]
+    [Tooltip("0 = 금속 아님(배율 없음). 1 구리 · 2 청동 · 3 은 · 4 철 · 5 정련 합금 · 6 침정석 · 7 침정 합금 · 8 에테리온.\n" +
+             "피해·피해 감소에 성능 배율, 최대 내구도에 내구 배율, 착용 장비(무기 제외)의 견딜 수 있는 침식에 보너스가 붙는다.")]
+    [Range(0, MAX_METAL_TIER)] public int metalTier = 0;
+
+    public const int MAX_METAL_TIER = 8;
+    // shortcut: 임시 수치 (Notion 22 「금속 테크 사다리 v2」) — 단계 0은 금속 아님
+    private static readonly float[] PerformanceByTier = { 1f, 1.0f, 1.3f, 1.5f, 1.8f, 2.2f, 2.6f, 3.1f, 3.8f };
+    private static readonly float[] DurabilityByTier  = { 1f, 1.0f, 1.4f, 1.6f, 2.2f, 2.6f, 3.0f, 3.4f, 4.5f };
+    private static readonly int[]   ErosionBonusByTier = { 0, 0, 0, 3, 0, 2, 6, 4, 8 };
+
+    private int Tier => Mathf.Clamp(metalTier, 0, MAX_METAL_TIER);
+    public float PerformanceMultiplier => PerformanceByTier[Tier];
+    public float DurabilityMultiplier => DurabilityByTier[Tier];
+
+    /// <summary>실효 피해 (기본 피해 × 성능 배율)</summary>
+    public float Damage => baseDamage * PerformanceMultiplier;
+    /// <summary>실효 피해 감소 % (× 성능 배율, 합산은 100%에서 자른다)</summary>
+    public float DamageReduction => passiveEffects != null ? passiveEffects.damageReduction * PerformanceMultiplier : 0f;
+    /// <summary>실효 최대 내구도 (× 내구 배율)</summary>
+    public float MaxDurability => maxDurability * DurabilityMultiplier;
+    /// <summary>실효 견딜 수 있는 침식 (착용 장비만 단계 보너스)</summary>
+    public int ErosionTolerance => erosionTolerance + (slot != EquipmentSlot.Weapon ? ErosionBonusByTier[Tier] : 0);
 }
 
 /// <summary>

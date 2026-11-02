@@ -44,3 +44,4 @@ MonoBehaviour:
     bonusYieldChance: 0
     workTypeModifiers: []
   abilities: []
+  metalTier: 3
