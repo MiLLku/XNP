@@ -57,7 +57,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
     [Header("작업 자동 배제 (새 직원 기본값 — 직원 관리 창에서 다시 켤 수 있다)")]
     [Tooltip("새 직원이 가장 못하는 작업을 몇 개까지 기본으로 끈다 (0이면 끔)")]
-    [Min(0)] [SerializeField] private int autoExcludeLowestCount = 1;
+    [Min(0)] [SerializeField] private int autoExcludeLowestCount = 2;
     [Tooltip("작업 숙련 레벨이 이 값 이하인 작업만 끈다")]
     [Min(0)] [SerializeField] private int autoExcludeAtOrBelowLevel = 2;
 
