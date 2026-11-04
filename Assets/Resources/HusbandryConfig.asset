@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb85f295c91bfd2439be63778a7ce8d9, type: 3}
+  m_Name: HusbandryConfig
+  m_EditorClassIdentifier: Assembly-CSharp::HusbandryConfig
+  eggDropChance: 0.08
+  eggByTier:
+  - {fileID: 11400000, guid: 1c208cc336108f746baef2d568969d5f, type: 2}
+  - {fileID: 11400000, guid: 94fe02213d673014b8d5d12653abc102, type: 2}
+  - {fileID: 11400000, guid: 5d0ec44d4a1443e46a69ccd1e804eb0c, type: 2}
+  tier2XenopsIds: d7170000d81700009d180000d9170000
+  tier3XenopsIds: da170000db170000391800003a180000
+  species:
+  - {fileID: 11400000, guid: 36dfe04abf0d7f847be426fc9153fa1e, type: 2}
+  - {fileID: 11400000, guid: 37722b6db84adc34780799926359173e, type: 2}
+  - {fileID: 11400000, guid: fd91f6d345f871743b117233804b501e, type: 2}
+  - {fileID: 11400000, guid: ae4bc5880f82b4a40a4b002ae6895784, type: 2}
+  - {fileID: 11400000, guid: 19975226474ca034bb48584899d867ff, type: 2}
+  - {fileID: 11400000, guid: 45ff086e7a862744ca48d73ef7193098, type: 2}
+  cellsPerCreature: 4
+  noiseRadius: 8
+  eventCheckSeconds: 60
+  eventChancePerUnmetDay: 0.3
+  corpseItem: {fileID: 11400000, guid: 48b8e9ffaed1d8a4593bb632b017cc88, type: 2}
+  corpseDecayDays: 2

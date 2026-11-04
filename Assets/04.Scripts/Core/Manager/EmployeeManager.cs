@@ -360,6 +360,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     {
         if (employee == null) return;
         employee.Equipment?.DropOnDeath(employee.transform.position);
+        HusbandryManager.instance?.SpawnCorpse(employee.transform.position);
         RemoveEmployee(employee);
     }
 

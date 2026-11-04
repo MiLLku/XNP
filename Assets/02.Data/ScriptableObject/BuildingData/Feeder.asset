@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: Feeder
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 3313
+  buildingName: "\uBA39\uC774\uD1B5"
+  icon: {fileID: 0}
+  category: 4
+  description: "\uB465\uC9C0 \uBC29(\uC9C1\uC6D0 \uC2DC\uC124\uC774 \uC5C6\uB294
+    \uACA9\uB9AC\uB41C \uBC29)\uC5D0 \uB454\uB2E4. \uC720\uCCB4\uB97C \uBC1B\uC544
+    \uBC29\uC5D0 \uD480\uC5B4 \uC8FC\uACE0, \uBA39\uC774\uB97C \uC313\uC544 \uB454\uB2E4.
+    4\uCE78\uB2F9 1\uB9C8\uB9AC."
+  buildingPrefab: {fileID: 4350434008489799163, guid: 501f8475fe805174a846fdc7d913ed7a, type: 3}
+  size: {x: 1, y: 1}
+  pivot: {x: 0, y: 0}
+  workAmount: 8
+  requiredResources:
+  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
+    amount: 8
+  - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
+    amount: 4
+  maxHealth: 150
+  blocksMovement: 0
+  requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
+  destructionDrops: []
+  paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  erosionPermeability: 0.5
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 22
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
+  powerConsumption: 150
+  allowOverlap: 0
+  requiresResearch: 1
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

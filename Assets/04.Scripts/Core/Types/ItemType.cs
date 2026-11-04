@@ -50,6 +50,21 @@ public enum ItemType
     TinOre        = 21,
     /// <summary>원유 — 석유 분출구 위 유정이 뽑아낸다. 정유기에서 합성수지·고급 연료로</summary>
     CrudeOil      = 22,
+    /// <summary>불길한 알 — 습격 적이 떨군다. 티어(떨군 적)마다 나오는 중립 침식체 풀이 다르다</summary>
+    OminousEgg1   = 23,
+    OminousEgg2   = 24,
+    OminousEgg3   = 25,
+    /// <summary>시체 — 직원·침식된 인간이 죽으면 남는다. 어려운 종의 먹이, 2일 뒤 부패</summary>
+    Corpse        = 26,
+    /// <summary>중립 침식체 유체 — 부화기에서 깨어나 둥지 방 먹이통으로 운반된다</summary>
+    HatchlingSlimeLarva   = 30,
+    HatchlingGlandBeetle  = 31,
+    HatchlingFiberSpider  = 32,
+    HatchlingAcidCrawler  = 33,
+    HatchlingSporeSac     = 34,
+    HatchlingAbyssDevourer = 35,
+    /// <summary>침식 섬유 — 섬유 거미가 뽑는다</summary>
+    ErosionFiber  = 36,
 
     // ─── 가공 자원 (101~200) ────────────────────
     IronIngot   = 101,
@@ -69,6 +84,8 @@ public enum ItemType
     NeedleAlloy    = 109, // 침정석 2 + 은 주괴 1 → 1 (용광로)
     SyntheticResin = 110, // 원유 → (정유기)
     HighGradeFuel  = 111, // 원유 → (정유기)
+    /// <summary>침식 사료 — 침식 열매로 만든다. 중립 침식체의 먹이</summary>
+    ErosionFeed    = 112,
 
     // ─── 음식 (201~250) ─────────────────────────
     Berry       = 201,

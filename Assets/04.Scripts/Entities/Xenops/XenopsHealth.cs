@@ -133,6 +133,7 @@ public class XenopsHealth : MonoBehaviour
         // 드랍 처리
         TryDrop();
         TryDropRaidTrophy();
+        HusbandryManager.instance?.OnXenopsDied(_xenops); // 불길한 알·침식된 인간 시체
         XenopsCodexManager.instance?.OnKilled(_xenops != null ? _xenops.Data : null); // 도감 연구도
 
         // XenopsManager에 제거 위임

@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e58fdceb8c5d5044acc05dcbe3dc186, type: 3}
+  m_Name: Species_SlimeLarva
+  m_EditorClassIdentifier: Assembly-CSharp::NeutralSpeciesData
+  speciesId: 1
+  displayName: "\uC810\uC561 \uC720\uCDA9"
+  description: "\uC11C\uB298\uD558\uACE0 \uC801\uB2F9\uD788 \uCE68\uC2DD\uB41C \uBC29\uC744
+    \uC88B\uC544\uD55C\uB2E4. \uCE68\uC2DD \uACB0\uC815\uCCB4\uB97C \uBD84\uBE44\uD55C\uB2E4."
+  tier: 1
+  sprite: {fileID: -444769877, guid: 87dca31d0a40bff45ae4612cc4113c61, type: 3}
+  tint: {r: 0.6, g: 0.9, b: 0.7, a: 1}
+  hatchlingItem: {fileID: 11400000, guid: 1e1387de566dbdc4f8af79b47a90bd1b, type: 2}
+  incubateSeconds: 400
+  temperatureRange: {x: 0, y: 20}
+  erosionRange: {x: 20, y: 60}
+  food: {fileID: 11400000, guid: f81004159fa4d7c489a0900e313a92af, type: 2}
+  feedPerDay: 1
+  daysPerFood: 1
+  needsDark: 0
+  maxPerRoom: 4
+  hatesNoise: 0
+  product: {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
+  productAmount: 1
+  produceSeconds: 500
+  events: 0000000001000000
+  hostileXenopsId: 6101
+  burstErosion: 10
