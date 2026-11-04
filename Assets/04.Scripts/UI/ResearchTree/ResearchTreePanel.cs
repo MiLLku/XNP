@@ -164,7 +164,7 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
             rt.anchoredPosition = new Vector2(16f, -200f); // 왼쪽 위 가이드라인 HUD 아래
             rt.sizeDelta = new Vector2(900f, 420f);
             _codexLabel.enableAutoSizing = false;
-            _codexLabel.fontSize = 20f;
+            _codexLabel.fontSize = 18f; // 중립 침식체 줄까지 들어가도 첫 줄 트리 노드에 닿지 않는 크기
             _codexLabel.alignment = TextAlignmentOptions.TopLeft;
             _codexLabel.raycastTarget = false;
             _codexLabel.gameObject.SetActive(true); // 진행 글자는 연구가 없으면 꺼져 있어 꺼진 채로 복제된다
@@ -183,7 +183,7 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
         var husbandry = HusbandryManager.Config;
         if (husbandry != null && husbandry.species.Count > 0)
         {
-            sb.Append("\n<color=#C8B4FF>중립 침식체</color>\n");
+            sb.Append("<color=#C8B4FF>중립 침식체</color>\n");
             foreach (var s in husbandry.species)
             {
                 if (s == null) continue;
