@@ -81,6 +81,14 @@ public class CellInfoUI : MonoBehaviour
         builder.Append("<b>").Append(GetCellName(cell)).Append("</b>");
         builder.Append("\n침식 ").Append(erosion.ToString("0.#"));
 
+        // 사육 건물은 상태 문구를 덧붙인다
+        Building husbandry = Building.GetBuildingAt(cell);
+        if (husbandry != null)
+        {
+            if (husbandry.TryGetComponent(out Incubator incubator)) builder.Append("\n<color=#C8B4FF>").Append(incubator.DescribeStatus()).Append("</color>");
+            else if (husbandry.TryGetComponent(out Feeder feeder)) builder.Append("\n<color=#C8B4FF>").Append(feeder.DescribeStatus()).Append("</color>");
+        }
+
         FluidType liquid = FluidManager.instance != null ? FluidManager.instance.GetFluid(cell.x, cell.y) : FluidType.None;
         if (liquid != FluidType.None)
             builder.Append('\n').Append(liquid == FluidType.Lava ? "용암 " : "물 ")
@@ -127,5 +135,10 @@ public class CellInfoUI : MonoBehaviour
     }
 
     // ponytail: 방 기능(연구소·작업소·침실·세척실·조리실 …) 판정은 아직 없다 — 생기면 여기서 그 이름을 돌려줄 것
-    private static string GetRoomFunction(Room room) => "없음";
+    private static string GetRoomFunction(Room room)
+    {
+        var mgr = HusbandryManager.instance;
+        if (mgr == null || !mgr.IsNestRoom(room)) return "없음";
+        return mgr.FeederIn(room) != null ? "침식체 둥지" : "없음 (먹이통을 두면 침식체 둥지)";
+    }
 }

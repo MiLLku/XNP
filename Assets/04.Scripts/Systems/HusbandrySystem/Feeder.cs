@@ -35,7 +35,7 @@ public class Feeder : MonoBehaviour, IBuildingExtraSerializable, IBuildingFuncti
 
         int living = mgr.CountIn(room);
         // 둥지가 비었고 그 종 유체도 더 없으면 다른 종을 받을 수 있다
-        if (living == 0 && hatchSupply.Stock == 0 && species != null && InventoryManager.instance != null
+        if (living == 0 && hatchSupply.Stock == 0 && !hatchSupply.Pending && species != null && InventoryManager.instance != null
             && InventoryManager.instance.GetItemCount(species.hatchlingItem) <= 0
             && InventoryManager.instance.GetWorldAvailable(species.hatchlingItem) <= 0) SetSpecies(null);
         if (species == null) PickSpecies();

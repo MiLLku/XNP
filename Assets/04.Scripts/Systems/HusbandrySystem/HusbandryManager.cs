@@ -25,7 +25,13 @@ public class HusbandryManager : MonoBehaviour, ISaveModule
     private readonly List<float> corpseDays = new List<float>();
     private float tickTimer, eventTimer, corpseTimer;
 
+    /// <summary>도감에 정보가 드러난 종 (한 번이라도 부화·사육한 종)</summary>
+    private readonly HashSet<int> discovered = new HashSet<int>();
+
     public IReadOnlyList<NeutralCreature> Creatures => creatures;
+
+    public static bool IsDiscovered(int speciesId) => instance != null && instance.discovered.Contains(speciesId);
+    public void Discover(NeutralSpeciesData species) { if (species != null) discovered.Add(species.speciesId); }
 
     #region 부트스트랩
 
@@ -107,6 +113,7 @@ public class HusbandryManager : MonoBehaviour, ISaveModule
         var c = go.AddComponent<NeutralCreature>();
         c.Setup(species);
         creatures.Add(c);
+        Discover(species);
         Debug.Log($"[Husbandry] {species.displayName} 둥지로 (방 {roomId})");
         return c;
     }
@@ -172,7 +179,7 @@ public class HusbandryManager : MonoBehaviour, ISaveModule
         }
     }
 
-    private Feeder FeederIn(Room room)
+    public Feeder FeederIn(Room room)
     {
         if (room == null) return null;
         foreach (var f in FindObjectsByType<Feeder>(FindObjectsSortMode.None)) if (f.Room?.Id == room.Id) return f;
@@ -335,6 +342,7 @@ public class HusbandryManager : MonoBehaviour, ISaveModule
             });
         }
         s.corpseDays.AddRange(corpseDays);
+        s.discovered.AddRange(discovered);
         data.husbandry = s;
     }
 
@@ -343,6 +351,7 @@ public class HusbandryManager : MonoBehaviour, ISaveModule
         foreach (var c in creatures) if (c != null) Destroy(c.gameObject);
         creatures.Clear();
         corpseDays.Clear();
+        discovered.Clear();
         var s = data.husbandry;
         if (s == null || Config == null) return;
         foreach (var cs in s.creatures)
@@ -352,6 +361,7 @@ public class HusbandryManager : MonoBehaviour, ISaveModule
             c.UnmetSeconds = cs.unmet; c.ProduceSeconds = cs.produce; c.FeedAccumulator = cs.feed; c.Fed = cs.fed;
         }
         corpseDays.AddRange(s.corpseDays);
+        if (s.discovered != null) discovered.UnionWith(s.discovered);
     }
 
     public void PostRestore(SaveData data) { }
@@ -363,6 +373,7 @@ public class HusbandryManager : MonoBehaviour, ISaveModule
 public class HusbandrySaveData
 {
     public List<NeutralCreatureSaveData> creatures = new List<NeutralCreatureSaveData>();
+    public List<int> discovered = new List<int>();
     public List<float> corpseDays = new List<float>();
 }
 

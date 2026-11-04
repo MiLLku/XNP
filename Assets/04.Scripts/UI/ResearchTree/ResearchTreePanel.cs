@@ -162,7 +162,7 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
             var rt = _codexLabel.rectTransform;
             rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
             rt.anchoredPosition = new Vector2(16f, -200f); // 왼쪽 위 가이드라인 HUD 아래
-            rt.sizeDelta = new Vector2(600f, 160f);
+            rt.sizeDelta = new Vector2(900f, 420f);
             _codexLabel.enableAutoSizing = false;
             _codexLabel.fontSize = 20f;
             _codexLabel.alignment = TextAlignmentOptions.TopLeft;
@@ -177,6 +177,20 @@ public class ResearchTreePanel : BasePanel, IBeginDragHandler, IDragHandler
             float p = XenopsCodexManager.instance != null ? XenopsCodexManager.instance.GetProgress(x.xenopsID) : 0f;
             int filled = Mathf.RoundToInt(p / 10f);
             sb.Append($"{x.xenopsName}  [{new string('■', filled)}{new string('□', 10 - filled)}] {p:F0}%{(p >= 100f ? " — 전용 장비 제작 가능" : "")}\n");
+        }
+
+        // 중립 침식체는 따로 — 한 번이라도 부화·사육한 종만 정보가 보인다
+        var husbandry = HusbandryManager.Config;
+        if (husbandry != null && husbandry.species.Count > 0)
+        {
+            sb.Append("\n<color=#C8B4FF>중립 침식체</color>\n");
+            foreach (var s in husbandry.species)
+            {
+                if (s == null) continue;
+                if (!HusbandryManager.IsDiscovered(s.speciesId)) { sb.Append($"??? (T{s.tier})\n"); continue; }
+                sb.Append($"{s.displayName} (T{s.tier})  {s.temperatureRange.x:F0}~{s.temperatureRange.y:F0}℃ · 침식 {s.erosionRange.x:F0}~{s.erosionRange.y:F0}"
+                          + $" · {s.food?.itemName}{(s.needsDark ? " · 어둠" : "")}{(s.hatesNoise ? " · 소음 싫음" : "")} → {s.product?.itemName}\n");
+            }
         }
         _codexLabel.text = sb.ToString().TrimEnd();
     }

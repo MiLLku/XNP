@@ -38,7 +38,11 @@ public class Incubator : MonoBehaviour, IBuildingExtraSerializable, IBuildingFun
                 if (species == null) return;
                 Debug.Log($"[Incubator] 알에서 {species.displayName} 부화 시작");
             }
-            else if (eggSupply.Stock == 0) { PickEgg(cfg); eggSupply.Tick(); }
+            else if (eggSupply.Stock == 0)
+            {
+                if (!eggSupply.Pending) PickEgg(cfg); // 운반 중에 알을 바꾸면 들고 오던 알이 취소된다
+                eggSupply.Tick();
+            }
             return;
         }
 
@@ -47,6 +51,7 @@ public class Incubator : MonoBehaviour, IBuildingExtraSerializable, IBuildingFun
         progress += Time.deltaTime;
         if (progress < species.incubateSeconds) return;
 
+        HusbandryManager.instance?.Discover(species);
         DroppedItemManager.instance?.SpawnItem(species.hatchlingItem, 1, transform.position + new Vector3(0.5f, 0.2f, 0f));
         NotificationManager.instance?.PushLetter(new Letter { title = "부화", body = $"부화기에서 {species.displayName}이(가) 깨어났습니다. 둥지 방의 먹이통으로 옮겨집니다.", type = LetterType.Positive });
         species = null;
