@@ -197,6 +197,8 @@ public class Building : MonoBehaviour, IHeatSource
             _collider.isTrigger = !data.blocksMovement;
 
         _powerConsumer = GetComponent<PowerConsumer>();
+        _powerProducer = GetComponent<PowerProducer>();
+        _production = GetComponent<ProductionBuilding>();
         _climateUnit = GetComponent<ClimateControlUnit>();
 
         RegisterToGameMap();
@@ -594,6 +596,10 @@ private void ReturnPartialResources()
             // 전력을 쓰는 건물이면 공급이 끊긴 동안 가동하지 않는다
             if (_powerConsumer != null && !_powerConsumer.IsPowered) return false;
 
+            // 제련소·대장간 같은 생산 건물은 제작 중일 때만, 발전기는 연료를 태울 때만 열을 낸다
+            if (_production != null && !_production.IsOperating) return false;
+            if (_powerProducer != null && _powerProducer.CurrentOutput <= 0) return false;
+
             return true;
         }
     }
@@ -618,6 +624,8 @@ private void ReturnPartialResources()
 
     /// <summary>전력 소비 컴포넌트 캐시 (없으면 null — 전력이 필요 없는 건물)</summary>
     private PowerConsumer _powerConsumer;
+    private PowerProducer _powerProducer;
+    private ProductionBuilding _production;
 
     /// <summary>냉난방기 컴포넌트 캐시 (없으면 null — 목표 온도를 BuildingData에서 읽는다)</summary>
     private ClimateControlUnit _climateUnit;

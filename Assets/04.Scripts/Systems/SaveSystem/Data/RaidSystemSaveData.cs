@@ -24,6 +24,17 @@ public class RaidSystemSaveData
     /// <summary>다음 웨이브까지 남은 대기 시간 (초)</summary>
     public float waveTimer;
 
+    /// <summary>
+    /// 다 내보낸 웨이브 수와 진행 중 웨이브에서 이미 내보낸 마리 수 — 불러오면 남은 몫을 이어서 내보낸다.
+    /// -1 = 기록 없음(구 세이브) → 예전처럼 남은 적 감시만 한다.
+    /// </summary>
+    public int wavesSpawned = -1;
+    public int spawnedInWave;
+
+    /// <summary>아직 나오지 않은 스폰 계획 (planWave[i] 웨이브의 planEntries[i])</summary>
+    public List<RaidSpawnEntry> planEntries = new List<RaidSpawnEntry>();
+    public List<int> planWave = new List<int>();
+
     /// <summary>이번 레이드에서 스폰된 제놉스 인스턴스 ID 목록</summary>
     public List<int> spawnedEntityIds = new List<int>();
 

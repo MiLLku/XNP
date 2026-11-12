@@ -181,6 +181,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// <summary>마지막으로 계산한 위협 점수와 항목 내역 (디버그·개발용 표시)</summary>
     public ThreatScore.Breakdown LastThreat { get; private set; }
     private int currentWaveIndex;
+    private int wavesSpawned = -1;   // 다 내보낸 웨이브 수 (-1 = 웨이브 방식이 아님)
+    private int spawnedInWave;       // 진행 중 웨이브에서 이미 내보낸 마리 수
     private float waveTimer;
     private bool waitingForNextWave;
 
@@ -236,6 +238,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             activeRaidId = activeRaid != null ? activeRaid.raidId : -1,
             currentWaveIndex = currentWaveIndex,
             waveTimer   = waveTimer,
+            wavesSpawned = currentState == RaidState.InProgress ? wavesSpawned : -1,
+            spawnedInWave = spawnedInWave,
             activeMultiplier = activeMultiplier,
             raidType = (int)activeRaidType,
             threatStage = activeThreatStage,
@@ -251,6 +255,11 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
                 save.spawnedEntityIds.Add(xenops.InstanceId);
         }
 
+        // 아직 나오지 않은 웨이브의 스폰 계획 (진행 중 웨이브는 이미 나온 마리까지 포함 — 불러올 때 건너뛴다)
+        if (save.wavesSpawned >= 0)
+            for (int w = save.wavesSpawned; w < activePlan.Count; w++)
+                foreach (var e in activePlan[w]) { save.planEntries.Add(e); save.planWave.Add(w); }
+
         data.raidSystem = save;
     }
 
@@ -262,6 +271,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
         currentState     = (RaidState)data.raidSystem.raidState;
         currentWaveIndex = data.raidSystem.currentWaveIndex;
+        wavesSpawned     = data.raidSystem.wavesSpawned;
+        spawnedInWave    = data.raidSystem.spawnedInWave;
         waveTimer        = data.raidSystem.waveTimer;
         activeMultiplier = data.raidSystem.activeMultiplier > 0f ? data.raidSystem.activeMultiplier : 1f;
         lastRaidGameDay  = data.raidSystem.lastRaidGameDay;
@@ -275,6 +286,17 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         int raidId = data.raidSystem.activeRaidId;
         if (raidId >= 0)
             activeRaid = GetRaidById(raidId);
+
+        // 남은 스폰 계획 복원
+        activePlan.Clear();
+        if (activeRaid != null && wavesSpawned >= 0)
+        {
+            foreach (var _ in activeRaid.waves) activePlan.Add(new List<RaidSpawnEntry>());
+            var entries = data.raidSystem.planEntries;
+            var waves = data.raidSystem.planWave;
+            for (int i = 0; entries != null && waves != null && i < entries.Count && i < waves.Count; i++)
+                if (waves[i] >= 0 && waves[i] < activePlan.Count) activePlan[waves[i]].Add(entries[i]);
+        }
     }
 
     public void PostRestore(SaveData data)
@@ -305,10 +327,13 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         activeOutpostSite = activeOutpost != null ? activeOutpost.transform.position : (Vector3?)null;
         foreach (var x in spawnedEntities) ApplyRaidTypeTo(x);
 
-        // InProgress 상태로 저장됐다면 감시 재시작
+        // InProgress 상태로 저장됐다면 — 남은 웨이브가 있으면 이어서 내보내고, 없으면 감시만 재시작
         if (currentState == RaidState.InProgress && activeRaid != null)
         {
-            MonitorRaidCompletionAsync(RestartRaidTask()).Forget();
+            if (wavesSpawned >= 0 && wavesSpawned < activeRaid.waves.Count)
+                ResumeWavesAsync(activeRaid, RestartRaidTask()).Forget();
+            else
+                MonitorRaidCompletionAsync(RestartRaidTask()).Forget();
         }
         // 접근 중에 저장됐다면 — 스폰 계획(자리·마리 수)은 저장하지 않으므로 같은 습격·종류로 다시 시작 (전엔 영영 멈춰 있었다)
         else if (currentState == RaidState.Approaching && activeRaid != null)
@@ -365,7 +390,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         activeRaid = raid;
         activeRaidType = type;
         activeThreatStage = CurrentThreatStage;
-        currentWaveIndex = 0;
+        currentWaveIndex = 0; wavesSpawned = -1; spawnedInWave = 0;
         spawnedEntities.Clear();
         activeMultiplier = 1f; // 구 배수 방식 — 세이브 호환용으로만 남김
         LastThreat = CurrentThreat();
@@ -546,16 +571,34 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         if (activeRaidType == RaidType.Spawner) { StartSpawner(); await MonitorRaidCompletionAsync(ct); return; }
 
         // 웨이브 순차 스폰
-        for (int i = 0; i < raid.waves.Count; i++)
+        wavesSpawned = 0;
+        spawnedInWave = 0;
+        await SpawnRemainingWavesAsync(raid, ct);
+    }
+
+    /// <summary>불러온 진행 중 습격 — 아직 나오지 않은 웨이브를 이어서 내보낸다 (진행 중이던 웨이브는 대기 없이 남은 마리부터)</summary>
+    private async UniTaskVoid ResumeWavesAsync(RaidData raid, CancellationToken ct)
+    {
+        if (showDebugLogs) Debug.Log($"[RaidManager] 불러온 습격 이어가기: 웨이브 {wavesSpawned + 1}/{raid.waves.Count}부터 ({spawnedInWave}마리 나온 뒤)");
+        await SpawnRemainingWavesAsync(raid, ct);
+    }
+
+    private async UniTask SpawnRemainingWavesAsync(RaidData raid, CancellationToken ct)
+    {
+        for (int i = wavesSpawned; i < raid.waves.Count; i++)
         {
             currentWaveIndex = i;
             var wave = raid.waves[i];
 
-            if (showDebugLogs) Debug.Log($"[RaidManager] 웨이브 {i + 1}/{raid.waves.Count} 대기 ({wave.delayBeforeWave}초)");
-            await UniTask.Delay(TimeSpan.FromSeconds(wave.delayBeforeWave), cancellationToken: ct);
-
-            GameMessageBus.Publish(new RaidWaveStartedMessage(i));
+            if (spawnedInWave == 0)
+            {
+                if (showDebugLogs) Debug.Log($"[RaidManager] 웨이브 {i + 1}/{raid.waves.Count} 대기 ({wave.delayBeforeWave}초)");
+                await UniTask.Delay(TimeSpan.FromSeconds(wave.delayBeforeWave), cancellationToken: ct);
+                GameMessageBus.Publish(new RaidWaveStartedMessage(i));
+            }
             await SpawnWaveAsync(wave, ct);
+            wavesSpawned = i + 1;
+            spawnedInWave = 0;
         }
 
         // 전멸 또는 철수 대기
@@ -610,8 +653,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 계획된 적을 차례로 (StartRaid에서 위협 점수로 정해 둔 마리 수 — BuildSpawnPlan)
         if (currentWaveIndex < activePlan.Count)
         {
-            foreach (var spawn in activePlan[currentWaveIndex])
+            var plan = activePlan[currentWaveIndex];
+            for (int n = spawnedInWave; n < plan.Count; n++) // 불러온 습격이면 이미 나온 마리는 건너뛴다
             {
+                var spawn = plan[n];
                 // 분산: 스폰 지점을 돌아가며 (지점 주변으로 흩뿌림)
                 if (activeRaidType == RaidType.Split && splitPoints.Count > 0)
                 {
@@ -619,6 +664,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
                     tunnelPos = splitPoints[splitIndex++ % splitPoints.Count] + new Vector3(off.x, off.y, 0f);
                 }
                 var x = SpawnRaidXenops(spawn, spawn.xenopsDataId == bomberXenopsId && activeRaidType != RaidType.Split ? null : tunnelPos);
+                spawnedInWave = n + 1;
                 if (x != null && activeRaidType == RaidType.Outpost && activeOutpost == null && !outpostGuardReleased && activeOutpostSite.HasValue)
                     StartOutpost(x);
                 if (spawn.spawnInterval > 0f)
@@ -1050,7 +1096,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         activeRaidType = RaidType.Normal;
         activeOutpost = null;
         activeOutpostSite = null;
-        currentWaveIndex = 0;
+        currentWaveIndex = 0; wavesSpawned = -1; spawnedInWave = 0;
         waveTimer = 0f;
         spawnedEntities.Clear();
         currentState = RaidState.None;

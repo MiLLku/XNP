@@ -523,7 +523,10 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
         // 다음 이벤트 시간 복원
         _nextEventTime = Time.time + data.nextEventTime;
 
-        // 활성 지속형 이벤트 복원
+        // 활성 지속형 이벤트 복원 — 실외 온도·침식 모디파이어는 저장되지 않으므로
+        // 불러오기 전 이벤트의 것은 걷어 내고, 복원한 이벤트의 것은 다시 건다 (한파·폭염이 불러오면 사라지던 문제)
+        foreach (var active in _activePersistentEvents.Values)
+            EventEffectApplier.ApplyEnvironmentEffects(active.eventData.effects, remove: true);
         _activePersistentEvents.Clear();
         foreach (var persistentData in data.activePersistentEvents)
         {
@@ -536,6 +539,7 @@ public class EventManager : DestroySingleton<EventManager>, ISaveModule
                     startTime = Time.time,
                     endTime = Time.time + persistentData.remainingTime
                 };
+                EventEffectApplier.ApplyEnvironmentEffects(eventData.effects, remove: false);
             }
         }
 

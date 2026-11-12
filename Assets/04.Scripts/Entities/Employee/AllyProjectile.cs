@@ -60,8 +60,24 @@ public class AllyProjectile : MonoBehaviour, IPoolable
     private void Update()
     {
         _lifetime -= Time.deltaTime;
-        if (_lifetime <= 0f)
+        if (_lifetime <= 0f || InsideBlockingBuilding())
             ReturnToPool();
+    }
+
+    /// <summary>
+    /// 탄의 중심이 막는 건물 칸(지은 타일 벽·닫힌 문)에 들어왔는지.
+    /// 건물 콜라이더 접촉으로 판정하지 않는 이유: 발사자가 딛고 선 타일에 스폰 즉시 닿는다 — 중심이 칸 안에 들어가야만 막힌다.
+    /// </summary>
+    private bool InsideBlockingBuilding()
+    {
+        var map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
+        if (map == null) return false;
+        var c = new Vector2Int(Mathf.FloorToInt(transform.position.x), Mathf.FloorToInt(transform.position.y));
+        if (c.x < 0 || c.y < 0 || c.x >= GameMap.MAP_WIDTH || c.y >= GameMap.MAP_HEIGHT) return false;
+        if (map.DoesTileBlockMovement(c.x, c.y)) return true;
+        var b = Building.GetBuildingAt(c);
+        var door = b != null ? b.GetComponent<Door>() : null;
+        return door != null && !door.IsPassable;
     }
 
     // ─── 충돌 처리 ──────────────────────────────
@@ -97,7 +113,7 @@ public class AllyProjectile : MonoBehaviour, IPoolable
         // ── 2. 통과 대상: 직원, 다른 투사체, 건물 ──
         // 건물 통과 이유: 발사자가 서 있는 발판 건물(Stone Floor 등, blocksMovement=솔리드)에
         // 스폰 즉시 명중해 소멸하는 문제. 아군 투사체는 자기 기지 구조물과 상호작용하지 않는다.
-        // (알려진 한계: 건설된 벽도 통과 — 지형 타일은 여전히 차단)
+        // 건설된 벽(타일)·닫힌 문은 접촉이 아니라 중심이 칸에 들어갈 때 Update에서 막는다.
         if (other.GetComponent<Employee>() != null) return;
         if (other.GetComponent<AllyProjectile>() != null) return;
         if (other.GetComponent<ErosionProjectile>() != null) return;

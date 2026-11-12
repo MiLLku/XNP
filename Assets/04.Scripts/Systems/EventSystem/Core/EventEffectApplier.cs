@@ -23,6 +23,22 @@ public static class EventEffectApplier
     }
 
     /// <summary>
+    /// 효과 중 실외 온도·침식 모디파이어만 다시 걸거나(remove=false) 걷어 냅니다(remove=true).
+    /// 모디파이어는 저장되지 않아 불러오기 때 진행 중인 지속형 이벤트에 맞춰 되살려야 합니다.
+    /// </summary>
+    public static void ApplyEnvironmentEffects(List<EventEffect> effects, bool remove)
+    {
+        if (effects == null) return;
+        foreach (var effect in effects)
+        {
+            if (effect.type != EffectType.ModifyOutdoorTemperature && effect.type != EffectType.ModifyOutdoorErosion) continue;
+            if (!remove) { ApplyEffect(effect); continue; }
+            if (effect.type == EffectType.ModifyOutdoorTemperature) TemperatureManager.instance?.RemoveOutdoorModifier($"event_temp_{effect.targetId}");
+            else TerrainErosionManager.instance?.RemoveOutdoorErosionModifier($"event_erosion_{effect.targetId}");
+        }
+    }
+
+    /// <summary>
     /// 개별 효과 적용
     /// </summary>
     public static void ApplyEffect(EventEffect effect)

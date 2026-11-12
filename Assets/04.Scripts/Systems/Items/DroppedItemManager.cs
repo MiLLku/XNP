@@ -253,6 +253,29 @@ public DroppedItem SpawnItem(ItemData data, int qty, Vector3 worldPos)
         return dropped;
     }
 
+    private const float DROP_ICON_SIZE = 0.6f; // 바닥 아이템 그림의 최대 크기 (월드 단위)
+    private static Sprite _fallbackCircle;
+
+    /// <summary>아이콘도 원형 스프라이트도 없을 때 쓰는 흰 원 (한 번만 만든다)</summary>
+    private static Sprite FallbackCircle()
+    {
+        if (_fallbackCircle != null) return _fallbackCircle;
+        const int n = 32;
+        var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+        var px = new Color32[n * n];
+        float r = n * 0.5f;
+        for (int y = 0; y < n; y++)
+            for (int x = 0; x < n; x++)
+            {
+                float d = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(r, r));
+                px[y * n + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(r - d) * 255));
+            }
+        tex.SetPixels32(px);
+        tex.Apply();
+        _fallbackCircle = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n / DROP_ICON_SIZE);
+        return _fallbackCircle;
+    }
+
     /// <summary>
     /// 프리팹 없을 때 DroppedItem GameObject를 코드로 생성합니다.
     /// </summary>
@@ -261,12 +284,14 @@ public DroppedItem SpawnItem(ItemData data, int qty, Vector3 worldPos)
         GameObject obj = new GameObject($"Drop_{data.itemName}");
         obj.transform.position = pos;
 
-        // SpriteRenderer — 원형 스프라이트
+        // SpriteRenderer — 지정 원형 스프라이트 → 아이템 아이콘(한 칸 안에 들어가게 축소) → 코드로 만든 원
+        // (예전 폴백 'UI/Skin/Knob.psd'는 에디터 전용 내장 리소스라 찾지 못해 오류만 냈다)
         SpriteRenderer sr = obj.AddComponent<SpriteRenderer>();
-        sr.sprite = circleSprite != null ? circleSprite
-                    : Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
+        sr.sprite = circleSprite != null ? circleSprite : data.itemIcon != null ? data.itemIcon : FallbackCircle();
         sr.color = Color.white;
         sr.sortingOrder = 3;
+        float size = Mathf.Max(sr.sprite.bounds.size.x, sr.sprite.bounds.size.y);
+        if (size > DROP_ICON_SIZE) obj.transform.localScale = Vector3.one * (DROP_ICON_SIZE / size);
 
         // 트리거용 콜라이더 (옵션: 직원 도착 감지용)
         CircleCollider2D col = obj.AddComponent<CircleCollider2D>();
