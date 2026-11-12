@@ -17,7 +17,7 @@ MonoBehaviour:
     30%."
   slot: 2
   weaponClass: 0
-  baseDamage: 20
+  baseDamage: 8
   accuracy: 0.92
   penetration: 0.3
   attackRange: 1.5
@@ -45,3 +45,4 @@ MonoBehaviour:
     bonusYieldChance: 0
     workTypeModifiers: []
   abilities: []
+  metalTier: 5

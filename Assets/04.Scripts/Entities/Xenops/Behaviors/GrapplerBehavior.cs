@@ -14,7 +14,7 @@ using UnityEngine;
 /// </summary>
 [RequireComponent(typeof(Xenops))]
 [RequireComponent(typeof(Rigidbody2D))]
-public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
+public class GrapplerBehavior : MonoBehaviour, IWeaponWielder, IXenopsBehavior
 {
     // ─── IXenopsBehavior ──────────────────────
     public XenopsType BehaviorType => XenopsType.Hostile;
@@ -34,6 +34,9 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
     // 스탯 (Start에서 XenopsData로부터 읽음)
     private float _moveSpeed;
     private float _attackDamage;
+
+    /// <summary>위협 단계 배율이 붙은 피해 (Xenops.StatMultiplier)</summary>
+    private float Damage => _attackDamage * (_xenops != null ? _xenops.StatMultiplier : 1f);
     private float _attackRange;
     private float _attackInterval; // 1 / attackSpeed
 
@@ -60,6 +63,27 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
         _attackDamage   = s.attackDamage;
         _attackRange    = s.attackRange;
         _attackInterval = s.attackSpeed > 0f ? 1f / s.attackSpeed : 1f;
+        ApplyWeaponNow();
+    }
+
+    // 침식된 인간 — 무기 값 (Start 전에 오면 Start 뒤에 적용)
+    private bool _weaponSet;
+    private float _wDamage, _wInterval, _wRange, _wMoveMult = 1f;
+
+    public void ApplyWeapon(float damage, float interval, float range, float moveMult)
+    {
+        _weaponSet = true;
+        _wDamage = damage; _wInterval = interval; _wRange = range; _wMoveMult = moveMult;
+        ApplyWeaponNow();
+    }
+
+    private void ApplyWeaponNow()
+    {
+        if (!_weaponSet || _xenops?.Data?.hostileStats == null) return;
+        _attackDamage = _wDamage;
+        _attackInterval = Mathf.Max(0.1f, _wInterval);
+        _attackRange = _wRange;
+        _moveSpeed = _xenops.Data.hostileStats.moveSpeed * _wMoveMult;
     }
 
     #endregion
@@ -120,7 +144,8 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
 
         if (_target == null && wall == null)
         {
-            _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+            // 지키는 중이면 자리로 돌아가는 길을 따른다
+            if (!_nav.Steer(_moveSpeed)) _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
             _state       = State.Idle;
             return;
         }
@@ -149,7 +174,7 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
         var wall = _nav.TargetBuilding;
         if (wall != null && EnemyNavigator.DistanceToBuilding(transform.position, wall) <= _attackRange + 0.6f)
         {
-            wall.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(_attackDamage)));
+            wall.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(Damage)));
             _cooldownTimer = _attackInterval;
             _state         = State.Cooldown;
             return;
@@ -167,7 +192,7 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
             return;
         }
 
-        _target.TakeDamage(_attackDamage);
+        _target.TakeDamage(Damage);
         _cooldownTimer = _attackInterval;
         _state         = State.Cooldown;
     }
@@ -182,6 +207,7 @@ public class GrapplerBehavior : MonoBehaviour, IXenopsBehavior
     // ─────────────────────────────────────────
     private Employee FindNearestEmployee()
     {
+        if (_nav.IsGuarding) return null; // 지키는 중엔 반경 안 직원만 (EnemyNavigator가 고름)
         // 방어 태세 직원 어그로 가중 (CombatTargeting 공통 헬퍼)
         return CombatTargeting.PickEmployeeTarget(transform.position);
     }

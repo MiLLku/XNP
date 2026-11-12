@@ -50,8 +50,8 @@ public enum TileType
     /// <summary>덩굴 줄기 — 최하층에 얽혀 있는 굵은 뿌리. 침식을 뿜으며, 열매가 여기서 자란다.</summary>
     Trunk = 12,
 
-    /// <summary>티타늄 광맥 — 심부에만 묻힌 고강도 금속. 채광 III 자격이 필요하다.</summary>
-    Titanium = 13,
+    /// <summary>침정석 — 기지에서 좌우로 멀리 나가야 나오는 바늘 결정 광물. 채광 IV 자격이 필요하다.</summary>
+    NeedleOre = 13,
 
     /// <summary>가스 분출구 — 심부 바닥에서 가스가 새어나오는 구멍. 캘 수 없고, 위에 가스 발전기를 지을 수 있다.</summary>
     GasVent = 14,
@@ -76,6 +76,12 @@ public enum TileType
 
     /// <summary>침식 발판 — 제놉스가 길을 내려고 깐 발판. 근처에 침식을 뿜는다 — 캐서 없애야 한다.</summary>
     ErosionFloor = 21,
+
+    /// <summary>주석 광석 — 구리 곁 얕은 층에 드문드문. 구리와 섞어 청동을 만든다.</summary>
+    TinOre = 22,
+
+    /// <summary>석유 분출구 — 심부 바닥에서 원유가 배어 나오는 구멍. 캘 수 없고, 위에 유정을 지을 수 있다.</summary>
+    OilVent = 23,
 
     /// <summary>특수</summary>
     Special = 99,

@@ -92,6 +92,13 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
     /// <summary>이번 판정에서 벗어난 키 (작업 버퍼)</summary>
     private readonly List<string> expiredEntitySourceKeys = new List<string>();
 
+    /// <summary>
+    /// 적 개체별로 공격(투사체·피격)으로 지금까지 준 침식 — 개체당 상한 판정용. 오라분은 출처 내역에서 따로 읽는다.
+    /// 개체가 죽거나 사라지면 지운다. 세이브하지 않는다 — 불러오면 0부터 다시 센다.
+    /// </summary>
+    private readonly Dictionary<Xenops, float> enemyAttackErosion = new Dictionary<Xenops, float>();
+    private readonly List<Xenops> enemyPruneBuffer = new List<Xenops>();
+
     #endregion
 
     #region 캐시
@@ -215,8 +222,18 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
 
     #region 틱
 
+    // shortcut: 임시 수치 — 정화 혈청으로 되돌린 직원의 '정화 직후' 효과
+    private const float PURIFIED_SECONDS = 1000f;   // 1게임일
+    private const float PURIFIED_GAIN_MULT = 0.25f; // 침식 75% 덜 쌓임
+
+    /// <summary>'정화 직후' 남은 시간 — 그동안 침식이 덜 쌓이고 침식 계열 정신 이상이 일어나지 않는다 (저장됨)</summary>
+    public float PurifiedRemaining { get; private set; }
+
+    public void StartPurifiedAftercare() => PurifiedRemaining = PURIFIED_SECONDS;
+
     private void Update()
     {
+        if (PurifiedRemaining > 0f) PurifiedRemaining = Mathf.Max(0f, PurifiedRemaining - Time.deltaTime);
         if (employee == null || employee.State == EmployeeState.Dead || hasMutated) return;
         if (statsController == null || stageConfig == null) return;
 
@@ -380,17 +397,61 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
     /// <param name="sourceKey">출처 키 (ErosionSource 상수 사용)</param>
     /// <param name="displayName">UI 표시용 출처 이름</param>
     public void AddErosion(float rawAmount, string sourceKey, string displayName)
+        => AddErosionClamped(rawAmount, sourceKey, displayName, float.MaxValue);
+
+    /// <summary>
+    /// 적 개체의 공격으로 오는 침식 — 그 개체가 이 직원에게 준 침식(오라 + 공격)이
+    /// 개체당 상한(<see cref="HostileCombatStats.ErosionCapPerEmployee"/>)에 닿으면 더 오르지 않는다.
+    /// </summary>
+    public void AddErosionFrom(Xenops enemy, float rawAmount, string sourceKey, string displayName)
     {
-        if (rawAmount <= 0f || statsController == null) return;
+        if (enemy == null || enemy.Data == null || enemy.Data.hostileStats == null)
+        {
+            AddErosion(rawAmount, sourceKey, displayName);
+            return;
+        }
+        float room = EnemyErosionRoom(enemy);
+        if (room <= 0f) return;
+        float applied = AddErosionClamped(rawAmount, sourceKey, displayName, room);
+        enemyAttackErosion.TryGetValue(enemy, out float given);
+        enemyAttackErosion[enemy] = given + applied;
+    }
+
+    /// <summary>이 개체에게서 더 받을 수 있는 침식량 (상한 − 공격 누적 − 지금 걸린 오라)</summary>
+    private float EnemyErosionRoom(Xenops enemy, bool includeAura = true)
+    {
+        PruneEnemyErosion();
+        enemyAttackErosion.TryGetValue(enemy, out float given);
+        float aura = includeAura ? GetErosionFromSource(ErosionSource.AuraKey(enemy.InstanceId)) : 0f;
+        return enemy.Data.hostileStats.ErosionCapPerEmployee - given - aura;
+    }
+
+    /// <summary>죽었거나 사라진 개체의 기록을 지운다</summary>
+    private void PruneEnemyErosion()
+    {
+        if (enemyAttackErosion.Count == 0) return;
+        enemyPruneBuffer.Clear();
+        foreach (var kv in enemyAttackErosion)
+            if (kv.Key == null || !kv.Key.isActiveAndEnabled) enemyPruneBuffer.Add(kv.Key);
+        foreach (var x in enemyPruneBuffer) enemyAttackErosion.Remove(x);
+    }
+
+    /// <returns>실제로 오른 침식량</returns>
+    private float AddErosionClamped(float rawAmount, string sourceKey, string displayName, float maxApplied)
+    {
+        if (rawAmount <= 0f || statsController == null) return 0f;
 
         // 디버그: 침식 축적 차단 (회복 경로는 그대로 둔다)
-        if (DebugManager.IsBlocked(DebugFlag.ErosionGain)) return;
+        if (DebugManager.IsBlocked(DebugFlag.ErosionGain)) return 0f;
 
         float amount = rawAmount * statsController.CachedErosionDamageMult;
-        if (amount <= 0f) return;
+        if (PurifiedRemaining > 0f) amount *= PURIFIED_GAIN_MULT; // 정화 직후 — 덜 쌓인다
+        amount = Mathf.Min(amount, maxApplied);
+        if (amount <= 0f) return 0f;
 
         statsController.SetErosion(statsController.ErosionLevel + amount);
         RecordSource(sourceKey, displayName, amount);
+        return amount;
     }
 
     /// <summary>
@@ -554,7 +615,13 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
             coveredByAny = true;
             activeEntitySourceKeys.Add(source.ErosionSourceKey);
 
-            SetConditionalErosion(source.ErosionSourceKey, source.ErosionSourceName, source.FixedErosionAmount);
+            // 적 개체의 오라는 그 개체의 남은 상한까지만 (공격으로 이미 준 만큼 빠진다)
+            float maxApplied = float.MaxValue;
+            var owner = (source as HostileErosionAura)?.Owner;
+            if (owner != null && owner.Data != null && owner.Data.hostileStats != null)
+                maxApplied = EnemyErosionRoom(owner, includeAura: false);
+
+            SetConditionalErosion(source.ErosionSourceKey, source.ErosionSourceName, source.FixedErosionAmount, maxApplied);
         }
 
         // 범위를 벗어난 개체 발원지의 침식을 돌려준다
@@ -578,7 +645,7 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
     /// 개체 발원지 하나의 침식이 정확히 <paramref name="amount"/>만큼 걸려 있게 맞춥니다.
     /// 이미 그만큼 걸려 있으면 아무것도 하지 않습니다 — 시간이 지나도 늘지 않는 이유입니다.
     /// </summary>
-    private void SetConditionalErosion(string sourceKey, string displayName, float amount)
+    private void SetConditionalErosion(string sourceKey, string displayName, float amount, float maxApplied = float.MaxValue)
     {
         float current = GetErosionFromSource(sourceKey);
         if (current >= amount)
@@ -587,7 +654,7 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
             return;
         }
 
-        AddErosion(amount - current, sourceKey, displayName);
+        AddErosionClamped(amount - current, sourceKey, displayName, maxApplied - current);
         appliedEntitySourceKeys.Add(sourceKey);
     }
 
@@ -663,6 +730,7 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
         data.erosionLevel = statsController != null ? statsController.ErosionLevel : 0f;
         data.timeSinceLastAuraExposure = timeSinceLastAuraExposure;
         data.erosionMaintainTarget = erosionMaintainTarget;
+        data.purifiedRemaining = PurifiedRemaining;
 
         data.erosionSources = new List<ErosionSourceEntry>();
         foreach (var s in erosionSources)
@@ -682,6 +750,7 @@ public class EmployeeErosionController : MonoBehaviour, IEntityErosionSource, IT
     {
         timeSinceLastAuraExposure = data.timeSinceLastAuraExposure;
         ErosionMaintainTarget = data.erosionMaintainTarget;   // 프로퍼티 경유 — 범위를 벗어난 값 보정
+        PurifiedRemaining = data.purifiedRemaining;
 
         if (statsController != null)
             statsController.SetErosion(data.erosionLevel);

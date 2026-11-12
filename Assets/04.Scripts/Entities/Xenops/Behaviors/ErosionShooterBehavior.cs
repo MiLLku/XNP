@@ -34,7 +34,7 @@ public enum TrackTargetType
 [RequireComponent(typeof(Xenops))]
 [RequireComponent(typeof(Rigidbody2D))]
 [RequireComponent(typeof(HostileErosionAura))]
-public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
+public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior, IWeaponWielder
 {
     // ─── 인스펙터 설정 ────────────────────────────
     [Header("추적 설정")]
@@ -109,6 +109,26 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
     /// <summary>TryStepUp 결과 — 장애물없음 / 도약함 / 가로막힘(4칸+·천장) / 처리불가(쿨다운·공중)</summary>
     private enum StepResult { NoObstacle, Stepped, Blocked, Busy }
 
+    // 침식된 인간 — 무기 값 (Start 전에 오면 Start 뒤에 적용)
+    private bool _weaponSet;
+    private float _wDamage, _wInterval, _wRange, _wMoveMult = 1f;
+
+    public void ApplyWeapon(float damage, float interval, float range, float moveMult)
+    {
+        _weaponSet = true;
+        _wDamage = damage; _wInterval = interval; _wRange = range; _wMoveMult = moveMult;
+        ApplyWeaponNow();
+    }
+
+    private void ApplyWeaponNow()
+    {
+        if (!_weaponSet || _data == null) return;
+        _healthDamageOnHit = _wDamage;
+        _attackInterval = Mathf.Max(0.1f, _wInterval);
+        attackRangeX = _wRange;
+        _moveSpeed = _data.hostileStats.moveSpeed * _wMoveMult;
+    }
+
     // ─────────────────────────────────────────────
     #region 초기화
 
@@ -156,6 +176,8 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         _projectileLifetime = _data.projectileLifetime;
         _erosionOnHit       = _data.erosionOnHit;
         _healthDamageOnHit  = _data.healthDamageOnHit;
+
+        ApplyWeaponNow();
 
         // 도달 불가 판정 시간 — 공격 간격의 3배 또는 최소 5초
         _unreachableTimeout = Mathf.Max(5f, _attackInterval * 3f);
@@ -249,6 +271,14 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         _nav.Tick(dt);
         if (_stepUpCooldown > 0f) _stepUpCooldown -= dt;
         if (_cooldownTimer  > 0f) _cooldownTimer  -= dt;
+
+        // ── 0. 미끼에 끌리는 중 — 쏘지 않고 미끼 쪽으로만 ──
+        if (_nav.IsLured)
+        {
+            _lockedTarget = null;
+            if (!_nav.Steer(_moveSpeed)) _rb.linearVelocity = new Vector2(0f, _rb.linearVelocity.y);
+            return;
+        }
 
         // ── 1. 타겟 선정 — 가장 가까운 공격 대상 (주기적 재평가) ──
         _retargetTimer -= dt;
@@ -394,7 +424,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
         {
             foreach (var emp in EmployeeManager.instance.AllEmployees)
             {
-                if (emp == null || emp.State == EmployeeState.Dead) continue;
+                if (!CombatTargeting.IsTargetable(emp)) continue;
                 if (excludeBlacklisted && IsBlacklisted(emp)) continue;
                 float d = CombatTargeting.EffectiveDistance(myPos, emp);
                 if (d < bestDist) { bestDist = d; nearest = emp; }
@@ -405,7 +435,8 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
             var buildings = UnityEngine.Object.FindObjectsByType<Building>();
             foreach (var b in buildings)
             {
-                if (b == null) continue;
+                // 부술 수 없는 건물(맵에 찍힌 바닥 등 데이터 없음·체력 0)을 노리면 영영 쏘며 습격이 끝나지 않는다 — EnemyNavigator와 같은 기준
+                if (b == null || b.buildingData == null || !b.IsFunctional || b.buildingData.maxHealth <= 0) continue;
                 if (excludeBlacklisted && IsBlacklisted(b)) continue;
                 float d = Vector2.Distance((Vector2)b.transform.position, myPos);
                 if (d < bestDist) { bestDist = d; nearest = b; }
@@ -449,7 +480,9 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior
             direction = Quaternion.Euler(0f, 0f, spread) * direction;
         }
         var proj = PoolManager.instance.Spawn<ErosionProjectile>(_data.projectilePrefab, transform.position);
-        proj.Init(direction, _projectileSpeed, _erosionOnHit, _healthDamageOnHit, _erosionOnHit + _healthDamageOnHit, _projectileLifetime);
+        float mult = _xenops != null ? _xenops.StatMultiplier : 1f; // 위협 단계 배율 — 체력 피해에만
+        proj.Init(direction, _projectileSpeed, _erosionOnHit, _healthDamageOnHit * mult, _erosionOnHit + _healthDamageOnHit * mult, _projectileLifetime);
+        proj.Owner = _xenops;
 
         _cooldownTimer = _attackInterval;
         _engageTimer   = 0f; // 공격(타겟·벽) = 진행 중 → 도달 불가 타이머 리셋

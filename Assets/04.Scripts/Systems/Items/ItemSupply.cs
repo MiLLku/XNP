@@ -38,6 +38,9 @@ public class ItemSupply : IMaterialReceiver
     /// <summary>현재 내부 재고</summary>
     public int Stock => stock;
 
+    /// <summary>보급이 진행 중인지 (운반 작업이 걸려 있음 — 창고에서 이미 꺼냈을 수도 있다)</summary>
+    public bool Pending => order != null;
+
     /// <summary>소유 건물 연결 (Awake에서 호출)</summary>
     public void Bind(MonoBehaviour owner) => this.owner = owner;
 

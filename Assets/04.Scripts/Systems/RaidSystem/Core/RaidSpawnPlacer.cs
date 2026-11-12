@@ -27,10 +27,20 @@ public static class RaidSpawnPlacer
     public static bool TryFindPosition(RaidSpawnLocation location, out Vector3 position)
     {
         position = Vector3.zero;
+        var pool = FindCandidates(location);
+        if (pool == null || pool.Count == 0) return false;
 
+        var pick = pool[Random.Range(0, pool.Count)];
+        position = new Vector3(pick.x + 0.5f, pick.y + 0.5f, 0f);
+        return true;
+    }
+
+    /// <summary>스폰 위치 후보 칸 전부 (안개 유형은 기지 근처 후보 우선). 맵을 한 번 훑는다 — 여러 자리가 필요하면 이것을 한 번만</summary>
+    public static List<Vector2Int> FindCandidates(RaidSpawnLocation location)
+    {
         var mapGen = MapGenerator.instance;
         var gameMap = mapGen != null ? mapGen.GameMapInstance : null;
-        if (gameMap == null) return false;
+        if (gameMap == null) return null;
 
         var fogMgr = FogOfWarManager.instance;
         var anchors = CollectBaseAnchors();
@@ -69,15 +79,8 @@ public static class RaidSpawnPlacer
             }
         }
 
-        if (candidates.Count == 0) return false;
-
         // 안개 유형은 기지 근처 후보 우선 (없으면 전체에서)
-        var pool = (location != RaidSpawnLocation.BaseInterior && nearBase.Count > 0)
-            ? nearBase : candidates;
-
-        var pick = pool[Random.Range(0, pool.Count)];
-        position = new Vector3(pick.x + 0.5f, pick.y + 0.5f, 0f);
-        return true;
+        return (location != RaidSpawnLocation.BaseInterior && nearBase.Count > 0) ? nearBase : candidates;
     }
 
     /// <summary>위로 SKY_SCAN_HEIGHT칸 안에 솔리드 타일이 없으면 '하늘 열림(지상)'.</summary>
@@ -91,8 +94,47 @@ public static class RaidSpawnPlacer
         return true;
     }
 
+    private const float HIDDEN_FROM_BASE = 10f; // shortcut: 임시 수치 — 위장체가 나타날 수 있는 기지 앵커 반경
+
+    /// <summary>
+    /// 위장체 자리: 기지 앵커(건물·직원) HIDDEN_FROM_BASE 안의 설 수 있는 빈 칸(두 칸 높이, 발밑 지면) 중
+    /// 지금 카메라 화면 밖인 곳. 없으면 false.
+    /// </summary>
+    public static bool TryFindHiddenBasePosition(out Vector3 position)
+    {
+        position = Vector3.zero;
+        var gameMap = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
+        var anchors = CollectBaseAnchors();
+        var cam = Camera.main;
+        if (gameMap == null || anchors.Count == 0) return false;
+
+        float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
+        foreach (var a in anchors) { minX = Mathf.Min(minX, a.x); maxX = Mathf.Max(maxX, a.x); minY = Mathf.Min(minY, a.y); maxY = Mathf.Max(maxY, a.y); }
+        int r = Mathf.CeilToInt(HIDDEN_FROM_BASE);
+        var walk = new TilePathfinder(gameMap);
+        var pool = new List<Vector2Int>();
+        for (int x = Mathf.Max(0, (int)minX - r); x <= Mathf.Min(GameMap.MAP_WIDTH - 1, (int)maxX + r); x++)
+        for (int y = Mathf.Max(1, (int)minY - r); y <= Mathf.Min(GameMap.MAP_HEIGHT - 2, (int)maxY + r); y++)
+        {
+            if (gameMap.TileGrid[x, y] != 0 || gameMap.TileGrid[x, y + 1] != 0 || gameMap.TileGrid[x, y - 1] == 0) continue;
+            var p = new Vector2(x + 0.5f, y + 0.5f);
+            if (!anchors.Exists(a => Vector2.Distance(a, p) <= HIDDEN_FROM_BASE)) continue;
+            if (cam != null)
+            {
+                var v = cam.WorldToViewportPoint(p);
+                if (v.x >= 0f && v.x <= 1f && v.y >= 0f && v.y <= 1f) continue; // 화면 안
+            }
+            if (!walk.IsValidPosition(new Vector2Int(x, y))) continue; // 직원 이동 규칙으로 설 수 있는 칸 (막는 건물 제외)
+            pool.Add(new Vector2Int(x, y));
+        }
+        if (pool.Count == 0) return false;
+        var pick = pool[Random.Range(0, pool.Count)];
+        position = new Vector3(pick.x + 0.5f, pick.y + 0.3f, 0f);
+        return true;
+    }
+
     /// <summary>기지 앵커(건설물 + 생존 직원 위치) 수집.</summary>
-    private static List<Vector2> CollectBaseAnchors()
+    public static List<Vector2> CollectBaseAnchors()
     {
         var anchors = new List<Vector2>();
 
@@ -163,6 +205,47 @@ public static class RaidSpawnPlacer
         }
         else return false;
 
+        position = new Vector3(pick.x + 0.5f, pick.y + 0.3f, 0f);
+        return true;
+    }
+
+    // 거점 습격 자리 — 기지 앵커(건물·직원)에서 이 거리 사이의 바깥 지면
+    private const float OUTPOST_MIN_FROM_BASE = 10f;  // shortcut: 임시 수치
+    private const float OUTPOST_MAX_FROM_BASE = 25f;
+
+    /// <summary>
+    /// 거점 습격 자리: 하늘이 열린(바깥) 두 칸 높이 빈 지면 중, 가장 가까운 기지 앵커까지 거리가
+    /// OUTPOST_MIN~MAX_FROM_BASE인 칸 — 직원 활동 범위의 가장자리. 없으면 false.
+    /// </summary>
+    public static bool TryFindOutpostPosition(out Vector3 position) => TryFindOutpostPosition(out position, OUTPOST_MIN_FROM_BASE, OUTPOST_MAX_FROM_BASE);
+
+    /// <summary>기지에서 minFromBase~maxFromBase 떨어진 하늘 열린 지면 (스포너 습격은 더 멀리)</summary>
+    public static bool TryFindOutpostPosition(out Vector3 position, float minFromBase, float maxFromBase)
+    {
+        position = Vector3.zero;
+        var gameMap = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
+        var anchors = CollectBaseAnchors();
+        if (gameMap == null || anchors.Count == 0) return false;
+
+        float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
+        foreach (var a in anchors) { minX = Mathf.Min(minX, a.x); maxX = Mathf.Max(maxX, a.x); minY = Mathf.Min(minY, a.y); maxY = Mathf.Max(maxY, a.y); }
+        int r = Mathf.CeilToInt(maxFromBase);
+
+        var pool = new List<Vector2Int>();
+        for (int x = Mathf.Max(0, (int)minX - r); x <= Mathf.Min(GameMap.MAP_WIDTH - 1, (int)maxX + r); x++)
+        for (int y = Mathf.Max(1, (int)minY - r); y <= Mathf.Min(GameMap.MAP_HEIGHT - 3, (int)maxY + r); y++)
+        {
+            if (gameMap.TileGrid[x, y] != 0 || gameMap.TileGrid[x, y + 1] != 0 || gameMap.TileGrid[x, y - 1] == 0) continue;
+            if (!IsSkyOpen(gameMap, x, y)) continue;
+            var c = new Vector2Int(x, y);
+            if (Building.GetBuildingAt(c) != null || Building.GetBuildingAt(c + Vector2Int.up) != null) continue;
+            float d = float.MaxValue;
+            var p = new Vector2(x + 0.5f, y + 0.5f);
+            foreach (var a in anchors) d = Mathf.Min(d, Vector2.Distance(a, p));
+            if (d >= minFromBase && d <= maxFromBase) pool.Add(c);
+        }
+        if (pool.Count == 0) return false;
+        var pick = pool[Random.Range(0, pool.Count)];
         position = new Vector3(pick.x + 0.5f, pick.y + 0.3f, 0f);
         return true;
     }

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TitaniumOre
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 10
-  itemName: "\uD2F0\uD0C0\uB284 \uAD11\uC11D"
+  itemName: "침정석"
   itemIcon: {fileID: 0}
   dropPrefab: {fileID: 1616182751664900045, guid: 85da5c372ddf1ad44a75642a8168205f, type: 3}
   isFood: 0

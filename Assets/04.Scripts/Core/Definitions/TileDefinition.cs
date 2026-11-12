@@ -74,7 +74,7 @@ public class TileDefinition : ScriptableObject
     [Tooltip("캐는 데 필요한 채광 등급 (기지 전체 연구 '채광 I~IV'). 0이면 제한 없음.\n" +
              "1 = 석탄·구리 / 2 = 철·은 / 3 = 금·수정·티타늄 / 4 = 경계암(에테리온)")]
     [UnityEngine.Serialization.FormerlySerializedAs("requiredMiningSkillId")]
-    [Range(0, 4)] public int requiredMiningTier = 0;
+    [Range(0, MiningSkillGate.MAX_TIER)] public int requiredMiningTier = 0;
 
     [Tooltip("채광 시 드롭될 ItemData. 시각 프리팹은 ItemData.dropPrefab을 씁니다.")]
     public ItemData dropItem;
@@ -104,6 +104,12 @@ public class TileDefinition : ScriptableObject
 
     [Tooltip("광물마다 다른 패턴이 나오도록 주는 noise 오프셋. 광물끼리 서로 다른 값이면 됩니다.")]
     public float veinSeedOffset = 0f;
+
+    [Tooltip("기지(시작방)에서 좌우로 이 칸 수 이상 떨어진 곳에만 광맥이 생깁니다. 0이면 제한 없음 (깊이 대신 좌우로 나아가는 광물)")]
+    [Min(0)] public int veinMinBaseDistance = 0;
+
+    [Tooltip("veinMinBaseDistance 너머로 100칸 갈 때마다 noise 임계값을 이만큼 낮춥니다 — 멀수록 촘촘해진다")]
+    [Range(0f, 0.5f)] public float veinThresholdDropPer100 = 0f;
 
     #endregion
 

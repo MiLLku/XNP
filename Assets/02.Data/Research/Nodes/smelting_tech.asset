@@ -14,21 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: smelting_tech
   nodeName: "\uC81C\uB828 \uAE30\uC220"
-  description: "\uD6A8\uC728 \xB7 \uC81C\uB828\uC18C\uC640 \uC8FC\uAD34 4\uC885 \uC81C\uC791\uBC95\uC744
-    \uD574\uAE08\uD569\uB2C8\uB2E4."
+  description: "효율 · 제련소와 구리 주괴 제련법을 엽니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - crafting_basics
-  resourceCosts:
-  - item: {fileID: 11400000, guid: 3066b6303fe3824458224f0a49daf3c3, type: 2}
-    amount: 10
-  - item: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
-    amount: 5
+  resourceCosts: []
   researchPointCost: 720
   unlockEffects:
   - {fileID: 11400000, guid: 07274a0b850bdcc43938071b778c22e5, type: 2}
   - {fileID: 11400000, guid: fb3ec281a6123d64cabef3a33090f989, type: 2}
-  - {fileID: 11400000, guid: 63aa9ab37715f374a9fa4f8b3e5b5515, type: 2}
-  - {fileID: 11400000, guid: 4633d48867aa30a4d89a8a0d47f7cc37, type: 2}
-  - {fileID: 11400000, guid: 0e26d8f27522d334092c9f310237c620, type: 2}
+  - {fileID: 11400000, guid: 86d3735c585149e691fb7d3036939e2b, type: 2}
+  - {fileID: 11400000, guid: b0cc2d0d6d4f45f09f253ddcb6c552c0, type: 2}
+  - {fileID: 11400000, guid: ac5d1de1bbb34c96a8f2ae7d589a9cc0, type: 2}
   treePosition: {x: -1, y: -2}

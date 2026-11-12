@@ -35,6 +35,9 @@ public class HostileErosionAura : MonoBehaviour, IEntityErosionSource
 
     public bool HorizontalOnly => false;
 
+    /// <summary>이 오라를 내는 개체 — 직원 쪽 개체당 침식 상한 판정용</summary>
+    public Xenops Owner => _xenops;
+
     public bool Covers(Vector2 worldPosition)
         => Vector2.Distance(EmitPosition, worldPosition) <= _aoeErosionRange;
 

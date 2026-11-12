@@ -45,6 +45,24 @@ public class EmployeeStatsController : MonoBehaviour
 
     /// <summary>굶주림 시 체력 감소 속도 (포인트/초)</summary>
     private const float STARVATION_HEALTH_DECAY = 1f;
+    // shortcut: 임시 수치 — 배고픔 0이 된 뒤 체력 피해가 시작되기까지 (0.5일)
+    private const float STARVATION_GRACE = 500f;
+
+    /// <summary>배고픔 0으로 지낸 시간 (먹으면 0)</summary>
+    private float _starvingTime;
+
+    private void PushStarvationWarning()
+    {
+        if (employee == null || GetComponent<DisguisedEmployee>() != null) return;
+        NotificationManager.instance?.PushLetter(new Letter
+        {
+            title = $"굶주림 — {employee.DisplayName}",
+            body = $"{employee.DisplayName}이(가) 굶주리고 있습니다. 약 반나절 안에 먹지 못하면 체력이 줄기 시작합니다. (소집 중에는 먹지 않습니다)",
+            type = LetterType.Threat,
+            pauseUntilRead = true
+        });
+        TimeManager.instance?.ForcePause();
+    }
 
     // ── 정신력 모디파이어 기본값 (MentalModifierConfig 미할당 시 사용) ──
     private const float DEFAULT_STARVATION_PENALTY  = -25f;
@@ -253,7 +271,20 @@ public class EmployeeStatsController : MonoBehaviour
     public float CachedSkillGainRateModifier => cachedSkillGainRateModifier;
 
     /// <summary>이 직원의 기본 정신력 (모디파이어가 전부 사라지면 여기로 돌아온다)</summary>
-    public float BaseMental => baseMental;
+    /// <summary>
+    /// 기본 정신력 = 기대감(단련장 레벨)에 따른 값 × 특성 정신 배율.
+    /// 성장한 직원일수록 기대가 높아 같은 환경에서 정신력이 낮다 — 고급 직원은 좋은 생활 환경이 필요하다.
+    /// (저장된 baseMental은 세이브 호환용으로만 남김)
+    /// </summary>
+    public float BaseMental => ExpectationBaseMental(Expectation) * cachedMentalMult;
+
+    /// <summary>지금 기대감 (단련장 레벨로)</summary>
+    public MentalExpectation Expectation => ExpectationFor(employee != null ? employee.Level : 1);
+
+    // shortcut: 임시 수치 — 기대감 구간·기본 정신력 (사용자 확정 대기, 여기만 바꾸면 됨). 정신 이상 임계 40은 그대로
+    public static MentalExpectation ExpectationFor(int level) => level >= 7 ? MentalExpectation.High : level >= 4 ? MentalExpectation.Mid : MentalExpectation.Low;
+    public static float ExpectationBaseMental(MentalExpectation e) => e == MentalExpectation.High ? 30f : e == MentalExpectation.Mid ? 40f : 55f;
+    public static string ExpectationLabel(MentalExpectation e) => e == MentalExpectation.High ? "높음" : e == MentalExpectation.Mid ? "중간" : "낮음";
 
     /// <summary>활성 정신력 모디파이어 목록 (UI 표시용, 읽기 전용)</summary>
     public IReadOnlyList<MentalModifier> MentalModifiers => mentalModifiers;
@@ -365,11 +396,15 @@ public class EmployeeStatsController : MonoBehaviour
         // ── 욕구 3종은 모두 여기서 정신력 상태형 모디파이어로 환산된다 ──
         // 정신 이상 판정(임계점)을 욕구가 직접 건드리는 경로는 없다. 욕구 → 정신력 → 발생 확률.
 
-        // 기아: 체력은 지속 감소(생존 위협), 정신력은 상태형 모디파이어 — 먹이면 즉시 원상복구된다
+        // 기아: 배고픔 0이 되면 경고(정지) → STARVATION_GRACE 동안은 피해 없음 → 그 뒤 체력 지속 감소.
+        // 정신력은 상태형 모디파이어 — 먹이면 즉시 원상복구된다
         if (currentNeeds.hunger <= 0f)
         {
-            currentStats.health -= STARVATION_HEALTH_DECAY * deltaTime;
+            if (_starvingTime <= 0f) PushStarvationWarning();
+            _starvingTime += deltaTime;
+            if (_starvingTime > STARVATION_GRACE) currentStats.health -= STARVATION_HEALTH_DECAY * deltaTime;
         }
+        else _starvingTime = 0f;
         UpdateNeedPenalty(MentalReason.STARVATION, "굶주림",
             StarvationPenalty, currentNeeds.hunger <= 0f);
 
@@ -466,6 +501,14 @@ public class EmployeeStatsController : MonoBehaviour
     /// </summary>
     private void CheckCriticalNeeds()
     {
+        // 위장체 복제체는 죽거나 정신 붕괴하지 않고 정체를 드러낸다
+        var disguise = GetComponent<DisguisedEmployee>();
+        if (disguise != null)
+        {
+            if (currentStats.health <= 0f) disguise.Reveal();
+            return;
+        }
+
         if (currentStats.health <= 0f)
         {
             employee.SetState(EmployeeState.Dead);
@@ -833,7 +876,7 @@ public class EmployeeStatsController : MonoBehaviour
         for (int i = 0; i < mentalModifiers.Count; i++)
             sum += mentalModifiers[i].value;
 
-        currentStats.mental = Mathf.Clamp(baseMental + sum, 0f, currentStats.maxMental);
+        currentStats.mental = Mathf.Clamp(BaseMental + sum, 0f, currentStats.maxMental);
     }
 
     /// <summary>시간형 모디파이어의 남은 시간을 줄이고 만료된 것을 제거합니다.</summary>
@@ -1144,3 +1187,6 @@ public class EmployeeStatsController : MonoBehaviour
 
     #endregion
 }
+
+/// <summary>직원의 생활 기대감 — 단련장 레벨이 오를수록 높아져 기본 정신력이 낮아진다</summary>
+public enum MentalExpectation { Low, Mid, High }

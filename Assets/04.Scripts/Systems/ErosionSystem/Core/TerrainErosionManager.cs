@@ -137,6 +137,7 @@ public class TerrainErosionManager : DestroySingleton<TerrainErosionManager>
             : 0f;
         var config = ErosionManager.instance != null ? ErosionManager.instance.RecoveryConfig : null;
         float cap = config != null ? config.maxEffectiveErosion : 100f;
+        cap += OutpostStructure.GlobalErosionBonus; // 침식 송신탑(거점 습격)이 올린 만큼 상한도 오른다
         return Mathf.Min(cap, GetOutdoorErosionAt(x) + strata);
     }
 

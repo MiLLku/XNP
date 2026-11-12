@@ -202,7 +202,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Smelter
   availableRecipes:
   - {fileID: 11400000, guid: 80b1b536a9aedbb4d8995fb0482a92d3, type: 2}
-  - {fileID: 11400000, guid: ae763cc660863294890b8083b261d75f, type: 2}
+  - {fileID: 11400000, guid: 341e62c10ebc40e69eb6d89ffcf6f0b7, type: 2}
   - {fileID: 11400000, guid: cbbf61de79e7a0d4ca965d36db6f97b3, type: 2}
   - {fileID: 11400000, guid: ef4a3e8264f6bb74396ef41b64a1d813, type: 2}
   - {fileID: 11400000, guid: 3376dff014c7c2e41a52e8622107c6ca, type: 2}

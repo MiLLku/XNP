@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7edf32fd13aa30a4f9ce617dd89eec48, type: 3}
+  m_Name: OilWell
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingID: 3014
+  buildingName: "유정"
+  icon: {fileID: 0}
+  category: 1
+  description: "석유 분출구 위에 지어 전력을 쓰며 원유를 뽑아낸다."
+  buildingPrefab: {fileID: 1000, guid: 1488c60b8c664533b55c892b143b8d31, type: 3}
+  size: {x: 2, y: 2}
+  pivot: {x: 0, y: 0}
+  workAmount: 15
+  requiredResources:
+  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+    amount: 5
+  - item: {fileID: 11400000, guid: 6f0a834fec48481ea1ce48081eb49e41, type: 2}
+    amount: 3
+  maxHealth: 350
+  blocksMovement: 1
+  requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
+  destructionDrops: []
+  paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  requiredTileBelow: 23
+  useHeatTarget: 0
+  heatTargetTemperature: 35
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
+  powerConsumption: 400
+  allowOverlap: 0
+  requiresResearch: 1

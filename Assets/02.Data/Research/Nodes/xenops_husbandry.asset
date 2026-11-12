@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: xenops_husbandry
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: xenops_husbandry
+  nodeName: "\uC81C\uB189\uC2A4 \uC0AC\uC721"
+  description: "\uC81C\uB189\uC2A4 \xB7 \uBD88\uAE38\uD55C \uC54C\uC744 \uBD80\uD654\uC2DC\uCF1C
+    \uC911\uB9BD \uCE68\uC2DD\uCCB4\uB97C \uAE30\uB985\uB2C8\uB2E4. \uBD80\uD654\uAE30\xB7\uBA39\uC774\uD1B5\uACFC
+    \uCE68\uC2DD \uC0AC\uB8CC(\uC81C\uB189\uC2A4 \uC7A5\uBE44 \uC81C\uC791\uB300)\uB97C
+    \uC5FD\uB2C8\uB2E4."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - xenops_ecology
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
+    amount: 10
+  - item: {fileID: 11400000, guid: 1c208cc336108f746baef2d568969d5f, type: 2}
+    amount: 1
+  researchPointCost: 900
+  unlockEffects:
+  - {fileID: 11400000, guid: d72889d0dfd457a49be2cdd1854c1e4d, type: 2}
+  - {fileID: 11400000, guid: 4f117d0c13ba0314aba7f3eae4ec4384, type: 2}
+  - {fileID: 11400000, guid: 15fcac69c1bd11e48a482b24250ff83b, type: 2}
+  treePosition: {x: 4, y: -4}

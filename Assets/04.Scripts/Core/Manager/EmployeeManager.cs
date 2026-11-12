@@ -55,6 +55,12 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     [Tooltip("전 직원이 공유하는 스킬 트리 구성. 직원 스폰 시 EmployeeSkillState에 주입됩니다.")]
     [SerializeField] private SkillTreeConfig skillTreeConfig;
 
+    [Header("작업 자동 배제 (새 직원 기본값 — 직원 관리 창에서 다시 켤 수 있다)")]
+    [Tooltip("새 직원이 가장 못하는 작업을 몇 개까지 기본으로 끈다 (0이면 끔)")]
+    [Min(0)] [SerializeField] private int autoExcludeLowestCount = 2;
+    [Tooltip("작업 숙련 레벨이 이 값 이하인 작업만 끈다")]
+    [Min(0)] [SerializeField] private int autoExcludeAtOrBelowLevel = 2;
+
     [Header("정신 이상 설정")]
     [Tooltip("정신 이상 임계점·평균 발생 간격(MTB)·침식 계열 가중치. 미할당 시 코드 기본값으로 동작")]
     [SerializeField] private MentalBreakConfig mentalBreakConfig;
@@ -204,11 +210,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     /// <param name="employeeData">직원 템플릿 데이터</param>
     /// <param name="position">스폰 월드 좌표</param>
     /// <returns>생성된 직원 (실패 시 null)</returns>
-    /// <param name="freeOutfit">
-    /// true면 기본 옷 4종을 새로 만들어 입힌다(시작 직원·이벤트 합류).
-    /// false면 장비 보관소에 있는 기본 옷만 꺼내 입는다(채용 — 옷을 미리 만들어 둬야 한다).
-    /// </param>
-    public Employee SpawnEmployee(EmployeeData employeeData, Vector3 position, bool freeOutfit = true)
+    /// <param name="hired">채용 — 기본 복장을 새로 입고 오되, 진압봉을 못 드는 직원은 원거리 무기를 쥔다</param>
+    public Employee SpawnEmployee(EmployeeData employeeData, Vector3 position, bool hired = false, bool equipOutfit = true)
     {
         if (employeePrefab == null)
         {
@@ -241,8 +244,10 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
         // RestoreFromSaveData가 소지 식량을 복원한다.
         GrantInitialFood(employee);
 
-        // 새 직원의 기본 옷·장갑·신발·모자 — 시작 직원은 그냥 입고 오고, 채용 직원은 보관소에서 꺼내 입는다
-        EquipmentStorageManager.instance?.EquipStartingOutfit(employee, fromStorage: !freeOutfit);
+        // 새 직원의 기본 옷·장갑·신발·모자·무기 — 시작·채용 모두 새로 만들어 입고 온다
+        if (equipOutfit) EquipmentStorageManager.instance?.EquipStartingOutfit(employee, hired);
+
+        ApplyAutoExclusion(employee);
 
         GameMessageBus.Publish(new EmployeeSpawnedMessage(employee));
 
@@ -253,6 +258,44 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
         return employee;
     }
+
+    // 숙련 레벨로 배제를 고르는 작업 (요양·훈련·심부름은 능력과 무관, 운반은 숙련 분배 대상이 아니라 모두 1레벨)
+    private static readonly WorkType[] AutoExcludable =
+        { WorkType.Mining, WorkType.Weeding, WorkType.Research, WorkType.Crafting, WorkType.Building, WorkType.Cooking };
+    // 기지에 최소 1명은 켜져 있어야 하는 작업
+    private static readonly WorkType[] EssentialWork = { WorkType.Weeding, WorkType.Cooking, WorkType.Hauling, WorkType.Building };
+
+    /// <summary>
+    /// 새 직원이 가장 못하는 작업(숙련 레벨 하위 autoExcludeLowestCount개, autoExcludeAtOrBelowLevel 이하)을 기본으로 끈다.
+    /// 필수 작업(수확·조리·운반·건설)은 기지에 켜 둔 직원이 아무도 없으면 끄지 않는다.
+    /// </summary>
+    private void ApplyAutoExclusion(Employee employee)
+    {
+        var work = employee != null ? employee.GetComponent<EmployeeWork>() : null;
+        if (work == null || employee.Growth == null || autoExcludeLowestCount <= 0) return;
+
+        var candidates = AutoExcludable
+            .Where(t => work.IsWorkEnabled(t) && work.CanPerformWork(t) && employee.Growth.GetAptitudeLevel(t) <= autoExcludeAtOrBelowLevel)
+            .OrderBy(t => employee.Growth.GetAptitudeLevel(t))
+            .ToList();
+
+        var excluded = new List<WorkType>();
+        foreach (var t in candidates)
+        {
+            if (excluded.Count >= autoExcludeLowestCount) break;
+            if (System.Array.IndexOf(EssentialWork, t) >= 0 && !AnyOtherDoes(employee, t)) continue;
+            excluded.Add(t);
+        }
+        if (excluded.Count == 0) return;
+
+        work.SetWorkOrder(work.GetWorkTypesInOrder().Where(t => work.IsWorkEnabled(t) && !excluded.Contains(t)).ToList());
+        if (showDebugInfo)
+            Debug.Log($"[EmployeeManager] {employee.DisplayName}: 못하는 작업 기본 끔 — {string.Join(", ", excluded)}");
+    }
+
+    private bool AnyOtherDoes(Employee self, WorkType type)
+        => allEmployees.Any(e => e != null && e != self && e.State != EmployeeState.Dead
+                                 && e.GetComponent<EmployeeWork>() is EmployeeWork w && w.IsWorkEnabled(type) && w.CanPerformWork(type));
 
     /// <summary>신규 직원에게 인벤토리의 음식 1개를 지급합니다 (있을 때만).</summary>
     private void GrantInitialFood(Employee employee)
@@ -287,6 +330,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
             EmployeeData data = RandomEmployeeGenerator.Generate(generationConfig);
             if (data != null) SpawnEmployee(data, spawnPoint); // 같은 자리 — 옆으로 벌리면 시작 방 밖 낮은 지형으로 떨어진다
         }
+        EquipmentStorageManager.instance?.GiveStartingRangedWeapon(allEmployees);
     }
 
     /// <summary>
@@ -316,6 +360,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     {
         if (employee == null) return;
         employee.Equipment?.DropOnDeath(employee.transform.position);
+        HusbandryManager.instance?.SpawnCorpse(employee.transform.position);
         RemoveEmployee(employee);
     }
 
@@ -490,22 +535,8 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
                 continue;
             }
 
-            if (employeePrefab == null)
-            {
-                Debug.LogError("[EmployeeManager] Employee 프리팹이 설정되지 않았습니다!");
-                continue;
-            }
-
-            Vector3 pos = new Vector3(esd.posX, esd.posY, 0);
-            GameObject employeeObj = Instantiate(employeePrefab, pos, Quaternion.identity);
-
-            Employee employee = employeeObj.GetComponent<Employee>();
-            if (employee != null)
-            {
-                employee.Initialize(empData, esd.instanceId);
-                employee.RestoreFromSaveData(esd);
-                allEmployees.Add(employee);
-            }
+            var employee = InstantiateFromSave(esd, empData);
+            if (employee != null) allEmployees.Add(employee);
         }
 
         if (showDebugInfo)
@@ -515,6 +546,36 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     }
 
     public void PostRestore(SaveData data) { }
+
+    /// <summary>
+    /// 저장 데이터로 직원 개체를 만든다 — 직원 목록에는 넣지 않는다(호출자가 정함).
+    /// 위장체(DisguisedEmployee)가 목록 밖 복제체를 만들 때도 쓴다.
+    /// </summary>
+    public Employee InstantiateFromSave(EmployeeSaveData esd, EmployeeData empData = null)
+    {
+        if (esd == null) return null;
+        var db = GameDatabase.Instance;
+        if (empData == null && db != null) empData = db.GetEmployeeData(esd.templateId);
+        if (empData == null && esd.generated != null && esd.generated.isGenerated)
+            empData = RandomEmployeeGenerator.Rebuild(esd.generated, esd.templateId, esd.abilities, generationConfig);
+        if (empData == null)
+        {
+            Debug.LogWarning($"[EmployeeManager] 직원 데이터 없음: ID {esd.templateId}");
+            return null;
+        }
+        if (employeePrefab == null)
+        {
+            Debug.LogError("[EmployeeManager] Employee 프리팹이 설정되지 않았습니다!");
+            return null;
+        }
+
+        GameObject employeeObj = Instantiate(employeePrefab, new Vector3(esd.posX, esd.posY, 0), Quaternion.identity);
+        Employee employee = employeeObj.GetComponent<Employee>();
+        if (employee == null) return null;
+        employee.Initialize(empData, esd.instanceId);
+        employee.RestoreFromSaveData(esd);
+        return employee;
+    }
 
     #endregion
 

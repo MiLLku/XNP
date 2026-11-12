@@ -39,8 +39,14 @@ public class CropPlot : MonoBehaviour, IBuildingExtraSerializable, IBuildingFunc
     [Tooltip("작물 표시 배율 (수경재배기는 트레이에 맞게 작게)")]
     [SerializeField, Range(0.2f, 1f)] private float cropScale = 1f;
 
+    [Tooltip("작물 성장 속도 배율 (간이 밭 0.5)")]
+    [SerializeField, Min(0.01f)] private float growthMultiplier = 1f;
+
     [Header("심을 수 있는 작물 (씨앗)")]
     [SerializeField] private List<ItemData> allowedSeeds = new List<ItemData>();
+
+    [Tooltip("새로 지었을 때 모든 칸에 미리 골라 둘 작물 (비우면 빈 밭). 불러오기는 저장된 선택이 덮어쓴다")]
+    [SerializeField] private ItemData defaultSeed;
 
     [Header("수경재배기 — 침식 결정체")]
     [SerializeField] private ItemSupply crystalSupply = new ItemSupply();
@@ -138,7 +144,7 @@ public class CropPlot : MonoBehaviour, IBuildingExtraSerializable, IBuildingFunc
         building = GetComponent<Building>();
         power = GetComponent<PowerConsumer>();
         crystalSupply.Bind(this);
-        for (int i = 0; i < slotCount; i++) slots.Add(new Slot(this, i));
+        for (int i = 0; i < slotCount; i++) slots.Add(new Slot(this, i) { SelectedSeed = defaultSeed });
     }
 
     private void Update()
@@ -173,6 +179,9 @@ public class CropPlot : MonoBehaviour, IBuildingExtraSerializable, IBuildingFunc
         // 빈 칸 + 작물 선택됨 → 씨앗 요청 (재고 없으면 다음 틱에 재시도)
         if (slot.Plant == null && slot.PendingSow == null && slot.SelectedSeed != null)
             slot.PendingSow = SowSite.CreateForOwner(slot.SelectedSeed, slot);
+
+        // 수확이 끝나 작물이 다시 자라는 중 — 끝난 수확 작업물은 작업 시스템이 이미 지웠다
+        if (slot.Plant != null && !slot.Plant.IsMature) slot.harvestOrder = null;
 
         // 다 자람 → 수확 작업 (제초 작업)
         if (slot.Plant != null && slot.Plant.IsMature && slot.harvestOrder == null && WorkSystemManager.instance != null)
@@ -236,6 +245,7 @@ public class CropPlot : MonoBehaviour, IBuildingExtraSerializable, IBuildingFunc
 
         plant.SetDefinition(def);
         plant.Host = slot;
+        plant.GrowthMultiplier = growthMultiplier;
         plant.SetGrowth(growth);
         if (plant is CropPlant crop) crop.SetBaseScale(cropScale);
         else go.transform.localScale = Vector3.one * cropScale;

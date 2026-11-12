@@ -108,7 +108,7 @@ public class EmployeeEquipment : MonoBehaviour
             inst = new EquipmentInstance
             {
                 equipmentId = data.itemData != null ? data.itemData.itemID : 0,
-                durability = data.maxDurability
+                durability = data.MaxDurability
             };
         }
         return inst;
@@ -167,7 +167,7 @@ public class EmployeeEquipment : MonoBehaviour
     {
         var data = GetItemInSlot(slot);
         if (data == null || !data.repairable || !equippedInstances.TryGetValue(slot, out var inst)) return false;
-        inst.durability = data.maxDurability;
+        inst.durability = data.MaxDurability;
         return true;
     }
 
@@ -223,6 +223,15 @@ public class EmployeeEquipment : MonoBehaviour
             default:
                 return false;
         }
+    }
+
+    /// <summary>명령형 1회용(<see cref="ConsumableTrigger.Command"/>)을 쓴다 — 그 칸에 없으면 false</summary>
+    public bool UseCommandConsumable(EquipmentSlot slot)
+    {
+        var data = GetItemInSlot(slot);
+        if (data == null || !data.IsConsumable || data.consumable.trigger != ConsumableTrigger.Command) return false;
+        UseConsumable(slot, data);
+        return true;
     }
 
     /// <summary>1회용 장비를 쓰고 없앱니다 (해제 + 인스턴스 소멸). 보관소에서 자동으로 다시 끼우지는 않습니다.</summary>
@@ -356,6 +365,16 @@ public class EmployeeEquipment : MonoBehaviour
         return itemSlots.TryGetValue(slot, out var data) ? data : null;
     }
 
+    /// <summary>적의 공격 대상에서 빠지는 장비(위장 피막 외투 등)를 하나라도 착용했는지</summary>
+    public bool IsHiddenFromXenops
+    {
+        get
+        {
+            foreach (var d in itemSlots.Values) if (d != null && d.hiddenFromXenops) return true;
+            return false;
+        }
+    }
+
 
     #endregion
 
@@ -404,7 +423,7 @@ public class EmployeeEquipment : MonoBehaviour
         foreach (var kvp in itemSlots)
         {
             if (kvp.Value.passiveEffects != null)
-                total += kvp.Value.passiveEffects.damageReduction;
+                total += kvp.Value.DamageReduction;
         }
         return Mathf.Clamp(total, 0f, 100f);
     }
@@ -419,7 +438,7 @@ public class EmployeeEquipment : MonoBehaviour
         int total = 0;
         foreach (var kvp in itemSlots)
         {
-            if (kvp.Value != null) total += kvp.Value.erosionTolerance;
+            if (kvp.Value != null) total += kvp.Value.ErosionTolerance;
         }
         return total;
     }
@@ -763,7 +782,7 @@ public class EmployeeEquipment : MonoBehaviour
                 slotData.itemId = item?.itemData?.itemID ?? 0;
 
                 var inst = GetInstanceInSlot(slot);
-                slotData.durability = inst != null ? inst.durability : (item != null ? item.maxDurability : 0f);
+                slotData.durability = inst != null ? inst.durability : (item != null ? item.MaxDurability : 0f);
                 slotData.equipInstanceId = inst?.instanceId ?? 0;
             }
 
@@ -796,7 +815,7 @@ public class EmployeeEquipment : MonoBehaviour
                         {
                             instanceId = slotData.equipInstanceId,
                             equipmentId = slotData.itemId,
-                            durability = slotData.durability > 0f ? slotData.durability : equipData.maxDurability
+                            durability = slotData.durability > 0f ? slotData.durability : equipData.MaxDurability
                         };
                         // 특성상 못 입는 장비(예전 세이브)는 보관소로 돌려보낸다 — 보관소는 직원보다 먼저 복원됨
                         if (EquipItem(slot, equipData)) equippedInstances[slot] = inst;

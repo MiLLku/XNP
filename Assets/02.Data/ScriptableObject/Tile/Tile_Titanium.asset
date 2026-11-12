@@ -12,11 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27504165417e2ab4caf42c3ec78806f7, type: 3}
   m_Name: Tile_Titanium
   m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
-  codeName: Titanium
+  codeName: NeedleOre
   id: 13
-  displayName: "\uD2F0\uD0C0\uB284 \uAD11\uB9E5"
-  description: "\uC2EC\uBD80\uC5D0\uB9CC \uBB3B\uD78C \uACE0\uAC15\uB3C4 \uAE08\uC18D.
-    \uCC44\uAD11 III \uC790\uACA9\uC774 \uD544\uC694\uD558\uB2E4."
+  displayName: "침정석"
+  description: "기지에서 좌우로 멀리 나가야 나오는 바늘 결정 광물. 채광 IV 자격이 필요하다."
   tileAsset: {fileID: 11400000, guid: a8a2442aaec02f44c87b4794342d6478, type: 2}
   blendPriority: 4
   isSolid: 1
@@ -24,14 +23,16 @@ MonoBehaviour:
   isSpawnableSurface: 0
   isMineable: 1
   hardness: 5
-  requiredMiningTier: 3
+  requiredMiningTier: 4
   dropItem: {fileID: 11400000, guid: f84fa6a62b438d64ca3a339d2f915360, type: 2}
   generateAsVein: 1
-  veinShallowOffset: -115
-  veinDeepOffset: -158
+  veinShallowOffset: -3
+  veinDeepOffset: -160
   veinNoiseScale: 0.19
   veinThreshold: 0.88
   veinSeedOffset: 8000
+  veinMinBaseDistance: 120
+  veinThresholdDropPer100: 0.1
   thermalConductivity: 2.4
   heatOutput: 0
   useHeatTarget: 0

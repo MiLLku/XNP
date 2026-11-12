@@ -14,15 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: mining_1
   nodeName: "채광 I"
-  description: "효율 · 석탄과 구리를 캘 수 있게 됩니다(기지 전체). 지표의 돌과 나무로 첫 갱도를 받칩니다."
+  description: "효율 · 석탄·구리·주석을 캘 수 있게 됩니다(지표 아래 20칸부터). 지표의 돌과 나무로 첫 갱도를 받칩니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - research_basics
-  resourceCosts:
-  - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
-    amount: 30
-  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
-    amount: 20
+  resourceCosts: []
   researchPointCost: 480
   unlockEffects:
   - {fileID: 11400000, guid: 4438d847a3bc480880a1a8029f48e494, type: 2}

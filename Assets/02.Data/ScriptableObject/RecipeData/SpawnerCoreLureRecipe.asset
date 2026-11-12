@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d76e4ac7197bcff49ac7d618b5714882, type: 3}
+  m_Name: SpawnerCoreLureRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
+  recipeID: 5158
+  outputItem: {fileID: 11400000, guid: 85b59e3ddd9548eb8911c292b52fb653, type: 2}
+  outputAmount: 1
+  requiredMaterials:
+  - item: {fileID: 11400000, guid: c5532c3ae8624a37bb53530706e19e9a, type: 2}
+    amount: 2
+  - item: {fileID: 11400000, guid: 5ee0d8d63e20a7149b89b75f47bc5331, type: 2}
+    amount: 1
+  craftingTime: 600
+  requiresResearch: 1
+  requiredCodexXenopsId: 6301

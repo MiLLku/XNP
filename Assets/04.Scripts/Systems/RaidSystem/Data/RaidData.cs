@@ -132,6 +132,21 @@ public enum RaidType
 
     /// <summary>브리칭 — 벽을 노리는 자폭체가 섞여 온다</summary>
     Breach = 2,
+
+    /// <summary>거점 — 기지 바깥에 해로운 구조물을 짓고 지킨다 (구조물: OutpostStructure)</summary>
+    Outpost = 3,
+
+    /// <summary>스포너 — 기지 바깥 스포너가 부서지기 전까지 패턴대로 적을 내보낸다 (SpawnerStructure)</summary>
+    Spawner = 4,
+
+    /// <summary>분산 — 3~4곳에서 나눠 온다. 대신 위협 점수를 줄여 마리 수가 적다</summary>
+    Split = 5,
+
+    /// <summary>위장체 — 알림 없이 화면 밖 기지 안에 직원 하나를 복제한 위장체 (DisguisedEmployee)</summary>
+    Disguise = 6,
+
+    /// <summary>침식된 인간 — 완전히 침식된 사람들이 연구 수준에 맞는 무작위 장비를 입고 온다 (ErodedHuman)</summary>
+    ErodedHumans = 7,
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

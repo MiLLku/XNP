@@ -85,6 +85,9 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
     /// <summary>남은 보관 칸. 풀이 이미 넘쳐 있으면 0.</summary>
     public int FreeSlots => Mathf.Max(0, Capacity - pool.Count);
 
+    /// <summary>보관 중인 장비 수 (착용 중인 것 제외)</summary>
+    public int PooledCount => pool.Count;
+
     /// <summary>
     /// 이 산출물을 만들 자리가 있는지. 장비가 아니면 항상 true.
     ///
@@ -176,7 +179,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         {
             instanceId = nextInstanceId++,
             equipmentId = data.itemData.itemID,
-            durability = data.maxDurability
+            durability = data.MaxDurability
         };
         pool.Add(inst);
         GameMessageBus.Publish(new EquipmentPoolChangedMessage());
@@ -185,12 +188,12 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
 
     /// <summary>
     /// 새 직원에게 시작 복장(StartingInventoryConfig.startingOutfit)을 입힙니다.
-    ///   · fromStorage = false (시작 직원·이벤트 합류) — 인스턴스를 새로 만들어 바로 입힘. 보관소 칸을 차지하지 않음.
-    ///   · fromStorage = true (채용) — 보관소에 같은 장비가 있을 때만 꺼내 입힘. 없으면 그 칸은 빈 채로 온다
-    ///     → 채용 전에 기본 옷을 만들어 두게 하는 것이 인원 증가의 부담 중 하나다.
+    /// 인스턴스를 새로 만들어 바로 입힘(보관소 칸을 차지하지 않음) — 시작 직원·이벤트 합류·채용 공통.
+    ///   · hired = true (채용) — 진압봉을 못 드는 직원(총기광)은 진압봉 대신 시작 원거리 무기를 새로 쥔다.
+    ///     시작 직원은 GiveStartingRangedWeapon이 1자루만 따로 나눠 주므로 false.
     /// 로드로 복원되는 직원은 이 경로를 타지 않습니다(EmployeeManager.SpawnEmployee에서만 호출).
     /// </summary>
-    public void EquipStartingOutfit(Employee employee, bool fromStorage = false)
+    public void EquipStartingOutfit(Employee employee, bool hired = false)
     {
         var equipment = employee != null ? employee.Equipment : null;
         if (equipment == null || startingConfig == null || startingConfig.startingOutfit == null) return;
@@ -199,25 +202,45 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         {
             if (data == null || data.itemData == null || !equipment.IsSlotEmpty(data.slot)) continue;
 
-            EquipmentInstance inst;
-            if (fromStorage)
+            var item = data;
+            var ranged = startingConfig.startingRangedWeapon;
+            if (hired && item.slot == EquipmentSlot.Weapon && ranged != null && !string.IsNullOrEmpty(equipment.GetEquipBlockReason(item)))
+                item = ranged;
+            var inst = new EquipmentInstance
             {
-                var stored = pool.FirstOrDefault(i => i.equipmentId == data.itemData.itemID);
-                if (stored == null) continue;
-                inst = TakeInstance(stored.instanceId);
-            }
-            else
-            {
-                inst = new EquipmentInstance
-                {
-                    instanceId = nextInstanceId++,
-                    equipmentId = data.itemData.itemID,
-                    durability = data.maxDurability
-                };
-            }
-            if (inst != null && !equipment.EquipInstance(data.slot, inst))
+                instanceId = nextInstanceId++,
+                equipmentId = item.itemData.itemID,
+                durability = item.MaxDurability
+            };
+            if (!equipment.EquipInstance(item.slot, inst))
                 ReturnInstance(inst); // 특성상 못 입는 시작 장비(총기광의 진압봉 등)는 보관소로
         }
+    }
+
+    /// <summary>
+    /// 새 게임 시작 직원 중 1명에게 최하급 원거리 무기를 쥐여 준다 — 근접 무기를 못 드는 직원(총기광)이 있으면 그 직원, 없으면 무작위.
+    /// 들고 있던 무기는 보관소로.
+    /// </summary>
+    public void GiveStartingRangedWeapon(List<Employee> staff)
+    {
+        var weapon = startingConfig != null ? startingConfig.startingRangedWeapon : null;
+        if (weapon == null || staff == null || staff.Count == 0) return;
+        var able = staff.FindAll(e => e != null && e.StatsController != null && !e.StatsController.CannotEquip(WeaponClass.Ranged));
+        if (able.Count == 0) return;
+        Employee target = able.Find(e => e.StatsController.CannotEquip(WeaponClass.Melee)) ?? able[Random.Range(0, able.Count)];
+        if (target == null || target.Equipment == null) return;
+        var old = target.Equipment.UnequipToInstance(EquipmentSlot.Weapon);
+        if (old != null) ReturnInstance(old);
+        var inst = NewInstance(weapon);
+        if (!target.Equipment.EquipInstance(EquipmentSlot.Weapon, inst)) ReturnInstance(inst);
+        Debug.Log($"[EquipmentStorage] 시작 원거리 무기 {weapon.itemData.itemName} → {target.DisplayName}");
+    }
+
+    /// <summary>보관소에 넣지 않은 새 인스턴스 (바로 입힐 때 — 정화된 침식된 인간의 장비)</summary>
+    public EquipmentInstance NewInstance(EquipmentData data)
+    {
+        if (data == null || data.itemData == null) return null;
+        return new EquipmentInstance { instanceId = nextInstanceId++, equipmentId = data.itemData.itemID, durability = data.MaxDurability };
     }
 
     /// <summary>기존 인스턴스를 풀에 반납합니다 (장착 해제 시).</summary>

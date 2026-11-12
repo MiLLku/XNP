@@ -32,6 +32,8 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     [SerializeField] [Range(1, 20)] private int maxGasVents = 5;
     [Tooltip("맵 하나에 남길 에테르 분출구의 최대 개소. 최종 티어 재료의 유일한 출처라 희소합니다.")]
     [SerializeField] [Range(1, 10)] private int maxEtherVents = 3;
+    [Tooltip("석유 분출구 최대 개수 (심부 동굴 바닥에 얼굴을 내민 것만)")]
+    [SerializeField] [Range(1, 10)] private int maxOilVents = 3;
     [Header("호수")]
     [Tooltip("맵 하나에 만들 지하 호수(물) 수. 지층의 poolFluid가 Water인 층의 동굴에 생깁니다.")]
     [SerializeField] [Range(0, 30)] private int lakeCount = 8;
@@ -658,7 +660,8 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         {
             PlaceClustersForMineral(def.id, groundHeightMap,
                 def.veinShallowOffset, def.veinDeepOffset,
-                def.veinNoiseScale, def.veinThreshold, def.veinSeedOffset);
+                def.veinNoiseScale, def.veinThreshold, def.veinSeedOffset,
+                def.veinMinBaseDistance, def.veinThresholdDropPer100);
         }
 
         Debug.Log($"[PlaceMineralClusters] 광물 군집 배치 완료. (광맥 {veins.Count}종)");
@@ -677,6 +680,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     {
         ExposeVents(TileType.GasVent, maxGasVents, "가스");
         ExposeVents(TileType.EtherVent, maxEtherVents, "에테르");
+        ExposeVents(TileType.OilVent, maxOilVents, "석유");
     }
 
     /// <inheritdoc cref="ExposeVents()"/>
@@ -936,10 +940,20 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     /// Perlin noise로 씨앗 위치를 선정 후, 무작위 확장으로 2~clusterMaxSize 타일 군집을 형성합니다.
     /// </summary>
     private void PlaceClustersForMineral(int mineralId, int[] groundHeightMap,
-        int minDepthOffset, int maxDepthOffset, float noiseScale, float threshold, float seedOffset)
+        int minDepthOffset, int maxDepthOffset, float noiseScale, float threshold, float seedOffset,
+        int minBaseDistance = 0, float thresholdDropPer100 = 0f)
     {
         for (int x = 0; x < GameMap.MAP_WIDTH; x++)
         {
+            // 좌우로 나아가는 광물 — 기지에서 멀어야 나오고, 멀수록 촘촘하다
+            float columnThreshold = threshold;
+            if (minBaseDistance > 0)
+            {
+                int dist = Mathf.Abs(x - _startingRoomX);
+                if (dist < minBaseDistance) continue;
+                columnThreshold -= thresholdDropPer100 * (dist - minBaseDistance) / 100f;
+            }
+
             int groundY = groundHeightMap[x];
             int yTop    = Mathf.Max(0, groundY + maxDepthOffset); // 더 깊은 한계
             int yBottom = Mathf.Min(GameMap.MAP_HEIGHT - 1, groundY + minDepthOffset); // 얕은 한계
@@ -953,7 +967,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                     x * noiseScale + _veinOffsetBase + seedOffset,
                     y * noiseScale + _veinOffsetBase + seedOffset);
 
-                if (noise < threshold) continue;
+                if (noise < columnThreshold) continue;
 
                 // 씨앗 선정 → 군집 확장
                 int targetSize = _rng.Next(clusterMinSize, clusterMaxSize + 1);
@@ -1275,11 +1289,12 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         int width = Mathf.Max(1, def.footprintWidth);
         int lastPlacedX = int.MinValue;
         int placed = 0;
+        int padding = def.spawnAreaPaddingOverride >= 0 ? def.spawnAreaPaddingOverride : spawnAreaPadding;
 
         for (int x = 0; x + width <= GameMap.MAP_WIDTH; x++)
         {
             if (def.avoidSpawnArea &&
-                x >= spawnX - spawnAreaPadding && x <= spawnX + spawnAreaPadding) continue;
+                x >= spawnX - padding && x <= spawnX + padding) continue;
 
             // 기지로부터의 거리 띠 — 위험 지대에만 나는 식생을 만든다
             int distance = Mathf.Abs(x - spawnX);

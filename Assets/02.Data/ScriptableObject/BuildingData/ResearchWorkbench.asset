@@ -13,24 +13,21 @@ MonoBehaviour:
   m_Name: ResearchWorkbench
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 4001
-  buildingName: "\uC5F0\uAD6C \uC791\uC5C5\uB300"
+  buildingName: "기본 연구대"
   icon: {fileID: 0}
   category: 4
-  description: "\uC804\uBB38 \uC5F0\uAD6C\uC6D0\uC774 \uBC30\uCE58\uB418\uC5B4 \uC5F0\uAD6C
-    \uD3EC\uC778\uD2B8\uB97C \uC0DD\uC0B0\uD569\uB2C8\uB2E4. \uC9C1\uC6D0\uC758 \uC5F0\uAD6C
-    \uB2A5\uB825\uCE58\uAC00 \uB192\uC744\uC218\uB85D \uB354 \uB9CE\uC740 \uD3EC\uC778\uD2B8\uAC00
-    \uC313\uC785\uB2C8\uB2E4."
+  description: "보통 속도로 연구 포인트를 생산하는 연구대. 직원의 연구 능력치가 높을수록 더 많은 포인트가 쌓인다."
   buildingPrefab: {fileID: 3488678066343277963, guid: 354256c12ae95a24a9abe2f84a6b26c0, type: 3}
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}
   constructionTime: 30
   requiredResources:
   - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
-    amount: 4
-  - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
-    amount: 10
+    amount: 6
+  - item: {fileID: 11400000, guid: 0ddfcc2aed7aa6c46a16d83f43f46539, type: 2}
+    amount: 2
   maxHealth: 100
-  blocksMovement: 1
+  blocksMovement: 0
   requiresFloorSupport: 1
   destructionDrops: []
   paybackRatio: 0.5

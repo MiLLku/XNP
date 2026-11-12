@@ -8,7 +8,7 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "MiningTier", menuName = "Research/Effects/Mining Tier")]
 public class ResearchMiningTierEffect : ResearchUnlockEffect
 {
-    [Tooltip("연구를 마치면 열리는 채광 등급 (1 = 석탄·구리 / 2 = 철·은 / 3 = 금·수정·티타늄 / 4 = 경계암)")]
+    [Tooltip("연구를 마치면 열리는 채광 등급 (1 = 석탄·구리·주석 / 2 = 은 / 3 = 철 / 4 = 금·수정·침정석 / 5 = 경계암)")]
     [Range(1, MiningSkillGate.MAX_TIER)] public int tier = 1;
 
     public override void Apply()

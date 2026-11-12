@@ -101,6 +101,9 @@ public abstract class PlantBase : MonoBehaviour, IHarvestable
     /// <summary>품고 있는 건물 칸 (야생이면 null)</summary>
     public IPlantHost Host { get; set; }
 
+    /// <summary>성장 속도 배율 — 심어진 곳이 정한다 (간이 밭 0.5)</summary>
+    public float GrowthMultiplier { get; set; } = 1f;
+
     /// <summary>현재 성장 속도 배율 (적정 온도 반영, 마지막 검사 결과)</summary>
     public float GrowthRate => IsGrowthBlocked ? 0f : growthRate;
 
@@ -173,7 +176,7 @@ public abstract class PlantBase : MonoBehaviour, IHarvestable
         if (IsGrowthBlocked) return;
 
         if (activeGrowthTime <= 0f) RollGrowthTime();
-        SetGrowth(activeGrowthTime > 0f ? growth + Time.deltaTime * growthRate / activeGrowthTime : 1f);
+        SetGrowth(activeGrowthTime > 0f ? growth + Time.deltaTime * growthRate * GrowthMultiplier / activeGrowthTime : 1f);
     }
 
     /// <summary>
@@ -242,7 +245,8 @@ public abstract class PlantBase : MonoBehaviour, IHarvestable
 
         DropYields();
 
-        if (lifecycle == PlantLifecycle.SingleUse) Remove();
+        // 재배 칸(밭·수경재배기)의 작물은 뿌리가 남아 0%부터 다시 자란다 — 씨앗은 처음 한 번만 쓴다
+        if (lifecycle == PlantLifecycle.SingleUse && Host == null) Remove();
         else
         {
             RollGrowthTime();

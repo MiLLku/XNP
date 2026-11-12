@@ -56,6 +56,15 @@ public class RuntimeIDRegistry : DestroySingleton<RuntimeIDRegistry>
     }
 
     /// <summary>
+    /// 그 ID에 owner가 등록돼 있을 때만 해제합니다 — 불러오기 때 지운 옛 개체의 OnDestroy(프레임 끝)가
+    /// 같은 ID로 새로 복원된 개체의 등록을 지우던 문제 방지.
+    /// </summary>
+    public void Unregister(int id, UnityEngine.Object owner)
+    {
+        if (_registry.TryGetValue(id, out var obj) && obj == owner) Unregister(id);
+    }
+
+    /// <summary>
     /// ID로 오브젝트를 조회합니다.
     /// </summary>
     /// <typeparam name="T">조회할 타입</typeparam>

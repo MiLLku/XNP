@@ -15,9 +15,9 @@ MonoBehaviour:
   buildingID: 2006
   buildingName: "\uB098\uBB34 \uBB38"
   icon: {fileID: 0}
-  category: 0
+  category: 3
   description: 
-  buildingPrefab: {fileID: 0}
+  buildingPrefab: {fileID: 7777777777777777771, guid: 9e778d2e63c26da4d9f1914451df3ba6, type: 3}
   size: {x: 1, y: 2}
   pivot: {x: 0, y: 0}
   workAmount: 3

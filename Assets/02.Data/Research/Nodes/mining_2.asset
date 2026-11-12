@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: mining_2
   nodeName: "채광 II"
-  description: "효율 · 철과 은을 캘 수 있게 됩니다. 채광 속도 +25%. 바위 동굴의 구리와 석탄으로 연구합니다."
+  description: "효율 · 은을 캘 수 있게 됩니다(70칸 아래). 채광 속도 +25%. 구리와 석탄으로 연구합니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - mining_1

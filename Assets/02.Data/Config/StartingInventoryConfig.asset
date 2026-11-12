@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   startingItems:
   - item: {fileID: 11400000, guid: deb0f62de7e0436bb9fc8a85f2cf9d23, type: 2}
-    amount: 8
-  - item: {fileID: 11400000, guid: 0ad4d990f3ad69347bb05a7a00afc93e, type: 2}
     amount: 20
+  - item: {fileID: 11400000, guid: 0ad4d990f3ad69347bb05a7a00afc93e, type: 2}
+    amount: 30
+  - item: {fileID: 11400000, guid: d5796d620e761744d868a4d665bd8364, type: 2}
+    amount: 4
   startingEquipment: []
   startingOutfit:
   - {fileID: 11400000, guid: a52ef643c2699ef48a8abd15e9f482f1, type: 2}
@@ -24,3 +26,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 6dc233937ca84468979ebcf835662a1d, type: 2}
   - {fileID: 11400000, guid: f0e756b9b0d546358edac1a917baa176, type: 2}
   - {fileID: 11400000, guid: d91197fa1c574c2380832f3e2a26be91, type: 2}
+  startingRangedWeapon: {fileID: 11400000, guid: 96e96a1f2c8147840b7229805038543f, type: 2}

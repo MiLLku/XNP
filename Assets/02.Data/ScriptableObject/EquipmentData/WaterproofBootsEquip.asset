@@ -50,3 +50,4 @@ MonoBehaviour:
     healthRestore: 0
     erosionReduce: 0
   abilities: []
+  metalTier: 1

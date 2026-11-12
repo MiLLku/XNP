@@ -13,6 +13,16 @@ MonoBehaviour:
   m_Name: ResearchTreeConfig
   m_EditorClassIdentifier: Assembly-CSharp::ResearchTreeConfig
   nodes:
+  - {fileID: 11400000, guid: 8ccd08dd97f7413ebf24eb170fde49b1, type: 2}
+  - {fileID: 11400000, guid: 646fdb5add80413ab1db4679e66fdf9c, type: 2}
+  - {fileID: 11400000, guid: 98b7b222652d45d9a15836b4506ca8dc, type: 2}
+  - {fileID: 11400000, guid: 37c183703a564a399b7b50e0687b4367, type: 2}
+  - {fileID: 11400000, guid: ffa9d46126fe4a2fb58899dfaf6b9278, type: 2}
+  - {fileID: 11400000, guid: ef1d3263c2ec4a7798f37a5a94374ce6, type: 2}
+  - {fileID: 11400000, guid: 882593022cd242ccadcf87facb204096, type: 2}
+  - {fileID: 11400000, guid: d1c73bc1609644b3845359bb5f2ddfc7, type: 2}
+  - {fileID: 11400000, guid: 31c3a23ce7654e4a8b99eaf9aed51d87, type: 2}
+  - {fileID: 11400000, guid: b07643fdb1fc4622880b47500d1039c6, type: 2}
   - {fileID: 11400000, guid: 5d818631fce91174dad96a138b20f396, type: 2}
   - {fileID: 11400000, guid: 8f47eb62358130a44aea380af282efb9, type: 2}
   - {fileID: 11400000, guid: 5f7435d4d747db94ca9ece25f1a3109a, type: 2}
@@ -54,3 +64,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 294eb25dcb63d2247a71da18b2ec7559, type: 2}
   - {fileID: 11400000, guid: 2e3ce398daef0cf42973f43fa4e274b0, type: 2}
   - {fileID: 11400000, guid: 3997d8035e8a6024ab4c1ecba3e44535, type: 2}
+  - {fileID: 11400000, guid: 5f0a56b69fd1db749bb566b4ed368266, type: 2}
+  - {fileID: 11400000, guid: 65849f76e61af5846a75063121070d64, type: 2}

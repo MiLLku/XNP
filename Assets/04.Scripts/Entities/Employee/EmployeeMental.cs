@@ -273,6 +273,9 @@ public class EmployeeMental : MonoBehaviour
         if (mtbSeconds <= 0f) return true;
 
         float chance = 1f - Mathf.Exp(-interval / mtbSeconds);
+        var cfg = Cfg;
+        if (cfg != null && DayCycle.instance != null && DayCycle.instance.Day <= cfg.earlyDays)
+            chance *= cfg.earlyChanceMultiplier; // 초반 완화 — 오락 시설이 없을 때다
         return Random.value < chance;
     }
 
@@ -283,6 +286,9 @@ public class EmployeeMental : MonoBehaviour
     {
         // 디버그: 침식 계열 차단 시 계열 추첨을 건너뛰고 일반 계열만 사용한다
         bool blockErosionKind = DebugManager.IsBlocked(DebugFlag.ErosionKind);
+        // 정화 직후 직원은 침식 계열이 일어나지 않는다
+        var erosionCtl = GetComponent<EmployeeErosionController>();
+        if (erosionCtl != null && erosionCtl.PurifiedRemaining > 0f) blockErosionKind = true;
         bool preferErosion = !blockErosionKind && Random.value < GetErosionKindChance();
 
         // 선택한 계열에 후보가 없으면 반대 계열로 폴백한다
@@ -533,7 +539,7 @@ public class EmployeeMental : MonoBehaviour
 
         normalCooldowns[type] = cooldown;
 
-        PushBreakLetter(BreakLabel(type), NormalBreakBody(type, duration), LetterType.Neutral, false);
+        PushBreakLetter(BreakLabel(type), NormalBreakBody(type, duration), LetterType.Neutral, true); // 정신 이상은 위험 레터 — 확인할 때까지 정지
     }
 
     #endregion
@@ -588,10 +594,9 @@ public class EmployeeMental : MonoBehaviour
 
         erosionCooldowns[behavior.BehaviorType] = cooldown;
 
-        bool destructive = IsDestructiveKind(behavior.BehaviorType);
         PushBreakLetter(BreakLabel(behavior.BehaviorType),
                         ErosionBreakBody(behavior.BehaviorType, duration),
-                        LetterType.Threat, destructive);
+                        LetterType.Threat, true); // 정신 이상은 모두 정지
 
         Debug.Log($"[Mental] {employee.DisplayName}: 침식 계열 정신 이상 — {behavior.BehaviorType} ({duration:F0}초)");
     }
@@ -630,14 +635,6 @@ public class EmployeeMental : MonoBehaviour
 
         if (pause) TimeManager.instance?.ForcePause();
     }
-
-    /// <summary>손실이 커서 플레이어가 즉시 개입해야 하는 침식 계열인지.</summary>
-    private static bool IsDestructiveKind(AbnormalBehaviorType type)
-        => type == AbnormalBehaviorType.ErosionOutburst
-        || type == AbnormalBehaviorType.AttackBuilding
-        || type == AbnormalBehaviorType.FriendlyAttack
-        || type == AbnormalBehaviorType.Tantrum
-        || type == AbnormalBehaviorType.Berserk;
 
     private static string BreakLabel(MentalEventType type) => type switch
     {

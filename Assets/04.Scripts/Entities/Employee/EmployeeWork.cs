@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -75,6 +75,9 @@ public class EmployeeWork : MonoBehaviour
     private int desiredFoodCount = 1;
     private FoodCarryPolicy foodCarryPolicy = FoodCarryPolicy.CookedOnly;
     private int desiredDrugCount = 0;
+
+    /// <summary>진행 중인 운반 작업이 들고 있는 더미 — 작업이 끊기면 CancelWorkTask가 발밑에 내려놓는다</summary>
+    private Dictionary<ItemData, int> carriedPile;
 
     // 컴포넌트 참조
     private Employee employee;
@@ -296,9 +299,16 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     ///
     /// 재미는 여기에 관여하지 않는다 — 재미의 역할은 정신 이상 임계점 조절뿐이다.
     /// </summary>
+    /// <summary>위장체 복제체 — 이 직원의 속도 대신 원본(SpeedSource)의 속도를 쓴다. null이면 자기 속도</summary>
+    public Employee SpeedSource { get; set; }
+
+    /// <summary>최종 작업 속도 배율 (위장체 0.1)</summary>
+    public float SpeedScale { get; set; } = 1f;
+
     public float GetWorkSpeed(WorkType type)
     {
         if (!CanPerformWork(type)) return 0f;
+        if (SpeedSource != null && SpeedSource != employee) return SpeedSource.GetWorkSpeed(type) * SpeedScale;
 
         WorkAbilities abilities = Abilities;
         float baseSpeed = abilities.GetWorkSpeed(type);
@@ -316,7 +326,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         int aptitude = employee != null && employee.Growth != null ? employee.Growth.GetAptitudeLevel(type) : 1;
         float aptitudeModifier = levelCfg != null ? 1f + levelCfg.workSpeedPerAptitudeLevel * Mathf.Max(0, aptitude - 1) : 1f;
 
-        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier * equipmentModifier * aptitudeModifier;
+        return baseSpeed * traitModifier * fatigueModifier * globalModifier * mentalModifier * erosionModifier * researchModifier * equipmentModifier * aptitudeModifier * SpeedScale;
     }
 
     /// <summary>
@@ -799,7 +809,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         // ── Phase 2: 운반력만큼 수령 ───────────────────────────────────────
         // 운반력은 '더미(슬롯) 개수'다 — 바닥 아이템 운반과 같은 규약.
         // 한 더미에 몇 개가 들었는지는 세지 않으므로, 한 종류는 있는 대로 다 집는다.
-        var carryPile = new Dictionary<ItemData, int>();
+        var carryPile = carriedPile = new Dictionary<ItemData, int>();
         int remainingSlots = GetCarryCapacity();
 
         var pending = new List<ResourceCost>();
@@ -863,6 +873,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         {
             foreach (var kv in carryPile) InventoryManager.instance?.AddItem(kv.Key, kv.Value);
             if (showDebugInfo) Debug.Log($"[Work] {employee.DisplayName}: 창고 없음 → 인벤토리 직접 추가");
+            carryPile.Clear();
             return;
         }
 
@@ -894,6 +905,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
         if (showDebugInfo)
             Debug.Log($"[Work] {employee.DisplayName}: 창고 배달 완료 → {SummarizePile(carryPile)}");
+        carryPile.Clear();
     }
 
     private void AssignHaulWork(WorkOrder workOrder, HaulOrder haulOrder)
@@ -961,7 +973,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         }
 
         // 첫 픽업: 캐리 더미에 추가
-        var carryPile = new Dictionary<ItemData, int>();
+        var carryPile = carriedPile = new Dictionary<ItemData, int>();
         AddToCarryPile(carryPile, item.itemData, item.quantity);
 
         haulOrder.CompleteWork(employee);
@@ -1102,7 +1114,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         // 도착하기 전에 다른 직원이 자재를 가져갔으면 현재 위치 기준으로 재탐색합니다.
         const int MAX_EXTRA_ATTEMPTS = 3;
 
-        var carryPile = new Dictionary<ItemData, int>();
+        var carryPile = carriedPile = new Dictionary<ItemData, int>();
         IMaterialSource source = null;
         int  gathered    = 0;
         bool moveFailed  = false;
@@ -1422,6 +1434,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
         if (showDebugInfo)
             Debug.Log($"[Work] {employee.DisplayName}: 발밑에 내려놓음({reason}) → {SummarizePile(carryPile)}");
+        carryPile.Clear(); // 손을 떠났다 — 취소 시 다시 내려놓지 않게
     }
 
     /// <summary>같은 ItemData는 합산해서 캐리 더미에 추가합니다.</summary>
@@ -1736,6 +1749,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
     private void OnDestroy()
     {
+        carriedPile = null; // 파괴 중에는 바닥 아이템을 만들지 않는다 (씬 종료·로드)
         CancelWorkTask();
     }
 
@@ -1753,6 +1767,13 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     /// <summary>진행 중인 작업 실행을 취소합니다.</summary>
     private void CancelWorkTask()
     {
+        // 운반 도중 끊기면 들고 있던 더미는 지역 변수와 함께 사라진다 — 발밑에 내려놓는다
+        if (carriedPile != null)
+        {
+            DropCarryAtFeet(carriedPile, "작업 취소");
+            carriedPile = null;
+        }
+
         if (workCts == null) return;
 
         workCts.Cancel();

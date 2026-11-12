@@ -24,10 +24,11 @@ MonoBehaviour:
   stampKey: TREE_2x3
   scanMode: 0
   footprintWidth: 2
-  spawnChance: 0.5
-  minSpacing: 5
+  spawnChance: 0.8
+  minSpacing: 3
   allowedGroundTiles: 06000000
   avoidSpawnArea: 1
+  spawnAreaPaddingOverride: 8
   minDistanceFromBase: 0
   maxDistanceFromBase: 110
   spawnConditions:

@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: ironworking
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: ironworking
+  nodeName: "제철"
+  description: "효율 · 용광로와 철 주괴 제련법을 엽니다. 석탄을 많이 씁니다."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - silver_craft
+  resourceCosts:
+  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
+    amount: 4
+  - item: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
+    amount: 10
+  researchPointCost: 1200
+  unlockEffects:
+  - {fileID: 11400000, guid: 0ec7ed00dee94029b202d55b376af9ef, type: 2}
+  - {fileID: 11400000, guid: 63aa9ab37715f374a9fa4f8b3e5b5515, type: 2}
+  - {fileID: 11400000, guid: 5baa279d0ab941839999cd420f18c0d7, type: 2}
+  treePosition: {x: -3, y: -4}

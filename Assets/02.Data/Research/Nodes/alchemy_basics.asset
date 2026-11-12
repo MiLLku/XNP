@@ -19,11 +19,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - survival_basics
-  resourceCosts:
-  - item: {fileID: 11400000, guid: 0ddfcc2aed7aa6c46a16d83f43f46539, type: 2}
-    amount: 2
-  - item: {fileID: 11400000, guid: 263a3cd99eaacc740a12ed57c8055ee7, type: 2}
-    amount: 5
+  resourceCosts: []
   researchPointCost: 900
   unlockEffects:
   - {fileID: 11400000, guid: 7232efc4c8f5df649807815f6c369ebc, type: 2}

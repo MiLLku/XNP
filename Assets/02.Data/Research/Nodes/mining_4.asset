@@ -14,18 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: mining_4
   nodeName: "채광 IV"
-  description: "효율 · 최하층을 봉인한 경계암을 캘 수 있게 됩니다. 금·수정과 에테리온으로 연구합니다."
+  description: "효율 · 금·수정(130칸 아래)과 침정석(기지 좌우 120칸 너머)을 캘 수 있게 됩니다. 채광 속도 +60%. 철과 은으로 연구합니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - mining_3
   resourceCosts:
-  - item: {fileID: 11400000, guid: 506b5c22796be494bb67a91c9bd7802f, type: 2}
+  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+    amount: 5
+  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
     amount: 3
-  - item: {fileID: 11400000, guid: 0436ed0d1eb390b44830a471fdb1e83f, type: 2}
-    amount: 3
-  - item: {fileID: 11400000, guid: 94bfaf90d1b03aa40a345c881c0bb61f, type: 2}
-    amount: 1
   researchPointCost: 2100
   unlockEffects:
   - {fileID: 11400000, guid: c14586595e1f4802ba5ef01765fca055, type: 2}
+  - {fileID: 11400000, guid: 57173d52cd724413825362941b2ae188, type: 2}
   treePosition: {x: -6, y: -4}

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: silver_craft
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: silver_craft
+  nodeName: "은 세공"
+  description: "효율 · 은 주괴 제련법을 엽니다 (제련소)."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - bronze_metallurgy
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 018346c855b34ed5b035b4102f1e7131, type: 2}
+    amount: 4
+  researchPointCost: 900
+  unlockEffects:
+  - {fileID: 11400000, guid: 4633d48867aa30a4d89a8a0d47f7cc37, type: 2}
+  - {fileID: 11400000, guid: 7f4e839b122b4df3a1a2d0f293397a77, type: 2}
+  - {fileID: 11400000, guid: 8a1ce8bb7ebb4144be8e52da1a6e0a2d, type: 2}
+  - {fileID: 11400000, guid: ed717b2461c249b4b721f50b77ccbe3e, type: 2}
+  treePosition: {x: -3, y: -3}

@@ -30,6 +30,7 @@ public class BomberBehavior : MonoBehaviour, IXenopsBehavior
     private bool _exploded;
     private float _moveSpeed = 2f;
     private float _damage = 60f;
+    private float Damage => _damage * (_xenops != null ? _xenops.StatMultiplier : 1f);
 
     private void Awake()
     {
@@ -65,8 +66,8 @@ public class BomberBehavior : MonoBehaviour, IXenopsBehavior
             return;
         }
 
-        // 노릴 건물이 없으면 직원에게
-        var target = wall == null ? (_nav.TargetEmployee ?? CombatTargeting.PickEmployeeTarget(transform.position)) : null;
+        // 노릴 건물이 없으면 직원에게 (미끼에 끌리는 중엔 아무도)
+        var target = wall == null && !_nav.IsLured ? (_nav.TargetEmployee ?? CombatTargeting.PickEmployeeTarget(transform.position)) : null;
         if (target != null && Vector2.Distance(target.transform.position, transform.position) <= TRIGGER_DISTANCE)
         {
             Explode();
@@ -95,13 +96,13 @@ public class BomberBehavior : MonoBehaviour, IXenopsBehavior
                 var cell = new Vector2Int(Mathf.FloorToInt(c.x) + dx, Mathf.FloorToInt(c.y) + dy);
                 if (Vector2.Distance(c, new Vector2(cell.x + 0.5f, cell.y + 0.5f)) > BLAST_RADIUS + 0.5f) continue;
                 var b = Building.GetBuildingAt(cell);
-                if (b != null && hit.Add(b)) b.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(_damage)));
+                if (b != null && hit.Add(b)) b.TakeDamage(Mathf.Max(1, Mathf.RoundToInt(Damage)));
             }
 
         if (EmployeeManager.instance != null)
             foreach (var e in EmployeeManager.instance.AllEmployees.ToArray())
                 if (e != null && e.State != EmployeeState.Dead && Vector2.Distance(c, e.transform.position) <= BLAST_RADIUS)
-                    e.TakeDamage(_damage * EMPLOYEE_SHARE);
+                    e.TakeDamage(Damage * EMPLOYEE_SHARE);
 
         Debug.Log($"[BomberBehavior] 자폭 @ {c} — 건물 {hit.Count}개");
         Destroy(gameObject);

@@ -447,6 +447,22 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
         if (showDebugInfo)
             Debug.Log($"[WorkSystemManager] 전체 후보 작업물 수={candidates.Count}");
 
+        // 연구는 작업물이 아니라 작업대 자리 — 직원의 작업 순서에서 연구 차례가 오면 빈 작업대에 앉힌다
+        int researchPriority = enabledTypes.Contains(WorkType.Research) && employee.CanPerformWork(WorkType.Research)
+            ? employee.GetWorkPriority(WorkType.Research) : int.MaxValue;
+        bool researchTried = false;
+        foreach (var order in candidates)
+        {
+            if (!researchTried && employee.GetWorkPriority(order.workType) > researchPriority)
+            {
+                researchTried = true;
+                if (TryAssignResearch(employee)) return true;
+            }
+            if (AssignEmployeeToOrder(employee, order))
+                return true;
+        }
+        if (!researchTried && researchPriority != int.MaxValue && TryAssignResearch(employee)) return true;
+
         if (candidates.Count == 0)
         {
             if (showDebugInfo)
@@ -466,14 +482,25 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
             return false;
         }
 
-        foreach (var order in candidates)
-        {
-            if (AssignEmployeeToOrder(employee, order))
-                return true;
-        }
-
         if (showDebugInfo)
             Debug.LogWarning($"[WorkSystemManager] {employee.Data?.employeeName}: 모든 후보 작업물 할당 실패");
+        return false;
+    }
+
+    /// <summary>진행 중인 연구가 있고 비어 있는, 걸어서 닿는 작업대에 직원을 앉힌다</summary>
+    private bool TryAssignResearch(Employee employee)
+    {
+        var reach = ReachabilityMap.Current;
+        var foot = new Vector2Int(Mathf.FloorToInt(employee.transform.position.x), Mathf.FloorToInt(employee.transform.position.y));
+        foreach (var bench in ResearchWorkbench.All)
+        {
+            if (bench == null || !bench.CanAutoAssign) continue;
+            var p = bench.WorkPosition;
+            if (reach != null && !reach.IsReachable(foot, new Vector2Int(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y)))) continue;
+            bench.StartResearch(employee);
+            if (showDebugInfo) Debug.Log($"[WorkSystemManager] {employee.Data?.employeeName}: 연구 자동 배정");
+            return true;
+        }
         return false;
     }
 

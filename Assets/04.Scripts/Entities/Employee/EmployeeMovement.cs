@@ -801,7 +801,9 @@ public class EmployeeMovement : MonoBehaviour
         // 이유: Lerp 도중 발 아래 타일이 없는 순간(계단 중간)에 오탐 낙하가 발생하기 때문
         Vector2Int currentFootTile = GetFootTile();
         bool isLadderMove = IsVerticalMovementTile(currentFootTile) || IsVerticalMovementTile(targetTile);
-        if (heightDiff > 0 || isLadderMove) isClimbing = true;
+        // 내려가기도 길찾기가 허용한 계단 단차 — 대각선 직선 이동이 모서리 블록을 스치는 순간 낙하로 오판해
+        // 출발 칸으로 되돌아가는 무한 반복(창고에 못 가 굶어 죽음)이 있었다
+        if (heightDiff != 0 || isLadderMove) isClimbing = true;
 
         if (showDebugLogs)
         {

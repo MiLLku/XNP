@@ -34,6 +34,7 @@ public class XenopsHealth : MonoBehaviour
     /// <summary>체력 비율 (0~1)</summary>
     public float HealthRatio   => maxHealth > 0f ? currentHealth / maxHealth : 0f;
     public bool  IsDead        => _isDead;
+    public float Defense       => defense;
 
     #endregion
 
@@ -62,6 +63,9 @@ public class XenopsHealth : MonoBehaviour
                 $"[XenopsHealth] {gameObject.name}: Hostile 타입이 아닌데 XenopsHealth가 부착되어 있습니다.");
         }
     }
+
+    /// <summary>불러온 체력 (최대 체력을 넘지 않게)</summary>
+    public void SetCurrentHealth(float hp) => currentHealth = Mathf.Clamp(hp, 1f, Mathf.Max(1f, maxHealth));
 
     /// <summary>외부(Xenops.Initialize)에서도 직접 호출 가능.</summary>
     public void Initialize(float hp, float def)
@@ -110,14 +114,26 @@ public class XenopsHealth : MonoBehaviour
 
     #region 사망
 
+    /// <summary>체력과 무관하게 바로 죽인다 (침식된 인간 제압 시간 초과)</summary>
+    public void ForceDie()
+    {
+        currentHealth = 0f;
+        Die();
+    }
+
     private void Die()
     {
         if (_isDead) return;
+        // 침식된 인간은 처음 쓰러지면 제압 상태로 남는다 (정화 혈청 대상)
+        var eroded = GetComponent<ErodedHuman>();
+        if (eroded != null && eroded.InterceptDeath()) return;
         _isDead = true;
+        eroded?.OnDied();
 
         // 드랍 처리
         TryDrop();
         TryDropRaidTrophy();
+        HusbandryManager.instance?.OnXenopsDied(_xenops); // 불길한 알·침식된 인간 시체
         XenopsCodexManager.instance?.OnKilled(_xenops != null ? _xenops.Data : null); // 도감 연구도
 
         // XenopsManager에 제거 위임

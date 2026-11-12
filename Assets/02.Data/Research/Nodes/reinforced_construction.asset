@@ -19,11 +19,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - metal_structures
-  resourceCosts:
-  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
-    amount: 10
-  - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
-    amount: 30
+  resourceCosts: []
   researchPointCost: 1200
   unlockEffects:
   - {fileID: 11400000, guid: eaa3edd687a5fb140b64079a0f7cda80, type: 2}

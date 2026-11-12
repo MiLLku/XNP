@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81b1092194e3d004da8e7e4473dea7f9, type: 3}
+  m_Name: ErodedHumanMeleeData
+  m_EditorClassIdentifier: Assembly-CSharp::XenopsData
+  xenopsID: 6106
+  xenopsName: "침식된 인간"
+  description: "완전히 침식돼 적이 된 사람. 무작위 장비를 입고 온다. 쓰러뜨린 뒤 정화 혈청으로 되돌릴 수 있다."
+  icon: {fileID: -140982544, guid: f510959a14aaa6645bf49a5cd48bc5b5, type: 3}
+  xenopsType: 1
+  grade: 2
+  prefab: {fileID: 4465952956501963786, guid: c3b14667f40d42d6b6d56e995796c571, type: 3}
+  benefits: []
+  drawbacks: []
+  codexObservePercent: 0
+  codexKillPercent: 0
+  maxInterpretationLevel: 10
+  baseExpRequired: 50
+  expPerInteraction: 10
+  equipmentSlot: 0
+  effectRadius: 3
+  infiltrateInterval: 30
+  hostileStats:
+    moveSpeed: 3.5
+    maxHealth: 150
+    defense: 0.1
+    attackSpeed: 1
+    attackDamage: 8
+    attackRange: 1.5
+    size: 1
+    aoeErosionPerSecond: 0
+    aoeErosionRange: 2
+    subdueDropItemId: 0
+    subdueDropAmount: 0

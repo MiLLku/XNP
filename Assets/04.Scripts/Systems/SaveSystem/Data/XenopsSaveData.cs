@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 /// <summary>
 /// 제노프스 저장 데이터.
@@ -54,5 +55,36 @@ public class XenopsSaveData
     /// <summary>장착된 장비 슬롯 (EquipmentSlot enum, -1 = 미장착)</summary>
     public int equippedSlot = -1;
 
+    /// <summary>현재 체력 (0 = 구 세이브 — 가득 찬 채 복원)</summary>
+    public float health;
+
+    /// <summary>거점 구조물 건설 진행도 (-1 = 구조물 아님)</summary>
+    public float buildProgress = -1f;
+
+    /// <summary>거점 구조물이 다 지어진 뒤 흐른 시간(초) — 공포 토템 무드 진행</summary>
+    public float builtSeconds;
+
+    /// <summary>스포너 패턴(내보낼 적 ID 순서)·다음 칸·남은 타이머 — 스포너가 아니면 비어 있음</summary>
+    public List<int> spawnerPattern = new List<int>();
+    public int spawnerIndex;
+    public float spawnerTimer;
+
+    /// <summary>침식된 인간 — 원래 사람·착용 장비·제압 남은 시간</summary>
+    public ErodedHumanSaveData erodedHuman = new ErodedHumanSaveData();
+
     #endregion
+}
+
+/// <summary>침식된 인간 세이브 — 무작위 생성 사람 스냅샷과 칸별 장비(ID·내구도)</summary>
+[Serializable]
+public class ErodedHumanSaveData
+{
+    public bool has;
+    public GeneratedEmployeeSaveData person;
+    public int templateId;
+    public WorkAbilitiesSaveData abilities;
+    public List<int> slots = new List<int>();
+    public List<int> equipmentIds = new List<int>();
+    public List<float> durabilities = new List<float>();
+    public float downedRemaining;
 }

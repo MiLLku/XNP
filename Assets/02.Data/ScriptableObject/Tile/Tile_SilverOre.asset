@@ -27,8 +27,8 @@ MonoBehaviour:
   requiredMiningTier: 2
   dropItem: {fileID: 11400000, guid: 09ce745046665d24b87c78a7fc2e7848, type: 2}
   generateAsVein: 1
-  veinShallowOffset: -78
-  veinDeepOffset: -132
+  veinShallowOffset: -70
+  veinDeepOffset: -100
   veinNoiseScale: 0.14
   veinThreshold: 0.83
   veinSeedOffset: 6000

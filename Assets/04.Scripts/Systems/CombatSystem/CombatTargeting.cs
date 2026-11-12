@@ -24,6 +24,14 @@ public static class CombatTargeting
         return d;
     }
 
+    /// <summary>적이 노릴 수 있는 직원인지 — 사망·위장 외투 착용자 제외 (광역 피해는 이 판정을 거치지 않는다)</summary>
+    public static bool IsTargetable(Employee emp)
+    {
+        if (emp == null || emp.State == EmployeeState.Dead) return false;
+        var eq = emp.GetComponent<EmployeeEquipment>();
+        return eq == null || !eq.IsHiddenFromXenops;
+    }
+
     /// <summary>
     /// 어그로 가중 최근접 직원을 선정합니다 (사망 제외).
     /// </summary>
@@ -38,7 +46,7 @@ public static class CombatTargeting
 
         foreach (var emp in EmployeeManager.instance.AllEmployees)
         {
-            if (emp == null || emp.State == EmployeeState.Dead) continue;
+            if (!IsTargetable(emp)) continue;
             if (Vector2.Distance(from, emp.transform.position) > maxRadius) continue;
 
             float score = EffectiveDistance(from, emp);

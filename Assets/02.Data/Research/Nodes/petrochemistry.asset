@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: petrochemistry
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: petrochemistry
+  nodeName: "석유 화학"
+  description: "효율 · 유정(석유 분출구 위)과 정유기 — 합성수지·고급 연료."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - needle_metallurgy
+  resourceCosts:
+  - item: {fileID: 11400000, guid: 6f0a834fec48481ea1ce48081eb49e41, type: 2}
+    amount: 3
+  researchPointCost: 3000
+  unlockEffects:
+  - {fileID: 11400000, guid: fbef1203662c4f3aadc2a2897f88feb4, type: 2}
+  - {fileID: 11400000, guid: 04affb3ddb724bafbdf71e44778476f7, type: 2}
+  - {fileID: 11400000, guid: 4b514aab6c7b4e769d652176564e279e, type: 2}
+  - {fileID: 11400000, guid: 62de852e30574c8c9047e4e37958292b, type: 2}
+  - {fileID: 11400000, guid: 6dca9f3727214f12b5731dcb9325ce5c, type: 2}
+  - {fileID: 11400000, guid: 283adfc6b2694504afe97d67d1aedb15, type: 2}
+  - {fileID: 11400000, guid: 5185a3328dda470d85a84bcaf507f586, type: 2}
+  treePosition: {x: -3, y: -7}

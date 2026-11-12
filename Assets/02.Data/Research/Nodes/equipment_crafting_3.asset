@@ -20,13 +20,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - equipment_crafting_2
-  resourceCosts:
-  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
-    amount: 5
-  - item: {fileID: 11400000, guid: d83e7d160ee630a4e86a1121294c93a1, type: 2}
-    amount: 3
-  - item: {fileID: 11400000, guid: 506b5c22796be494bb67a91c9bd7802f, type: 2}
-    amount: 2
+  resourceCosts: []
   researchPointCost: 1920
   unlockEffects:
   - {fileID: 11400000, guid: 1f2ac4e715bf3334193379bf79606562, type: 2}

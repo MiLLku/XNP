@@ -16,7 +16,7 @@ MonoBehaviour:
   outputItem: {fileID: 11400000, guid: ac9e483d125aa774489d13a30f6752eb, type: 2}
   outputAmount: 1
   requiredMaterials:
-  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+  - item: {fileID: 11400000, guid: 018346c855b34ed5b035b4102f1e7131, type: 2}
     amount: 4
   - item: {fileID: 11400000, guid: 0ddfcc2aed7aa6c46a16d83f43f46539, type: 2}
     amount: 4

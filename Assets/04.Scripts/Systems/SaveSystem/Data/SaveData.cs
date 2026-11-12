@@ -118,6 +118,9 @@ public class SaveData
     /// <summary>액체(물·용암) (구 세이브에는 없음 — null이면 액체 없음)</summary>
     public FluidSaveData fluid;
 
+    /// <summary>침식체 사육 — 중립 개체·시체 부패 (구 세이브에는 없음 — null이면 없음)</summary>
+    public HusbandrySaveData husbandry;
+
     #endregion
 
     public SaveData()

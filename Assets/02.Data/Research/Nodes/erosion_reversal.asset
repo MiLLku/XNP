@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: erosion_reversal
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: erosion_reversal
+  nodeName: "침식 역행"
+  description: "제놉스 · 완전히 침식된 사람을 되돌리는 방법을 연구합니다. 정화 혈청(제놉스 장비 제작대)을 해금합니다."
+  icon: {fileID: 0}
+  prerequisiteNodeIds:
+  - purification_tech
+  resourceCosts: []
+  researchPointCost: 2400
+  unlockEffects:
+  - {fileID: 11400000, guid: 8fce64bd1e114b569307910e7b28a4eb, type: 2}
+  treePosition: {x: 7, y: -1}

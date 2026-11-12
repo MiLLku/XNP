@@ -108,6 +108,10 @@ public class EntityDefinition : ScriptableObject
     [Tooltip("시작 지점 주변(MapGenerator.spawnAreaPadding)을 피합니다.")]
     public bool avoidSpawnArea = true;
 
+    [Tooltip("시작 지점 중심 좌우로 피할 칸 수. 음수면 MapGenerator.spawnAreaPadding(기본 15).\n" +
+             "시작방 벽은 중심 ±7칸 — 8이면 벽에서 1~2칸 띄우고 바로 옆부터 난다(너비 2칸 개체 기준).")]
+    public int spawnAreaPaddingOverride = -1;
+
     [Tooltip("기지에서 이 거리(칸) 이상 떨어진 곳에만 배치합니다. 0이면 제한 없음.\n" +
              "실외 침식이 기지에서 멀수록 오르므로, 이 값으로 '위험 지대에만 나는 식물'을 만듭니다.")]
     [Min(0)] public int minDistanceFromBase = 0;

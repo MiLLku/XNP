@@ -28,7 +28,7 @@ MonoBehaviour:
   requiredResources:
   - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
     amount: 10
-  - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
+  - item: {fileID: 11400000, guid: 0ddfcc2aed7aa6c46a16d83f43f46539, type: 2}
     amount: 4
   maxHealth: 100
   blocksMovement: 1
@@ -49,5 +49,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 1
-  addonForBuildingIds: e50c0000e40c000065000000ec0c0000a10f0000ea0c0000eb0c0000
+  addonForBuildingIds: e50c0000e40c000065000000ec0c0000a10f0000ea0c0000eb0c0000ab0f0000ac0f0000
   addonWorkSpeedBonus: 0.1

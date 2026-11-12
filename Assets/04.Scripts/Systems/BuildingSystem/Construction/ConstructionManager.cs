@@ -159,7 +159,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
     /// </summary>
     public bool IsBuildingAvailable(BuildingData data)
     {
-        // 프리팹이 없는 건물 데이터(맵 개체로만 배치되는 나무 문 등)는 지을 수 없다
+        // 프리팹이 없는 건물 데이터(맵 개체로만 배치되는 것)는 지을 수 없다
         if (data == null || data.buildingPrefab == null) return false;
         if (!data.requiresResearch) return true;
 
@@ -777,7 +777,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
         var buildings = FindObjectsByType<Building>();
         foreach (var building in buildings)
         {
-            // 프리팹이 없는 건물 데이터(맵이 개체로 배치한 나무 문 등)는 여기서 복원할 수 없다 —
+            // 프리팹이 없는 건물 데이터(맵이 개체로만 배치한 것)는 여기서 복원할 수 없다 —
             // 그런 개체는 MapGenerator가 MapEntityIdentity로 저장·복원한다 (EntityDefinition.persistInSave)
             if (building.buildingData != null && building.buildingData.buildingPrefab != null)
             {
