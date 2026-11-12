@@ -162,13 +162,13 @@ public static class DefinitionBootstrapper
         new EntitySeed(2005, "Chest",       "상자",        EntityKind.Building),
         new EntitySeed(2006, "WoodDoor",    "나무 문",     EntityKind.Building),
 
-        new EntitySeed(2010, "WoodFloor",   "나무 바닥",   EntityKind.FloorPrefab),
-        new EntitySeed(2011, "StoneFloor",  "돌 바닥",     EntityKind.FloorPrefab),
-        new EntitySeed(2012, "MetalFloor",  "금속 바닥",   EntityKind.FloorPrefab),
-        new EntitySeed(2013, "DirtFloor",   "흙 바닥",     EntityKind.FloorPrefab),
-        new EntitySeed(2014, "CopperFloor", "구리 바닥",   EntityKind.FloorPrefab),
-        new EntitySeed(2015, "GoldFloor",   "금 바닥",     EntityKind.FloorPrefab),
-        new EntitySeed(2016, "SilverFloor", "은 바닥",     EntityKind.FloorPrefab),
+        new EntitySeed(2010, "WoodFloor",   "나무 타일",   EntityKind.FloorPrefab),
+        new EntitySeed(2011, "StoneFloor",  "돌 타일",     EntityKind.FloorPrefab),
+        new EntitySeed(2012, "MetalFloor",  "금속 타일",   EntityKind.FloorPrefab),
+        new EntitySeed(2013, "DirtFloor",   "흙 타일",     EntityKind.FloorPrefab),
+        new EntitySeed(2014, "CopperFloor", "구리 타일",   EntityKind.FloorPrefab),
+        new EntitySeed(2015, "GoldFloor",   "금 타일",     EntityKind.FloorPrefab),
+        new EntitySeed(2016, "SilverFloor", "은 타일",     EntityKind.FloorPrefab),
     };
 
     #endregion
@@ -194,14 +194,14 @@ public static class DefinitionBootstrapper
     // 값 출처: Build Prefab/Tile 아래 FloorTile 프리팹들의 직렬화 값 (문서 주석과 일치 확인 완료)
     private static readonly FloorSeed[] FloorSeeds =
     {
-        new FloorSeed(0, "WoodFloor",   "나무 바닥",     1.0f, false, false),
-        new FloorSeed(1, "StoneFloor",  "돌 바닥",       1.0f, false, false),
-        new FloorSeed(2, "MetalFloor",  "금속 바닥",     1.2f, false, false),
+        new FloorSeed(0, "WoodFloor",   "나무 타일",     1.0f, false, false),
+        new FloorSeed(1, "StoneFloor",  "돌 타일",       1.0f, false, false),
+        new FloorSeed(2, "MetalFloor",  "금속 타일",     1.2f, false, false),
         new FloorSeed(3, "WoodLadder",  "나무 사다리",   0.8f, true,  true),
         new FloorSeed(4, "MetalLadder", "금속 사다리",   0.9f, true,  true),
         new FloorSeed(5, "Catwalk",     "좁은 통로",     0.9f, false, false),
         new FloorSeed(6, "Bridge",      "다리",          1.0f, false, false),
-        new FloorSeed(7, "DirtFloor",   "가공된 흙 바닥", 0.9f, false, false),
+        new FloorSeed(7, "DirtFloor",   "흙 타일", 0.9f, false, false),
     };
 
     #endregion

@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: DirtTile
   m_EditorClassIdentifier: 
   buildingID: 3001
-  buildingName: "\uAC00\uACF5\uB41C \uD759 \uBC14\uB2E5"
+  buildingName: "\uD759 \uD0C0\uC77C"
   icon: {fileID: 0}
   category: 3
-  description: 
+  description: "\uD759\uC744 \uB2E4\uC838 \uB9CC\uB4E0 \uD0C0\uC77C. \uC704\uB97C
+    \uAC78\uC744 \uC218 \uC788\uACE0, \uC606\uC73C\uB85C\uB294 \uB9C9\uD600 \uBC29\uC758
+    \uBCBD\uC774 \uB429\uB2C8\uB2E4."
   buildingPrefab: {fileID: 7505152173001505341, guid: 2853fd1db479b3a40a4458d139e20ba4, type: 3}
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}
@@ -43,3 +45,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 0
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

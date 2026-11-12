@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FloorTileDefinition
   codeName: WoodFloor
   id: 0
-  displayName: "\uB098\uBB34 \uBC14\uB2E5"
+  displayName: "\uB098\uBB34 \uD0C0\uC77C"
   description: 
   blendTexture: {fileID: 0}
   erosionPermeability: 0.6

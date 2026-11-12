@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FloorTileDefinition
   codeName: StoneFloor
   id: 1
-  displayName: "\uB3CC \uBC14\uB2E5"
+  displayName: "\uB3CC \uD0C0\uC77C"
   description: 
   blendTexture: {fileID: 2800000, guid: fe7b58a22e9b11d4d8ffe9f8bbabfcd3, type: 3}
   erosionPermeability: 0.3

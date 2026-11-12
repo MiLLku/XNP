@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EntityDefinition
   codeName: GoldFloor
   id: 2015
-  displayName: "\uAE08 \uBC14\uB2E5"
+  displayName: "\uAE08 \uD0C0\uC77C"
   description: 
   kind: 3
   prefab: {fileID: 1000, guid: b7541334c7fc7604a86101b7a5eb0404, type: 3}
@@ -28,5 +28,40 @@ MonoBehaviour:
   minSpacing: 0
   allowedGroundTiles: 
   avoidSpawnArea: 1
+  spawnAreaPaddingOverride: -1
+  minDistanceFromBase: 0
+  maxDistanceFromBase: 0
+  spawnConditions:
+    erosion:
+      use: 0
+      min: 0
+      max: 0
+    temperature:
+      use: 0
+      min: 0
+      max: 0
+    habitat: 0
+    orErodedHabitat: 0
+  neighborRadius: 0
+  maxNeighbors: 0
+  spawnAtRuntime: 0
+  runtimeSpawnInterval: 120
+  growthConditions:
+    erosion:
+      use: 0
+      min: 0
+      max: 0
+    temperature:
+      use: 0
+      min: 0
+      max: 0
+    habitat: 0
+    orErodedHabitat: 0
+  optimalTemperature:
+    use: 0
+    min: 0
+    max: 0
+  temperatureFalloff: 10
+  minTemperatureRate: 0.1
   persistInSave: 1
   hasGrowthState: 0

@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: GoldFloor
   m_EditorClassIdentifier: 
   buildingID: 3010
-  buildingName: "\uAE08 \uBC14\uB2E5"
+  buildingName: "\uAE08 \uD0C0\uC77C"
   icon: {fileID: 0}
   category: 3
-  description: "\uAE08\uC73C\uB85C \uB9CC\uB4E0 \uBC14\uB2E5."
+  description: "\uAE08\uC73C\uB85C \uB9CC\uB4E0 \uD0C0\uC77C. \uC704\uB97C \uAC78\uC744
+    \uC218 \uC788\uACE0, \uC606\uC73C\uB85C\uB294 \uB9C9\uD600 \uBC29\uC758 \uBCBD\uC774
+    \uB429\uB2C8\uB2E4."
   buildingPrefab: {fileID: 1000, guid: b7541334c7fc7604a86101b7a5eb0404, type: 3}
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}
@@ -25,7 +27,7 @@ MonoBehaviour:
   - item: {fileID: 11400000, guid: 506b5c22796be494bb67a91c9bd7802f, type: 2}
     amount: 2
   maxHealth: 100
-  blocksMovement: 0
+  blocksMovement: 1
   requiresFloorSupport: 0
   movementSpeedMultiplier: 1
   allowsVerticalMovement: 0
@@ -43,3 +45,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 1
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

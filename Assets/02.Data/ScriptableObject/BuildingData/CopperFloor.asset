@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: CopperFloor
   m_EditorClassIdentifier: 
   buildingID: 3009
-  buildingName: "\uAD6C\uB9AC \uBC14\uB2E5"
+  buildingName: "\uAD6C\uB9AC \uD0C0\uC77C"
   icon: {fileID: 0}
   category: 3
-  description: "\uAD6C\uB9AC\uB85C \uB9CC\uB4E0 \uBC14\uB2E5."
+  description: "\uAD6C\uB9AC\uB85C \uB9CC\uB4E0 \uD0C0\uC77C. \uC704\uB97C \uAC78\uC744
+    \uC218 \uC788\uACE0, \uC606\uC73C\uB85C\uB294 \uB9C9\uD600 \uBC29\uC758 \uBCBD\uC774
+    \uB429\uB2C8\uB2E4."
   buildingPrefab: {fileID: 1000, guid: 4ebd5779362506544b590b6e03630586, type: 3}
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}
@@ -25,7 +27,7 @@ MonoBehaviour:
   - item: {fileID: 11400000, guid: 0ddfcc2aed7aa6c46a16d83f43f46539, type: 2}
     amount: 2
   maxHealth: 120
-  blocksMovement: 0
+  blocksMovement: 1
   requiresFloorSupport: 0
   movementSpeedMultiplier: 1
   allowsVerticalMovement: 0
@@ -43,3 +45,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 1
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0
