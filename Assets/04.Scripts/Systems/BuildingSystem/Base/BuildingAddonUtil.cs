@@ -48,6 +48,24 @@ public static class BuildingAddonUtil
         return mult;
     }
 
+    /// <summary>host를 돕는 부속(addonForBuildingIds에 host가 있는 건물)이 같은 방에 몇 종류 있는지</summary>
+    public static int CountAddonKinds(Building host)
+    {
+        if (host == null || host.buildingData == null) return 0;
+        int room = GetRoomId(host);
+        if (room == RoomManager.OUTDOOR_ID) return 0;
+
+        int hostId = host.buildingData.buildingID;
+        var kinds = new HashSet<int>();
+        foreach (var b in UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None))
+        {
+            var d = b != null ? b.buildingData : null;
+            if (d == null || b == host || d.addonForBuildingIds == null || System.Array.IndexOf(d.addonForBuildingIds, hostId) < 0) continue;
+            if (GetRoomId(b) == room) kinds.Add(d.buildingID);
+        }
+        return kinds.Count;
+    }
+
     /// <summary>host와 같은 방에 있는 buildingID 건물 수 (host 자신 제외)</summary>
     public static int CountInSameRoom(Building host, int addonBuildingId)
     {

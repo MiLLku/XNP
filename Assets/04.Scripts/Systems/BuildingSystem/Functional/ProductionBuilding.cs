@@ -468,7 +468,9 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
     {
         if (output == null || totalOutput <= 0) return;
 
-        if (EquipmentStorageManager.TryAddCraftOutput(output, totalOutput))
+        // 장비 품질 = 만든 직원의 제작 적성 + 이 건물의 단계 + 같은 방 부속
+        float qualityScore = EquipmentQualities.Score(_currentOrder != null ? _currentOrder.assignedWorker : null, _building);
+        if (EquipmentStorageManager.TryAddCraftOutput(output, totalOutput, qualityScore))
         {
             Debug.Log($"[{GetBuildingName()}] 제작 완료! {output.itemName} x{totalOutput} → 장비 보관소 (예약 #{reservationId} 소모)");
             return;

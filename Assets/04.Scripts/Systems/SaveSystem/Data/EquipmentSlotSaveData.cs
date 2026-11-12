@@ -24,4 +24,7 @@ public class EquipmentSlotSaveData
 
     /// <summary>장비 인스턴스 ID (풀 추적용, 0 = 미부여)</summary>
     public int equipInstanceId;
+
+    /// <summary>장비 품질 (v18 추가 — 없던 세이브는 0 = 평범함)</summary>
+    public int quality;
 }

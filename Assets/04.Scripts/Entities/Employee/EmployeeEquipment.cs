@@ -108,8 +108,8 @@ public class EmployeeEquipment : MonoBehaviour
             inst = new EquipmentInstance
             {
                 equipmentId = data.itemData != null ? data.itemData.itemID : 0,
-                durability = data.MaxDurability
             };
+            inst.durability = inst.MaxDurability(data);
         }
         return inst;
     }
@@ -160,16 +160,23 @@ public class EmployeeEquipment : MonoBehaviour
     }
 
     /// <summary>
-    /// 수선 진입점 (보류 — 틀만, 호출하는 곳 없음): 수선 가능한 장비의 내구도를 최대로 되돌립니다.
+    /// 수선 진입점 (보류 — 틀만, 호출하는 곳 없음): '전설적' 장비만 내구도를 최대로 되돌립니다.
     /// 자원 차감·수선대·작업은 수선 시스템을 만들 때 호출하는 쪽이 맡습니다.
     /// </summary>
     public bool Repair(EquipmentSlot slot)
     {
         var data = GetItemInSlot(slot);
-        if (data == null || !data.repairable || !equippedInstances.TryGetValue(slot, out var inst)) return false;
-        inst.durability = data.MaxDurability;
+        if (data == null || !equippedInstances.TryGetValue(slot, out var inst) || !CanRepair(inst)) return false;
+        inst.durability = inst.MaxDurability(data);
         return true;
     }
+
+    /// <summary>수선 가능 = 전설적 품질</summary>
+    public static bool CanRepair(EquipmentInstance inst) => inst != null && inst.quality == EquipmentQuality.Legendary;
+
+    /// <summary>슬롯 장비의 품질 배율 (인스턴스 없으면 1)</summary>
+    private float QualityMult(EquipmentSlot slot)
+        => equippedInstances.TryGetValue(slot, out var inst) && inst != null ? inst.QualityMultiplier : 1f;
 
     /// <summary>공격 수행 시 무기 내구도 소모 (전투 시스템에서 호출 — 훅 준비).</summary>
     public void NotifyAttackPerformed()
@@ -423,7 +430,7 @@ public class EmployeeEquipment : MonoBehaviour
         foreach (var kvp in itemSlots)
         {
             if (kvp.Value.passiveEffects != null)
-                total += kvp.Value.DamageReduction;
+                total += kvp.Value.DamageReduction * QualityMult(kvp.Key);
         }
         return Mathf.Clamp(total, 0f, 100f);
     }
@@ -438,7 +445,7 @@ public class EmployeeEquipment : MonoBehaviour
         int total = 0;
         foreach (var kvp in itemSlots)
         {
-            if (kvp.Value != null) total += kvp.Value.ErosionTolerance;
+            if (kvp.Value != null) total += Mathf.RoundToInt(kvp.Value.ErosionTolerance * QualityMult(kvp.Key));
         }
         return total;
     }
@@ -463,7 +470,7 @@ public class EmployeeEquipment : MonoBehaviour
         int total = 0;
         foreach (var kvp in itemSlots)
         {
-            if (kvp.Value != null) total += kvp.Value.heatTolerance;
+            if (kvp.Value != null) total += Mathf.RoundToInt(kvp.Value.heatTolerance * QualityMult(kvp.Key));
         }
         return total;
     }
@@ -784,6 +791,7 @@ public class EmployeeEquipment : MonoBehaviour
                 var inst = GetInstanceInSlot(slot);
                 slotData.durability = inst != null ? inst.durability : (item != null ? item.MaxDurability : 0f);
                 slotData.equipInstanceId = inst?.instanceId ?? 0;
+                slotData.quality = inst != null ? (int)inst.quality : 0;
             }
 
             data.equippedItems.Add(slotData);
@@ -815,8 +823,9 @@ public class EmployeeEquipment : MonoBehaviour
                         {
                             instanceId = slotData.equipInstanceId,
                             equipmentId = slotData.itemId,
-                            durability = slotData.durability > 0f ? slotData.durability : equipData.MaxDurability
+                            quality = (EquipmentQuality)slotData.quality
                         };
+                        inst.durability = slotData.durability > 0f ? slotData.durability : inst.MaxDurability(equipData);
                         // 특성상 못 입는 장비(예전 세이브)는 보관소로 돌려보낸다 — 보관소는 직원보다 먼저 복원됨
                         if (EquipItem(slot, equipData)) equippedInstances[slot] = inst;
                         else EquipmentStorageManager.instance?.ReturnInstance(inst);

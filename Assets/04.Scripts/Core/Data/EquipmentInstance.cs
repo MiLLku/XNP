@@ -15,4 +15,13 @@ public class EquipmentInstance
 
     /// <summary>현재 내구도. 0 이하가 되면 파괴된다 (indestructible 장비는 감소하지 않음).</summary>
     public float durability;
+
+    /// <summary>제작 품질 (없던 세이브는 0 = 평범함)</summary>
+    public EquipmentQuality quality;
+
+    /// <summary>품질 배율 — 성능과 최대 내구도에 곱한다</summary>
+    public float QualityMultiplier => EquipmentQualities.Multiplier(quality);
+
+    /// <summary>이 장비의 최대 내구도 (금속 단계 × 품질)</summary>
+    public float MaxDurability(EquipmentData data) => data != null ? data.MaxDurability * QualityMultiplier : 0f;
 }

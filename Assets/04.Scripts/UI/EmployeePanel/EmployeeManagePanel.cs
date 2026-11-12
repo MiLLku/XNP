@@ -578,13 +578,19 @@ public class EmployeeManagePanel : BasePanel
         if (entry == null || entry.data == null || entry.data.itemData == null) return;
 
         var lines = new List<string>();
+        var quality = entry.instance.quality;
+        float qm = entry.instance.QualityMultiplier;
+        if (!entry.data.IsConsumable)
+            lines.Add($"품질 {EquipmentQualities.Label(quality)} (성능·내구도 ×{qm:0.##})"
+                      + (EmployeeEquipment.CanRepair(entry.instance) ? " · 수선 가능" : ""));
         if (!string.IsNullOrWhiteSpace(entry.data.description)) lines.Add(entry.data.description);
-        if (entry.data.ErosionTolerance > 0) lines.Add($"견딜 수 있는 침식 {entry.data.ErosionTolerance} (착용 장비 합산)");
-        if (entry.data.heatTolerance > 0) lines.Add($"견딜 수 있는 온도 +{entry.data.heatTolerance}도 (맨몸 기준에 합산)");
+        if (entry.data.slot == EquipmentSlot.Weapon && entry.data.Damage > 0f) lines.Add($"피해 {entry.data.Damage * qm:F1}");
+        if (entry.data.ErosionTolerance > 0) lines.Add($"견딜 수 있는 침식 {Mathf.RoundToInt(entry.data.ErosionTolerance * qm)} (착용 장비 합산)");
+        if (entry.data.heatTolerance > 0) lines.Add($"견딜 수 있는 온도 +{Mathf.RoundToInt(entry.data.heatTolerance * qm)}도 (맨몸 기준에 합산)");
         if (entry.data.coldProtectionLevel > 0) lines.Add($"방한 +{entry.data.coldProtectionLevel}");
         if (entry.data.passiveEffects != null)
         {
-            if (entry.data.DamageReduction > 0f) lines.Add($"피해 감소 {entry.data.DamageReduction:F0}% (착용 장비 합산)");
+            if (entry.data.DamageReduction > 0f) lines.Add($"피해 감소 {entry.data.DamageReduction * qm:F0}% (착용 장비 합산)");
             if (entry.data.passiveEffects.workTypeModifiers != null)
                 foreach (var m in entry.data.passiveEffects.workTypeModifiers)
                     lines.Add($"{WorkTypeCategory.GetDisplayName(m.workType)} 속도 {m.speedModifier:+0;-0}%");
@@ -599,7 +605,7 @@ public class EmployeeManagePanel : BasePanel
             lines.Add($"1회용 — {when} 저절로 사용 ({what.Trim()})");
         }
         if (!entry.data.indestructible)
-            lines.Add($"내구도 {Mathf.CeilToInt(entry.instance.durability)}/{Mathf.CeilToInt(entry.data.MaxDurability)}");
+            lines.Add($"내구도 {Mathf.CeilToInt(entry.instance.durability)}/{Mathf.CeilToInt(entry.instance.MaxDurability(entry.data))}");
 
         var storage = EquipmentStorageManager.instance;
         lines.Add(entry.IsWorn

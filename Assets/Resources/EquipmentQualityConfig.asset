@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9993fc97f857a274f990528304534115, type: 3}
+  m_Name: EquipmentQualityConfig
+  m_EditorClassIdentifier: Assembly-CSharp::EquipmentQualityConfig
+  stationTiers:
+  - buildingId: 3300
+    bonus: 0
+  - buildingId: 3301
+    bonus: 3
+  - buildingId: 3308
+    bonus: 6
+  addonBonusPerKind: 2
+  maxAddonBonus: 4
+  maxScore: 20
+  chanceAtMinScore:
+  - 35
+  - 55
+  - 9
+  - 1
+  - 0
+  chanceAtMaxScore:
+  - 0
+  - 25
+  - 40
+  - 27
+  - 8
+  multipliers:
+  - 0.8
+  - 1
+  - 1.1
+  - 1.25
+  - 1.5

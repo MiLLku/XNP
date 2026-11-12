@@ -171,7 +171,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
     #region 풀 관리
 
     /// <summary>새 장비 인스턴스를 생성해 풀에 추가합니다 (내구도 = 최대).</summary>
-    public EquipmentInstance CreateInstance(EquipmentData data)
+    public EquipmentInstance CreateInstance(EquipmentData data, EquipmentQuality quality = EquipmentQuality.Normal)
     {
         if (data == null || data.itemData == null) return null;
 
@@ -179,8 +179,9 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         {
             instanceId = nextInstanceId++,
             equipmentId = data.itemData.itemID,
-            durability = data.MaxDurability
+            quality = quality
         };
+        inst.durability = inst.MaxDurability(data);
         pool.Add(inst);
         GameMessageBus.Publish(new EquipmentPoolChangedMessage());
         return inst;
@@ -281,18 +282,33 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
     /// <summary>
     /// 제작 산출물이 장비면 풀에 인스턴스로 추가합니다.
     /// CraftingTable/ProductionBuilding의 산출 지점에서 호출 — true면 인벤토리 추가를 생략할 것.
+    /// qualityScore가 0 이상이면 개마다 품질을 굴리고 제작 완료 레터를 띄운다 (음수 = 제작이 아닌 입고, 평범함).
+    /// 1회용 장비(다용도구)에는 품질이 없다.
     /// </summary>
-    public static bool TryAddCraftOutput(ItemData item, int amount)
+    public static bool TryAddCraftOutput(ItemData item, int amount, float qualityScore = -1f)
     {
         if (instance == null || item == null || GameDatabase.Instance == null) return false;
 
         var equipData = GameDatabase.Instance.GetEquipmentData(item.itemID);
         if (equipData == null) return false;
 
+        bool rolled = qualityScore >= 0f && !equipData.IsConsumable;
+        var names = new List<string>();
         for (int i = 0; i < amount; i++)
-            instance.CreateInstance(equipData);
+        {
+            var q = rolled ? EquipmentQualities.Roll(qualityScore) : EquipmentQuality.Normal;
+            instance.CreateInstance(equipData, q);
+            names.Add(EquipmentQualities.Name(q, item.itemName));
+        }
 
-        Debug.Log($"[EquipmentStorage] 제작 장비 입고: {item.itemName} x{amount}");
+        if (rolled)
+            NotificationManager.instance?.PushLetter(new Letter
+            {
+                title = "장비 제작 완료",
+                body = $"{string.Join(", ", names)} — 장비 보관소에 들어갔습니다.",
+                type = LetterType.Positive
+            });
+        Debug.Log($"[EquipmentStorage] 제작 장비 입고: {string.Join(", ", names)} (점수 {qualityScore:F1})");
         return true;
     }
 

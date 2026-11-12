@@ -81,11 +81,9 @@ public class EquipmentData : ScriptableObject
     [Tooltip("전투 소모량 — 무기: 공격 1회당 / 방어구: 피격 1회당")]
     [Min(0f)] public float combatWearPerHit = 1f;
 
-    // shortcut: 수선 시스템은 사용자 결정(2026-10-15)으로 보류 — 틀(필드·진입점 EmployeeEquipment.Repair)만 있고 건물·작업·UI·연구 없음. 수선대·'수선' 작업을 만들 때 연결.
+    // shortcut: 수선 시스템은 보류 — 틀(진입점 EmployeeEquipment.Repair)만 있고 건물·작업·UI·연구 없음. 수선대·'수선' 작업을 만들 때 연결.
+    // 수선 가능 여부는 장비 종류가 아니라 개체의 품질로 정한다 — '전설적'만 (EmployeeEquipment.CanRepair).
     [Header("수선 (보류 — 틀만)")]
-    [Tooltip("수선 가능한 장비인지 (비싼·고급 장비만). 지금은 아무 데서도 쓰지 않습니다.")]
-    public bool repairable = false;
-
     [Tooltip("내구도를 최대로 되돌리는 데 드는 수선 자원 (보류)")]
     public List<ResourceCost> repairCost = new List<ResourceCost>();
 

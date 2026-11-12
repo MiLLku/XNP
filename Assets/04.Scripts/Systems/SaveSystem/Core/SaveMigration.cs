@@ -7,7 +7,7 @@
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 17;
+    public const int CURRENT_VERSION = 18;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -77,6 +77,9 @@ public static class SaveMigration
                     break;
                 case 16:
                     data = MigrateV16ToV17(data);
+                    break;
+                case 17:
+                    data = MigrateV17ToV18(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -696,6 +699,16 @@ public static class SaveMigration
 
         Debug.Log($"[SaveMigration] v17 완료 — 직원 장비 칸에서 제놉스 {removed}개 해제");
         data.saveVersion = 17;
+        return data;
+    }
+
+    /// <summary>
+    /// v17 → v18: 장비 품질 추가. 품질 값 0이 '평범함'이라 예전 장비는 고칠 것 없이 평범함이 된다 — 버전만 올린다.
+    /// </summary>
+    private static SaveData MigrateV17ToV18(SaveData data)
+    {
+        Debug.Log("[SaveMigration] v17 → v18 (장비 품질 — 기존 장비는 평범함)");
+        data.saveVersion = 18;
         return data;
     }
 

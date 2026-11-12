@@ -14,7 +14,8 @@ public class EquipmentEntry
     public Employee wearer;
 
     public bool IsWorn => wearer != null;
-    public string Name => data != null && data.itemData != null ? data.itemData.itemName : "장비";
+    public string Name => EquipmentQualities.Name(instance != null ? instance.quality : EquipmentQuality.Normal,
+                                                  data != null && data.itemData != null ? data.itemData.itemName : "장비");
 }
 
 /// <summary>

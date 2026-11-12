@@ -299,7 +299,8 @@ public class EmployeeCombat : MonoBehaviour
     public float GetAttackDamage()
     {
         var w = Weapon;
-        float baseDamage = w != null ? w.Damage : (Cfg != null ? Cfg.unarmedDamage : 3f);
+        var wInst = w != null && equipment != null ? equipment.GetInstanceInSlot(EquipmentSlot.Weapon) : null;
+        float baseDamage = w != null ? w.Damage * (wInst != null ? wInst.QualityMultiplier : 1f) : (Cfg != null ? Cfg.unarmedDamage : 3f);
 
         // 무기가 아닌 장비(장갑·반지 등)의 데미지 가산
         if (equipment != null) baseDamage += equipment.GetTotalDamageBonus();
