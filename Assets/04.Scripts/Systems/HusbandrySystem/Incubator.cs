@@ -64,8 +64,8 @@ public class Incubator : MonoBehaviour, IBuildingExtraSerializable, IBuildingFun
         for (int t = cfg.eggByTier.Length - 1; t >= 0; t--)
         {
             var egg = cfg.eggByTier[t];
-            // 창고에 들어온 알만 — 바닥의 알은 예약이 안 돼서 보급이 영영 안 걸린다 (창고로 옮겨진 뒤 받는다)
-            if (egg == null || InventoryManager.instance.GetAvailableAmount(egg) <= 0) continue;
+            // 창고 + 창고에서 닿는 바닥 알 (TryReserve와 같은 기준)
+            if (egg == null || InventoryManager.instance.GetWorldAvailable(egg) <= 0) continue;
             if (eggSupply.item != egg) { eggSupply.Cancel(); eggSupply.item = egg; }
             return;
         }

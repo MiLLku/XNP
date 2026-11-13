@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Cysharp.Threading.Tasks;
 
 /// <summary>
 /// 생산 건물 추상 클래스
@@ -14,7 +15,7 @@ using UnityEngine;
 ///   5. 작업 취소 → CancelProduction → 예약 해제 (자원 손실 없음)
 /// </summary>
 [RequireComponent(typeof(Collider2D))]
-public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
+public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction, IMaterialReceiver, IBuildingExtraSerializable
 {
     #region 필드 및 설정
 
@@ -295,12 +296,197 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
         _pendingAmount = amount;
         _pendingReservationId = reservationId;
 
+        // 재료가 있으면 먼저 직원이 창고·바닥 더미에서 가져온다 — 다 오면 제작 시작
+        if (BeginMaterialHaul(worker)) return;
+
         // 직원이 이미 선택되어 넘어온 경우 바로 시작
         if (worker != null)
         {
             StartProduction(worker);
         }
     }
+
+    #region 재료 운반 (주문 → 운반 → 제작)
+
+    private readonly Dictionary<ItemData, int> _haulPending = new Dictionary<ItemData, int>();
+    private readonly Dictionary<ItemData, int> _haulDelivered = new Dictionary<ItemData, int>();
+    private WorkOrder _haulOrder;
+    private Employee _haulWorker;
+
+    /// <summary>재료가 아직 다 오지 않은 주문이 있는지</summary>
+    public bool AwaitingMaterials => _pendingRecipe != null && _haulPending.Count > 0;
+
+    /// <summary>운반 중이면 배정 직원만 기억하고 true — 재료가 다 오면 그 직원이 시작한다.</summary>
+    protected bool DeferWhileHauling(Employee worker)
+    {
+        if (!AwaitingMaterials) return false;
+        if (worker != null) _haulWorker = worker;
+        return true;
+    }
+
+    private bool BeginMaterialHaul(Employee worker)
+    {
+        _haulPending.Clear();
+        _haulDelivered.Clear();
+        foreach (var cost in _pendingRecipe.requiredMaterials)
+            if (cost.item != null && cost.amount > 0)
+                _haulPending[cost.item] = (_haulPending.TryGetValue(cost.item, out int n) ? n : 0) + cost.amount * _pendingAmount;
+        if (_haulPending.Count == 0) return false;
+
+        _haulWorker = worker;
+        CreateHaulOrder();
+        return true;
+    }
+
+    private void CreateHaulOrder()
+    {
+        if (WorkSystemManager.instance == null) return;
+        _haulOrder = WorkSystemManager.instance.CreateWorkOrder($"생산 재료 운반: {_pendingRecipe.outputItem.itemName}", WorkType.Hauling, maxWorkers: 3, priority: 3);
+        foreach (var kv in _haulPending)
+            _haulOrder.AddTarget(new WithdrawOrder(new MaterialRequest(kv.Key, kv.Value, this, _pendingReservationId)));
+    }
+
+    /// <summary>운반 작업·대기 재료를 정리하고, 이미 도착한 재료는 건물 앞에 떨군다.</summary>
+    private void AbortMaterialHaul()
+    {
+        if (_haulOrder != null && WorkSystemManager.instance != null)
+            WorkSystemManager.instance.RemoveWorkOrder(_haulOrder, isCancellation: true);
+        _haulOrder = null;
+        if (_haulDelivered.Count > 0) SpawnRefund(_haulDelivered);
+        _haulPending.Clear();
+        _haulDelivered.Clear();
+        _haulWorker = null;
+    }
+
+    private void SpawnRefund(Dictionary<ItemData, int> items)
+    {
+        if (SaveManager.instance != null && SaveManager.instance.IsLoading) return;
+        var size = _building != null && _building.buildingData != null ? _building.buildingData.size : Vector2Int.one;
+        ItemRefundHelper.SpawnRefunds(new Dictionary<ItemData, int>(items), transform.position, size);
+    }
+
+    /// <summary>건물 옆에 설 수 있는 칸 — 차단 건물(제련소 등)은 작업 위치가 발판이 아니라 운반 태스크가 도달 불가로 걸러진다</summary>
+    public Vector3 GetDeliveryPosition()
+    {
+        var reach = ReachabilityMap.Current;
+        if (reach == null || _building == null || _building.buildingData == null) return WorkPosition;
+        int x0 = Mathf.FloorToInt(transform.position.x), y0 = Mathf.FloorToInt(transform.position.y);
+        Vector2Int size = _building.buildingData.size;
+        var work = WorkPosition;
+        var candidates = new[] { new Vector2Int(Mathf.FloorToInt(work.x), Mathf.FloorToInt(work.y)), new Vector2Int(x0 - 1, y0), new Vector2Int(x0 + size.x, y0), new Vector2Int(x0, y0 + size.y), new Vector2Int(x0 + size.x / 2, y0) };
+        foreach (var c in candidates)
+            if (reach.CanStandAtPosition(c)) return new Vector3(c.x + 0.5f, c.y, 0f);
+        return WorkPosition;
+    }
+
+    public bool IsRequestStillValid() => this != null && (_building == null || _building.IsFunctional) && AwaitingMaterials;
+
+    public void OnMaterialDelivered(ItemData itemData, int amount)
+    {
+        if (itemData == null || amount <= 0 || !AwaitingMaterials) return;
+        _haulDelivered[itemData] = (_haulDelivered.TryGetValue(itemData, out int d) ? d : 0) + amount;
+        if (_haulPending.TryGetValue(itemData, out int left))
+        {
+            left -= amount;
+            if (left <= 0) _haulPending.Remove(itemData); else _haulPending[itemData] = left;
+        }
+        if (_haulPending.Count == 0) FinishMaterialHaul();
+    }
+
+    public void OnMaterialRequestFailed(ItemData itemData, int amount)
+    {
+        // 일시 실패(경로·낙하 등) — 태스크가 큐로 돌아가 다시 시도된다 (작업대·청사진과 같은 정책)
+        Debug.LogWarning($"[{GetBuildingName()}] 재료 운반 실패: {itemData?.itemName}×{amount} — 재시도 대기");
+    }
+
+    /// <summary>재료가 다 왔다 — 실물은 이미 창고·바닥에서 빠졌으니 예약만 풀고(완료 시 차감 안 함) 제작을 시작</summary>
+    private void FinishMaterialHaul()
+    {
+        if (_pendingReservationId >= 0 && InventoryManager.instance != null)
+            InventoryManager.instance.CancelReservation(_pendingReservationId);
+        _pendingReservationId = -1;
+        if (_haulOrder != null && WorkSystemManager.instance != null)
+            WorkSystemManager.instance.RemoveWorkOrder(_haulOrder, isCancellation: false);
+        _haulOrder = null;
+        _haulDelivered.Clear();
+        StartAfterHaulAsync().Forget();
+    }
+
+    // 인계 중인 운반 흐름(WithdrawWorkAsync) 안에서 직원 작업을 바꾸지 않도록 한 프레임 뒤에 시작
+    private async UniTaskVoid StartAfterHaulAsync()
+    {
+        await UniTask.Yield(GameLoop.Frame, this.GetCancellationTokenOnDestroy());
+        var worker = _haulWorker;
+        _haulWorker = null;
+        if (_pendingRecipe == null || worker == null || worker.State == EmployeeState.Dead) return; // 직원 배정 대기로 남는다
+        StartProduction(worker);
+    }
+
+    /// <summary>운반으로 들여온 재료로 진행 중인 주문(예약 없음)을 취소하면 재료를 돌려준다.</summary>
+    private void RefundHauledOrder(CraftingOrder order)
+    {
+        if (order == null || order.recipe == null || order.ReservationId >= 0) return;
+        var items = new Dictionary<ItemData, int>();
+        foreach (var cost in order.recipe.requiredMaterials)
+            if (cost.item != null && cost.amount > 0)
+                items[cost.item] = (items.TryGetValue(cost.item, out int n) ? n : 0) + cost.amount * order.craftAmount;
+        if (items.Count > 0) SpawnRefund(items);
+    }
+
+    [System.Serializable]
+    private class PendingSave
+    {
+        public int recipeId = -1;
+        public int amount;
+        public int reservationId = -1;
+        public int workerId;
+        public List<ItemStackSaveData> pending = new List<ItemStackSaveData>();
+        public List<ItemStackSaveData> delivered = new List<ItemStackSaveData>();
+    }
+
+    /// <summary>배정·운반 대기 주문 저장 (진행 중 제작은 CraftingOrder로 따로 저장된다)</summary>
+    public string SerializeExtra()
+    {
+        if (_pendingRecipe == null) return "";
+        var s = new PendingSave { recipeId = _pendingRecipe.recipeID, amount = _pendingAmount, reservationId = _pendingReservationId, workerId = _haulWorker != null ? _haulWorker.InstanceId : 0 };
+        foreach (var kv in _haulPending) s.pending.Add(new ItemStackSaveData { itemId = kv.Key.itemID, amount = kv.Value });
+        foreach (var kv in _haulDelivered) s.delivered.Add(new ItemStackSaveData { itemId = kv.Key.itemID, amount = kv.Value });
+        return JsonUtility.ToJson(s);
+    }
+
+    public void DeserializeExtra(string json)
+    {
+        if (string.IsNullOrEmpty(json)) return;
+        var s = JsonUtility.FromJson<PendingSave>(json);
+        var db = GameDatabase.Instance;
+        var recipe = s != null && db != null ? db.GetRecipeData(s.recipeId) : null;
+        if (recipe == null) return;
+        _pendingRecipe = recipe;
+        _pendingAmount = s.amount;
+        _pendingReservationId = s.reservationId;
+        _haulPending.Clear();
+        _haulDelivered.Clear();
+        foreach (var it in s.pending) { var item = db.GetItemData(it.itemId); if (item != null && it.amount > 0) _haulPending[item] = it.amount; }
+        foreach (var it in s.delivered) { var item = db.GetItemData(it.itemId); if (item != null && it.amount > 0) _haulDelivered[item] = it.amount; }
+        RestoreAfterLoadAsync(s.workerId).Forget();
+    }
+
+    // 건물(30)이 작업 시스템(60)보다 먼저 복원되고, 작업 시스템 복원이 모든 작업물을 지운다 → 로드가 끝난 뒤 다시 건다
+    // 배정 직원도 직원(50)이 복원된 뒤에야 찾을 수 있다
+    private async UniTaskVoid RestoreAfterLoadAsync(int workerId)
+    {
+        await UniTask.WaitUntil(() => SaveManager.instance == null || !SaveManager.instance.IsLoading, GameLoop.Frame, this.GetCancellationTokenOnDestroy());
+        if (_pendingRecipe == null) return;
+        var worker = workerId > 0 ? RuntimeIDRegistry.instance?.ResolveComponent<Employee>(workerId) : null;
+        if (AwaitingMaterials)
+        {
+            if (worker != null) _haulWorker = worker;
+            if (_haulOrder == null) CreateHaulOrder();
+        }
+        else if (worker != null && worker.State != EmployeeState.Dead) StartProduction(worker);
+    }
+
+    #endregion
 
     /// <summary>
     /// 재료를 예약합니다 (즉시 소모 대신 예약만 걸어둠).
@@ -347,6 +533,8 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
 
         UIManager.instance.HidePanel(UIPanelType.WorkAssignment);
 
+        if (DeferWhileHauling(worker)) return;
+
         if (_pendingRecipe != null)
         {
             StartProduction(worker);
@@ -376,7 +564,7 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
         Debug.Log($"[{GetBuildingName()}] {worker.Data.employeeName}이(가) {_pendingRecipe.outputItem.itemName} x{_pendingAmount} 제작을 시작합니다. (예약 #{_pendingReservationId})");
 
         // 작업자에게 작업 할당
-        worker.AssignCraftingWork(_currentOrder, workPosition.position);
+        worker.AssignCraftingWork(_currentOrder, GetDeliveryPosition()); // 차단 건물(제련소 등)은 작업 위치가 건물 속이라 옆 칸에서 일한다
 
         // Pending 상태 초기화
         _pendingRecipe = null;
@@ -407,7 +595,7 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
 
         // 새 직원 할당
         _currentOrder.assignedWorker = newWorker;
-        newWorker.AssignCraftingWork(_currentOrder, workPosition.position);
+        newWorker.AssignCraftingWork(_currentOrder, GetDeliveryPosition());
 
         Debug.Log($"[{GetBuildingName()}] {newWorker.Data.employeeName}에게 작업을 재할당했습니다.");
     }
@@ -499,6 +687,16 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
         {
             Debug.Log($"[{GetBuildingName()}] Pending Order 취소: {_pendingRecipe.outputItem.itemName}");
 
+            if (AwaitingMaterials) AbortMaterialHaul();
+            else if (_pendingReservationId < 0 && _pendingRecipe.requiredMaterials != null)
+            {
+                // 재료가 이미 운반돼 들어온 뒤 배정 대기 중이던 주문
+                var items = new Dictionary<ItemData, int>();
+                foreach (var cost in _pendingRecipe.requiredMaterials)
+                    if (cost.item != null && cost.amount > 0) items[cost.item] = (items.TryGetValue(cost.item, out int n) ? n : 0) + cost.amount * _pendingAmount;
+                if (items.Count > 0) SpawnRefund(items);
+            }
+
             if (_pendingReservationId >= 0 && InventoryManager.instance != null)
             {
                 InventoryManager.instance.CancelReservation(_pendingReservationId);
@@ -515,7 +713,8 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction
 
         Debug.Log($"[{GetBuildingName()}] 제작 Order 취소: {_currentOrder.orderName}");
 
-        // CraftingOrder의 예약 취소 처리
+        // CraftingOrder의 예약 취소 처리 (운반으로 들여온 재료면 돌려준다)
+        RefundHauledOrder(_currentOrder);
         _currentOrder.CancelReservation();
 
         // 작업자 작업 취소

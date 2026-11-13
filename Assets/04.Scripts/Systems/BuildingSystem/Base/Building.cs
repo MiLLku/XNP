@@ -530,6 +530,20 @@ private void ReturnPartialResources()
         }
     }
 
+    /// <summary>점유 표시만 다시 한다 (세이브 로드 직후 — 버려진 맵 개체의 지연 파괴가 같은 칸을 지웠을 때). 시야 등록은 건드리지 않는다.</summary>
+    public void ReapplyOccupancy()
+    {
+        if (buildingData == null || buildingData.allowOverlap || MapGenerator.instance == null) return;
+        GameMap gameMap = MapGenerator.instance.GameMapInstance;
+        int bx = Mathf.FloorToInt(transform.position.x), by = Mathf.FloorToInt(transform.position.y);
+        for (int x = 0; x < buildingData.size.x; x++)
+            for (int y = 0; y < buildingData.size.y; y++)
+            {
+                gameMap.MarkTileOccupied(bx + x, by + y, buildingData.blocksMovement);
+                if (buildingData.blocksMovement) gameMap.MarkFloorSupport(bx + x, by + y, true);
+            }
+    }
+
     /// <summary>
     /// 건물 영역의 타일 점유를 GameMap에서 해제합니다.
     /// </summary>

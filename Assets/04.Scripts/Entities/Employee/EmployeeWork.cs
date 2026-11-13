@@ -78,6 +78,8 @@ public class EmployeeWork : MonoBehaviour
 
     /// <summary>진행 중인 운반 작업이 들고 있는 더미 — 작업이 끊기면 CancelWorkTask가 발밑에 내려놓는다</summary>
     private Dictionary<ItemData, int> carriedPile;
+    /// <summary>운반 중 손에 든 물건 (저장 시 발밑 바닥 더미로 남긴다)</summary>
+    public IReadOnlyDictionary<ItemData, int> CarriedPile => carriedPile;
 
     // 컴포넌트 참조
     private Employee employee;

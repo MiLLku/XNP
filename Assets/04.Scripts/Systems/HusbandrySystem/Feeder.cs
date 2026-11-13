@@ -55,7 +55,7 @@ public class Feeder : MonoBehaviour, IBuildingExtraSerializable, IBuildingFuncti
         var cfg = HusbandryManager.Config;
         if (cfg == null || InventoryManager.instance == null) return;
         foreach (var s in cfg.species)
-            if (s != null && s.hatchlingItem != null && InventoryManager.instance.GetAvailableAmount(s.hatchlingItem) > 0) { SetSpecies(s); return; }
+            if (s != null && s.hatchlingItem != null && InventoryManager.instance.GetWorldAvailable(s.hatchlingItem) > 0) { SetSpecies(s); return; }
     }
 
     private void SetSpecies(NeutralSpeciesData s)

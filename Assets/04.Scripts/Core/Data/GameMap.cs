@@ -309,6 +309,17 @@ public class GameMap
     }
 
     /// <summary>
+    /// 모든 점유 표시를 지웁니다 — 세이브 복원 때 버려지는 새 생성 맵의 점유가 남지 않도록 (대량 변경 안에서 호출).
+    /// </summary>
+    public void ClearOccupancy()
+    {
+        System.Array.Clear(OccupiedGrid, 0, OccupiedGrid.Length);
+        System.Array.Clear(BlocksMovementGrid, 0, BlocksMovementGrid.Length);
+        System.Array.Clear(FloorSupportGrid, 0, FloorSupportGrid.Length);
+        NavVersion++;
+    }
+
+    /// <summary>
     /// 완성된 차단 건물의 발판 지지 여부를 설정합니다.
     /// Building.RegisterToGameMap()에서 blocksMovement=true인 건물이 완공될 때 호출합니다.
     /// </summary>

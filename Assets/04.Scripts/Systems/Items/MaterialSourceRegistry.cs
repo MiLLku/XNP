@@ -48,7 +48,7 @@ public class MaterialSourceRegistry : DestroySingleton<MaterialSourceRegistry>
         {
             var src = _sources[i];
             if (!IsAlive(src)) { _sources.RemoveAt(i); continue; }
-            if (!src.IsSourceAvailable) continue;
+            if (!src.IsSourceAvailable || !IsReachablePile(src)) continue;
 
             total += src.GetStoredAmount(item);
         }
@@ -93,13 +93,24 @@ public class MaterialSourceRegistry : DestroySingleton<MaterialSourceRegistry>
         {
             var src = _sources[i];
             if (!IsAlive(src)) { _sources.RemoveAt(i); continue; }
-            if (!src.IsSourceAvailable) continue;
+            if (!src.IsSourceAvailable || !IsReachablePile(src)) continue;
             if (src.GetStoredAmount(item) >= amount) return true;
         }
         return false;
     }
 
     #endregion
+
+    /// <summary>
+    /// 바닥 더미는 창고에서 걸어서 닿는 것만 센다 — 갱도 밑·갇힌 곳의 더미까지 세면
+    /// 예약은 되는데 아무도 가져오지 못해 청사진·주문이 영영 멈춘다. 건물 소스는 그대로.
+    /// </summary>
+    private static bool IsReachablePile(IMaterialSource src)
+    {
+        if (!(src is DroppedItem) || StockpileManager.instance == null || !StockpileManager.instance.HasAnyStockpile) return true;
+        Vector3 p = src.GetWithdrawPosition();
+        return StockpileManager.instance.HasReachableStockpile(new Vector2Int(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y)));
+    }
 
     /// <summary>
     /// 소스가 아직 살아 있는지.

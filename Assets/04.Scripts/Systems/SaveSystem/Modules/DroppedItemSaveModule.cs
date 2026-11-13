@@ -31,6 +31,17 @@ public class DroppedItemSaveModule : MonoBehaviour, ISaveModule
             });
         }
 
+        // 운반 중 손에 든 물건 — 운반 작업은 저장되지 않아 그대로 두면 불러올 때 사라진다 → 발밑 더미로 저장
+        if (EmployeeManager.instance != null)
+            foreach (var e in EmployeeManager.instance.AllEmployees)
+            {
+                var carried = e != null ? e.GetComponent<EmployeeWork>()?.CarriedPile : null;
+                if (carried == null) continue;
+                foreach (var kv in carried)
+                    if (kv.Key != null && kv.Value > 0)
+                        data.droppedItems.Add(new DroppedItemSaveData { itemId = kv.Key.itemID, amount = kv.Value, posX = e.transform.position.x, posY = e.transform.position.y + 0.5f });
+            }
+
         // ClickableItem (플레이어 클릭 픽업 아이템)
         var clickableItems = FindObjectsByType<ClickableItem>();
         foreach (var item in clickableItems)

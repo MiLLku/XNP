@@ -83,7 +83,7 @@ public class LevelUpUI : BasePanel
 
         var cfg = EmployeeManager.instance != null ? EmployeeManager.instance.LevelUpConfig : null;
         var item = cfg != null ? cfg.growthItem : null;
-        int have = item != null && InventoryManager.instance != null ? InventoryManager.instance.GetAvailableAmount(item) : 0;
+        int have = item != null && InventoryManager.instance != null ? InventoryManager.instance.GetWorldAvailable(item) : 0;
         stockText.text = item != null
             ? $"쓸 수 있는 {item.itemName}: {have}개 · 한 번에 한 명 · 직원이 '단련' 작업 우선순위에 따라 와서 단련\n레벨마다 스킬 포인트 +1 (직원 관리창 스킬에서 찍기)"
             : "레벨업 설정 없음";

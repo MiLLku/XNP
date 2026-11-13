@@ -73,6 +73,8 @@ public class ConstructionYard : ProductionBuilding
         {
             UIManager.instance.HidePanel(UIPanelType.WorkAssignment);
 
+            if (DeferWhileHauling(worker)) return;
+
             if (_pendingRecipe != null)
             {
                 StartProduction(worker);

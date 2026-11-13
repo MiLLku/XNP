@@ -312,7 +312,7 @@ public class ProductionUI : BasePanel
         foreach (var cost in recipe.requiredMaterials)
         {
             int required = cost.amount * amount;
-            int available = InventoryManager.instance.GetAvailableAmount(cost.item);
+            int available = InventoryManager.instance.GetWorldAvailable(cost.item); // 바닥 더미·건물 산출물 포함 — 예약(TryReserve)과 같은 기준
 
             if (available < required)
                 return false;
@@ -353,7 +353,7 @@ public class ProductionUI : BasePanel
         foreach (var cost in recipe.requiredMaterials)
         {
             int required = cost.amount * amount;
-            int available = InventoryManager.instance.GetAvailableAmount(cost.item);
+            int available = InventoryManager.instance.GetWorldAvailable(cost.item); // 바닥 더미·건물 산출물 포함 — 예약(TryReserve)과 같은 기준
             int total = InventoryManager.instance.GetItemCount(cost.item);
             int reserved = total - available;
 

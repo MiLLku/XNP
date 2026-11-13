@@ -444,7 +444,7 @@ public class ConstructionUI : BasePanel
         
         foreach (var cost in buildingData.requiredResources)
         {
-            int current = InventoryManager.instance != null ? InventoryManager.instance.GetItemCount(cost.item) : 0;
+            int current = InventoryManager.instance != null ? InventoryManager.instance.GetWorldAvailable(cost.item) : 0; // 바닥 더미 포함
             bool canAfford = current >= cost.amount;
             
             string colorTag = canAfford ? "green" : "red";

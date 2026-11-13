@@ -140,7 +140,8 @@ public void Initialize(ItemData data, int qty = 1)
 
     public bool IsSourceAvailable => IsAvailable && itemData != null && quantity > 0;
 
-    public Vector3 GetWithdrawPosition() => transform.position;
+    // 더미가 바닥 타일에 살짝 묻혀(y=239.94 등) 발밑 칸이 땅 타일로 잡히면 이동이 실패한다 → 칸 위쪽으로 올려 잡는다
+    public Vector3 GetWithdrawPosition() => transform.position + new Vector3(0f, 0.25f, 0f);
 
     public int GetStoredAmount(ItemData item)
         => item != null && item == itemData ? quantity : 0;

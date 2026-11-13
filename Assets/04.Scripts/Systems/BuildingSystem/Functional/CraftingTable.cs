@@ -466,10 +466,16 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
             }
             else
             {
-                // 미도착 자재 있음 → WithdrawOrder 재생성
-                RecreateWithdrawOrdersFromPending();
+                // 미도착 자재 있음 → WithdrawOrder 재생성 (작업 시스템 복원이 작업물을 지우므로 로드가 끝난 뒤)
+                RecreateAfterLoadAsync().Forget();
             }
         }
+    }
+
+    private async UniTaskVoid RecreateAfterLoadAsync()
+    {
+        await UniTask.WaitUntil(() => SaveManager.instance == null || !SaveManager.instance.IsLoading, GameLoop.Frame, this.GetCancellationTokenOnDestroy());
+        if (_isAwaitingMaterials && _withdrawWorkOrder == null) RecreateWithdrawOrdersFromPending();
     }
 
     /// <summary>현재 _pendingMaterials 기준으로 WithdrawOrder들을 다시 만들어 운반 재개합니다.</summary>
@@ -698,7 +704,7 @@ public class CraftingTable : MonoBehaviour, IBuildingFunction, IMaterialReceiver
         string missing = "";
         foreach (var cost in recipe.requiredMaterials)
         {
-            int current = InventoryManager.instance.GetItemCount(cost.item);
+            int current = InventoryManager.instance.GetWorldAvailable(cost.item); // 바닥 더미 포함
             if (current < cost.amount)
             {
                 missing += $"\n- {cost.item.itemName}: {current}/{cost.amount}";

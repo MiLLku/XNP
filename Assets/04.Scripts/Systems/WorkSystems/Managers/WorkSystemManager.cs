@@ -527,7 +527,7 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                 (o.IsAutoPickup || o.IsWorkerAssigned(employee))
             ))
             .OrderBy(o => employee.GetWorkPriority(o.workType))
-            .ThenBy(o => IsUrgentHaul(o) ? 0 : 1)
+            .ThenBy(o => HaulRank(o))
             .ThenBy(o => o.priority)
             .ThenBy(o => o.createdTime);
     }
@@ -535,15 +535,20 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     /// <summary>
     /// 운반 중 먼저 처리할 것 — 건설 자재(청사진)와 밭 파종용 씨앗 보급.
     /// 바닥 아이템 운반은 일찍 만든 작업물 하나에 수백 건이 쌓여 생성 순서로 늘 앞섰다 → 청사진·밭이 멈췄다.
-    /// 다른 보급(연료·부화기 알·먹이통 등)은 기존 순서 그대로.
+    /// 그다음 다른 보급(생산 재료·연료·부화기 알·먹이통 등) — 쓸 곳이 있는 바닥 물건은 창고를 거치지 않고 바로 가져가도록
+    /// 바닥→창고 정리 운반보다 앞에 둔다. 0 건설·씨앗 / 1 다른 보급 / 2 그 밖.
     /// </summary>
-    private static bool IsUrgentHaul(WorkOrder o)
+    private static int HaulRank(WorkOrder o)
     {
-        if (o.workType != WorkType.Hauling) return false;
+        if (o.workType != WorkType.Hauling) return 2;
+        int rank = 2;
         foreach (var t in o.targets)
-            if (t is WithdrawOrder w && w.request != null && (w.request.receiver is ConstructionSite || w.request.receiver is SowSite))
-                return true;
-        return false;
+            if (t is WithdrawOrder w && w.request != null)
+            {
+                if (w.request.receiver is ConstructionSite || w.request.receiver is SowSite) return 0;
+                rank = 1;
+            }
+        return rank;
     }
 
     /// <summary>

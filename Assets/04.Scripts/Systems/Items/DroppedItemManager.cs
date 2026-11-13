@@ -50,6 +50,14 @@ public class DroppedItemManager : DestroySingleton<DroppedItemManager>
 
     #region 생명주기
 
+    protected override void Awake()
+    {
+        base.Awake();
+        // 바닥 아이템 저장 모듈이 씬에 없어 저장·불러오기 때 바닥 더미(운반 중 물건 포함)가 전부 사라졌다 — 매니저와 함께 둔다
+        if (GetComponent<DroppedItemSaveModule>() == null && FindAnyObjectByType<DroppedItemSaveModule>() == null)
+            gameObject.AddComponent<DroppedItemSaveModule>();
+    }
+
     void Start()
     {
         // 새 직원이 생성될 때 기존 모든 DroppedItem과 충돌 무시 처리

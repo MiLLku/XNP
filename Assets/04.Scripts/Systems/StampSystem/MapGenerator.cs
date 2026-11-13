@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 /// <summary>
@@ -1493,7 +1494,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         }
     }
 
-    public void PostRestore(SaveData data) { }
+    public void PostRestore(SaveData data) => ReapplyOccupancyAfterLoadAsync().Forget();
 
     /// <summary>
     /// 저장 대상으로 표시된(EntityDefinition.persistInSave) 모든 개체의 위치와 성장 상태를 담습니다.
@@ -1570,7 +1571,10 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             if (plant.GetComponentInParent<MapEntityIdentity>() == null) Destroy(plant.gameObject);
         }
 
-        // 2. _gameMap.Entities 클리어 — GenerateWorld()에서 쌓인 항목 제거
+        // 2. _gameMap.Entities 클리어 — GenerateWorld()에서 쌓인 항목 제거.
+        //    버려지는 새 생성 맵(다른 시드)의 점유 표시도 전부 지운다 — 남으면 맵 곳곳에 보이지 않는 벽이 된다.
+        //    건물은 이 뒤 복원(ConstructionManager)·렌더 때 각자 다시 표시한다.
+        _gameMap.ClearOccupancy();
         _gameMap.ClearEntities();
 
         // 3. 데이터 등록 (_gameMap.Entities에 추가, 아직 GameObject 없음)
@@ -1601,6 +1605,8 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             }
         }
 
+        MarkRestoredEntityOccupancy();
+
         // 4. 실제 GameObject 인스턴스화
         MapRendererInstance.RenderRestoredEntities();
 
@@ -1609,6 +1615,37 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
 
         // 6. 건물 개체(시작 방 문 등)의 깎인 체력 복원
         ApplyBuildingHealth(entities);
+    }
+
+    /// <summary>
+    /// 생성 단계가 개체에 직접 하던 점유 표시를 복원된 개체에 다시 한다 —
+    /// 시작 방 구조물(돌 타일 벽·바닥 1칸, 채용 사무소 3×3)은 그 칸, 식생물은 발밑 바닥 칸(PlaceNaturalEntityAt과 같은 규칙).
+    /// </summary>
+    private void MarkRestoredEntityOccupancy()
+    {
+        var db = DefinitionDatabase.Instance;
+        foreach (var e in _gameMap.Entities)
+        {
+            int size = e.id == (int)EntityType.StoneFloor ? 1 : e.id == (int)EntityType.HiringOffice ? 3 : 0;
+            for (int dx = 0; dx < size; dx++)
+                for (int dy = 0; dy < size; dy++)
+                    _gameMap.MarkTileOccupied(e.position.x + dx, e.position.y + dy, blocksMovement: true);
+
+            var def = db?.GetEntity(e.id);
+            if (size == 0 && def != null && System.Linq.Enumerable.Contains(db.NaturalSpawns, def))
+                for (int i = 0; i < Mathf.Max(1, def.footprintWidth); i++)
+                    _gameMap.MarkTileOccupied(e.position.x + i, e.position.y - 1);
+        }
+    }
+
+    // 버려진 새 생성 맵의 건물·개체는 Destroy가 프레임 끝에 처리되며 자기 칸의 점유를 지운다 —
+    // 같은 칸에 복원된 것의 표시까지 지워지므로, 로드가 끝난 뒤 한 번 더 표시한다.
+    private async UniTaskVoid ReapplyOccupancyAfterLoadAsync()
+    {
+        await UniTask.WaitUntil(() => SaveManager.instance == null || !SaveManager.instance.IsLoading, GameLoop.Frame, this.GetCancellationTokenOnDestroy());
+        await UniTask.Yield(GameLoop.Frame, this.GetCancellationTokenOnDestroy());
+        MarkRestoredEntityOccupancy();
+        foreach (var b in FindObjectsByType<Building>()) b.ReapplyOccupancy();
     }
 
     private void ApplyBuildingHealth(List<MapEntitySaveData> entities)
