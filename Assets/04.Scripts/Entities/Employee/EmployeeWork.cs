@@ -654,9 +654,13 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                                 },
                                 onFailed: () =>
                                 {
-                                    Debug.LogWarning($"[Work] {employee.DisplayName}: 재이동 실패, Idle 전환 " +
+                                    // 또 떨어지는 중이면 착지 핸들러가 다시 처리한다
+                                    if (movement.IsFalling) return;
+                                    Debug.LogWarning($"[Work] {employee.DisplayName}: 재이동 실패, 작업 취소 " +
                                                      $"(target={targetTilePos}, retryPos={newWorkPosition})");
-                                    employee.SetState(EmployeeState.Idle);
+                                    // 예전엔 Idle로만 바꿔 작업 대상·작업물 배정이 남았다 → 그 직원은 다른 작업을 영영 못 받았다
+                                    movement.OnLanded -= onLandedHandler;
+                                    CancelWork();
                                 }
                             );
                         }
