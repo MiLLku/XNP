@@ -527,8 +527,23 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                 (o.IsAutoPickup || o.IsWorkerAssigned(employee))
             ))
             .OrderBy(o => employee.GetWorkPriority(o.workType))
+            .ThenBy(o => IsUrgentHaul(o) ? 0 : 1)
             .ThenBy(o => o.priority)
             .ThenBy(o => o.createdTime);
+    }
+
+    /// <summary>
+    /// 운반 중 먼저 처리할 것 — 건설 자재(청사진)와 밭 파종용 씨앗 보급.
+    /// 바닥 아이템 운반은 일찍 만든 작업물 하나에 수백 건이 쌓여 생성 순서로 늘 앞섰다 → 청사진·밭이 멈췄다.
+    /// 다른 보급(연료·부화기 알·먹이통 등)은 기존 순서 그대로.
+    /// </summary>
+    private static bool IsUrgentHaul(WorkOrder o)
+    {
+        if (o.workType != WorkType.Hauling) return false;
+        foreach (var t in o.targets)
+            if (t is WithdrawOrder w && w.request != null && (w.request.receiver is ConstructionSite || w.request.receiver is SowSite))
+                return true;
+        return false;
     }
 
     /// <summary>
