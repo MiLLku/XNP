@@ -222,7 +222,7 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
 
         // 2. 지속 피해 (DoT)
         if (_dotDps > 0f && _dotDuration > 0f)
-            DotEffect.Apply(_target, _dotDps, _dotDuration);
+            DotEffect.Apply(_target, _dotDps * (_xenops != null ? _xenops.StatMultiplier : 1f), _dotDuration); // 직격 피해와 같은 위협 단계 배율
 
         // 3. 피격 침식 누적
         if (_hitErosionAmount > 0f)
