@@ -19,7 +19,7 @@ MonoBehaviour:
   prerequisiteNodeIds:
   - crafting_basics
   resourceCosts: []
-  researchPointCost: 720
+  researchPointCost: 360
   unlockEffects:
   - {fileID: 11400000, guid: 07274a0b850bdcc43938071b778c22e5, type: 2}
   - {fileID: 11400000, guid: fb3ec281a6123d64cabef3a33090f989, type: 2}

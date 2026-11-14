@@ -20,7 +20,7 @@ MonoBehaviour:
   prerequisiteNodeIds:
   - research_basics
   resourceCosts: []
-  researchPointCost: 480
+  researchPointCost: 240
   unlockEffects:
   - {fileID: 11400000, guid: 4b3e098f658ec8e49a6bcba9adf96ed9, type: 2}
   - {fileID: 11400000, guid: fc491469881e4b149a21eeeeb9ae1323, type: 2}

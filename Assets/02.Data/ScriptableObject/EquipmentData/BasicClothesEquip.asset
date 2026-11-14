@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BasicClothesEquip
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   itemData: {fileID: 11400000, guid: 64f4baa8f11d443888704459c2205b49, type: 2}
-  description: "옷 칸 · 방한 +2. 새 직원이 입고 오는 기본 옷."
+  description: "옷 칸 · 방한 +2 · 피해 감소 10%. 새 직원이 입고 오는 기본 옷."
   slot: 0
   weaponClass: 0
   baseDamage: 0
@@ -40,7 +40,7 @@ MonoBehaviour:
   passiveEffects:
     enableNightWork: 0
     rainProtection: 0
-    damageReduction: 0
+    damageReduction: 10
     bonusYieldChance: 0
     workTypeModifiers: []
     ignoreWaterSlow: 0
