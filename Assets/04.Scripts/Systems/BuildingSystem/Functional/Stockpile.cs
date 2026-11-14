@@ -111,6 +111,27 @@ public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource, ISto
     #region 공개 API
 
     /// <summary>
+    /// 이 창고가 부서지거나 철거될 때(Building.DestroyBuilding·DemolishOrder) 호출.
+    /// 재고는 전역 하나라 다른 창고가 남아 있으면 그대로 꺼낼 수 있다 — 마지막 창고면 아무도 못 꺼내게 갇히므로
+    /// 전부 이 자리에 바닥 더미(종류마다 하나)로 떨군다. 예약은 그대로 — 바닥 더미도 보급 원천이라 이어서 쓰인다.
+    /// </summary>
+    public void SpillIfLastStockpile()
+    {
+        var inv = InventoryManager.instance;
+        if (inv == null || DroppedItemManager.instance == null) return;
+        var all = StockpileManager.instance != null ? StockpileManager.instance.All : null;
+        if (all != null)
+            foreach (var other in all)
+                if (other != null && other != this && other.IsOperational) return;
+
+        foreach (var kv in inv.GetAllItems())
+        {
+            if (kv.Key == null || kv.Value <= 0 || !inv.RemoveItem(kv.Key, kv.Value)) continue;
+            DroppedItemManager.instance.SpawnItem(kv.Key, kv.Value, GetDepositPosition() + new Vector3(0f, 0.3f, 0f));
+        }
+    }
+
+    /// <summary>
     /// 직원이 아이템을 배달/출고하는 월드 위치를 반환합니다.
     /// </summary>
     public Vector3 GetDepositPosition()

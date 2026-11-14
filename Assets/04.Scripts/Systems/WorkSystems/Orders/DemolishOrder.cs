@@ -88,6 +88,7 @@ public class DemolishOrder : IWorkTarget, IProgressiveWork
             string buildingName = building.buildingData?.buildingName ?? "Unknown";
             ReturnResources();
             ReleaseTileOccupation();
+            building.GetComponent<Stockpile>()?.SpillIfLastStockpile();
             GameObject.Destroy(building.gameObject);
             Debug.Log($"[DemolishOrder] 철거 완료: {buildingName}");
         }

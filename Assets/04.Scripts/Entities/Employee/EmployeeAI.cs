@@ -1326,17 +1326,24 @@ public class EmployeeAI : MonoBehaviour
     {
         // 미리 챙길 때는 소지 기준(조리 음식만 등), 배고파서 먹을 때는 아무 음식 — 좋은 것부터 고름
         System.Predicate<ItemData> accept = f => work.CanHoldFood(f, forCarry: !eatAfterStocking);
-        if (InventoryManager.instance == null || !InventoryManager.instance.HasFood(accept))
-            return false; // 먹을 음식이 없음 (창고/식량 확보 필요)
-
-        if (StockpileManager.instance == null) return false;
-
         Vector2Int footTile = new Vector2Int(
             Mathf.FloorToInt(transform.position.x),
             Mathf.FloorToInt(transform.position.y));
 
-        Stockpile target = StockpileManager.instance.GetNearestStockpile(footTile);
-        if (target == null) return false; // 창고 없음
+        bool stockFood = InventoryManager.instance != null && InventoryManager.instance.HasFood(accept);
+        Stockpile target = stockFood && StockpileManager.instance != null ? StockpileManager.instance.GetNearestStockpile(footTile) : null;
+        if (target != null && !ReachabilityMap.CanReach(footTile, target.GetDepositPosition())) target = null;
+
+        // 배고파서 먹을 때는 바닥 음식도 — 창고보다 가깝거나 창고에서 꺼낼 수 없으면 바닥 더미에서 바로 먹는다
+        if (eatAfterStocking && DroppedItemManager.instance != null)
+        {
+            var floor = DroppedItemManager.instance.FindNearestAvailable(footTile, f => f.isFood && accept(f));
+            if (floor != null && (target == null ||
+                Vector2.Distance(footTile, floor.transform.position) < Vector2.Distance(footTile, target.GetDepositPosition())))
+                return GoToFloorFood(work, floor);
+        }
+
+        if (target == null) return false; // 먹을 음식이 없거나 닿는 창고 없음
 
         CancelCurrentAction();
         employee.SetState(EmployeeState.Moving);
@@ -1371,6 +1378,36 @@ public class EmployeeAI : MonoBehaviour
                 OnActionFailed();
             });
 
+        return true;
+    }
+
+    /// <summary>바닥 음식 더미로 가서 1개를 집어 먹습니다 (가는 동안 운반 예약으로 다른 직원이 가져가지 않게).</summary>
+    private bool GoToFloorFood(EmployeeWork work, DroppedItem pile)
+    {
+        CancelCurrentAction();
+        pile.Claim();
+        employee.SetState(EmployeeState.Moving);
+        seekingFoodUntil = Time.time + 60f;
+
+        movement.MoveTo(((IMaterialSource)pile).GetWithdrawPosition(),
+            onComplete: () =>
+            {
+                seekingFoodUntil = 0f;
+                ItemData food = pile != null && pile.isActiveAndEnabled ? pile.itemData : null;
+                if (food != null)
+                {
+                    pile.Unclaim();
+                    if (pile.Withdraw(food, 1) && work.StoreFood(food, 1)) EatHeldFood(work);
+                }
+                employee.SetState(EmployeeState.Idle);
+                if (currentExecutingActivity != ScheduleActivity.Anything) ExecuteActivity(currentExecutingActivity);
+            },
+            onFailed: () =>
+            {
+                seekingFoodUntil = 0f;
+                if (pile != null && pile.isActiveAndEnabled) pile.Unclaim();
+                OnActionFailed();
+            });
         return true;
     }
 

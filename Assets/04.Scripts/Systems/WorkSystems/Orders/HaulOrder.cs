@@ -62,12 +62,14 @@ public class HaulOrder : IWorkTarget
     /// <summary>
     /// 아이템 자리에서 닿는 창고가 있어야 운반한다. 없으면 주웠다 내려놓기만 반복하므로
     /// 바닥에 그대로 두어 자재로 쓰이게 하고, 길이 뚫리면 다시 후보가 된다.
-    /// 창고가 아예 없으면 기존처럼 운반(→ 인벤토리 직행)을 허용한다.
+    /// 창고가 하나도 없으면 운반하지 않는다 — 창고 없이 인벤토리로 넣으면 아무도 꺼낼 수 없게 갇힌다
+    /// (마지막 창고가 부서지면 재고를 바닥에 쏟는 것과 같은 이유). 바닥 더미는 그대로 보급·식사에 쓰인다.
     /// </summary>
     private bool CanReachStockpileFromItem()
     {
         var mgr = StockpileManager.instance;
-        if (mgr == null || !mgr.HasAnyStockpile) return true;
+        if (mgr == null) return true; // 창고 시스템이 없는 씬(테스트 등)
+        if (!mgr.HasAnyStockpile) return false;
 
         Vector3 p = item.transform.position;
         return mgr.HasReachableStockpile(new Vector2Int(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y)));

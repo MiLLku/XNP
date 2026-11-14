@@ -385,6 +385,7 @@ public class Building : MonoBehaviour, IHeatSource
         // Instantiate(destructionEffect, transform.position, Quaternion.identity);
 
         ReturnPartialResources();
+        GetComponent<Stockpile>()?.SpillIfLastStockpile();
 
         Destroy(gameObject);
     }

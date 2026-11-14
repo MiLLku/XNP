@@ -205,6 +205,22 @@ public void Despawn(DroppedItem item)
     /// 지정 위치에서 radius 내 사용 가능한 DroppedItem 목록을 거리순으로 최대 maxCount개 반환합니다.
     /// 다중 픽업(carryCapacity)에 사용됩니다. exclude로 첫 픽업한 아이템을 제외할 수 있습니다.
     /// </summary>
+    /// <summary>조건에 맞고 from에서 걸어서 닿는 가장 가까운 집을 수 있는 더미 (없으면 null)</summary>
+    public DroppedItem FindNearestAvailable(Vector2Int from, System.Predicate<ItemData> accept)
+    {
+        DroppedItem best = null;
+        float bestDist = float.MaxValue;
+        foreach (var i in _items)
+        {
+            if (i == null || !i.IsAvailable || i.itemData == null || (accept != null && !accept(i.itemData))) continue;
+            Vector3 p = ((IMaterialSource)i).GetWithdrawPosition();
+            if (!ReachabilityMap.CanReach(from, p)) continue;
+            float d = Vector2.Distance(from, p);
+            if (d < bestDist) { best = i; bestDist = d; }
+        }
+        return best;
+    }
+
     public List<DroppedItem> GetNearbyAvailableItems(Vector2 from, float radius, int maxCount, DroppedItem exclude = null)
     {
         if (maxCount <= 0) return new List<DroppedItem>();
