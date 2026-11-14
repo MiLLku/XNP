@@ -444,6 +444,9 @@ public class Employee : MonoBehaviour
 
         float mult = statsController != null ? statsController.CachedDamageTakenMult : 1f;
         statsController?.ModifyHealth(-amount * mult);
+
+        // 자다가 맞으면 깬다
+        if (statsController != null && statsController.IsSleeping) GetComponent<EmployeeAI>()?.WakeFromDamage();
     }
 
     /// <summary>

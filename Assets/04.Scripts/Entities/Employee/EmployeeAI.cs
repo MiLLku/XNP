@@ -386,6 +386,10 @@ public class EmployeeAI : MonoBehaviour
             if (employee.State == EmployeeState.Resting) employee.SetState(EmployeeState.Idle);
         }
 
+        // 맞아서 깬 직후엔 잠시 다시 자지 않는다
+        if (scheduledActivity == ScheduleActivity.Sleep && Time.time < noSleepUntil)
+            scheduledActivity = ScheduleActivity.Anything;
+
         // 수행 가능 여부 확인 → 불가 시 Anything 대체
         ScheduleActivity actualActivity = CanExecuteActivity(scheduledActivity)
             ? scheduledActivity
@@ -659,6 +663,24 @@ public class EmployeeAI : MonoBehaviour
     }
 
     /// <summary>수면 상태만 푼다 (상태 전환은 호출부가)</summary>
+    /// <summary>맞아서 깬 뒤 다시 잠들지 않는 시간 (게임 시간, 시)</summary>
+    private const float WAKE_NO_SLEEP_HOURS = 2f;
+    private float noSleepUntil;
+
+    /// <summary>
+    /// 자다가 체력 피해를 받으면 깬다 (Employee.TakeDamage에서 호출 — 침식 오라·굶주림은 해당 없음).
+    /// 깬 뒤 행동은 평소 판단 그대로, 짧은 시간 동안만 다시 잠들지 않는다.
+    /// </summary>
+    public void WakeFromDamage()
+    {
+        if (!isSleeping) return;
+        StopSleeping();
+        float dayLength = DayCycle.instance != null ? DayCycle.instance.DayLengthInSeconds : 1000f;
+        noSleepUntil = Time.time + WAKE_NO_SLEEP_HOURS * dayLength / 24f;
+        if (employee.State == EmployeeState.Resting) employee.SetState(EmployeeState.Idle);
+        if (draft == null || !draft.IsDrafted) MakeDecision();
+    }
+
     private void StopSleeping()
     {
         isSleeping = false;
