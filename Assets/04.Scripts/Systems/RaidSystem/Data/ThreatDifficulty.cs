@@ -1,8 +1,7 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 /// <summary>
-/// 게임 난이도 — 습격 위협 점수의 항목별 배율과 적응 보정 폭.
-/// 위협 점수 = 기본 + Σ(항목 값 × 항목 배율) × 적응 보정 (<see cref="ThreatScore"/>).
+/// 게임 난이도 — 습격 점수의 난이도 배수·플레이 시간 보정과 적응 보정 폭 (<see cref="ThreatScore"/>).
 ///
 /// 에셋은 Resources/Difficulty 아래에 두고 order 순으로 메인 메뉴에 나온다.
 /// </summary>
@@ -15,24 +14,23 @@ public class ThreatDifficulty : ScriptableObject
     [Tooltip("메뉴·세이브 순서 (0 = 초보, 1 = 보통, 2 = 어려움)")]
     public int order = 1;
 
-    [Header("위협 점수 — 항목 배율 (임시 수치)")]
-    [Tooltip("항목과 무관한 기본 점수")]
-    [Min(0f)] public float baseScore = 6f;
+    [Header("습격 점수 = (직원 + 자원 + 건물 가치) × 난이도 배수 × 시간 보정 × 적응 보정 (임시 수치)")]
+    [Tooltip("총 가치에 곱하는 난이도 배수")]
+    [Min(0f)] public float valueMultiplier = 0.08f;
 
-    [Tooltip("경과 일수 1일당")]
-    [Min(0f)] public float perDay = 4f;
+    [Tooltip("플레이 시간 보정 곡선 — (경과 일수, 배수) 점들, 사이는 선형 보간, 마지막 점 이후는 마지막 값")]
+    public Vector2[] timeCurve = { new Vector2(0f, 0.5f), new Vector2(5f, 0.8f), new Vector2(12f, 1f) };
 
-    [Tooltip("기지 재산 1점당 (건물 건설 비용 + 창고 자원 수 + 장비 수 × 장비 가치)")]
-    [Min(0f)] public float perWealth = 0.03f;
-
-    [Tooltip("전투력 1점당 (직원별 무기 피해 + 방어구 피해 감소% + 전투 숙련 × 5)")]
-    [Min(0f)] public float perCombat = 0.05f;
-
-    [Tooltip("최대 깊이 단계 1단계당")]
-    [Min(0f)] public float perDepthStage = 8f;
-
-    [Tooltip("기지 폭 1칸당 (플레이어 건물의 좌우 끝 사이)")]
-    [Min(0f)] public float perWidth = 0.05f;
+    /// <summary>경과 일수(소수 포함)에 대한 시간 보정</summary>
+    public float TimeMultiplier(float day)
+    {
+        if (timeCurve == null || timeCurve.Length == 0) return 1f;
+        if (day <= timeCurve[0].x) return timeCurve[0].y;
+        for (int i = 1; i < timeCurve.Length; i++)
+            if (day <= timeCurve[i].x)
+                return Mathf.Lerp(timeCurve[i - 1].y, timeCurve[i].y, Mathf.InverseLerp(timeCurve[i - 1].x, timeCurve[i].x, day));
+        return timeCurve[timeCurve.Length - 1].y;
+    }
 
     [Header("적응 보정 — 다음 습격 점수에 곱한다")]
     [Tooltip("직전 습격에서 직원이 죽었으면 이만큼 내림")]

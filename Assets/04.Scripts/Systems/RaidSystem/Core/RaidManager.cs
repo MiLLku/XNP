@@ -136,7 +136,18 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Tooltip("브리칭 습격 — 전체 마리 수 중 자폭체 비율 (최소 1마리)")]
     [Range(0f, 1f)] [SerializeField] private float bomberShare = 0.33f;
 
-    [Header("깊이 위협 — 단계 = 최대 깊이가 지표에서 몇 지층 아래인지 (RunStatsManager.ThreatStage, 임시 수치)")]
+    [Header("위협 단계 — 보정 전 총 가치(직원+자원+건물)가 문턱을 넘을 때마다 한 단계, 회차 최대 유지 (RunStatsManager.ThreatStage, 임시 수치)")]
+    [Tooltip("Ⅱ·Ⅲ·Ⅳ·Ⅴ단계가 되는 총 가치 문턱 (오름차순)")]
+    [SerializeField] private float[] threatStageValues = { 1500f, 3000f, 5000f, 8000f };
+
+    /// <summary>총 가치에 해당하는 위협 단계 (0 = Ⅰ)</summary>
+    public int StageForValue(float value)
+    {
+        int s = 0;
+        if (threatStageValues != null) foreach (var t in threatStageValues) if (value >= t) s++;
+        return s;
+    }
+
     [Tooltip("심층 전용 적 비율 — 단계당 (deepEnemyMinStage부터, 최대 deepShareMax)")]
     [Range(0f, 1f)] [SerializeField] private float deepSharePerStage = 0.15f;
     [Range(0f, 1f)] [SerializeField] private float deepShareMax = 0.5f;
@@ -461,7 +472,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         }
         // 위협 점수 산출 → 그 점수로 가능한 습격 종류 풀에서 고른다
         var rs = RunStatsManager.instance;
-        float threat = ThreatScore.Compute(rs != null ? rs.Difficulty : null, rs != null ? rs.ThreatAdapt : 1f, CurrentThreatStage).total;
+        float threat = ThreatScore.Compute(rs != null ? rs.Difficulty : null, rs != null ? rs.ThreatAdapt : 1f).total;
         StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)], RollRaidType(threat));
     }
 
@@ -972,7 +983,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private ThreatScore.Breakdown CurrentThreat()
     {
         var rs = RunStatsManager.instance;
-        return ThreatScore.Compute(rs != null ? rs.Difficulty : null, rs != null ? rs.ThreatAdapt : 1f, activeThreatStage);
+        return ThreatScore.Compute(rs != null ? rs.Difficulty : null, rs != null ? rs.ThreatAdapt : 1f);
     }
 
     /// <summary>습격 종류의 한 마리당 점수</summary>

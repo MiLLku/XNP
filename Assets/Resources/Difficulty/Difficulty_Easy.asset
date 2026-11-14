@@ -14,12 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ThreatDifficulty
   displayName: "\uCD08\uBCF4"
   order: 0
-  baseScore: 4
-  perDay: 2.5
-  perWealth: 0.02
-  perCombat: 0.04
-  perDepthStage: 6
-  perWidth: 0.04
+  valueMultiplier: 0.06
+  timeCurve:
+  - {x: 0, y: 0.4}
+  - {x: 5, y: 0.7}
+  - {x: 15, y: 1}
   lossAdapt: 0.25
   winAdapt: 0.03
   adaptMin: 0.5

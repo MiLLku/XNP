@@ -175,7 +175,7 @@ public class EmployeeEquipment : MonoBehaviour
     public static bool CanRepair(EquipmentInstance inst) => inst != null && inst.quality == EquipmentQuality.Legendary;
 
     /// <summary>슬롯 장비의 품질 배율 (인스턴스 없으면 1)</summary>
-    private float QualityMult(EquipmentSlot slot)
+    public float QualityMult(EquipmentSlot slot)
         => equippedInstances.TryGetValue(slot, out var inst) && inst != null ? inst.QualityMultiplier : 1f;
 
     /// <summary>공격 수행 시 무기 내구도 소모 (전투 시스템에서 호출 — 훅 준비).</summary>

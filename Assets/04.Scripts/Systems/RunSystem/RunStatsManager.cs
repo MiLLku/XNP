@@ -20,6 +20,9 @@ public class RunStatsSaveData
 
     /// <summary>습격 적응 보정 배율 (0 이하 = 구 세이브 → 1)</summary>
     public float threatAdapt = 1f;
+
+    /// <summary>이번 회차에 오른 가장 높은 위협 단계 (0 = Ⅰ, 구 세이브에는 없음 → 0)</summary>
+    public int maxThreatStage;
 }
 
 /// <summary>한 런의 결과 — 결과 화면과 (나중의) 메타 진행 보상에 넘긴다</summary>
@@ -145,27 +148,15 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
     public int DeepestDepth => stats.deepestDepth;
 
     /// <summary>
-    /// 위협 단계 (0부터) = 최대 깊이가 속한 지층이 지표에서 몇 층 아래인지.
-    /// 지층 목록의 첫 층(하늘 — 언덕 꼭대기만 걸침)은 지표와 같은 0단계로 친다.
-    /// 지표 0 → 바위 동굴(침식 동굴 포함) 1 → 심부 2 → 경계층 3 → 최하층 4. 지층 정보가 없으면 0.
+    /// 위협 단계 (0 = Ⅰ) = 이번 회차에 기지 총 가치(직원+자원+건물)가 넘은 가장 높은 문턱 (RaidManager.StageForValue).
+    /// 깊이 기준은 얕게만 파는 꼼수가 되어 기지 가치로 바꿨다. 재산이 줄어도 내려가지 않는다.
     /// </summary>
-    public int ThreatStage
-    {
-        get
-        {
-            var layout = DefinitionDatabase.Instance != null ? DefinitionDatabase.Instance.StrataLayout : null;
-            var em = EmployeeManager.instance;
-            if (layout == null || layout.IsEmpty || em == null) return 0;
-            int deepestY = Mathf.FloorToInt(em.SpawnPoint.y) - stats.deepestDepth;
-            return Mathf.Max(0, BandIndexFromTop(layout, deepestY) - 1);
-        }
-    }
+    public int ThreatStage => stats.maxThreatStage;
 
-    private static int BandIndexFromTop(StrataLayout layout, int y)
+    private void UpdateThreatStage()
     {
-        int above = 0;
-        foreach (var b in layout.Bands) if (b.bottomY > y) above++;
-        return above;
+        if (RaidManager.instance == null) return;
+        stats.maxThreatStage = Mathf.Max(stats.maxThreatStage, RaidManager.instance.StageForValue(ThreatScore.TotalValue()));
     }
 
     private static int AliveStaff()
@@ -190,6 +181,7 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
             int startY = Mathf.FloorToInt(em.SpawnPoint.y);
             foreach (var e in em.AllEmployees)
                 if (e != null) stats.deepestDepth = Mathf.Max(stats.deepestDepth, startY - Mathf.FloorToInt(e.transform.position.y));
+            UpdateThreatStage();
         }
 
         endTimer -= Time.unscaledDeltaTime;

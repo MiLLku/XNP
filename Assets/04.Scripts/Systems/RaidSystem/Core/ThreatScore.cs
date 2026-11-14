@@ -2,116 +2,91 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// 습격 위협 점수 — 기본 + Σ(항목 값 × 난이도 배율), 그 뒤 적응 보정을 곱한다.
-/// 항목: 경과 일수 · 기지 재산(건물 건설 비용 + 창고 자원 + 장비) · 전투력(무기·방어구·전투 숙련, 머릿수 아님) ·
-///       최대 깊이 단계 · 기지 폭(플레이어 건물의 좌우 끝 사이 칸 수).
+/// 습격 점수 (림월드식) = (직원 가치 + 자원 가치 + 건물 가치) × 난이도 배수 × 플레이 시간 보정 × 적응 보정.
+///   · 직원 가치: 살아 있는 직원마다 (작업 적성 레벨 합 + 전투 숙련 레벨 합 + 착용 장비 수 × 장비 가치 × 품질 배율)
+///   · 자원 가치: 창고 재고 개수 + 장비 보관소의 장비 × 장비 가치
+///   · 건물 가치: 기능하는 플레이어 건물의 건설 비용 합
+/// 위협 단계(Ⅰ~Ⅴ)는 보정 전 총 가치로 정한다 (<see cref="RaidManager.StageForValue"/>, 회차 최대 유지).
 /// 마리 수는 RaidManager가 이 점수를 습격 종류의 한 마리당 점수로 나눠 정한다.
 /// </summary>
 public static class ThreatScore
 {
-    /// <summary>장비 하나의 재산 가치 (임시 — 장비에 가치 값이 없어 고정)</summary>
+    /// <summary>장비 하나의 가치 (장비에 가치 값이 없어 고정)</summary>
     public const float EQUIPMENT_VALUE = 10f;
-
-    /// <summary>전투 숙련 1레벨의 전투력</summary>
-    public const float COMBAT_LEVEL_VALUE = 5f;
 
     [Serializable]
     public struct Breakdown
     {
-        public float day, wealth, combat, stage, width;   // 항목 값
-        public float adapt;                                // 적응 보정 배율
-        public float baseScore, total;
+        public float staff, resources, buildings;   // 가치
+        public float diffMult, timeMult, adapt;     // 배수
+        public float total;
         public string difficulty;
 
-        // 항목별 기여 (값 × 배율)
-        public float dayPts, wealthPts, combatPts, stagePts, widthPts;
+        public float Value => staff + resources + buildings;
 
         public override string ToString()
-            => $"위협 {total:F0} ({difficulty}) = [기본 {baseScore:F0} + 일수 {day:F1}→{dayPts:F1} + 재산 {wealth:F0}→{wealthPts:F1} + 전투력 {combat:F0}→{combatPts:F1}"
-             + $" + 깊이 {stage:F0}단→{stagePts:F1} + 폭 {width:F0}칸→{widthPts:F1}] × 적응 {adapt:F2}";
+            => $"위협 {total:F0} ({difficulty}) = (직원 {staff:F0} + 자원 {resources:F0} + 건물 {buildings:F0} = {Value:F0}) × 난이도 {diffMult:F3} × 시간 {timeMult:F2} × 적응 {adapt:F2}";
     }
 
     /// <summary>지금 기지 상태로 점수를 낸다</summary>
-    public static Breakdown Compute(ThreatDifficulty d, float adapt, int stage)
+    public static Breakdown Compute(ThreatDifficulty d, float adapt)
     {
-        float day = DayCycle.instance != null ? DayCycle.instance.Day : 1;
-        return Compute(d, adapt, day, Wealth(), Combat(), stage, BaseWidth());
+        float day = DayCycle.instance != null ? DayCycle.instance.Day + DayCycle.instance.TimeNormalized : 1f;
+        return Compute(d, adapt, day, StaffValue(), ResourceValue(), BuildingValue());
     }
 
-    /// <summary>항목 값을 직접 넣어 점수를 낸다 (테스트·표 뽑기용)</summary>
-    public static Breakdown Compute(ThreatDifficulty d, float adapt, float day, float wealth, float combat, int stage, float width)
+    /// <summary>값을 직접 넣어 점수를 낸다 (테스트·표 뽑기용)</summary>
+    public static Breakdown Compute(ThreatDifficulty d, float adapt, float day, float staff, float resources, float buildings)
     {
-        var b = new Breakdown { day = day, wealth = wealth, combat = combat, stage = stage, width = width, adapt = adapt };
-        if (d == null) { b.total = 20f; b.difficulty = "-"; return b; }
+        var b = new Breakdown { staff = staff, resources = resources, buildings = buildings, adapt = adapt };
+        if (d == null) { b.diffMult = 1f; b.timeMult = 1f; b.total = 20f; b.difficulty = "-"; return b; }
         b.difficulty = d.displayName;
-        b.baseScore = d.baseScore;
-        b.dayPts = day * d.perDay;
-        b.wealthPts = wealth * d.perWealth;
-        b.combatPts = combat * d.perCombat;
-        b.stagePts = stage * d.perDepthStage;
-        b.widthPts = width * d.perWidth;
-        b.total = (b.baseScore + b.dayPts + b.wealthPts + b.combatPts + b.stagePts + b.widthPts) * adapt;
+        b.diffMult = d.valueMultiplier;
+        b.timeMult = d.TimeMultiplier(day);
+        b.total = b.Value * b.diffMult * b.timeMult * adapt;
         return b;
     }
 
-    /// <summary>기지 재산 = 기능하는 플레이어 건물의 건설 비용 합 + 창고 자원 수 + 장비(보관소 + 착용) × EQUIPMENT_VALUE</summary>
-    public static float Wealth()
+    /// <summary>보정 전 총 가치 (위협 단계 판정용)</summary>
+    public static float TotalValue() => StaffValue() + ResourceValue() + BuildingValue();
+
+    public static float StaffValue()
     {
-        float w = 0f;
-        foreach (var b in UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None))
-        {
-            if (b == null || b.buildingData == null || !b.IsFunctional || b.buildingData.requiredResources == null) continue;
-            foreach (var c in b.buildingData.requiredResources) w += c.amount;
-        }
-
-        if (InventoryManager.instance != null)
-            foreach (var kv in InventoryManager.instance.GetAllItems()) w += kv.Value;
-
-        int equipment = EquipmentStorageManager.instance != null ? EquipmentStorageManager.instance.PooledCount : 0;
-        if (EmployeeManager.instance != null)
-            foreach (var e in EmployeeManager.instance.AllEmployees)
-            {
-                if (e == null || e.State == EmployeeState.Dead) continue;
-                var eq = e.GetComponent<EmployeeEquipment>();
-                if (eq == null) continue;
-                foreach (EquipmentSlot s in Enum.GetValues(typeof(EquipmentSlot)))
-                    if (eq.GetItemInSlot(s) != null) equipment++;
-            }
-        return w + equipment * EQUIPMENT_VALUE;
-    }
-
-    /// <summary>전투력 = 살아 있는 직원마다 (무기 기본 피해 + 방어구 피해 감소% + 근접·원거리 숙련 × COMBAT_LEVEL_VALUE)</summary>
-    public static float Combat()
-    {
-        float c = 0f;
-        if (EmployeeManager.instance == null) return c;
+        float v = 0f;
+        if (EmployeeManager.instance == null) return v;
         foreach (var e in EmployeeManager.instance.AllEmployees)
         {
             if (e == null || e.State == EmployeeState.Dead) continue;
-            var eq = e.GetComponent<EmployeeEquipment>();
-            if (eq != null)
-            {
-                var weapon = eq.GetItemInSlot(EquipmentSlot.Weapon);
-                if (weapon != null) c += weapon.Damage;
-                c += eq.GetTotalDamageReduction();
-            }
             if (e.Growth != null)
-                c += (e.Growth.GetCombatLevel(CombatSkillType.Melee) + e.Growth.GetCombatLevel(CombatSkillType.Ranged)) * COMBAT_LEVEL_VALUE;
+            {
+                foreach (WorkType wt in Enum.GetValues(typeof(WorkType))) v += e.Growth.GetAptitudeLevel(wt);
+                v += e.Growth.GetCombatLevel(CombatSkillType.Melee) + e.Growth.GetCombatLevel(CombatSkillType.Ranged);
+            }
+            var eq = e.GetComponent<EmployeeEquipment>();
+            if (eq == null) continue;
+            foreach (EquipmentSlot s in Enum.GetValues(typeof(EquipmentSlot)))
+                if (eq.GetItemInSlot(s) != null) v += EQUIPMENT_VALUE * eq.QualityMult(s);
         }
-        return c;
+        return v;
     }
 
-    /// <summary>기지 폭 = 플레이어 건물(데이터 있는 것)의 가장 왼쪽과 오른쪽 사이 칸 수</summary>
-    public static float BaseWidth()
+    public static float ResourceValue()
     {
-        float min = float.MaxValue, max = float.MinValue;
+        float v = 0f;
+        if (InventoryManager.instance != null)
+            foreach (var kv in InventoryManager.instance.GetAllItems()) v += kv.Value;
+        if (EquipmentStorageManager.instance != null) v += EquipmentStorageManager.instance.PooledCount * EQUIPMENT_VALUE;
+        return v;
+    }
+
+    public static float BuildingValue()
+    {
+        float v = 0f;
         foreach (var b in UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None))
         {
-            if (b == null || b.buildingData == null || !b.IsFunctional) continue;
-            float x = b.transform.position.x;
-            min = Mathf.Min(min, x);
-            max = Mathf.Max(max, x + Mathf.Max(1, b.buildingData.size.x));
+            if (b == null || b.buildingData == null || !b.IsFunctional || b.buildingData.requiredResources == null) continue;
+            foreach (var c in b.buildingData.requiredResources) v += c.amount;
         }
-        return max > min ? max - min : 0f;
+        return v;
     }
 }
