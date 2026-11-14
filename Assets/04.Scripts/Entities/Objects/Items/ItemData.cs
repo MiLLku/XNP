@@ -49,14 +49,17 @@ public class ItemData : ScriptableObject
     [Tooltip("조리 재료 분류 (재료 필터: 채소/육류)")]
     public IngredientCategory ingredientCategory = IngredientCategory.Vegetable;
 
-    [Tooltip("날로 먹으면 생식 디버프가 붙는 재료인지 (쌀·감자 O, 베리 X)")]
+    [Tooltip("조리해서 먹어야 하는 재료인지 (쌀·감자 O, 베리 X) — 먹을 음식을 고를 때 뒤로 미룸")]
     public bool rawPenalty = false;
 
-    [Tooltip("생식 디버프 기분 변화")]
+    [Tooltip("날로 먹을 때(요리가 아닌 재료) 기분 변화 — 0이면 없음")]
     public float rawMood = -3f;
 
-    [Tooltip("생식 디버프 지속 시간 (게임 시간, 시)")]
-    [Min(0f)] public float rawMoodHours = 3f;
+    [Tooltip("날로 먹을 때 기분 변화 지속 시간 (게임 시간, 시)")]
+    [Min(0f)] public float rawMoodHours = 12f;
+
+    [Tooltip("날로 먹을 때 실제로 들어가는 영양 비율 (나머지는 버려짐). 요리에는 적용되지 않음")]
+    [Range(0f, 1f)] public float rawNutritionRate = 0.7f;
 
     /// <summary>요리인지</summary>
     public bool IsMeal => isFood && foodKind == FoodKind.Meal;

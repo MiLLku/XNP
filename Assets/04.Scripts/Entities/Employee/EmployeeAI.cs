@@ -1383,13 +1383,13 @@ public class EmployeeAI : MonoBehaviour
             stats.ModifyMental(chefMood, chefKey, "요리사의 손맛", food.moodOnEatHours * dayLength / 24f);
         }
 
-        // 생식 — 조리해야 하는 재료를 날로 먹음 (요리는 해당 없음). 재료가 달라도 하나로 갱신
-        if (food.rawPenalty && !food.IsMeal && stats != null && !Mathf.Approximately(food.rawMood, 0f))
+        // 생식 — 요리가 아닌 재료(베리 같은 채집물 포함)를 날로 먹음. 재료가 달라도 하나로 갱신 (중첩 없음)
+        if (!food.IsMeal && stats != null && !Mathf.Approximately(food.rawMood, 0f))
         {
             const string RAW_KEY = "food_raw";
             float dayLength = DayCycle.instance != null ? DayCycle.instance.DayLengthInSeconds : 1000f;
             stats.RemoveMentalModifier(RAW_KEY);
-            stats.ModifyMental(food.rawMood, RAW_KEY, "생식함", food.rawMoodHours * dayLength / 24f);
+            stats.ModifyMental(food.rawMood, RAW_KEY, "날것을 먹음", food.rawMoodHours * dayLength / 24f);
         }
     }
 
@@ -1403,6 +1403,9 @@ public class EmployeeAI : MonoBehaviour
             employee.SetState(EmployeeState.Idle);
             return;
         }
+
+        // 생식 — 요리가 아닌 재료는 영양 일부만 들어간다
+        if (food != null && !food.IsMeal) nutrition = Mathf.Max(1, Mathf.RoundToInt(nutrition * food.rawNutritionRate));
 
         employee.Eat(nutrition);
         ApplyFoodSideEffects(food);

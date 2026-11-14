@@ -21,15 +21,17 @@ MonoBehaviour:
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 1
-  nutrition: 130
+  nutrition: 50
   foodKind: 1
   ingredientCategory: 0
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 1.5
   moodOnEat: -2
   moodOnEatHours: 3
   moodOnEatLabel: "\uCE68\uC2DD\uB41C \uC74C\uC2DD\uC744 \uBA39\uC74C"
+  chefDish: 0
   isDrug: 0
   funValue: 0

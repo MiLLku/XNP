@@ -13,9 +13,12 @@ MonoBehaviour:
   m_Name: ErosionFruit
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 210
-  itemName: "침식 열매"
+  itemName: "\uCE68\uC2DD \uC5F4\uB9E4"
   itemIcon: {fileID: 198984507, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  description: "기지 밖 침식된 덤불의 열매. 날로 먹을 수 있지만 먹으면 침식이 8 오른다. 간이 밭에서 깨끗한 작물을 길러 대신할 것."
+  description: "\uAE30\uC9C0 \uBC16 \uCE68\uC2DD\uB41C \uB364\uBD88\uC758 \uC5F4\uB9E4.
+    \uB0A0\uB85C \uBA39\uC744 \uC218 \uC788\uC9C0\uB9CC \uBA39\uC73C\uBA74 \uCE68\uC2DD\uC774
+    8 \uC624\uB978\uB2E4. \uAC04\uC774 \uBC2D\uC5D0\uC11C \uAE68\uB057\uD55C \uC791\uBB3C\uC744
+    \uAE38\uB7EC \uB300\uC2E0\uD560 \uAC83."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 1
@@ -24,10 +27,12 @@ MonoBehaviour:
   ingredientCategory: 0
   rawPenalty: 0
   rawMood: -3
-  rawMoodHours: 3
+  rawMoodHours: 12
+  rawNutritionRate: 0.7
   erosionOnEat: 8
   moodOnEat: -2
   moodOnEatHours: 3
   moodOnEatLabel: "\uCE68\uC2DD\uB41C \uC74C\uC2DD\uC744 \uBA39\uC74C"
+  chefDish: 0
   isDrug: 0
   funValue: 0

@@ -25,10 +25,12 @@ MonoBehaviour:
   ingredientCategory: 0
   rawPenalty: 1
   rawMood: -3
-  rawMoodHours: 3
+  rawMoodHours: 12
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
   moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

@@ -208,21 +208,23 @@ public class CookingStation : MonoBehaviour, IPlanHost, IMaterialReceiver, IBuil
             nutrition += kv.Key.nutrition * kv.Value;
             erosion |= kv.Key.IsErosionFood;
         }
-        nutrition *= jobRecipe.nutritionMultiplier;
+        int count = Mathf.Max(1, jobRecipe.outputCount);
+        nutrition *= jobRecipe.nutritionMultiplier / count; // 요리 한 개 영양
 
         bool chef = cook != null && cook.StatsController != null && cook.StatsController.MakesChefDishes;
         var meal = jobRecipe.GetOutput(erosion, chef);
         if (meal != null)
         {
             if (InventoryManager.instance != null)
-            {
-                InventoryManager.instance.AddMealNutrition(meal, nutrition);
-                if (meal.chefDish) InventoryManager.instance.AddChefMood(meal, ChefMood(nutrition, cook));
-            }
-            ItemRefundHelper.SpawnRefunds(new Dictionary<ItemData, int> { { meal, 1 } }, WorkPosition, Vector2Int.one);
+                for (int i = 0; i < count; i++)
+                {
+                    InventoryManager.instance.AddMealNutrition(meal, nutrition);
+                    if (meal.chefDish) InventoryManager.instance.AddChefMood(meal, ChefMood(nutrition, cook));
+                }
+            ItemRefundHelper.SpawnRefunds(new Dictionary<ItemData, int> { { meal, count } }, WorkPosition, Vector2Int.one);
         }
 
-        if (jobPlan != null) jobPlan.done++;
+        if (jobPlan != null) jobPlan.done += count;
         cookOrder = null; // 완료 처리 중인 작업물 — 큐가 비면 WorkSystemManager가 스스로 정리
         ClearJob();
     }

@@ -17,6 +17,7 @@ MonoBehaviour:
   erosionOutput: {fileID: 11400000, guid: c5dfc701a4fd41943ac55ce651705769, type: 2}
   chefOutput: {fileID: 11400000, guid: 4b46f61dc5f359c4d8cc90ec44205942, type: 2}
   chefErosionOutput: {fileID: 11400000, guid: ced95d5cde2943f45a88b4827c42705e, type: 2}
-  ingredientCount: 4
+  ingredientCount: 3
   cookTime: 8
-  nutritionMultiplier: 1.2
+  nutritionMultiplier: 1.11
+  outputCount: 2

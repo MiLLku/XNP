@@ -1,8 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// 조리 레시피 — 아무 조리 재료 N개 → 요리 1개.
-/// 영양 = 넣은 재료 영양 합 × <see cref="nutritionMultiplier"/>.
+/// 조리 레시피 — 아무 조리 재료 N개 → 요리 <see cref="outputCount"/>개.
+/// 요리 한 개 영양 = 넣은 재료 영양 합 × <see cref="nutritionMultiplier"/> ÷ 개수.
 /// 침식 재료가 하나라도 들어가면 <see cref="erosionOutput"/>이 나옵니다.
 /// </summary>
 [CreateAssetMenu(fileName = "NewCookingRecipe", menuName = "StampSystem/Cooking Recipe")]
@@ -28,8 +28,11 @@ public class CookingRecipe : ScriptableObject, IPlanRecipe
     [Tooltip("조리 작업량 (조리 속도 1, 스토브 배율 1 기준 초)")]
     [Min(0.1f)] public float cookTime = 8f;
 
-    [Tooltip("영양 배율 — 재료 영양 합에 곱함")]
+    [Tooltip("영양 배율 — 재료 영양 합에 곱함 (결과물 개수로 나눠 한 개 영양이 됨)")]
     [Min(0f)] public float nutritionMultiplier = 1.2f;
+
+    [Tooltip("한 번 조리로 나오는 요리 개수")]
+    [Min(1)] public int outputCount = 1;
 
     public string DisplayName => recipeName;
 

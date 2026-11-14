@@ -21,12 +21,13 @@ MonoBehaviour:
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 1
-  nutrition: 110
+  nutrition: 50
   foodKind: 1
   ingredientCategory: 0
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
