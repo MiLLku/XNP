@@ -555,10 +555,10 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             type     = TypeObjectTile.Building,
             id       = (int)EntityType.HiringOffice
         });
-        // 건물 풋프린트 점유 마킹 (3×3)
+        // 건물 풋프린트 점유 마킹 (3×3) — 연구대처럼 지나다닐 수 있다 (막으면 2층이 좌우로 끊긴다)
         for (int dx = 0; dx < 3; dx++)
         for (int dy = 0; dy < 3; dy++)
-            _gameMap.MarkTileOccupied(officeWX + dx, officeWY + dy);
+            _gameMap.MarkTileOccupied(officeWX + dx, officeWY + dy, blocksMovement: false);
 
         // ── 5. 상자 (하층 중앙, 3×2 시각 오브젝트) ──────────────────────────────
         //    배치: lx=6,7,8 / ly=1 (하층 바닥)
@@ -1629,7 +1629,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             int size = e.id == (int)EntityType.StoneFloor ? 1 : e.id == (int)EntityType.HiringOffice ? 3 : 0;
             for (int dx = 0; dx < size; dx++)
                 for (int dy = 0; dy < size; dy++)
-                    _gameMap.MarkTileOccupied(e.position.x + dx, e.position.y + dy, blocksMovement: true);
+                    _gameMap.MarkTileOccupied(e.position.x + dx, e.position.y + dy, blocksMovement: e.id == (int)EntityType.StoneFloor);
 
             var def = db?.GetEntity(e.id);
             if (size == 0 && def != null && System.Linq.Enumerable.Contains(db.NaturalSpawns, def))
