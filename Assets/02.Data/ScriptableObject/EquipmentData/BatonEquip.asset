@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: BatonEquip
   m_EditorClassIdentifier: Assembly-CSharp::EquipmentData
   itemData: {fileID: 11400000, guid: 9161588695faa844da9c44d1be913cb4, type: 2}
-  description: "0\uB2E8\uACC4 \uADFC\uC811 \uBB34\uAE30. \uD53C\uD574 5."
+  description: "0\uB2E8\uACC4 \uADFC\uC811 \uBB34\uAE30. \uD53C\uD574 7."
   slot: 2
   weaponClass: 0
-  baseDamage: 5
+  baseDamage: 7
   accuracy: 0.85
   penetration: 0
   attackRange: 1.5
