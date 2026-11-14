@@ -169,6 +169,12 @@ public class DroppedItemManager : DestroySingleton<DroppedItemManager>
     public void Unregister(DroppedItem item)
     {
         _items.Remove(item);
+
+        // 운반 말고 다른 경로(보급 출고·추가 픽업)로 사라진 더미의 운반 태스크가 남으면 대기 수가 부풀고,
+        // 풀에서 재사용된 같은 오브젝트에 옛 태스크가 다시 붙는다 → 대기 중인 태스크를 같이 지운다
+        if (_haulOrder?.taskQueue == null) return;
+        foreach (var t in _haulOrder.taskQueue.PendingTasks.ToList())
+            if (t.target is HaulOrder h && h.item == item) _haulOrder.taskQueue.CancelTask(t);
     }
 
 /// <summary>
