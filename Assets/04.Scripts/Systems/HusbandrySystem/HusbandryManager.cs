@@ -203,7 +203,9 @@ public class HusbandryManager : MonoBehaviour, ISaveModule
         var cfg = Config;
         foreach (var c in creatures.ToArray())
         {
-            if (c == null || c.UnmetSeconds <= 0f || c.Species.events.Count == 0) continue;
+            // 지금 조건이 맞으면 사건 없음 — 누적 불충족은 맞춘 시간만큼 천천히 줄어 그동안 사건이 이어지고,
+            // 침식 분출이 방 침식을 범위 밖으로 밀어 다시 불충족을 만드는 악순환이 있었다
+            if (c == null || c.UnmetSeconds <= 0f || string.IsNullOrEmpty(c.LastUnmet) || c.Species.events.Count == 0) continue;
             float chance = Mathf.Min(0.9f, cfg.eventChancePerUnmetDay * c.UnmetSeconds / DayLength);
             if (Random.value >= chance) continue;
             Apply(c, c.Species.events[Random.Range(0, c.Species.events.Count)]);
