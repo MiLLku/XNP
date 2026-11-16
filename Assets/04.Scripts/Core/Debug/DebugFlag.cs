@@ -35,6 +35,9 @@ public enum DebugFlag
 
     /// <summary>직원·건물이 피해를 받지 않음</summary>
     Damage = 1 << 7,
+
+    /// <summary>직원 배고픔이 줄지 않음 (욕구 감소 정지와 달리 기력·재미는 정상)</summary>
+    Hunger = 1 << 8,
 }
 
 /// <summary>
@@ -53,6 +56,7 @@ public static class DebugFlagInfo
         DebugFlag.XenopsSpawn,
         DebugFlag.NeedsDecay,
         DebugFlag.Damage,
+        DebugFlag.Hunger,
     };
 
     private static readonly Dictionary<DebugFlag, string> labels = new Dictionary<DebugFlag, string>
@@ -65,6 +69,7 @@ public static class DebugFlagInfo
         { DebugFlag.XenopsSpawn, "제놉스 등장 차단" },
         { DebugFlag.NeedsDecay,  "욕구 감소 정지" },
         { DebugFlag.Damage,      "무적 (직원·건물)" },
+        { DebugFlag.Hunger,      "배고픔 없음" },
     };
 
     private static readonly Dictionary<DebugFlag, string> descriptions = new Dictionary<DebugFlag, string>
@@ -77,6 +82,7 @@ public static class DebugFlagInfo
         { DebugFlag.XenopsSpawn, "이벤트·레이드·디버그를 포함한 모든 스폰을 막습니다." },
         { DebugFlag.NeedsDecay,  "허기·기력·재미가 줄지 않습니다." },
         { DebugFlag.Damage,      "직원과 건물이 받는 피해를 0으로 만듭니다." },
+        { DebugFlag.Hunger,      "직원 배고픔만 줄지 않습니다. 기력·재미는 정상으로 줄어듭니다." },
     };
 
     /// <summary>UI 표시 이름</summary>

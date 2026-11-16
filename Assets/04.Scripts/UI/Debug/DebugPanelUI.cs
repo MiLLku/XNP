@@ -185,6 +185,14 @@ public class DebugPanelUI : BasePanel
         AddAction("무작위 이벤트 발생",   "F5와 동일합니다.",                       manager.TriggerRandomEvent);
         AddAction("제놉스 등장",         "F6과 동일합니다. 차단 중이면 무시됩니다.", manager.TriggerXenopsSpawn);
         AddAction("무작위 레이드 시작",   "외부 침략을 즉시 시작합니다.",            manager.StartRandomRaid);
+        AddAction("일반 습격 시작",       "종류를 일반으로 정해 바로 시작합니다.",     () => manager.StartRaidOfType(RaidType.Normal));
+        AddAction("땅굴 습격 시작",       "종류를 땅굴로 정해 바로 시작합니다.",       () => manager.StartRaidOfType(RaidType.Tunnel));
+        AddAction("돌파 습격 시작",       "종류를 돌파(자폭체)로 정해 바로 시작합니다.", () => manager.StartRaidOfType(RaidType.Breach));
+        AddAction("현재 연구 완료",       "진행 중인 연구를 바로 끝냅니다.",          manager.CompleteActiveResearch);
+        AddAction("모든 연구 완료",       "연구 트리 전체를 선행 순서대로 끝냅니다.",   manager.CompleteAllResearch);
+        AddAction("직원 1명 추가",        "채용 사무소와 같은 생성기로 1명을 추가합니다.", manager.AddRandomEmployee);
+        AddAction("하루 넘기기",          "같은 시각의 다음 날로 넘깁니다.",            manager.AdvanceOneDay);
+        AddAction("게임 속도 배수",       "배속에 곱하는 배수를 1 → 3 → 10 → 1로 바꿉니다.", manager.CycleGameSpeed);
         AddAction("레이드 강제 종료",     "진행 중인 침략을 끝냅니다.",              manager.EndActiveRaid);
         AddAction("정신 이상 전부 해제",  "모든 직원의 진행 중인 이상을 해제합니다.", manager.ClearAllMentalBreaks);
         AddAction("침식 전부 초기화",     "모든 직원의 침식을 0으로 만듭니다.",       manager.ClearAllErosion);

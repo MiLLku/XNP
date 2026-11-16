@@ -364,7 +364,7 @@ public class EmployeeStatsController : MonoBehaviour
         bool needsFrozen = DebugManager.IsBlocked(DebugFlag.NeedsDecay);
 
         // 허기 감소
-        if (!needsFrozen)
+        if (!needsFrozen && !DebugManager.IsBlocked(DebugFlag.Hunger))
         {
             float hungerDecay = data.hungerDecayRate * cachedHungerRateModifier;
             currentNeeds.hunger -= hungerDecay * deltaTime;

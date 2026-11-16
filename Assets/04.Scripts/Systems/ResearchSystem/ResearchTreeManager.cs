@@ -158,6 +158,26 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
         Debug.Log($"[ResearchTreeManager] 연구 완료: {node.nodeName}");
     }
 
+    /// <summary>디버그: 진행 중인 연구를 바로 완료</summary>
+    public void DebugCompleteActive()
+    {
+        var node = IsResearchActive && treeConfig != null ? treeConfig.GetNode(_activeNodeId) : null;
+        if (node != null) CompleteResearch(node);
+    }
+
+    /// <summary>디버그: 선행 조건 순서대로 모든 연구를 완료</summary>
+    public void DebugCompleteAll()
+    {
+        if (treeConfig == null) return;
+        DebugCompleteActive();
+        for (bool progressed = true; progressed;)
+        {
+            progressed = false;
+            foreach (var n in treeConfig.nodes)
+                if (n != null && GetNodeState(n.nodeId) != ResearchNodeState.Completed && ArePrerequisitesMet(n)) { CompleteResearch(n); progressed = true; }
+        }
+    }
+
     private bool ArePrerequisitesMet(ResearchNodeData node)
         => node.prerequisiteNodeIds.All(id => GetNodeState(id) == ResearchNodeState.Completed);
 

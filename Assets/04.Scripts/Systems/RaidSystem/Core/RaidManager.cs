@@ -459,7 +459,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// 랜덤 레이드를 선택하여 시작합니다.
     /// 지난 습격 뒤 strongRaidAfterDays가 지났으면 강한 습격도 후보에 넣고, 아니면 약한 습격만 뽑습니다.
     /// </summary>
-    public void StartRandomRaid()
+    public void StartRandomRaid() => StartRandomRaid(null);
+
+    /// <summary>forcedType이 있으면 그 종류로 (디버그 패널)</summary>
+    public void StartRandomRaid(RaidType? forcedType)
     {
         bool overdue = lastRaidGameDay < 0f || GameDayNow - lastRaidGameDay >= strongRaidAfterDays;
         int day = DayCycle.instance != null ? DayCycle.instance.Day : 0;
@@ -473,7 +476,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 위협 점수 산출 → 그 점수로 가능한 습격 종류 풀에서 고른다
         var rs = RunStatsManager.instance;
         float threat = ThreatScore.Compute(rs != null ? rs.Difficulty : null, rs != null ? rs.ThreatAdapt : 1f).total;
-        StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)], RollRaidType(threat));
+        StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)], forcedType ?? RollRaidType(threat));
     }
 
     /// <summary>

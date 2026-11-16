@@ -213,9 +213,15 @@ public class TimeManager : DestroySingleton<TimeManager>
 
     #region 내부 로직
 
+    /// <summary>디버그 패널의 게임 속도 배수 (배속에 곱함, 세이브와 무관)</summary>
+    public static float DebugSpeedMultiplier = 1f;
+
+    /// <summary>배속·디버그 배수를 timeScale에 다시 반영 (정지 중이면 그대로)</summary>
+    public void ReapplyTimeScale() { if (!_isPaused) ApplyTimeScale(); }
+
     private void ApplyTimeScale()
     {
-        Time.timeScale = currentSpeed;
+        Time.timeScale = currentSpeed * DebugSpeedMultiplier;
     }
 
     #endregion

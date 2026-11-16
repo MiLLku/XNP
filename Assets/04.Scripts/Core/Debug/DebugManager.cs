@@ -56,6 +56,9 @@ public class DebugManager : DestroySingleton<DebugManager>
     protected override void Awake()
     {
         base.Awake();
+#if !(UNITY_EDITOR || DEVELOPMENT_BUILD)
+        enableDebug = false; // 치트는 에디터·개발 빌드에서만
+#endif
         activeFlags = (DebugFlag)PlayerPrefs.GetInt(PREFS_KEY, 0);
     }
 
@@ -571,8 +574,57 @@ public class DebugManager : DestroySingleton<DebugManager>
             return;
         }
 
+        // 창고가 없으면 인벤토리에 넣어도 아무도 못 꺼낸다 → 직원 스폰 지점 바닥에
+        if (StockpileManager.instance != null && !StockpileManager.instance.HasAnyStockpile && DroppedItemManager.instance != null && EmployeeManager.instance != null)
+        {
+            DroppedItemManager.instance.SpawnItem(item, amount, EmployeeManager.instance.SpawnPoint + new Vector3(0f, 0.5f, 0f));
+            Debug.Log($"[DebugManager] 자원 지급(창고 없음 → 바닥): {item.itemName} x{amount}");
+            return;
+        }
         InventoryManager.instance.AddItem(item, amount);
         Debug.Log($"[DebugManager] 자원 지급: {item.itemName} x{amount}");
+    }
+
+    #endregion
+
+    #region 즉시 실행 — 진행
+
+    public void CompleteActiveResearch() => ResearchTreeManager.instance?.DebugCompleteActive();
+
+    public void CompleteAllResearch() => ResearchTreeManager.instance?.DebugCompleteAll();
+
+    /// <summary>지정한 종류로 레이드를 바로 시작합니다 (위협 점수는 지금 기지 기준)</summary>
+    public void StartRaidOfType(RaidType type) => RaidManager.instance?.StartRandomRaid(type);
+
+    /// <summary>무작위 직원 1명을 스폰 지점에 추가합니다 (채용 사무소와 같은 생성기)</summary>
+    public void AddRandomEmployee()
+    {
+        var em = EmployeeManager.instance;
+        var config = em != null ? em.GenerationConfig : null;
+        if (config == null) { Debug.LogWarning("[DebugManager] 직원 생성 설정이 없습니다."); return; }
+        var data = RandomEmployeeGenerator.Generate(config, config.baseWorkStatCap);
+        var e = data != null ? em.SpawnEmployee(data) : null;
+        Debug.Log($"[DebugManager] 직원 추가: {(e != null ? e.DisplayName : "실패")}");
+    }
+
+    /// <summary>같은 시각의 다음 날로</summary>
+    public void AdvanceOneDay()
+    {
+        var dc = DayCycle.instance;
+        if (dc == null) return;
+        dc.SetDayAndTime(dc.Day + 1, dc.TimeNormalized);
+        Debug.Log($"[DebugManager] {dc.Day}일차로 넘김");
+    }
+
+    private static readonly float[] SpeedSteps = { 1f, 3f, 10f };
+
+    /// <summary>게임 속도 배수 1 → 3 → 10 → 1 (배속 버튼 값에 곱함)</summary>
+    public void CycleGameSpeed()
+    {
+        int i = System.Array.IndexOf(SpeedSteps, TimeManager.DebugSpeedMultiplier);
+        TimeManager.DebugSpeedMultiplier = SpeedSteps[(i + 1) % SpeedSteps.Length];
+        TimeManager.instance?.ReapplyTimeScale();
+        Debug.Log($"[DebugManager] 게임 속도 배수 ×{TimeManager.DebugSpeedMultiplier}");
     }
 
     #endregion
