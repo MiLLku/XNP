@@ -679,7 +679,12 @@ public class EmployeeMovement : MonoBehaviour
             {
                 lastNavVersion = gameMap.NavVersion;
 
-                if (!pathfinder.IsValidPosition(nextTile))
+                // 다음 칸만 보면 더 앞쪽이 막힌 변화는 여기서 소비되고, 나중에 그 칸에 와서는 검사 없이 벽을 통과한다
+                bool blockedAhead = false;
+                for (int i = currentPathIndex; i < currentPath.Count && !blockedAhead; i++)
+                    blockedAhead = !pathfinder.IsValidPosition(currentPath[i]);
+
+                if (blockedAhead)
                 {
                     Vector2Int currentFoot = GetFootTile();
                     Vector2Int goalTile    = new Vector2Int(
