@@ -404,6 +404,7 @@ public static class EventEffectApplier
             if (gameMap.TileGrid[x, y] != 0)
             {
                 gameMap.SetTile(x, y, 0);
+                gameMap.UnmarkTileOccupied(x, y); // 식생물 발밑 땅이면 점유(통행 차단) 표시가 공기 칸에 남는다 — 채광과 같은 처리
                 mapRenderer?.UpdateTileVisual(x, y);
                 destroyed++;
             }
