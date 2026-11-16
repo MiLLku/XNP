@@ -573,6 +573,32 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction, IMa
 
         // 하위 클래스 훅
         OnProductionStarted();
+        ResumeCraftingLoopAsync().Forget();
+    }
+
+    private bool _resumeLoopRunning;
+
+    // 제작 주문은 작업 시스템에 등록되지 않아, 담당이 잠·식사 등으로 작업이 끊기면 아무도 다시 집지 않는다
+    // → 담당이 한가해지면(Idle·소집 아님·할 일 없음) 이어서 하게 한다
+    private async UniTaskVoid ResumeCraftingLoopAsync()
+    {
+        if (_resumeLoopRunning) return;
+        _resumeLoopRunning = true;
+        var ct = this.GetCancellationTokenOnDestroy();
+        try
+        {
+            while (_currentOrder != null && !_currentOrder.IsCompleted())
+            {
+                await UniTask.Delay(2000, DelayType.DeltaTime, GameLoop.Frame, ct);
+                var order = _currentOrder;
+                var w = order != null ? order.assignedWorker : null;
+                if (w == null || w.State != EmployeeState.Idle || w.IsDrafted) continue;
+                var work = w.GetComponent<EmployeeWork>();
+                if (work == null || work.CurrentWorkTarget != null) continue;
+                w.AssignCraftingWork(order, GetDeliveryPosition());
+            }
+        }
+        finally { _resumeLoopRunning = false; }
     }
 
     /// <summary>
