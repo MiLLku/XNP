@@ -1284,7 +1284,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             DropCarryAtFeet(carryPile, moveFailed ? "사용처 이동 실패" : "사용처 무효화");
             request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
             CancelAdditionalReserves(additionalRequests, refundAll: false);
-            FinishWithdrawWork();
+            // 사용처는 그대로인데 가다가 실패 → 태스크를 큐로 되돌린다 (완료 처리하면 사용처가 재료를 영영 못 받는다)
+            if (moveFailed && request.receiver.IsRequestStillValid()) CancelWork();
+            else FinishWithdrawWork();
             return;
         }
 
