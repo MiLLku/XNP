@@ -128,6 +128,9 @@ public class CraftingOrder : WorkOrder, IWorkTarget
     /// <summary>제작 진행도 (0~1)</summary>
     public float CraftingProgress => _craftingProgress;
 
+    /// <summary>불러오기 — 저장된 진행도로 되돌린다</summary>
+    public void RestoreProgress(float progress) => _craftingProgress = Mathf.Clamp01(progress);
+
     /// <summary>현재 작업 중 여부</summary>
     public bool IsWorking => _isWorking;
 

@@ -442,15 +442,33 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction, IMa
         public int workerId;
         public List<ItemStackSaveData> pending = new List<ItemStackSaveData>();
         public List<ItemStackSaveData> delivered = new List<ItemStackSaveData>();
+
+        // 진행 중 제작 — CraftingOrder는 작업 시스템에 등록되지 않아 여기서 직접 저장한다
+        public int activeRecipeId = -1;
+        public int activeAmount;
+        public float activeProgress;
+        public int activeReservationId = -1;
+        public int activeWorkerId;
     }
 
-    /// <summary>배정·운반 대기 주문 저장 (진행 중 제작은 CraftingOrder로 따로 저장된다)</summary>
+    /// <summary>배정·운반 대기 주문과 진행 중 제작을 저장</summary>
     public string SerializeExtra()
     {
-        if (_pendingRecipe == null) return "";
-        var s = new PendingSave { recipeId = _pendingRecipe.recipeID, amount = _pendingAmount, reservationId = _pendingReservationId, workerId = _haulWorker != null ? _haulWorker.InstanceId : 0 };
-        foreach (var kv in _haulPending) s.pending.Add(new ItemStackSaveData { itemId = kv.Key.itemID, amount = kv.Value });
-        foreach (var kv in _haulDelivered) s.delivered.Add(new ItemStackSaveData { itemId = kv.Key.itemID, amount = kv.Value });
+        if (_pendingRecipe == null && _currentOrder == null) return "";
+        var s = new PendingSave();
+        if (_pendingRecipe != null)
+        {
+            s.recipeId = _pendingRecipe.recipeID; s.amount = _pendingAmount; s.reservationId = _pendingReservationId;
+            s.workerId = _haulWorker != null ? _haulWorker.InstanceId : 0;
+            foreach (var kv in _haulPending) s.pending.Add(new ItemStackSaveData { itemId = kv.Key.itemID, amount = kv.Value });
+            foreach (var kv in _haulDelivered) s.delivered.Add(new ItemStackSaveData { itemId = kv.Key.itemID, amount = kv.Value });
+        }
+        if (_currentOrder != null && _currentOrder.recipe != null)
+        {
+            s.activeRecipeId = _currentOrder.recipe.recipeID; s.activeAmount = _currentOrder.craftAmount;
+            s.activeProgress = _currentOrder.CraftingProgress; s.activeReservationId = _currentOrder.ReservationId;
+            s.activeWorkerId = _currentOrder.assignedWorker != null ? _currentOrder.assignedWorker.InstanceId : 0;
+        }
         return JsonUtility.ToJson(s);
     }
 
@@ -459,31 +477,57 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction, IMa
         if (string.IsNullOrEmpty(json)) return;
         var s = JsonUtility.FromJson<PendingSave>(json);
         var db = GameDatabase.Instance;
-        var recipe = s != null && db != null ? db.GetRecipeData(s.recipeId) : null;
-        if (recipe == null) return;
-        _pendingRecipe = recipe;
-        _pendingAmount = s.amount;
-        _pendingReservationId = s.reservationId;
-        _haulPending.Clear();
-        _haulDelivered.Clear();
-        foreach (var it in s.pending) { var item = db.GetItemData(it.itemId); if (item != null && it.amount > 0) _haulPending[item] = it.amount; }
-        foreach (var it in s.delivered) { var item = db.GetItemData(it.itemId); if (item != null && it.amount > 0) _haulDelivered[item] = it.amount; }
-        RestoreAfterLoadAsync(s.workerId).Forget();
+        if (s == null || db == null) return;
+        var recipe = db.GetRecipeData(s.recipeId);
+        if (recipe != null)
+        {
+            _pendingRecipe = recipe;
+            _pendingAmount = s.amount;
+            _pendingReservationId = s.reservationId;
+            _haulPending.Clear();
+            _haulDelivered.Clear();
+            foreach (var it in s.pending) { var item = db.GetItemData(it.itemId); if (item != null && it.amount > 0) _haulPending[item] = it.amount; }
+            foreach (var it in s.delivered) { var item = db.GetItemData(it.itemId); if (item != null && it.amount > 0) _haulDelivered[item] = it.amount; }
+        }
+        var activeRecipe = s.activeRecipeId >= 0 ? db.GetRecipeData(s.activeRecipeId) : null;
+        RestoreAfterLoadAsync(s.workerId, activeRecipe, s).Forget();
     }
 
     // 건물(30)이 작업 시스템(60)보다 먼저 복원되고, 작업 시스템 복원이 모든 작업물을 지운다 → 로드가 끝난 뒤 다시 건다
     // 배정 직원도 직원(50)이 복원된 뒤에야 찾을 수 있다
-    private async UniTaskVoid RestoreAfterLoadAsync(int workerId)
+    private async UniTaskVoid RestoreAfterLoadAsync(int workerId, CraftingRecipe activeRecipe, PendingSave s)
     {
         await UniTask.WaitUntil(() => SaveManager.instance == null || !SaveManager.instance.IsLoading, GameLoop.Frame, this.GetCancellationTokenOnDestroy());
+        if (activeRecipe != null) RestoreActiveOrder(activeRecipe, s);
         if (_pendingRecipe == null) return;
         var worker = workerId > 0 ? RuntimeIDRegistry.instance?.ResolveComponent<Employee>(workerId) : null;
+        if (_currentOrder != null) worker = null; // 진행 중 제작이 끝나야 다음 주문을 시작한다 — 배정 대기로 둔다
         if (AwaitingMaterials)
         {
             if (worker != null) _haulWorker = worker;
             if (_haulOrder == null) CreateHaulOrder();
         }
         else if (worker != null && worker.State != EmployeeState.Dead) StartProduction(worker);
+    }
+
+    /// <summary>진행 중이던 제작을 같은 진행도로 다시 건다. 담당이 없으면(사망 등) 재료가 들어온 배정 대기 주문으로 둔다.</summary>
+    private void RestoreActiveOrder(CraftingRecipe recipe, PendingSave s)
+    {
+        var worker = s.activeWorkerId > 0 ? RuntimeIDRegistry.instance?.ResolveComponent<Employee>(s.activeWorkerId) : null;
+        if (worker == null || worker.State == EmployeeState.Dead)
+        {
+            // shortcut: 담당이 없으면 진행도는 버린다 — 재배정 때 처음부터. 아까우면 진행도도 대기 주문에 실을 것
+            if (_pendingRecipe != null) return; // 대기 주문이 이미 있으면 그대로 (진행 중 몫은 잃는다)
+            _pendingRecipe = recipe;
+            _pendingAmount = s.activeAmount;
+            _pendingReservationId = s.activeReservationId;
+            return;
+        }
+        _currentOrder = new CraftingOrder(recipe, s.activeAmount, this, worker, s.activeReservationId);
+        _currentOrder.RestoreProgress(s.activeProgress);
+        worker.AssignCraftingWork(_currentOrder, GetDeliveryPosition());
+        OnProductionStarted();
+        ResumeCraftingLoopAsync().Forget();
     }
 
     #endregion
@@ -592,7 +636,8 @@ public abstract class ProductionBuilding : MonoBehaviour, IBuildingFunction, IMa
                 await UniTask.Delay(2000, DelayType.DeltaTime, GameLoop.Frame, ct);
                 var order = _currentOrder;
                 var w = order != null ? order.assignedWorker : null;
-                if (w == null || w.State != EmployeeState.Idle || w.IsDrafted) continue;
+                // 제작을 끈 직원을 다시 보내면 도착 즉시 취소되는 왕복을 끝없이 반복한다
+                if (w == null || w.State != EmployeeState.Idle || w.IsDrafted || !w.CanPerformWork(WorkType.Crafting)) continue;
                 var work = w.GetComponent<EmployeeWork>();
                 if (work == null || work.CurrentWorkTarget != null) continue;
                 w.AssignCraftingWork(order, GetDeliveryPosition());
