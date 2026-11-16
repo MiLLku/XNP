@@ -719,7 +719,44 @@ public class TemperatureManager : DestroySingleton<TemperatureManager>
             }
         }
 
-        return bestRoom;
+        if (bestRoom != RoomManager.OUTDOOR_ID) return bestRoom;
+        return ResolveThroughFixtures(manager, origin, width, height);
+    }
+
+    private const int FIXTURE_SEARCH_LIMIT = 64;
+    private static readonly Vector2Int[] FourDirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+
+    /// <summary>
+    /// 둘레가 전부 다른 설비 건물·벽·바닥인 구석 칸(예: 대장간과 작업 조명 사이 공구 선반) —
+    /// 설비 건물이 차지한 칸을 건너 가장 가까운 방을 찾는다. 기반시설(바닥·문·사다리)과 지형은 건너지 않는다(방 경계라서).
+    /// </summary>
+    private static int ResolveThroughFixtures(RoomManager manager, Vector2Int origin, int width, int height)
+    {
+        var visited = new HashSet<Vector2Int>();
+        var queue = new Queue<Vector2Int>();
+        for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
+            {
+                var c = new Vector2Int(origin.x + x, origin.y + y);
+                visited.Add(c);
+                queue.Enqueue(c);
+            }
+
+        while (queue.Count > 0 && visited.Count < FIXTURE_SEARCH_LIMIT)
+        {
+            var cell = queue.Dequeue();
+            foreach (var d in FourDirs)
+            {
+                var n = cell + d;
+                if (!visited.Add(n)) continue;
+                int id = manager.GetRoomId(n.x, n.y);
+                if (id != RoomManager.OUTDOOR_ID) return id;
+                var b = Building.GetBuildingAt(n);
+                if (b != null && b.buildingData != null && b.buildingData.category != BuildingCategory.Infrastructure)
+                    queue.Enqueue(n);
+            }
+        }
+        return RoomManager.OUTDOOR_ID;
     }
 
     #endregion
