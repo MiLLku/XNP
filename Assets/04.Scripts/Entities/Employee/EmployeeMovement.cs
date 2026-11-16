@@ -83,6 +83,9 @@ public class EmployeeMovement : MonoBehaviour
     /// </summary>
     private bool isClimbing = false;
 
+    /// <summary>진행 중인 칸 이동의 출발 위치 (칸 사이에서 이동이 끊겼을 때 복귀용)</summary>
+    private Vector3 stepStartPos;
+
     /// <summary>안개(Fog of War) 시야 마지막 중심 — 이동 시 diff 갱신용</summary>
     private Vector2Int _lastSightCenter;
 
@@ -428,6 +431,7 @@ public class EmployeeMovement : MonoBehaviour
         if (!hasLanded) { hasLanded = true; return; } // 스폰·로드 직후 자리 잡기
         int tiles = Mathf.FloorToInt(fallStartY - (groundTile.y + 1) + 0.01f);
         if (tiles <= safeFallTiles || fallDamagePerTile <= 0f || statsController == null) return;
+        if (DebugManager.IsBlocked(DebugFlag.Damage)) return;
 
         var fluids = FluidManager.instance;
         if (fluids != null && fluids.GetFluid(groundTile.x, groundTile.y + 1) == FluidType.Water
@@ -791,6 +795,7 @@ public class EmployeeMovement : MonoBehaviour
     private async UniTask MoveToTileAsync(Vector2Int targetTile, int heightDiff, CancellationToken ct)
     {
         Vector3 startPos = transform.position;
+        stepStartPos = startPos;
         Vector3 endPos = TileToWorld(targetTile);
         float journeyLength = Vector3.Distance(startPos, endPos);
         float startTime = Time.time;
@@ -952,6 +957,8 @@ public class EmployeeMovement : MonoBehaviour
     public void StopMoving()
     {
         CancelMoveTask();
+        // 단차·사다리 칸 사이(허공)에서 끊기면 isClimbing이 풀리며 낙하로 오판해 추락한다 → 그 칸의 출발점으로 되돌린다
+        if (isClimbing) transform.position = stepStartPos;
         ValidateAndFixPosition();
 
         isMoving  = false;
