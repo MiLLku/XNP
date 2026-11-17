@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 
 /// <summary>
-/// 게임 난이도 — 습격 점수의 난이도 배수·플레이 시간 보정과 적응 보정 폭 (<see cref="ThreatScore"/>).
+/// 게임 난이도 — 습격 점수의 난이도 배수·플레이 시간 보정 (<see cref="ThreatScore"/>).
 ///
 /// 에셋은 Resources/Difficulty 아래에 두고 order 순으로 메인 메뉴에 나온다.
 /// </summary>
@@ -14,7 +14,7 @@ public class ThreatDifficulty : ScriptableObject
     [Tooltip("메뉴·세이브 순서 (0 = 초보, 1 = 보통, 2 = 어려움)")]
     public int order = 1;
 
-    [Header("습격 점수 = (직원 + 자원 + 건물 가치) × 난이도 배수 × 시간 보정 × 적응 보정 (임시 수치)")]
+    [Header("습격 점수 = (직원 + 자원 + 건물 가치) × 난이도 배수 × 시간 보정 (임시 수치)")]
     [Tooltip("총 가치에 곱하는 난이도 배수")]
     [Min(0f)] public float valueMultiplier = 0.08f;
 
@@ -31,14 +31,4 @@ public class ThreatDifficulty : ScriptableObject
                 return Mathf.Lerp(timeCurve[i - 1].y, timeCurve[i].y, Mathf.InverseLerp(timeCurve[i - 1].x, timeCurve[i].x, day));
         return timeCurve[timeCurve.Length - 1].y;
     }
-
-    [Header("적응 보정 — 다음 습격 점수에 곱한다")]
-    [Tooltip("직전 습격에서 직원이 죽었으면 이만큼 내림")]
-    [Min(0f)] public float lossAdapt = 0.2f;
-
-    [Tooltip("직전 습격을 사망 없이 막았으면 이만큼 올림")]
-    [Min(0f)] public float winAdapt = 0.05f;
-
-    [Range(0.1f, 1f)] public float adaptMin = 0.6f;
-    [Min(1f)] public float adaptMax = 1.5f;
 }

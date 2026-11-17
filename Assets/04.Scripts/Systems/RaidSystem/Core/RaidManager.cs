@@ -207,6 +207,14 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// <summary>이번 레이드에서 스폰된 제놉스 목록</summary>
     private readonly List<Xenops> spawnedEntities = new List<Xenops>();
 
+    /// <summary>
+    /// 닫힌 거점·스포너 습격이 남긴 것 (구조물·호위·스포너가 내보낸 적) — 플레이어가 부술 때까지 남고,
+    /// 습격 자체는 닫혀 다음 습격 일정이 막히지 않는다 (사용자 결정: 외부 활동을 강요하는 습격은 물러나지 않음).
+    /// </summary>
+    private readonly List<Xenops> lingering = new List<Xenops>();
+    private int lingeringStage;
+    private bool lingeringGuardsHeld;
+
     /// <summary>진행 중인 레이드 비동기 작업의 취소원 (한 번에 하나만)</summary>
     private CancellationTokenSource raidCts;
 
@@ -265,6 +273,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             if (xenops != null)
                 save.spawnedEntityIds.Add(xenops.InstanceId);
         }
+        foreach (var xenops in lingering) if (xenops != null) save.lingeringIds.Add(xenops.InstanceId);
+        save.lingeringStage = lingeringStage;
 
         // 아직 나오지 않은 웨이브의 스폰 계획 (진행 중 웨이브는 이미 나온 마리까지 포함 — 불러올 때 건너뛴다)
         if (save.wavesSpawned >= 0)
@@ -326,6 +336,19 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
                 obj.ApplyThreatScaling(StageMultiplier, true); // 체력 비율은 유지한 채 단계 배율로 최대 체력 다시 맞춤
             }
         }
+
+        // 닫힌 거점·스포너 습격이 남긴 것 — 경비는 가장 가까운 남은 구조물을 다시 지킨다
+        lingering.Clear();
+        lingeringStage = data.raidSystem.lingeringStage;
+        if (data.raidSystem.lingeringIds != null && RuntimeIDRegistry.instance != null)
+            foreach (var id in data.raidSystem.lingeringIds)
+            {
+                var obj = RuntimeIDRegistry.instance.ResolveComponent<Xenops>(id);
+                if (obj == null) continue;
+                lingering.Add(obj);
+                obj.ApplyThreatScaling(StageMultiplierFor(lingeringStage), true);
+            }
+        AnchorLingeringGuards();
 
         // 위장 중인 위장체 (직원 목록 밖이라 직원 세이브에 없다)
         foreach (var d in UnityEngine.Object.FindObjectsByType<DisguisedEmployee>(FindObjectsSortMode.None)) Destroy(d.gameObject);
@@ -475,7 +498,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         }
         // 위협 점수 산출 → 그 점수로 가능한 습격 종류 풀에서 고른다
         var rs = RunStatsManager.instance;
-        float threat = ThreatScore.Compute(rs != null ? rs.Difficulty : null, rs != null ? rs.ThreatAdapt : 1f).total;
+        float threat = ThreatScore.Compute(rs != null ? rs.Difficulty : null).total;
         StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)], forcedType ?? RollRaidType(threat));
     }
 
@@ -830,20 +853,70 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         Debug.Log($"[RaidManager] 스포너 생성 @ {site}");
     }
 
-    /// <summary>스포너가 내보낸 적 중 살아 있는 수 (스포너 습격은 호위가 없어 스포너 외 전부)</summary>
-    public int SpawnerChildrenAlive
+    /// <summary>스포너가 내보낸 적 중 살아 있는 수 (스포너 습격은 호위가 없어 스포너 외 전부 — 남은 스포너면 남은 목록에서)</summary>
+    public int SpawnerChildrenAlive(Xenops spawner)
     {
-        get
-        {
-            int n = 0;
-            foreach (var x in spawnedEntities) if (x != null && x.GetComponent<SpawnerStructure>() == null) n++;
-            return n;
-        }
+        var list = lingering.Contains(spawner) ? lingering : spawnedEntities;
+        int n = 0;
+        foreach (var x in list) if (x != null && x.GetComponent<SpawnerStructure>() == null && x.GetComponent<OutpostStructure>() == null) n++;
+        return n;
     }
 
-    /// <summary>스포너가 적 하나를 내보낸다 — 습격 적으로 등록(단계 배율·전리품·완료 판정)</summary>
-    public Xenops SpawnFromSpawner(int xenopsId, Vector3 at)
-        => SpawnRaidXenops(new RaidSpawnEntry { xenopsDataId = xenopsId, count = 1 }, at);
+    /// <summary>스포너가 적 하나를 내보낸다 — 습격 적으로 등록(단계 배율·전리품·완료 판정). 남은 스포너의 적은 남은 목록으로</summary>
+    public Xenops SpawnFromSpawner(int xenopsId, Vector3 at, Xenops spawner)
+    {
+        var x = SpawnRaidXenops(new RaidSpawnEntry { xenopsDataId = xenopsId, count = 1 }, at);
+        if (x != null && lingering.Contains(spawner))
+        {
+            // shortcut: 지금 진행 중인 다른 습격의 종류 설정(땅굴=직원만 노림 등)이 이 적에게도 붙을 수 있다 — 문제가 되면 종류 적용을 분리할 것
+            spawnedEntities.Remove(x);
+            lingering.Add(x);
+            x.ApplyThreatScaling(StageMultiplierFor(lingeringStage), true);
+        }
+        return x;
+    }
+
+    /// <summary>외부 활동을 강요하는 습격(거점·스포너) — 물러나지 않고, 시간이 지나면 습격만 닫고 남긴다</summary>
+    private bool ShouldLinger()
+        => raidRetreatAfterDays > 0f && lastRaidGameDay >= 0f && GameDayNow - lastRaidGameDay > raidRetreatAfterDays
+           && (activeRaidType == RaidType.Outpost || activeRaidType == RaidType.Spawner);
+
+    private void Linger()
+    {
+        foreach (var x in spawnedEntities) if (x != null && !lingering.Contains(x)) lingering.Add(x);
+        lingeringStage = activeThreatStage;
+        bool outpost = activeRaidType == RaidType.Outpost;
+        Debug.Log($"[RaidManager] {TypeLabel(activeRaidType)}이(가) {raidRetreatAfterDays}일을 넘겨 닫힘 — 남은 {lingering.Count}개체는 부술 때까지 남는다");
+        NotificationManager.instance?.PushLetter(new Letter
+        {
+            title = outpost ? "거점이 남아 있습니다" : "스포너가 남아 있습니다",
+            body = outpost ? "적이 물러나지 않고 구조물을 지킵니다. 부수기 전까지 효과가 계속됩니다." : "부수기 전까지 적을 계속 내보냅니다.",
+            type = LetterType.Threat
+        });
+        ResetRaidState();
+        AnchorLingeringGuards();
+    }
+
+    /// <summary>남은 경비를 가장 가까운 남은 거점 구조물에 묶는다 (구조물이 없으면 풀어 일반 적처럼)</summary>
+    private void AnchorLingeringGuards()
+    {
+        lingering.RemoveAll(x => x == null);
+        var posts = lingering.FindAll(x => x.GetComponent<OutpostStructure>() != null);
+        lingeringGuardsHeld = posts.Count > 0;
+        foreach (var x in lingering)
+        {
+            if (x.GetComponent<OutpostStructure>() != null || x.GetComponent<SpawnerStructure>() != null) continue;
+            var nav = x.GetComponent<EnemyNavigator>();
+            Xenops nearest = null; float best = float.MaxValue;
+            foreach (var p in posts) { float d = Vector2.Distance(p.transform.position, x.transform.position); if (d < best) { best = d; nearest = p; } }
+            if (nearest != null && best <= outpostGuardRadius * 3f)
+            {
+                if (nav == null) nav = x.gameObject.AddComponent<EnemyNavigator>();
+                nav.GuardAnchor = nearest.transform.position; nav.GuardRadius = outpostGuardRadius;
+            }
+            else if (nav != null) nav.GuardAnchor = null;
+        }
+    }
 
     /// <summary>구조물이 사라지면(부서짐·건설 실패) 남은 경비는 일반 습격처럼 행동한다</summary>
     private void ReleaseOutpostGuards()
@@ -865,6 +938,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             spawnedEntities.RemoveAll(x => x == null);
             if (spawnedEntities.Count == 0) break;
             if (ShouldRetreat()) { Retreat(); break; }
+            if (ShouldLinger()) { Linger(); return; }
             await UniTask.Delay(TimeSpan.FromSeconds(1f), cancellationToken: ct);
         }
 
@@ -876,7 +950,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     #region 내부 유틸
 
     /// <summary>습격으로 온 적인지 (처치 시 전리품 드롭 판정)</summary>
-    public bool IsRaider(Xenops xenops) => xenops != null && spawnedEntities.Contains(xenops);
+    public bool IsRaider(Xenops xenops) => xenops != null && (spawnedEntities.Contains(xenops) || lingering.Contains(xenops));
 
     private Xenops SpawnRaidXenops(RaidSpawnEntry entry, Vector3? at)
     {
@@ -971,6 +1045,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 거점 구조물이 사라졌으면 경비를 푼다 (Unity null — 파괴된 개체)
         if (activeRaidType == RaidType.Outpost && !outpostGuardReleased && !ReferenceEquals(activeOutpost, null) && activeOutpost == null)
             ReleaseOutpostGuards();
+        // 남은 거점이 부서지면 그 경비도 풀린다
+        if (lingeringGuardsHeld && !lingering.Exists(x => x != null && x.GetComponent<OutpostStructure>() != null))
+            AnchorLingeringGuards();
 
         if (!autoSchedule || IsRaidActive || DayCycle.instance == null) return;
         if (nextRaidGameDay < 0f) { ScheduleNextRaid(); return; }
@@ -982,11 +1059,11 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     #endregion
 
-    /// <summary>지금 런의 위협 점수 (난이도·적응 보정은 런 기록에서)</summary>
+    /// <summary>지금 런의 위협 점수 (난이도는 런 기록에서)</summary>
     private ThreatScore.Breakdown CurrentThreat()
     {
         var rs = RunStatsManager.instance;
-        return ThreatScore.Compute(rs != null ? rs.Difficulty : null, rs != null ? rs.ThreatAdapt : 1f);
+        return ThreatScore.Compute(rs != null ? rs.Difficulty : null);
     }
 
     /// <summary>습격 종류의 한 마리당 점수</summary>

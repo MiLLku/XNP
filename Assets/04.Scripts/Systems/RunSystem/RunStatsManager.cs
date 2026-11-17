@@ -18,9 +18,6 @@ public class RunStatsSaveData
     /// <summary>게임 난이도 (ThreatDifficulty.order, 구 세이브에는 없음 — 1 = 보통)</summary>
     public int difficulty = 1;
 
-    /// <summary>습격 적응 보정 배율 (0 이하 = 구 세이브 → 1)</summary>
-    public float threatAdapt = 1f;
-
     /// <summary>이번 회차에 오른 가장 높은 위협 단계 (0 = Ⅰ, 구 세이브에는 없음 → 0)</summary>
     public int maxThreatStage;
 }
@@ -80,18 +77,14 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
     /// <summary>메인 메뉴의 '새 게임'이 고른 난이도 (-1 = 고르지 않음 → 보통). 새 런이 시작될 때 한 번 읽는다</summary>
     public static int PendingDifficulty = -1;
 
-    private int staffDeadAtRaidStart;
-
     private void Start()
     {
         if (PendingDifficulty >= 0) { stats.difficulty = PendingDifficulty; PendingDifficulty = -1; }
 
         subscriptions = DisposableBag.Create(
-            GameMessageBus.Subscribe<RaidStartedMessage>(_ => staffDeadAtRaidStart = stats.staffDead),
             GameMessageBus.Subscribe<RaidCompletedMessage>(_ =>
             {
                 if (AliveStaff() > 0) stats.raidsSurvived++;
-                AdaptAfterRaid(stats.staffDead > staffDeadAtRaidStart);
             }),
             GameMessageBus.Subscribe<EmployeeRemovedMessage>(m =>
             {
@@ -129,19 +122,6 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
             foreach (var d in all) if (d.order == stats.difficulty) return d;
             return all[Mathf.Min(1, all.Length - 1)];
         }
-    }
-
-    /// <summary>다음 습격 위협 점수에 곱하는 적응 보정</summary>
-    public float ThreatAdapt => stats.threatAdapt > 0f ? stats.threatAdapt : 1f;
-
-    /// <summary>직전 습격 결과로 적응 보정을 옮긴다 — 직원이 죽었으면 내리고, 사망 없이 막았으면 조금 올림</summary>
-    private void AdaptAfterRaid(bool lostStaff)
-    {
-        var d = Difficulty;
-        if (d == null) return;
-        float a = ThreatAdapt + (lostStaff ? -d.lossAdapt : d.winAdapt);
-        stats.threatAdapt = Mathf.Clamp(a, d.adaptMin, d.adaptMax);
-        Debug.Log($"[RunStats] 습격 결과 {(lostStaff ? "사망 있음" : "사망 없음")} → 적응 보정 {stats.threatAdapt:F2}");
     }
 
     /// <summary>이번 런에서 직원이 내려간 가장 깊은 칸 수 (시작 스폰 높이 기준)</summary>

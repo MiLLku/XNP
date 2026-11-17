@@ -2,7 +2,8 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// 습격 점수 (림월드식) = (직원 가치 + 자원 가치 + 건물 가치) × 난이도 배수 × 플레이 시간 보정 × 적응 보정.
+/// 습격 점수 (림월드식) = (직원 가치 + 자원 가치 + 건물 가치) × 난이도 배수 × 플레이 시간 보정.
+/// 습격 결과(승리·사망)에 따른 별도 보정은 두지 않는다 — 승리 보상이 기지 가치를 올리고, 사망은 직원 가치로 이미 반영된다 (사용자 결정).
 ///   · 직원 가치: 살아 있는 직원마다 (작업 적성 레벨 합 + 전투 숙련 레벨 합 + 착용 장비 수 × 장비 가치 × 품질 배율)
 ///   · 자원 가치: 창고 재고 개수 + 장비 보관소의 장비 × 장비 가치
 ///   · 건물 가치: 기능하는 플레이어 건물의 건설 비용 합
@@ -18,32 +19,32 @@ public static class ThreatScore
     public struct Breakdown
     {
         public float staff, resources, buildings;   // 가치
-        public float diffMult, timeMult, adapt;     // 배수
+        public float diffMult, timeMult;            // 배수
         public float total;
         public string difficulty;
 
         public float Value => staff + resources + buildings;
 
         public override string ToString()
-            => $"위협 {total:F0} ({difficulty}) = (직원 {staff:F0} + 자원 {resources:F0} + 건물 {buildings:F0} = {Value:F0}) × 난이도 {diffMult:F3} × 시간 {timeMult:F2} × 적응 {adapt:F2}";
+            => $"위협 {total:F0} ({difficulty}) = (직원 {staff:F0} + 자원 {resources:F0} + 건물 {buildings:F0} = {Value:F0}) × 난이도 {diffMult:F3} × 시간 {timeMult:F2}";
     }
 
     /// <summary>지금 기지 상태로 점수를 낸다</summary>
-    public static Breakdown Compute(ThreatDifficulty d, float adapt)
+    public static Breakdown Compute(ThreatDifficulty d)
     {
         float day = DayCycle.instance != null ? DayCycle.instance.Day + DayCycle.instance.TimeNormalized : 1f;
-        return Compute(d, adapt, day, StaffValue(), ResourceValue(), BuildingValue());
+        return Compute(d, day, StaffValue(), ResourceValue(), BuildingValue());
     }
 
     /// <summary>값을 직접 넣어 점수를 낸다 (테스트·표 뽑기용)</summary>
-    public static Breakdown Compute(ThreatDifficulty d, float adapt, float day, float staff, float resources, float buildings)
+    public static Breakdown Compute(ThreatDifficulty d, float day, float staff, float resources, float buildings)
     {
-        var b = new Breakdown { staff = staff, resources = resources, buildings = buildings, adapt = adapt };
+        var b = new Breakdown { staff = staff, resources = resources, buildings = buildings };
         if (d == null) { b.diffMult = 1f; b.timeMult = 1f; b.total = 20f; b.difficulty = "-"; return b; }
         b.difficulty = d.displayName;
         b.diffMult = d.valueMultiplier;
         b.timeMult = d.TimeMultiplier(day);
-        b.total = b.Value * b.diffMult * b.timeMult * adapt;
+        b.total = b.Value * b.diffMult * b.timeMult;
         return b;
     }
 

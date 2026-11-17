@@ -83,12 +83,12 @@ public class SpawnerStructure : MonoBehaviour, IXenopsBehavior, IPurifyTarget
 
         var raid = RaidManager.instance;
         if (raid == null || Pattern.Count == 0 || !raid.IsRaider(_xenops)) return;
-        if (raid.SpawnerChildrenAlive >= MAX_ALIVE) return; // 상한 — 타이머도 멈춘다
+        if (raid.SpawnerChildrenAlive(_xenops) >= MAX_ALIVE) return; // 상한 — 타이머도 멈춘다
 
         Timer -= Time.deltaTime;
         if (Timer > 0f) return;
         Timer = SPAWN_INTERVAL;
-        raid.SpawnFromSpawner(Pattern[Index], transform.position + new Vector3(0.5f, 0.3f, 0f));
+        raid.SpawnFromSpawner(Pattern[Index], transform.position + new Vector3(0.5f, 0.3f, 0f), _xenops);
         Index = (Index + 1) % Pattern.Count;
     }
 }

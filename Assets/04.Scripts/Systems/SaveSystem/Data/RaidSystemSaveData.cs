@@ -38,6 +38,10 @@ public class RaidSystemSaveData
     /// <summary>이번 레이드에서 스폰된 제놉스 인스턴스 ID 목록</summary>
     public List<int> spawnedEntityIds = new List<int>();
 
+    /// <summary>닫힌 거점·스포너 습격이 남긴 구조물·호위·스포너 적 (구 세이브에는 없음 — 비어 있음)</summary>
+    public List<int> lingeringIds = new List<int>();
+    public int lingeringStage;
+
     /// <summary>이번 레이드의 스폰 수량 배수 (시작 시점 계산값 보존)</summary>
     public float activeMultiplier = 1f;
 

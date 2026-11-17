@@ -19,7 +19,3 @@ MonoBehaviour:
   - {x: 0, y: 0.5}
   - {x: 5, y: 0.8}
   - {x: 12, y: 1}
-  lossAdapt: 0.2
-  winAdapt: 0.05
-  adaptMin: 0.6
-  adaptMax: 1.5
