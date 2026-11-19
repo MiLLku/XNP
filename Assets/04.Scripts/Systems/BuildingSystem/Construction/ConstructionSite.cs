@@ -537,17 +537,26 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
                 if (pos.x < 0 || pos.x >= GameMap.MAP_WIDTH) continue;
                 if (pos.y < 0 || pos.y >= GameMap.MAP_HEIGHT) continue;
 
-                // 해당 위치가 공기(또는 통행 가능)이고 발 아래에 발판 있어야 직원이 설 수 있음
-                int tileId = gameMap.TileGrid[pos.x, pos.y];
-                bool isWalkable = tileId == 0 && !gameMap.DoesTileBlockMovement(pos.x, pos.y);
-                if (!isWalkable) continue;
+                // 직원이 설 수 있는 칸인지 — 길찾기와 같은 판정(사다리 칸·건물 발판 포함)을 쓴다.
+                // 예전 자체 판정은 사다리 위를 몰라, 세로 사다리 청사진의 전달 위치가 닿을 수 없는 기둥 바닥으로 잡혀 영영 안 지어졌다
+                var reach = ReachabilityMap.Current;
+                if (reach != null)
+                {
+                    if (!reach.CanStandAtPosition(pos)) continue;
+                }
+                else
+                {
+                    int tileId = gameMap.TileGrid[pos.x, pos.y];
+                    bool isWalkable = tileId == 0 && !gameMap.DoesTileBlockMovement(pos.x, pos.y);
+                    if (!isWalkable) continue;
 
-                int groundY = pos.y - 1;
-                bool hasGround = groundY >= 0 && (
-                    gameMap.IsSolidGround(pos.x, groundY) ||
-                    FloorTile.HasFloorTileAt(new Vector2Int(pos.x, groundY))
-                );
-                if (!hasGround) continue;
+                    int groundY = pos.y - 1;
+                    bool hasGround = groundY >= 0 && (
+                        gameMap.IsSolidGround(pos.x, groundY) ||
+                        FloorTile.HasFloorTileAt(new Vector2Int(pos.x, groundY))
+                    );
+                    if (!hasGround) continue;
+                }
 
                 // 창고에서 닿는 쪽을 우선 — 한쪽이 막혀 있어도 반대쪽으로 자재를 받는다
                 var standable = new Vector3(pos.x + 0.5f, pos.y, 0f);

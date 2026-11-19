@@ -1208,6 +1208,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                     if (otherReq.amount > remainingCapacity) continue;
                     if (!otherWO.IsWorkAvailable()) continue;
                     if (source.GetStoredAmount(otherReq.itemData) < otherReq.amount) continue;
+                    // 지금 닿지 않는 사용처(아래 칸이 아직 없는 세로 사다리 등)는 묶지 않는다 — 들고 가다 내려놓기만 반복한다
+                    var swp = source.GetWithdrawPosition();
+                    if (!ReachabilityMap.CanReach(new Vector2Int(Mathf.FloorToInt(swp.x), Mathf.FloorToInt(swp.y)), otherReq.receiver.GetDeliveryPosition())) continue;
 
                     // task를 직원에게 lock (다른 직원 픽업 방지) → 성공해야 출고
                     if (!wo.taskQueue.TryReserveForWorker(t, employee)) continue;
@@ -1224,8 +1227,8 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                     }
                     else
                     {
-                        // 출고 실패 → reserve 롤백 (task를 pending으로 되돌림)
-                        t.Unassign();
+                        // 출고 실패 → reserve 롤백 (task를 pending으로 되돌림 — Unassign만 하면 배정 목록에 좀비로 남았다)
+                        wo.taskQueue.ReleaseReservation(t);
                     }
                 }
             }
@@ -1270,8 +1273,10 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                 || !request.receiver.IsRequestStillValid(), GameLoop.Frame, ct);
 
             // 이동 중 work range에 진입했으면 즉시 멈춤 (불필요한 이동/fall 방지)
+            // 멈출 때 사다리 칸 사이였으면 출발 칸으로 되돌려져 범위를 벗어날 수 있다 — 진입한 사실을 먼저 기억한다
             if (!reachedDelivery && IsPositionInWorkRange(deliveryTile))
             {
+                reachedDelivery = true;
                 movement.StopMoving();
                 employee.SetState(EmployeeState.Idle);
             }
@@ -1284,8 +1289,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             DropCarryAtFeet(carryPile, moveFailed ? "사용처 이동 실패" : "사용처 무효화");
             request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
             CancelAdditionalReserves(additionalRequests, refundAll: false);
-            // 사용처는 그대로인데 가다가 실패 → 태스크를 큐로 되돌린다 (완료 처리하면 사용처가 재료를 영영 못 받는다)
-            if (moveFailed && request.receiver.IsRequestStillValid()) CancelWork();
+            // 사용처는 그대로인데 못 건넸다 → 태스크를 큐로 되돌린다 (완료 처리하면 사용처가 재료를 영영 못 받는다).
+            // 이동 실패뿐 아니라 범위에 들어온 직후 사다리 칸 사이에서 멈추며 되돌려진 경우 등도 같다
+            if (request.receiver.IsRequestStillValid()) CancelWork();
             else FinishWithdrawWork();
             return;
         }
@@ -1316,7 +1322,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             {
                 ReturnSingleItem(req.itemData, req.amount, "추가 사용처 무효화");
                 req.receiver?.OnMaterialRequestFailed(req.itemData, req.amount);
-                otherOrder.taskQueue.CancelTask(otherTask);
+                ReleaseOrCancel(otherOrder, otherTask, req);
                 RemoveFromCarryPile(carryPile, req.itemData, req.amount);
                 continue;
             }
@@ -1342,6 +1348,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
                 if (!reached && IsPositionInWorkRange(nextTile))
                 {
+                    reached = true; // 멈추며 사다리 칸 출발점으로 되돌려져도 진입한 것으로 본다
                     movement.StopMoving();
                     employee.SetState(EmployeeState.Idle);
                 }
@@ -1353,7 +1360,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             {
                 ReturnSingleItem(req.itemData, req.amount, failed ? "추가 사용처 이동 실패" : "추가 사용처 무효화");
                 req.receiver?.OnMaterialRequestFailed(req.itemData, req.amount);
-                otherOrder.taskQueue.CancelTask(otherTask);
+                ReleaseOrCancel(otherOrder, otherTask, req);
                 RemoveFromCarryPile(carryPile, req.itemData, req.amount);
                 continue;
             }
@@ -1383,8 +1390,18 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                     ReturnSingleItem(req.itemData, req.amount, "묶음 운반 취소");
                 req.receiver?.OnMaterialRequestFailed(req.itemData, req.amount);
             }
-            otherOrder.taskQueue.CancelTask(otherTask);
+            ReleaseOrCancel(otherOrder, otherTask, req);
         }
+    }
+
+    /// <summary>
+    /// 묶음으로 집은 추가 몫을 못 건넸을 때 — 사용처가 그대로면 태스크를 대기열로 되돌려 다시 운반하게 하고,
+    /// 사용처가 사라졌을 때만 취소한다. (예전엔 늘 취소해서, 아직 길이 없는 사다리 청사진 등이 자재를 영영 못 받았다)
+    /// </summary>
+    private static void ReleaseOrCancel(WorkOrder order, WorkTask task, MaterialRequest req)
+    {
+        if (req != null && req.receiver != null && req.receiver.IsRequestStillValid()) order.taskQueue.ReleaseReservation(task);
+        else order.taskQueue.CancelTask(task);
     }
 
     /// <summary>단일 아이템을 발밑에 내려놓습니다.</summary>

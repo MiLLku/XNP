@@ -421,6 +421,15 @@ public class WorkTaskQueue
         return true;
     }
 
+    /// <summary>TryReserveForWorker로 예약한 task를 대기 큐로 되돌립니다 (재시도 — CancelTask처럼 지우지 않음).</summary>
+    public void ReleaseReservation(WorkTask task)
+    {
+        if (task == null || !assignedTasks.Remove(task)) return;
+        task.Unassign();
+        pendingTasks.Add(task);
+        SortPendingTasks();
+    }
+
     public IReadOnlyList<WorkTask> PendingTasks => pendingTasks;
     /// <summary>할당 작업 목록 (읽기 전용)</summary>
     public IReadOnlyList<WorkTask> AssignedTasks => assignedTasks;
