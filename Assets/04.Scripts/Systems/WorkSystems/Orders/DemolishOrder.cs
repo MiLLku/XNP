@@ -122,7 +122,7 @@ private void ReturnResources()
     /// </summary>
     private void ReleaseTileOccupation()
     {
-        if (MapGenerator.instance == null || building == null || building.buildingData == null) return;
+        if (MapGenerator.instance == null || building == null) return;
 
         GameMap gameMap = MapGenerator.instance.GameMapInstance;
         if (gameMap == null) return;
@@ -132,9 +132,12 @@ private void ReturnResources()
             Mathf.FloorToInt(building.transform.position.y)
         );
 
-        for (int y = 0; y < building.buildingData.size.y; y++)
+        // 시작 기지의 바닥·사다리는 스탬프로 깔려 buildingData가 없다(1칸) — 예전엔 여기서 빠져나가
+        // 철거한 칸이 보이지 않는 막힌 칸으로 남고 길찾기 지도도 갱신되지 않았다
+        Vector2Int size = building.buildingData != null ? building.buildingData.size : Vector2Int.one;
+        for (int y = 0; y < size.y; y++)
         {
-            for (int x = 0; x < building.buildingData.size.x; x++)
+            for (int x = 0; x < size.x; x++)
             {
                 gameMap.UnmarkTileOccupied(cellPos.x + x, cellPos.y + y);
             }

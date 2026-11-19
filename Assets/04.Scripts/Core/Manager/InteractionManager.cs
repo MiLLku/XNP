@@ -1308,7 +1308,7 @@ public class InteractionManager : DestroySingleton<InteractionManager>
             if (building != null)
             {
                 WorkOrder workOrder = _workSystemManager.CreateWorkOrder(
-                    $"철거: {building.buildingData.buildingName}", 
+                    $"철거: {(building.buildingData != null ? building.buildingData.buildingName : building.name)}", // 시작 기지 스탬프 바닥은 데이터가 없다
                     WorkType.Building, // 철거는 건설 작업에 합쳐짐
                     0, // 자동 픽업 — 인원 제한 없음
                     6
