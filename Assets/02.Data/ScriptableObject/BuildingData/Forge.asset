@@ -19,7 +19,7 @@ MonoBehaviour:
   description: "\uC8FC\uAD34\uB97C \uAC00\uACF5\uD574 \uBB34\uAE30\uC640 \uBC29\uC5B4\uAD6C\uB97C
     \uB9CC\uB4ED\uB2C8\uB2E4."
   buildingPrefab: {fileID: 4022647625918866853, guid: dd476adb8a470854ab9322e45acc85a9, type: 3}
-  size: {x: 2, y: 2}
+  size: {x: 3, y: 3}
   pivot: {x: 0, y: 0}
   workAmount: 40
   requiredResources:
