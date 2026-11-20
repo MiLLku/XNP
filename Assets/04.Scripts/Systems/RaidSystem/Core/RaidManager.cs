@@ -572,9 +572,23 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         raidCts = null;
     }
 
+    private System.IDisposable purificationSub;
+
+    private void Start()
+    {
+        // 정화가 시작되면 다음 습격을 짧아진 간격으로 당긴다 (이미 더 가까우면 그대로)
+        purificationSub = GameMessageBus.Subscribe<PurificationStateChangedMessage>(m =>
+        {
+            if (!m.isRunning || IsRaidActive || nextRaidGameDay < 0f) return;
+            float pulled = Mathf.Max(GameDayNow, firstRaidDay) + RollRaidInterval();
+            nextRaidGameDay = Mathf.Min(nextRaidGameDay, pulled);
+        });
+    }
+
     private void OnDestroy()
     {
         CancelRaidTask();
+        purificationSub?.Dispose();
     }
 
     private async UniTaskVoid RunRaidAsync(RaidData raid, CancellationToken ct)
@@ -1037,8 +1051,12 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private void ScheduleNextRaid()
     {
         float from = Mathf.Max(GameDayNow, firstRaidDay);
-        nextRaidGameDay = from + UnityEngine.Random.Range(raidIntervalDays.x, Mathf.Max(raidIntervalDays.x, raidIntervalDays.y));
+        nextRaidGameDay = from + RollRaidInterval();
     }
+
+    /// <summary>습격 간격 (게임일) — 정화 가동 중엔 PurificationThreat.RaidIntervalScale만큼 짧아진다</summary>
+    private float RollRaidInterval()
+        => UnityEngine.Random.Range(raidIntervalDays.x, Mathf.Max(raidIntervalDays.x, raidIntervalDays.y)) * PurificationThreat.RaidIntervalScale;
 
     private void Update()
     {
