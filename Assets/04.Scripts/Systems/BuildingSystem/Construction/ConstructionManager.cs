@@ -815,6 +815,8 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
         }
 
         // 1. 완성된 건물 복원
+        // 저장 뒤 건물 크기가 바뀌어(예: 연구대 1×1 → 3×1) 이미 복원한 건물과 칸이 겹치면, 겹친 건물은 짓지 않고 건설 비용을 그 자리에 돌려준다
+        var claimedCells = new HashSet<Vector2Int>();
         if (data.buildings != null)
         {
             foreach (var bsd in data.buildings)
@@ -823,6 +825,13 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
                 if (bData == null || bData.buildingPrefab == null)
                 {
                     Debug.LogWarning($"[ConstructionManager] 건물 데이터 없음: ID {bsd.dataId}");
+                    continue;
+                }
+
+                if (!bData.allowOverlap && !ClaimFootprint(claimedCells, bData, bsd.gridX, bsd.gridY))
+                {
+                    pendingRefunds.Add((bData, bsd.gridX, bsd.gridY));
+                    Debug.LogWarning($"[ConstructionManager] '{bData.buildingName}' ({bsd.gridX},{bsd.gridY})가 바뀐 크기 {bData.size}로 다른 건물과 겹쳐 복원하지 않음 — 건설 비용 환급");
                     continue;
                 }
 
@@ -884,7 +893,37 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
         }
     }
 
-    public void PostRestore(SaveData data) { }
+    public void PostRestore(SaveData data)
+    {
+        // 드롭 아이템 모듈(SaveOrder 70)이 Restore에서 바닥 물건을 비우므로 환급은 모든 Restore가 끝난 뒤에 떨군다
+        foreach (var (bData, gx, gy) in pendingRefunds) RefundOverlappedBuilding(bData, gx, gy);
+        pendingRefunds.Clear();
+    }
+
+    private readonly List<(BuildingData, int, int)> pendingRefunds = new List<(BuildingData, int, int)>();
+
+    /// <summary>건물 칸을 차지한다 — 이미 다른 복원 건물이 쓴 칸이 있으면 아무것도 차지하지 않고 false</summary>
+    private static bool ClaimFootprint(HashSet<Vector2Int> claimed, BuildingData bData, int gx, int gy)
+    {
+        for (int x = 0; x < bData.size.x; x++)
+            for (int y = 0; y < bData.size.y; y++)
+                if (claimed.Contains(new Vector2Int(gx + x, gy + y))) return false;
+        for (int x = 0; x < bData.size.x; x++)
+            for (int y = 0; y < bData.size.y; y++)
+                claimed.Add(new Vector2Int(gx + x, gy + y));
+        return true;
+    }
+
+    /// <summary>겹쳐서 복원하지 못한 건물의 건설 비용을 그 자리 바닥에 돌려준다 (직원이 창고로 운반)</summary>
+    private static void RefundOverlappedBuilding(BuildingData bData, int gx, int gy)
+    {
+        var refunds = new Dictionary<ItemData, int>();
+        if (bData.requiredResources != null)
+            foreach (var c in bData.requiredResources)
+                if (c.item != null && c.amount > 0)
+                    refunds[c.item] = (refunds.TryGetValue(c.item, out int n) ? n : 0) + c.amount;
+        ItemRefundHelper.SpawnRefunds(refunds, new Vector3(gx, gy, 0f), Vector2Int.one);
+    }
 
     #endregion
 

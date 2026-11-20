@@ -18,7 +18,7 @@ MonoBehaviour:
   category: 4
   description: "고급 재료로 만든 첨단 연구대. 연구 속도가 기본 연구대의 1.6배다."
   buildingPrefab: {fileID: 3488678066343277963, guid: 4b8fd0b87c7e4bd883236fa054af6b92, type: 3}
-  size: {x: 1, y: 1}
+  size: {x: 3, y: 2}
   pivot: {x: 0, y: 0}
   constructionTime: 30
   requiredResources:

@@ -18,7 +18,7 @@ MonoBehaviour:
   category: 4
   description: "나무만으로 지을 수 있는 간이 연구대. 연구 속도가 기본 연구대의 절반이다."
   buildingPrefab: {fileID: 3488678066343277963, guid: 79303ee8edf74ca8b27a372d9bf36aeb, type: 3}
-  size: {x: 1, y: 1}
+  size: {x: 3, y: 1}
   pivot: {x: 0, y: 0}
   constructionTime: 30
   requiredResources:
