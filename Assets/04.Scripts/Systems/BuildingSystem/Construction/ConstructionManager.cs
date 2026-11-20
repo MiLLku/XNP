@@ -326,6 +326,15 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
                 sr.sortingOrder = 101;
                 sr.color = new Color(1f, 1f, 1f, 0.5f);
 
+                // 늘여 그리는 건물(손그림 아트 — 칸 크기에 맞춰 Sliced·size로 그림)은 실제 건물과 똑같이 그린다
+                if (prefabRenderer.drawMode != SpriteDrawMode.Simple)
+                {
+                    sr.drawMode = prefabRenderer.drawMode;
+                    sr.size = prefabRenderer.size;
+                    buildingGhost.transform.localPosition = Vector3.zero; // 실제 건물처럼 footprint 왼쪽 하단 = 건물 원점
+                    return;
+                }
+
                 // 스프라이트 피벗이 어디든 건물 footprint 중앙에 정렬
                 // ghostObject origin = footprint 왼쪽 하단 (gridPos)
                 // footprint 중심 = (size.x/2, size.y/2)

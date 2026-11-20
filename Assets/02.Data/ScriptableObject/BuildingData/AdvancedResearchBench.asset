@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 4012
   buildingName: "첨단 연구대"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 2aafe45569f90334eb1f442328a99696, type: 3}
   category: 4
   description: "고급 재료로 만든 첨단 연구대. 연구 속도가 기본 연구대의 1.6배다."
   buildingPrefab: {fileID: 3488678066343277963, guid: 4b8fd0b87c7e4bd883236fa054af6b92, type: 3}

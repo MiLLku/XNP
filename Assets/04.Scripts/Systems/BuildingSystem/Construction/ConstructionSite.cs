@@ -252,6 +252,9 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
             if (prefabRenderer != null)
             {
                 spriteRenderer.sprite = prefabRenderer.sprite;
+                // 늘여 그리는 건물(손그림 아트)은 크기도 같이 — 안 그러면 원본 해상도 크기로 크게 그려진다
+                spriteRenderer.drawMode = prefabRenderer.drawMode;
+                if (prefabRenderer.drawMode != SpriteDrawMode.Simple) spriteRenderer.size = prefabRenderer.size;
             }
         }
 

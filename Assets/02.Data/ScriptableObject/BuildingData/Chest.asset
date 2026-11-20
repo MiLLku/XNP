@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier:
   buildingID: 1001
   buildingName: "창고"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: d1353c88d1eab1947b627cbc829b8f63, type: 3}
   category: 0
   description: "직원이 운반한 자원을 보관하는 창고. 현재 모든 창고는 전역 인벤토리를 공유합니다."
   buildingPrefab: {fileID: 7158746851217845667, guid: 93e10cc539125c34aa9bc78f38b33ccb, type: 3}
