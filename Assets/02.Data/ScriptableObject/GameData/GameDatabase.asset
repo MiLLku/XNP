@@ -82,6 +82,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 23dcb6c3c0e88c24b9c25098a4597b03, type: 2}
   - {fileID: 11400000, guid: c3150e28a2158ab44ab884bf6716d0f9, type: 2}
   - {fileID: 11400000, guid: 194ed923237a7294494c3f6937d6664f, type: 2}
+  - {fileID: 11400000, guid: 3f0324c924c4cdc42a64cdb6bb7efe89, type: 2}
   allItemData:
   - {fileID: 11400000, guid: ba0e185be92fa6141866ed6d36399cfe, type: 2}
   - {fileID: 11400000, guid: b836bc5c0781b9c4b96f3de33783da9b, type: 2}

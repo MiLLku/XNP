@@ -25,6 +25,8 @@ public class RunStatsSaveData
 /// <summary>한 런의 결과 — 결과 화면과 (나중의) 메타 진행 보상에 넘긴다</summary>
 public struct RunResult
 {
+    /// <summary>승리로 끝났는지 (완전 정화 장치 14일 완료). false = 직원 전멸</summary>
+    public bool victory;
     public int daysSurvived;
     public int deepestDepth;
     public int raidsSurvived;
@@ -33,7 +35,8 @@ public struct RunResult
 }
 
 /// <summary>
-/// 런 기록과 런 종료 — 직원이 모두 죽으면 게임을 멈추고 결과 화면(버틴 날·최대 깊이·막은 습격·채용·사망)을 띄운다.
+/// 런 기록과 런 종료 — 직원이 모두 죽으면(패배) 또는 완전 정화 장치가 14일 가동을 마치면(승리, PurificationManager)
+/// 게임을 멈추고 결과 화면(버틴 날·최대 깊이·막은 습격·채용·사망)을 띄운다.
 ///
 /// 기록:
 ///   • 최대 깊이 = 시작 스폰 높이보다 직원이 내려간 가장 깊은 칸 수 (2초마다 확인)
@@ -124,6 +127,9 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
         }
     }
 
+    /// <summary>런이 끝났는지 (결과 화면이 떠 있음)</summary>
+    public bool HasEnded => stats.ended;
+
     /// <summary>이번 런에서 직원이 내려간 가장 깊은 칸 수 (시작 스폰 높이 기준)</summary>
     public int DeepestDepth => stats.deepestDepth;
 
@@ -174,7 +180,8 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
     }
 
     /// <summary>런 종료 — 멈추고 결과 화면을 띄운다</summary>
-    public void EndRun()
+    /// <param name="victory">승리(정화 완료)면 true, 직원 전멸이면 false</param>
+    public void EndRun(bool victory = false)
     {
         if (stats.ended) return;
         stats.ended = true;
@@ -182,6 +189,7 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
 
         var result = new RunResult
         {
+            victory       = victory,
             daysSurvived  = DayCycle.instance != null ? DayCycle.instance.Day : 0,
             deepestDepth  = stats.deepestDepth,
             raidsSurvived = stats.raidsSurvived,
@@ -215,7 +223,7 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
         prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(0.5f, 0.5f);
         RuntimeUI.SetupPanel(prt, 420f);
 
-        var title = RuntimeUI.Text(panel.transform, "기지가 무너졌습니다", 28);
+        var title = RuntimeUI.Text(panel.transform, r.victory ? "정화 완료 — 생존에 성공했습니다" : "기지가 무너졌습니다", 28);
         title.alignment = TextAlignmentOptions.Center;
         RuntimeUI.Text(panel.transform, $"버틴 날: {r.daysSurvived}일", 20);
         RuntimeUI.Text(panel.transform, $"최대 깊이: {r.deepestDepth}칸", 20);

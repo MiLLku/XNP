@@ -319,6 +319,21 @@ public readonly struct RaidCompletedMessage
 
 #endregion
 
+#region 정화 — PurificationManager
+
+/// <summary>
+/// 정화 가동 상태가 바뀜 — 가동 시작(true) 또는 장치 파괴·철거·완료로 중단(false).
+/// 가동 중 이벤트·습격 간격을 바로 다시 잡는 데 씁니다.
+/// </summary>
+public readonly struct PurificationStateChangedMessage
+{
+    public readonly bool isRunning;
+
+    public PurificationStateChangedMessage(bool isRunning) => this.isRunning = isRunning;
+}
+
+#endregion
+
 #region 연구 — ResearchManager / ResearchTreeManager
 
 /// <summary>보유 연구 포인트가 바뀜</summary>
