@@ -1140,6 +1140,14 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
                 for (int i = 1; i < rem.Length; i++) if (rem[i] > rem[best]) best = i;
                 counts[best]++; rem[best] = -1f;
             }
+            // 첫 항목(주력 — 사수 호위대·침식 포대의 사수)은 마리 수가 적어도 최소 1 —
+            // 나머지 순으로만 나누면 초반 상한(2~3마리)에선 호위병만 나와 지킬 대상이 없다
+            if (counts[0] == 0)
+            {
+                int donor = 0;
+                for (int i = 1; i < counts.Length; i++) if (counts[i] > counts[donor]) donor = i;
+                counts[donor]--; counts[0]++;
+            }
             for (int i = 0; i < slots.Count; i++)
                 for (int k = 0; k < counts[i]; k++) activePlan[slots[i].wave].Add(slots[i].entry);
         }
