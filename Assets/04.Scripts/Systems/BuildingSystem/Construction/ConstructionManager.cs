@@ -512,6 +512,10 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
                               $"안개 영역이라면 채광 먼저 필요.");
                     return false;
                 }
+
+                // 사다리 칸은 점유로 표시되지 않아(통과형) 따로 막는다 — 사다리 위에 건물을 지을 수 없다
+                if (IsLadderCell(checkX, checkY))
+                    return false;
             }
         }
 
@@ -559,6 +563,23 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
 
         return true;
     }
+
+    /// <summary>사다리(지어진 것·청사진)가 있는 칸인지</summary>
+    private bool IsLadderCell(int x, int y)
+    {
+        var floor = FloorTile.GetFloorTileAt(new Vector2Int(x, y));
+        if (floor != null && IsLadderType(floor.TileType)) return true;
+        foreach (var site in activeConstructionSites)
+        {
+            if (site == null || site.GridPosition.x != x || site.GridPosition.y != y) continue;
+            var prefab = site.BuildingData != null ? site.BuildingData.buildingPrefab : null;
+            var siteFloor = prefab != null ? prefab.GetComponent<FloorTile>() : null;
+            if (siteFloor != null && IsLadderType(siteFloor.TileType)) return true;
+        }
+        return false;
+    }
+
+    private static bool IsLadderType(FloorTileType t) => t == FloorTileType.WoodLadder || t == FloorTileType.MetalLadder;
 
     /// <summary>
     /// 오버레이 설치물(전선 등 allowOverlap=true)의 배치 가능 여부를 검사합니다.
