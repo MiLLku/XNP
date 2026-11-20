@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81b1092194e3d004da8e7e4473dea7f9, type: 3}
+  m_Name: EscortData
+  m_EditorClassIdentifier: Assembly-CSharp::XenopsData
+  xenopsID: 6108
+  xenopsName: "침식 호위병"
+  description: "침식 사수 곁을 지키는 근접 침식체. 먼저 달려들지 않지만 사수에게 다가오는 직원을 막아선다. 사수를 잃으면 돌진한다."
+  icon: {fileID: -444769877, guid: 87dca31d0a40bff45ae4612cc4113c61, type: 3}
+  xenopsType: 1
+  grade: 2
+  prefab: {fileID: 4465952956501963786, guid: f71954fc27bc47a59a3825c0eea884de, type: 3}
+  benefits: []
+  drawbacks: []
+  canBreachBuildings: 0
+  canBuildFloor: 1
+  canDigTerrain: 0
+  prefersBreaching: 0
+  codexObservePercent: 3
+  codexKillPercent: 8
+  maxInterpretationLevel: 10
+  baseExpRequired: 50
+  expPerInteraction: 10
+  equipmentSlot: 0
+  effectRadius: 3
+  infiltrateInterval: 30
+  hostileStats:
+    moveSpeed: 3
+    maxHealth: 160
+    defense: 0.2
+    attackSpeed: 0.8
+    attackDamage: 6
+    attackRange: 1.5
+    size: 1
+    aoeErosionPerSecond: 8
+    aoeErosionRange: 2
+    subdueDropItemId: 27
+    subdueDropAmount: 1

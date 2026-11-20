@@ -190,6 +190,10 @@ public class DebugPanelUI : BasePanel
         AddAction("돌파 습격 시작",       "종류를 돌파(자폭체)로 정해 바로 시작합니다.", () => manager.StartRaidOfType(RaidType.Breach));
         AddAction("거점 습격 시작",       "종류를 거점(송신탑·토템)으로 정해 바로 시작합니다.", () => manager.StartRaidOfType(RaidType.Outpost));
         AddAction("스포너 습격 시작",     "종류를 스포너로 정해 바로 시작합니다.",     () => manager.StartRaidOfType(RaidType.Spawner));
+        AddAction("사수 호위대 습격",     "조합 습격(사수+호위병, 습격 3)을 일반 종류로 바로 시작합니다.", () => manager.StartRaidById(3));
+        AddAction("침식 포대 습격",       "조합 습격(사수+호위병 3웨이브, 습격 4)을 일반 종류로 바로 시작합니다.", () => manager.StartRaidById(4));
+        AddAction("정화 가동",           "지어 둔 완전 정화 장치를 바로 가동합니다.",  manager.StartPurification);
+        AddAction("정화 하루 넘기기",     "가동 중인 정화 진행을 하루 넘깁니다 (14일이면 승리).", manager.SkipPurificationDay);
         AddAction("현재 연구 완료",       "진행 중인 연구를 바로 끝냅니다.",          manager.CompleteActiveResearch);
         AddAction("모든 연구 완료",       "연구 트리 전체를 선행 순서대로 끝냅니다.",   manager.CompleteAllResearch);
         AddAction("직원 1명 추가",        "채용 사무소와 같은 생성기로 1명을 추가합니다.", manager.AddRandomEmployee);

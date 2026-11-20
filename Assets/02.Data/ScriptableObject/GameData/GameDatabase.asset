@@ -212,6 +212,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4b46f61dc5f359c4d8cc90ec44205942, type: 2}
   - {fileID: 11400000, guid: ced95d5cde2943f45a88b4827c42705e, type: 2}
   - {fileID: 11400000, guid: cd33ace51bbc4624db9af50f8852738e, type: 2}
+  - {fileID: 11400000, guid: 0b4bab2bb2864a409f8e5a0bd2607ee0, type: 2}
   allRecipeData:
   - {fileID: 11400000, guid: 7cb6f441fb2a94343862837211a970dd, type: 2}
   - {fileID: 11400000, guid: ea537ebac63b4b58abbac20bd9c46b50, type: 2}
@@ -298,6 +299,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e17ef937edb2cf349b0c4502e123ca2c, type: 2}
   - {fileID: 11400000, guid: cfad39083eda4df4c9ac6427520b54ee, type: 2}
   - {fileID: 11400000, guid: d64e5cacc3cf7514f861509d1faf5fc7, type: 2}
+  - {fileID: 11400000, guid: dc983e0d48904f90b0d9851dd7febfaa, type: 2}
   allEquipmentData:
   - {fileID: 11400000, guid: e8f269cf832e4d5db3559bb06fbe8272, type: 2}
   - {fileID: 11400000, guid: 48f86f0efc6047d8a3f9624e544144b4, type: 2}

@@ -48252,6 +48252,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 2b2d8b4256bb2fa4d811440848a706d4, type: 2}
   - {fileID: 11400000, guid: 10113f383b1ee6b489ea655a03ba6e81, type: 2}
   - {fileID: 11400000, guid: 781c0e6a32f84fa4e88bf314ee1951f0, type: 2}
+  - {fileID: 11400000, guid: 6ab3738593d043eb929f635b79f831a1, type: 2}
+  - {fileID: 11400000, guid: 139a67aa93d249e7a8770cb85d6d9dda, type: 2}
   defaultSpawnPoint: {fileID: 676058047}
   autoSchedule: 1
   firstRaidDay: 3

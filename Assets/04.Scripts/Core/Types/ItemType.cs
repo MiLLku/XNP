@@ -46,6 +46,7 @@ public enum ItemType
     AcidSac       = 18, // 스피터
     SpawnerCore   = 19, // 스포너 — 증식 핵
     DisguiseFilm  = 20, // 위장체 — 위장 피막
+    EscortHeart   = 27, // 침식 호위병 — 호위병 심장
     /// <summary>주석 광석 — 구리 곁 얕은 층. 구리와 섞어 청동을 만든다</summary>
     TinOre        = 21,
     /// <summary>원유 — 석유 분출구 위 유정이 뽑아낸다. 정유기에서 합성수지·고급 연료로</summary>

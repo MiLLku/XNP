@@ -1,0 +1,60 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf027c06de43f0049828e478be5bfda7, type: 3}
+  m_Name: Raid_ErosionBattery
+  m_EditorClassIdentifier: Assembly-CSharp::RaidData
+  raidId: 4
+  raidName: "침식 포대"
+  description: "사수 여럿이 두꺼운 호위병 벽 뒤에서 포격한다. 오래 버틴 기지를 노리는 대규모 습격."
+  difficulty: 1
+  waves:
+  - delayBeforeWave: 0
+    entries:
+    - xenopsDataId: 6100
+      count: 3
+      spawnInterval: 0.5
+      spawnRadius: 2
+    - xenopsDataId: 6108
+      count: 4
+      spawnInterval: 0.5
+      spawnRadius: 2
+  - delayBeforeWave: 8
+    entries:
+    - xenopsDataId: 6100
+      count: 3
+      spawnInterval: 0.5
+      spawnRadius: 2
+    - xenopsDataId: 6108
+      count: 5
+      spawnInterval: 0.5
+      spawnRadius: 2
+  - delayBeforeWave: 8
+    entries:
+    - xenopsDataId: 6100
+      count: 2
+      spawnInterval: 0.5
+      spawnRadius: 2
+    - xenopsDataId: 6108
+      count: 4
+      spawnInterval: 0.5
+      spawnRadius: 2
+  minDayNumber: 5
+  minEmployeeCount: 0
+  isStrong: 1
+  spawnLocation: 0
+  baseMultiplier: 1
+  multiplierPerDay: 0
+  multiplierPerEmployee: 0
+  maxMultiplier: 3
+  approachDuration: 5
+  retreatDelay: 0
+  includeInRandomPool: 1

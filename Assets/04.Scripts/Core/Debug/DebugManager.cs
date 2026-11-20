@@ -596,6 +596,25 @@ public class DebugManager : DestroySingleton<DebugManager>
     /// <summary>지정한 종류로 레이드를 바로 시작합니다 (위협 점수는 지금 기지 기준)</summary>
     public void StartRaidOfType(RaidType type) => RaidManager.instance?.StartRandomRaid(type);
 
+    /// <summary>습격 데이터 ID로 바로 시작 (종류는 일반) — 조합 습격 확인용</summary>
+    public void StartRaidById(int raidId) => RaidManager.instance?.StartRaid(raidId);
+
+    /// <summary>지어 둔 완전 정화 장치를 가동합니다 (장치가 없거나 이미 가동 중이면 경고)</summary>
+    public void StartPurification()
+    {
+        var pm = PurificationManager.instance;
+        if (pm == null || !pm.DebugActivate())
+            Debug.LogWarning("[DebugManager] 가동할 정화 장치가 없습니다 (먼저 완전 정화 장치를 지으세요, 이미 가동 중이면 무시).");
+    }
+
+    /// <summary>가동 중인 정화 장치의 진행을 하루 넘깁니다 (14번 누르면 승리)</summary>
+    public void SkipPurificationDay()
+    {
+        var pm = PurificationManager.instance;
+        if (pm == null || !pm.DebugSkipDay())
+            Debug.LogWarning("[DebugManager] 가동 중인 정화 장치가 없습니다.");
+    }
+
     /// <summary>무작위 직원 1명을 스폰 지점에 추가합니다 (채용 사무소와 같은 생성기)</summary>
     public void AddRandomEmployee()
     {
