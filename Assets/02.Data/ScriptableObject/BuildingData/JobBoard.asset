@@ -25,7 +25,7 @@ MonoBehaviour:
   - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
     amount: 8
   maxHealth: 100
-  blocksMovement: 1
+  blocksMovement: 0
   requiresFloorSupport: 1
   movementSpeedMultiplier: 1
   allowsVerticalMovement: 0
