@@ -169,6 +169,17 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     /// <summary>
     /// 특정 좌표가 현재 진행 중인 작업에 포함되어 있는지 확인합니다.
     /// </summary>
+    /// <summary>이 식물에 수확·벌목·제초 작업이 이미 걸려 있는지</summary>
+    public bool HasHarvestTaskFor(IHarvestable target)
+    {
+        foreach (var order in allOrders)
+        {
+            if (!order.isActive || order.IsCompleted()) continue;
+            if (order.taskQueue.HasTaskForTarget(t => t is HarvestOrder h && ReferenceEquals(h.target, target))) return true;
+        }
+        return false;
+    }
+
     public bool IsTileUnderWork(Vector3Int tilePos)
     {
         foreach (var order in allOrders)

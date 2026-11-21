@@ -162,6 +162,7 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
         SetupCollider();
         OccupyTiles();
         CreateWorkOrder();
+        RefreshBlockingPlants(); // 칸에 걸친 나무·풀은 바로 제초 지시
 
         // instanceId 발급 및 등록
         if (SaveManager.instance != null)
@@ -238,6 +239,63 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
         }
 
         Debug.Log($"[ConstructionSite] '{buildingData.buildingName}' 자재 운반 요청 생성 ({_pendingMaterials.Count}종)");
+    }
+
+    #endregion
+
+    #region 식물 정리 — 칸에 걸친 나무·풀을 먼저 뽑는다
+
+    private const float PLANT_CHECK_INTERVAL = 1f;
+    private float _nextPlantCheck;
+    private bool _hasBlockingPlants;
+
+    /// <summary>
+    /// 건물 칸에 걸친 식물(재배 칸 작물 제외)이 남아 있는지. 남아 있으면 건설을 시작하지 않는다.
+    /// 1초마다 다시 보며, 아직 작업이 걸리지 않은 식물에는 제초(뿌리째 — 묘목·다 자랐으면 수확물이 떨어짐)를 지시한다.
+    /// 불러온 현장도 첫 확인 때 같은 처리를 받는다.
+    /// </summary>
+    public bool HasBlockingPlants
+    {
+        get
+        {
+            if (Time.time >= _nextPlantCheck) RefreshBlockingPlants();
+            return _hasBlockingPlants;
+        }
+    }
+
+    private void RefreshBlockingPlants()
+    {
+        _nextPlantCheck = Time.time + PLANT_CHECK_INTERVAL;
+        _hasBlockingPlants = false;
+        if (buildingData == null || buildingData.allowOverlap || state == ConstructionState.Completed) return;
+
+        var center = new Vector2(gridPosition.x + buildingData.size.x * 0.5f, gridPosition.y + buildingData.size.y * 0.5f);
+        var size = new Vector2(buildingData.size.x - 0.1f, buildingData.size.y - 0.1f); // 옆 칸 식물은 제외
+        var wsm = WorkSystemManager.instance;
+        List<Vector3Int> tiles = null;
+        List<IWorkTarget> targets = null;
+
+        foreach (var col in Physics2D.OverlapBoxAll(center, size, 0f))
+        {
+            var plant = col != null ? col.GetComponent<PlantBase>() : null;
+            if (plant == null || plant.Host != null) continue;
+            _hasBlockingPlants = true;
+
+            var cell = new Vector3Int(plant.Cell.x, plant.Cell.y, 0);
+            if (wsm == null || wsm.HasHarvestTaskFor(plant)) continue; // 이미 수확·제초가 걸려 있음 (칸 기준은 이 현장 건설 작업과 겹침)
+            (tiles ??= new List<Vector3Int>()).Add(cell);
+            (targets ??= new List<IWorkTarget>()).Add(new HarvestOrder
+            {
+                target = plant,
+                position = plant.transform.position,
+                priority = 4,
+                weed = true
+            });
+        }
+
+        if (tiles == null) return;
+        var visual = wsm.CreateWorkOrderWithVisual($"제초: {buildingData.buildingName} 자리 ({tiles.Count}개)", WorkType.Weeding, 0, tiles, 4);
+        visual?.WorkOrder.AddTargets(targets);
     }
 
     #endregion

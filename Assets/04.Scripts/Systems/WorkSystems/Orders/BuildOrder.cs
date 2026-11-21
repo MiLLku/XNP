@@ -74,7 +74,8 @@ public class BuildOrder : IWorkTarget, IProgressiveWork
     {
         if (completed || constructionSite == null || constructionSite.IsCompleted)
             return false;
-        return constructionSite.IsMaterialsReady;
+        // 칸에 걸친 나무·풀을 먼저 뽑아야 짓는다 (ConstructionSite가 제초를 지시)
+        return constructionSite.IsMaterialsReady && !constructionSite.HasBlockingPlants;
     }
 
     /// <summary>

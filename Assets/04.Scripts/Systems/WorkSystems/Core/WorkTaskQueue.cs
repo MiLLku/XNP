@@ -382,6 +382,10 @@ public class WorkTaskQueue
     /// </summary>
     /// <param name="position">확인할 그리드 좌표</param>
     /// <returns>해당 위치 작업 존재 여부</returns>
+    /// <summary>대기·진행 중인 작업 중 대상이 조건에 맞는 것이 있는지</summary>
+    public bool HasTaskForTarget(System.Func<IWorkTarget, bool> match)
+        => pendingTasks.Any(t => match(t.target)) || assignedTasks.Any(t => match(t.target));
+
     public bool HasTaskAtPosition(Vector3Int position)
     {
         Vector3 posFloat = new Vector3(position.x, position.y, 0);
