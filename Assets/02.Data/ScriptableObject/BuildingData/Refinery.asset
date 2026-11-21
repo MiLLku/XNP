@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: Refinery
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 3311
-  buildingName: "정유기"
-  icon: {fileID: 0}
+  buildingName: "\uC815\uC720\uAE30"
+  icon: {fileID: 21300000, guid: f712e7c7e52a6554d86c8d58722ec9c8, type: 3}
   category: 1
-  description: "원유를 정제해 합성수지와 고급 연료를 만든다."
+  description: "\uC6D0\uC720\uB97C \uC815\uC81C\uD574 \uD569\uC131\uC218\uC9C0\uC640 \uACE0\uAE09 \uC5F0\uB8CC\uB97C \uB9CC\uB4E0\uB2E4."
   buildingPrefab: {fileID: 7198917510150037189, guid: efab580ae6cf4b9eb27c7269cbafe0c9, type: 3}
   size: {x: 2, y: 2}
   pivot: {x: 0, y: 0}
@@ -35,6 +35,8 @@ MonoBehaviour:
   paybackRatio: 0.5
   heatOutput: 30
   heatConductivity: 0.8
+  erosionPermeability: 0.5
+  requiredTileBelow: 0
   useHeatTarget: 1
   heatTargetTemperature: 45
   climateIdleWatts: 60
@@ -43,3 +45,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 1
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

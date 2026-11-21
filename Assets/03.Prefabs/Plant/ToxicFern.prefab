@@ -83,15 +83,15 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 0}
-  m_Color: {r: 0.2, g: 0.7, b: 0.2, a: 1}
+  m_Sprite: {fileID: 21300000, guid: b1650722b702f824cadab64e2a747466, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 12.54, y: 12.54}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
+  m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
 --- !u!114 &6887130839339785892
@@ -121,9 +121,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4e848fc0c8ba85f4ea49c19b1c75d0be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ErosionPlantEntity
-  entityId: 20
   lifecycle: 0
   growthTime: 0
+  growthTimeMax: 0
+  regrowFrom: 0
+  harvestTime: 2
   weedTime: 8
+  yields: []
+  saplingItem: {fileID: 0}
+  saplingAmount: 1
+  entityId: 20
   workerErosionCost: 12
   displayName: "\uCE68\uC2DD \uBC1C\uC6D0\uC9C0"

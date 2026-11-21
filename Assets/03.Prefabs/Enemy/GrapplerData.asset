@@ -14,14 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::XenopsData
   xenopsID: 6101
   xenopsName: "\uADF8\uB798\uD50C\uB7EC"
-  description: "\uC9C1\uC6D0\uC744 \uD5A5\uD574 \uB3CC\uC9C4\uD574 \uADFC\uC811 \uACF5\uACA9\uD558\uB294
-    \uC801\uB300 \uAC1C\uCCB4."
-  icon: {fileID: -444769877, guid: 87dca31d0a40bff45ae4612cc4113c61, type: 3}
+  description: "\uC9C1\uC6D0\uC744 \uD5A5\uD574 \uB3CC\uC9C4\uD574 \uADFC\uC811 \uACF5\uACA9\uD558\uB294 \uC801\uB300 \uAC1C\uCCB4."
+  icon: {fileID: 21300000, guid: b3bc772600a552c45abe9686e0b9231e, type: 3}
   xenopsType: 1
   grade: 2
   prefab: {fileID: 4465952956501963786, guid: 09afa16d9b8411b4f920a6a6fad7ebad, type: 3}
   benefits: []
   drawbacks: []
+  canBreachBuildings: 1
+  canBuildFloor: 1
+  canDigTerrain: 1
+  prefersBreaching: 0
+  rangedAimTime: 0.6
+  rangedAccuracy: 0.8
   codexObservePercent: 3
   codexKillPercent: 8
   maxInterpretationLevel: 10
@@ -40,5 +45,6 @@ MonoBehaviour:
     size: 1
     aoeErosionPerSecond: 10
     aoeErosionRange: 2
+    erosionCapPerEmployee: -1
     subdueDropItemId: 17
     subdueDropAmount: 1

@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: BlastFurnace
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 3310
-  buildingName: "용광로"
-  icon: {fileID: 0}
+  buildingName: "\uC6A9\uAD11\uB85C"
+  icon: {fileID: 21300000, guid: cc6e0fe72dfdf324ba5a5454b43e27cb, type: 3}
   category: 1
-  description: "석탄을 많이 태워 철·정련 합금·침정 합금을 만든다."
+  description: "\uC11D\uD0C4\uC744 \uB9CE\uC774 \uD0DC\uC6CC \uCCA0\xB7\uC815\uB828 \uD569\uAE08\xB7\uCE68\uC815 \uD569\uAE08\uC744 \uB9CC\uB4E0\uB2E4."
   buildingPrefab: {fileID: 7198917510150037189, guid: 5f667de0e2854accbae997b60ff39bb1, type: 3}
   size: {x: 2, y: 2}
   pivot: {x: 0, y: 0}
@@ -35,6 +35,8 @@ MonoBehaviour:
   paybackRatio: 0.5
   heatOutput: 30
   heatConductivity: 0.8
+  erosionPermeability: 0.5
+  requiredTileBelow: 0
   useHeatTarget: 1
   heatTargetTemperature: 45
   climateIdleWatts: 60
@@ -43,3 +45,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 1
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

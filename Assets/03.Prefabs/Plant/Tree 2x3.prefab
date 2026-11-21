@@ -82,11 +82,11 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: 518949c817d09dc41874821f2e9d6d17, type: 3}
+  m_Sprite: {fileID: 21300000, guid: e5decca6216836e48af2093202369bc2, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
-  m_DrawMode: 0
+  m_DrawMode: 1
   m_Size: {x: 2, y: 3}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
@@ -123,4 +123,4 @@ MonoBehaviour:
   - 1
   seedlingSprite: {fileID: 0}
   youngSprite: {fileID: 0}
-  matureSprite: {fileID: 21300000, guid: 518949c817d09dc41874821f2e9d6d17, type: 3}
+  matureSprite: {fileID: 21300000, guid: e5decca6216836e48af2093202369bc2, type: 3}

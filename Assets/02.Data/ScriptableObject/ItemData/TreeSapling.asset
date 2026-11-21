@@ -14,14 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 401
   itemName: "\uB098\uBB34 \uBB18\uBAA9"
-  itemIcon: {fileID: 21300000, guid: 518949c817d09dc41874821f2e9d6d17, type: 3}
-  description: "\uC2EC\uC73C\uBA74 \uCC9C\uCC9C\uD788 \uC790\uB77C\uB294 \uB098\uBB34.
-    \uC790\uB77C\uBA74\uC11C \uD0A4\uAC00 \uCEE4\uC9C0\uBBC0\uB85C \uC704\uCABD \uACF5\uAC04\uC774
-    \uC881\uC73C\uBA74 \uADF8 \uB2E8\uACC4\uC5D0\uC11C \uC131\uC7A5\uC774 \uBA48\uCDA5\uB2C8\uB2E4.
-    \uBC8C\uBAA9\uD574\uB3C4 \uBFCC\uB9AC\uAC00 \uB0A8\uC544 \uB2E4\uC2DC \uC790\uB78D\uB2C8\uB2E4."
+  itemIcon: {fileID: -2523819244355725784, guid: 96fb69e62bd182549bc213355b53b5eb, type: 3}
+  description: "\uC2EC\uC73C\uBA74 \uCC9C\uCC9C\uD788 \uC790\uB77C\uB294 \uB098\uBB34. \uC790\uB77C\uBA74\uC11C \uD0A4\uAC00 \uCEE4\uC9C0\uBBC0\uB85C \uC704\uCABD \uACF5\uAC04\uC774 \uC881\uC73C\uBA74 \uADF8 \uB2E8\uACC4\uC5D0\uC11C \uC131\uC7A5\uC774 \uBA48\uCDA5\uB2C8\uB2E4. \uBC8C\uBAA9\uD574\uB3C4 \uBFCC\uB9AC\uAC00 \uB0A8\uC544 \uB2E4\uC2DC \uC790\uB78D\uB2C8\uB2E4."
   plantEntity: {fileID: 11400000, guid: d6f87120c59cdb24e84af31cef673ab0, type: 2}
   dropPrefab: {fileID: 0}
   isFood: 0
   nutrition: 0
+  foodKind: 0
+  ingredientCategory: 0
+  rawPenalty: 0
+  rawMood: -3
+  rawMoodHours: 12
+  rawNutritionRate: 0.7
+  erosionOnEat: 0
+  moodOnEat: 0
+  moodOnEatHours: 3
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

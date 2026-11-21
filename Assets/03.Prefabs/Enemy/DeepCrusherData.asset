@@ -14,10 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::XenopsData
   xenopsID: 6104
   xenopsName: "\uC2EC\uCE35 \uBD84\uC1C4\uCCB4"
-  description: "\uAE4A\uC740 \uC9C0\uCE35\uC5D0\uC11C\uB9CC \uC62C\uB77C\uC624\uB294
-    \uB2E8\uB2E8\uD558\uACE0 \uB290\uB9B0 \uAC1C\uCCB4. \uBC14\uC704\uB97C \uD30C\uACE0
-    \uB2E4\uAC00\uC640 \uBB34\uAC81\uAC8C \uB0B4\uB824\uCE5C\uB2E4."
-  icon: {fileID: -444769877, guid: 87dca31d0a40bff45ae4612cc4113c61, type: 3}
+  description: "\uAE4A\uC740 \uC9C0\uCE35\uC5D0\uC11C\uB9CC \uC62C\uB77C\uC624\uB294 \uB2E8\uB2E8\uD558\uACE0 \uB290\uB9B0 \uAC1C\uCCB4. \uBC14\uC704\uB97C \uD30C\uACE0 \uB2E4\uAC00\uC640 \uBB34\uAC81\uAC8C \uB0B4\uB824\uCE5C\uB2E4."
+  icon: {fileID: 21300000, guid: 2401296525cd916439811d3dab2f7ad9, type: 3}
   xenopsType: 1
   grade: 2
   prefab: {fileID: 4865312123312054173, guid: 52262ee8b94160d40bf6773e225f5d47, type: 3}
@@ -47,5 +45,6 @@ MonoBehaviour:
     size: 1
     aoeErosionPerSecond: 12
     aoeErosionRange: 2
+    erosionCapPerEmployee: -1
     subdueDropItemId: 17
     subdueDropAmount: 1

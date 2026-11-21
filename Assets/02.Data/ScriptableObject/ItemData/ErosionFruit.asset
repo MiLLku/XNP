@@ -14,11 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 210
   itemName: "\uCE68\uC2DD \uC5F4\uB9E4"
-  itemIcon: {fileID: 198984507, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  description: "\uAE30\uC9C0 \uBC16 \uCE68\uC2DD\uB41C \uB364\uBD88\uC758 \uC5F4\uB9E4.
-    \uB0A0\uB85C \uBA39\uC744 \uC218 \uC788\uC9C0\uB9CC \uBA39\uC73C\uBA74 \uCE68\uC2DD\uC774
-    8 \uC624\uB978\uB2E4. \uAC04\uC774 \uBC2D\uC5D0\uC11C \uAE68\uB057\uD55C \uC791\uBB3C\uC744
-    \uAE38\uB7EC \uB300\uC2E0\uD560 \uAC83."
+  itemIcon: {fileID: -7264346253696229163, guid: 7e1e353dc34fbd04698774009367b9ba, type: 3}
+  description: "\uAE30\uC9C0 \uBC16 \uCE68\uC2DD\uB41C \uB364\uBD88\uC758 \uC5F4\uB9E4. \uB0A0\uB85C \uBA39\uC744 \uC218 \uC788\uC9C0\uB9CC \uBA39\uC73C\uBA74 \uCE68\uC2DD\uC774 8 \uC624\uB978\uB2E4. \uAC04\uC774 \uBC2D\uC5D0\uC11C \uAE68\uB057\uD55C \uC791\uBB3C\uC744 \uAE38\uB7EC \uB300\uC2E0\uD560 \uAC83."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 1

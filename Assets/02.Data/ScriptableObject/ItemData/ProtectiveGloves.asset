@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: ProtectiveGloves
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 370
-  itemName: "방호 장갑"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "침식을 막는 장갑. 견딜 수 있는 침식 +5."
+  itemName: "\uBC29\uD638 \uC7A5\uAC11"
+  itemIcon: {fileID: -2434748817170686662, guid: e13c0195d0c9582488d1c151d22587ff, type: 3}
+  description: "\uCE68\uC2DD\uC744 \uB9C9\uB294 \uC7A5\uAC11. \uACAC\uB51C \uC218 \uC788\uB294 \uCE68\uC2DD +5."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

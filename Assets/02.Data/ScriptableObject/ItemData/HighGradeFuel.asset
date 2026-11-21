@@ -13,6 +13,23 @@ MonoBehaviour:
   m_Name: HighGradeFuel
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 111
-  itemName: "고급 연료"
-  itemIcon: {fileID: 0}
+  itemName: "\uACE0\uAE09 \uC5F0\uB8CC"
+  itemIcon: {fileID: 21300000, guid: 288fcb984977de744aab2d2f0093a816, type: 3}
+  description: 
+  plantEntity: {fileID: 0}
   dropPrefab: {fileID: 2968597924942849462, guid: d4cedf82cb157604d9843981758e9ed2, type: 3}
+  isFood: 0
+  nutrition: 0
+  foodKind: 0
+  ingredientCategory: 0
+  rawPenalty: 0
+  rawMood: -3
+  rawMoodHours: 12
+  rawNutritionRate: 0.7
+  erosionOnEat: 0
+  moodOnEat: 0
+  moodOnEatHours: 3
+  moodOnEatLabel: 
+  chefDish: 0
+  isDrug: 0
+  funValue: 0

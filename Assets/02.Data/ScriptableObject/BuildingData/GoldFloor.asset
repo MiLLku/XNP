@@ -14,11 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   buildingID: 3010
   buildingName: "\uAE08 \uD0C0\uC77C"
-  icon: {fileID: 0}
+  icon: {fileID: 2568134342056920066, guid: 38d6d178faeb62c4a971c654729e1aa6, type: 3}
   category: 3
-  description: "\uAE08\uC73C\uB85C \uB9CC\uB4E0 \uD0C0\uC77C. \uC704\uB97C \uAC78\uC744
-    \uC218 \uC788\uACE0, \uC606\uC73C\uB85C\uB294 \uB9C9\uD600 \uBC29\uC758 \uBCBD\uC774
-    \uB429\uB2C8\uB2E4."
+  description: "\uAE08\uC73C\uB85C \uB9CC\uB4E0 \uD0C0\uC77C. \uC704\uB97C \uAC78\uC744 \uC218 \uC788\uACE0, \uC606\uC73C\uB85C\uB294 \uB9C9\uD600 \uBC29\uC758 \uBCBD\uC774 \uB429\uB2C8\uB2E4."
   buildingPrefab: {fileID: 1000, guid: b7541334c7fc7604a86101b7a5eb0404, type: 3}
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}

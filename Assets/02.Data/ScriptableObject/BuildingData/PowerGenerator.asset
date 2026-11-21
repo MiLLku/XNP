@@ -14,19 +14,32 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 3400
   buildingName: "\uD48D\uB825 \uBC1C\uC804\uAE30"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: fa18d2f63fb6c034c8b376e7e4513325, type: 3}
   category: 5
-  description: "\uBC14\uB78C\uC73C\uB85C \uC804\uB825\uC744 \uC0DD\uC0B0\uD558\uB294
-    \uBB34\uD55C \uAC00\uB3D9 \uBC1C\uC804\uAE30."
+  description: "\uBC14\uB78C\uC73C\uB85C \uC804\uB825\uC744 \uC0DD\uC0B0\uD558\uB294 \uBB34\uD55C \uAC00\uB3D9 \uBC1C\uC804\uAE30."
   buildingPrefab: {fileID: 1000, guid: b48d7b2b53c756541975684535b03aa1, type: 3}
   size: {x: 4, y: 2}
   pivot: {x: 0, y: 0}
-  constructionTime: 14
+  workAmount: 14
   requiredResources: []
   maxHealth: 300
   blocksMovement: 1
   requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
   destructionDrops: []
   paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  erosionPermeability: 0.5
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 22
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
   powerConsumption: 0
   allowOverlap: 0
+  requiresResearch: 0
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

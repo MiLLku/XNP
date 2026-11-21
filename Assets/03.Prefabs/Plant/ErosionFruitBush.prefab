@@ -82,8 +82,8 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 1090381399, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  m_Color: {r: 0.75, g: 0.5, b: 1, a: 1}
+  m_Sprite: {fileID: 21300000, guid: dff76acf5df26934084fd937d41423e9, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -117,6 +117,6 @@ MonoBehaviour:
     chance: 1
   saplingItem: {fileID: 0}
   saplingAmount: 1
-  emptySprite: {fileID: 1090381399, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  halfSprite: {fileID: 1688306315, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  fullSprite: {fileID: 198984507, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
+  emptySprite: {fileID: 21300000, guid: dff76acf5df26934084fd937d41423e9, type: 3}
+  halfSprite: {fileID: 21300000, guid: dff76acf5df26934084fd937d41423e9, type: 3}
+  fullSprite: {fileID: 21300000, guid: dff76acf5df26934084fd937d41423e9, type: 3}

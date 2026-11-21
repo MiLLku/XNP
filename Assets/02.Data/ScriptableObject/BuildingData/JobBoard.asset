@@ -14,11 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 4006
   buildingName: "\uAD6C\uC778 \uAC8C\uC2DC\uD310"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: fe7ea5cc864435141bf86ace09906919, type: 3}
   category: 1
-  description: "\uCC44\uC6A9 \uC0AC\uBB34\uC18C \uBD80\uC18D \u2014 \uAC19\uC740
-    \uBC29\uC5D0 \uC788\uC73C\uBA74 \uD558\uB8E8 \uD6C4\uBCF4 \uB2E4\uC2DC \uBF51\uAE30
-    +1 (\uCD5C\uB300 3\uAC1C\uAE4C\uC9C0 \uC911\uCCA9)."
+  description: "\uCC44\uC6A9 \uC0AC\uBB34\uC18C \uBD80\uC18D \u2014 \uAC19\uC740 \uBC29\uC5D0 \uC788\uC73C\uBA74 \uD558\uB8E8 \uD6C4\uBCF4 \uB2E4\uC2DC \uBF51\uAE30 +1 (\uCD5C\uB300 3\uAC1C\uAE4C\uC9C0 \uC911\uCCA9)."
   buildingPrefab: {fileID: 3488678066343277963, guid: a5efa94c90b19334f89b9d9b627905e1, type: 3}
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}
@@ -45,3 +43,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 1
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

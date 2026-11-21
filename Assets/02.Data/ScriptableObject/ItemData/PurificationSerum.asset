@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: PurificationSerum
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 508
-  itemName: "정화 혈청"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "다용도구 칸 · 1회용. 소집한 직원을 고르고 제압된 침식된 인간을 우클릭하면 곁에 가서 쓴다. 그 사람이 원래대로 돌아와 직원으로 합류한다."
+  itemName: "\uC815\uD654 \uD608\uCCAD"
+  itemIcon: {fileID: -2599380105060733092, guid: bd182172389ba3d42ad5e917170cb7dd, type: 3}
+  description: "\uB2E4\uC6A9\uB3C4\uAD6C \uCE78 \xB7 1\uD68C\uC6A9. \uC18C\uC9D1\uD55C \uC9C1\uC6D0\uC744 \uACE0\uB974\uACE0 \uC81C\uC555\uB41C \uCE68\uC2DD\uB41C \uC778\uAC04\uC744 \uC6B0\uD074\uB9AD\uD558\uBA74 \uACC1\uC5D0 \uAC00\uC11C \uC4F4\uB2E4. \uADF8 \uC0AC\uB78C\uC774 \uC6D0\uB798\uB300\uB85C \uB3CC\uC544\uC640 \uC9C1\uC6D0\uC73C\uB85C \uD569\uB958\uD55C\uB2E4."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,6 +25,7 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3

@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: SpawnerCore
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 19
-  itemName: "증식 핵"
-  itemIcon: {fileID: 0}
-  description: "스포너의 증식 핵. 증식 핵 미끼의 재료."
+  itemName: "\uC99D\uC2DD \uD575"
+  itemIcon: {fileID: 21300000, guid: 35992396c34ca784592fa54a265a7496, type: 3}
+  description: "\uC2A4\uD3EC\uB108\uC758 \uC99D\uC2DD \uD575. \uC99D\uC2DD \uD575 \uBBF8\uB07C\uC758 \uC7AC\uB8CC."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

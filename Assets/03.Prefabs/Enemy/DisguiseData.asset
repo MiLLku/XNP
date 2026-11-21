@@ -13,14 +13,20 @@ MonoBehaviour:
   m_Name: DisguiseData
   m_EditorClassIdentifier: Assembly-CSharp::XenopsData
   xenopsID: 6105
-  xenopsName: "위장체"
-  description: "직원의 모습을 복사해 기지에 섞이는 침식체. 서 있는 방의 침식을 올리고 곁의 직원을 침식시킨다. 공격받거나 소집하려 하면 정체를 드러낸다. 부수면 위장 피막."
-  icon: {fileID: -444769877, guid: 87dca31d0a40bff45ae4612cc4113c61, type: 3}
+  xenopsName: "\uC704\uC7A5\uCCB4"
+  description: "\uC9C1\uC6D0\uC758 \uBAA8\uC2B5\uC744 \uBCF5\uC0AC\uD574 \uAE30\uC9C0\uC5D0 \uC11E\uC774\uB294 \uCE68\uC2DD\uCCB4. \uC11C \uC788\uB294 \uBC29\uC758 \uCE68\uC2DD\uC744 \uC62C\uB9AC\uACE0 \uACC1\uC758 \uC9C1\uC6D0\uC744 \uCE68\uC2DD\uC2DC\uD0A8\uB2E4. \uACF5\uACA9\uBC1B\uAC70\uB098 \uC18C\uC9D1\uD558\uB824 \uD558\uBA74 \uC815\uCCB4\uB97C \uB4DC\uB7EC\uB0B8\uB2E4. \uBD80\uC218\uBA74 \uC704\uC7A5 \uD53C\uB9C9."
+  icon: {fileID: 21300000, guid: da59abe5c6dc68b44a93332423a7d258, type: 3}
   xenopsType: 1
   grade: 1
   prefab: {fileID: 4465952956501963786, guid: ed146db5981d4ffb809c2f20aff13562, type: 3}
   benefits: []
   drawbacks: []
+  canBreachBuildings: 1
+  canBuildFloor: 1
+  canDigTerrain: 1
+  prefersBreaching: 0
+  rangedAimTime: 0.6
+  rangedAccuracy: 0.8
   codexObservePercent: 4
   codexKillPercent: 12
   maxInterpretationLevel: 10
@@ -39,5 +45,6 @@ MonoBehaviour:
     size: 1
     aoeErosionPerSecond: 0
     aoeErosionRange: 2
+    erosionCapPerEmployee: -1
     subdueDropItemId: 20
     subdueDropAmount: 2

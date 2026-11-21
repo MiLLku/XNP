@@ -14,12 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 3312
   buildingName: "\uBD80\uD654\uAE30"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: b3154aa9dcdd05b4bab4c0987ce9c861, type: 3}
   category: 4
-  description: "\uBD88\uAE38\uD55C \uC54C\uC744 \uBC1B\uC544 \uC911\uB9BD \uCE68\uC2DD\uCCB4\uB97C
-    \uBD80\uD654\uC2DC\uD0A8\uB2E4. \uBC29 \uC628\uB3C4\xB7\uCE68\uC2DD\uC774 \uADF8
-    \uC885\uC5D0 \uB9DE\uC544\uC57C \uBD80\uD654\uAC00 \uC9C4\uD589\uB41C\uB2E4.
-    \uC804\uB825 \uC0AC\uC6A9."
+  description: "\uBD88\uAE38\uD55C \uC54C\uC744 \uBC1B\uC544 \uC911\uB9BD \uCE68\uC2DD\uCCB4\uB97C \uBD80\uD654\uC2DC\uD0A8\uB2E4. \uBC29 \uC628\uB3C4\xB7\uCE68\uC2DD\uC774 \uADF8 \uC885\uC5D0 \uB9DE\uC544\uC57C \uBD80\uD654\uAC00 \uC9C4\uD589\uB41C\uB2E4. \uC804\uB825 \uC0AC\uC6A9."
   buildingPrefab: {fileID: 8334897950345361733, guid: e1ba3fa79b308a94da5fc8cca04d3eb3, type: 3}
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}

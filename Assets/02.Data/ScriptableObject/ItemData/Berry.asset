@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemType: 201
   itemName: "\uBCA0\uB9AC"
-  itemIcon: {fileID: 0}
+  itemIcon: {fileID: 21300000, guid: 09907a4861c5e4c4583d94f24fea4166, type: 3}
   description: 
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}

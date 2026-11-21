@@ -14,10 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 205
   itemName: "\uCE68\uC2DD \uAC10\uC790"
-  itemIcon: {fileID: 198984507, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  description: "\uCE68\uC2DD \uD658\uACBD\uC5D0\uC11C \uC790\uB780 \uAC10\uC790.
-    \uBC30\uB294 \uB354 \uCC28\uC9C0\uB9CC \uBA39\uC73C\uBA74 \uCE68\uC2DD\uC774
-    \uC870\uAE08 \uC624\uB974\uACE0 \uAE30\uBD84\uC774 \uC7A0\uC2DC \uB5A8\uC5B4\uC9D1\uB2C8\uB2E4."
+  itemIcon: {fileID: 6325317792628953457, guid: 7e1e353dc34fbd04698774009367b9ba, type: 3}
+  description: "\uCE68\uC2DD \uD658\uACBD\uC5D0\uC11C \uC790\uB780 \uAC10\uC790. \uBC30\uB294 \uB354 \uCC28\uC9C0\uB9CC \uBA39\uC73C\uBA74 \uCE68\uC2DD\uC774 \uC870\uAE08 \uC624\uB974\uACE0 \uAE30\uBD84\uC774 \uC7A0\uC2DC \uB5A8\uC5B4\uC9D1\uB2C8\uB2E4."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 1

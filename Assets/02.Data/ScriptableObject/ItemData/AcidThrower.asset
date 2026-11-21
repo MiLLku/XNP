@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: AcidThrower
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 310
-  itemName: "산성 투척기"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "스피터의 산성 주머니를 쏘는 원거리 무기. 관통이 높다."
+  itemName: "\uC0B0\uC131 \uD22C\uCC99\uAE30"
+  itemIcon: {fileID: 6292242993675181281, guid: bd182172389ba3d42ad5e917170cb7dd, type: 3}
+  description: "\uC2A4\uD53C\uD130\uC758 \uC0B0\uC131 \uC8FC\uBA38\uB2C8\uB97C \uC3D8\uB294 \uC6D0\uAC70\uB9AC \uBB34\uAE30. \uAD00\uD1B5\uC774 \uB192\uB2E4."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

@@ -14,18 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 406
   itemName: "\uCE68\uC2DD \uAC10\uC790 \uC528\uC557"
-  itemIcon: {fileID: 1688306315, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  description: "\uC57C\uC0DD \uCE68\uC2DD \uAC10\uC790\uB97C \uC81C\uCD08\uD558\uAC70\uB098
-    \uCE68\uC2DD \uAC10\uC790\uB97C \uC218\uD655\uD558\uBA74(70%) \uC5BB\uC2B5\uB2C8\uB2E4.
-    \uCE68\uC2DD\uB41C \uBC29\uC774\uB098 \uC218\uACBD\uC7AC\uBC30\uAE30\uC5D0\uC11C
-    \uC790\uB78D\uB2C8\uB2E4."
+  itemIcon: {fileID: 6828309077809047728, guid: 7e1e353dc34fbd04698774009367b9ba, type: 3}
+  description: "\uC57C\uC0DD \uCE68\uC2DD \uAC10\uC790\uB97C \uC81C\uCD08\uD558\uAC70\uB098 \uCE68\uC2DD \uAC10\uC790\uB97C \uC218\uD655\uD558\uBA74(70%) \uC5BB\uC2B5\uB2C8\uB2E4. \uCE68\uC2DD\uB41C \uBC29\uC774\uB098 \uC218\uACBD\uC7AC\uBC30\uAE30\uC5D0\uC11C \uC790\uB78D\uB2C8\uB2E4."
   plantEntity: {fileID: 11400000, guid: c491143ef020aaa45bff7c50c4dda132, type: 2}
   dropPrefab: {fileID: 0}
   isFood: 0
   nutrition: 0
+  foodKind: 0
+  ingredientCategory: 0
+  rawPenalty: 0
+  rawMood: -3
+  rawMoodHours: 12
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
   moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

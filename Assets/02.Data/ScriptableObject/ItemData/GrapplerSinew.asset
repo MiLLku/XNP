@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: GrapplerSinew
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 17
-  itemName: "갈고리 힘줄"
-  itemIcon: {fileID: 0}
-  description: "그래플러의 질긴 힘줄. 근접 무기와 보호구의 재료."
+  itemName: "\uAC08\uACE0\uB9AC \uD798\uC904"
+  itemIcon: {fileID: 21300000, guid: 332ce341cac974e48aa04f3a6b047541, type: 3}
+  description: "\uADF8\uB798\uD50C\uB7EC\uC758 \uC9C8\uAE34 \uD798\uC904. \uADFC\uC811 \uBB34\uAE30\uC640 \uBCF4\uD638\uAD6C\uC758 \uC7AC\uB8CC."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

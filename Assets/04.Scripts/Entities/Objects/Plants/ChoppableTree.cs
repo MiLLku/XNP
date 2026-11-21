@@ -37,8 +37,10 @@ public class ChoppableTree : PlantBase
         spriteRenderer = GetComponent<SpriteRenderer>();
         if (spriteRenderer == null) spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
 
+        // 늘려 그리는 렌더러(손그림 아트 — 칸 크기에 맞춤)면 렌더러 크기가 다 자란 크기다
         Sprite mature = matureSprite != null ? matureSprite : spriteRenderer.sprite;
-        if (mature != null) matureSize = mature.bounds.size;
+        if (spriteRenderer.drawMode != SpriteDrawMode.Simple) matureSize = spriteRenderer.size;
+        else if (mature != null) matureSize = mature.bounds.size;
 
         base.Awake();
     }
@@ -81,8 +83,10 @@ public class ChoppableTree : PlantBase
     public override string DescribeSpaceNeed()
     {
         Sprite mature = matureSprite;
-        if (mature == null && TryGetComponent(out SpriteRenderer sr)) mature = sr.sprite;
-        Vector2 size = mature != null ? (Vector2)mature.bounds.size : matureSize;
+        TryGetComponent(out SpriteRenderer sr);
+        if (mature == null && sr != null) mature = sr.sprite;
+        Vector2 size = sr != null && sr.drawMode != SpriteDrawMode.Simple ? sr.size
+                     : mature != null ? (Vector2)mature.bounds.size : matureSize;
         return $"위쪽 빈 공간 {Mathf.CeilToInt(size.x - 0.01f)}×{Mathf.CeilToInt(size.y - 0.01f)}칸 (좁으면 그 단계에서 멈춤)";
     }
 

@@ -83,7 +83,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 198984507, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
+  m_Sprite: {fileID: 21300000, guid: ce7acca7bcf9d72498199f16b5f6dd34, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -108,6 +108,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CropPlant
   lifecycle: 0
   growthTime: 360
+  growthTimeMax: 0
   regrowFrom: 0
   harvestTime: 3
   weedTime: 2
@@ -122,8 +123,8 @@ MonoBehaviour:
   saplingAmount: 1
   sproutSprite: {fileID: 0}
   youngSprite: {fileID: 0}
-  matureSprite: {fileID: 198984507, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  tint: {r: 0.8, g: 0.6, b: 0.38, a: 1}
+  matureSprite: {fileID: 21300000, guid: ce7acca7bcf9d72498199f16b5f6dd34, type: 3}
+  tint: {r: 1, g: 1, b: 1, a: 1}
   minScale: 0.35
 --- !u!61 &7509202317702470009
 BoxCollider2D:
@@ -163,7 +164,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0, y: 0}
-    oldSize: {x: 1, y: 1}
+    oldSize: {x: 12.54, y: 12.54}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0

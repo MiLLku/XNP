@@ -14,10 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 3404
   buildingName: "\uCE68\uC2DD \uC735\uD574 \uBC1C\uC804\uAE30"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: fb8fbc9c584f0a949b71db18a85fbce0, type: 3}
   category: 5
-  description: "\uCE68\uC2DD \uBB3C\uC9C8\uC744 \uC735\uD574\uD574 \uACE0\uCD9C\uB825
-    \uC804\uB825\uC744 \uC0DD\uC0B0\uD558\uB294 \uBC1C\uC804\uAE30."
+  description: "\uCE68\uC2DD \uBB3C\uC9C8\uC744 \uC735\uD574\uD574 \uACE0\uCD9C\uB825 \uC804\uB825\uC744 \uC0DD\uC0B0\uD558\uB294 \uBC1C\uC804\uAE30."
   buildingPrefab: {fileID: 1000, guid: 0a0114d3ff13a4c4d83392db94fd8c71, type: 3}
   size: {x: 2, y: 2}
   pivot: {x: 0, y: 0}
@@ -32,6 +31,8 @@ MonoBehaviour:
   paybackRatio: 0.5
   heatOutput: 15
   heatConductivity: 0.8
+  erosionPermeability: 0.5
+  requiredTileBelow: 0
   useHeatTarget: 1
   heatTargetTemperature: 35
   climateIdleWatts: 60
@@ -40,3 +41,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 0
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

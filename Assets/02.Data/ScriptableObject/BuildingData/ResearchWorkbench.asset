@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: ResearchWorkbench
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 4001
-  buildingName: "기본 연구대"
-  icon: {fileID: 21300000, guid: d43349d6910c11c498818e51be5205b7, type: 3}
+  buildingName: "\uAE30\uBCF8 \uC5F0\uAD6C\uB300"
+  icon: {fileID: 3063657325906436285, guid: 38d6d178faeb62c4a971c654729e1aa6, type: 3}
   category: 4
-  description: "보통 속도로 연구 포인트를 생산하는 연구대. 직원의 연구 능력치가 높을수록 더 많은 포인트가 쌓인다."
+  description: "\uBCF4\uD1B5 \uC18D\uB3C4\uB85C \uC5F0\uAD6C \uD3EC\uC778\uD2B8\uB97C \uC0DD\uC0B0\uD558\uB294 \uC5F0\uAD6C\uB300. \uC9C1\uC6D0\uC758 \uC5F0\uAD6C \uB2A5\uB825\uCE58\uAC00 \uB192\uC744\uC218\uB85D \uB354 \uB9CE\uC740 \uD3EC\uC778\uD2B8\uAC00 \uC313\uC778\uB2E4."
   buildingPrefab: {fileID: 3488678066343277963, guid: 354256c12ae95a24a9abe2f84a6b26c0, type: 3}
   size: {x: 3, y: 1}
   pivot: {x: 0, y: 0}
-  constructionTime: 30
+  workAmount: 30
   requiredResources:
   - item: {fileID: 11400000, guid: 91dd7c46742902d4eb0008789168e73a, type: 2}
     amount: 6
@@ -29,5 +29,21 @@ MonoBehaviour:
   maxHealth: 100
   blocksMovement: 0
   requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
   destructionDrops: []
   paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  erosionPermeability: 0.5
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 22
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
+  powerConsumption: 0
+  allowOverlap: 0
+  requiresResearch: 0
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

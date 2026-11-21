@@ -14,11 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 3703
   buildingName: "\uACE0\uAE09 \uCE68\uB300"
-  icon: {fileID: 21300000, guid: 2c50641ff3c5efa41b5258a4da673968, type: 3}
+  icon: {fileID: 21300000, guid: 0c5ac4ba4ef5dbf4099f4e76075ab296, type: 3}
   category: 2
-  description: "\uD479\uC2E0\uD55C \uACE0\uAE09 \uCE68\uB300. \uD53C\uB85C\uAC00
-    \uAC00\uC7A5 \uBE68\uB9AC \uD68C\uBCF5\uB429\uB2C8\uB2E4. \uD074\uB9AD\uD574\uC11C
-    \uC8FC\uC778\uC744 \uC815\uD569\uB2C8\uB2E4."
+  description: "\uD479\uC2E0\uD55C \uACE0\uAE09 \uCE68\uB300. \uD53C\uB85C\uAC00 \uAC00\uC7A5 \uBE68\uB9AC \uD68C\uBCF5\uB429\uB2C8\uB2E4. \uD074\uB9AD\uD574\uC11C \uC8FC\uC778\uC744 \uC815\uD569\uB2C8\uB2E4."
   buildingPrefab: {fileID: 6829916977556707050, guid: a308fa73247b60d4b9cea762dffe06f6, type: 3}
   size: {x: 2, y: 1}
   pivot: {x: 0, y: 0}
@@ -37,6 +35,7 @@ MonoBehaviour:
   paybackRatio: 0.5
   heatOutput: 0
   heatConductivity: 0.8
+  erosionPermeability: 0.5
   requiredTileBelow: 0
   useHeatTarget: 0
   heatTargetTemperature: 22
@@ -46,3 +45,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 1
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

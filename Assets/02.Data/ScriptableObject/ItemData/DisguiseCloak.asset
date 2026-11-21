@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: DisguiseCloak
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 378
-  itemName: "위장 피막 외투"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "보호구 칸. 피해 감소 2%, 견딜 수 있는 침식 2. 착용하면 적의 공격 대상이 되지 않는다(폭발·산성 같은 광역 피해는 받음)."
+  itemName: "\uC704\uC7A5 \uD53C\uB9C9 \uC678\uD22C"
+  itemIcon: {fileID: 3823271156924997778, guid: bd182172389ba3d42ad5e917170cb7dd, type: 3}
+  description: "\uBCF4\uD638\uAD6C \uCE78. \uD53C\uD574 \uAC10\uC18C 2%, \uACAC\uB51C \uC218 \uC788\uB294 \uCE68\uC2DD 2. \uCC29\uC6A9\uD558\uBA74 \uC801\uC758 \uACF5\uACA9 \uB300\uC0C1\uC774 \uB418\uC9C0 \uC54A\uB294\uB2E4(\uD3ED\uBC1C\xB7\uC0B0\uC131 \uAC19\uC740 \uAD11\uC5ED \uD53C\uD574\uB294 \uBC1B\uC74C)."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

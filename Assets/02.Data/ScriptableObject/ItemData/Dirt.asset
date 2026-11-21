@@ -14,5 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   itemType: 1
   itemName: "\uD759"
-  itemIcon: {fileID: -1653309280, guid: fd59d6577824a024caef876e46b0618f, type: 3}
+  itemIcon: {fileID: -851620116459470651, guid: 96fb69e62bd182549bc213355b53b5eb, type: 3}
+  description: 
+  plantEntity: {fileID: 0}
   dropPrefab: {fileID: 7694659694992195722, guid: 30e1f7cf302c2bf4a816e50fa0fc091a, type: 3}
+  isFood: 0
+  nutrition: 0
+  foodKind: 0
+  ingredientCategory: 0
+  rawPenalty: 0
+  rawMood: -3
+  rawMoodHours: 12
+  rawNutritionRate: 0.7
+  erosionOnEat: 0
+  moodOnEat: 0
+  moodOnEatHours: 3
+  moodOnEatLabel: 
+  chefDish: 0
+  isDrug: 0
+  funValue: 0

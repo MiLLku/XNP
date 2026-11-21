@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: BasicHat
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 368
-  itemName: "기본 모자"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "평범한 모자."
+  itemName: "\uAE30\uBCF8 \uBAA8\uC790"
+  itemIcon: {fileID: -4052843961504385340, guid: e13c0195d0c9582488d1c151d22587ff, type: 3}
+  description: "\uD3C9\uBC94\uD55C \uBAA8\uC790."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

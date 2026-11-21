@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: HeatSuit1
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 361
-  itemName: "내열 슈트 I"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "깊은 곳의 열을 막는 슈트. 견딜 수 있는 온도 +15도 (맨몸 35도 기준). 슈트 칸을 방호복과 같이 쓴다."
+  itemName: "\uB0B4\uC5F4 \uC288\uD2B8 I"
+  itemIcon: {fileID: 6075190459482211867, guid: e13c0195d0c9582488d1c151d22587ff, type: 3}
+  description: "\uAE4A\uC740 \uACF3\uC758 \uC5F4\uC744 \uB9C9\uB294 \uC288\uD2B8. \uACAC\uB51C \uC218 \uC788\uB294 \uC628\uB3C4 +15\uB3C4 (\uB9E8\uBAB8 35\uB3C4 \uAE30\uC900). \uC288\uD2B8 \uCE78\uC744 \uBC29\uD638\uBCF5\uACFC \uAC19\uC774 \uC4F4\uB2E4."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: DisguiseFilm
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 20
-  itemName: "위장 피막"
-  itemIcon: {fileID: 0}
-  description: "위장체의 피막. 위장 피막 외투의 재료."
+  itemName: "\uC704\uC7A5 \uD53C\uB9C9"
+  itemIcon: {fileID: 21300000, guid: 65b90c57d8fa29948a51bba23f535932, type: 3}
+  description: "\uC704\uC7A5\uCCB4\uC758 \uD53C\uB9C9. \uC704\uC7A5 \uD53C\uB9C9 \uC678\uD22C\uC758 \uC7AC\uB8CC."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

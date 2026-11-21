@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: SilverArmor
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 381
-  itemName: "은 갑옷"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "3단계(은) 보호구."
+  itemName: "\uC740 \uAC11\uC637"
+  itemIcon: {fileID: 3849271367385680933, guid: 6795e098c0fa1904cb4ce5f3f7059dfa, type: 3}
+  description: "3\uB2E8\uACC4(\uC740) \uBCF4\uD638\uAD6C."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
   moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

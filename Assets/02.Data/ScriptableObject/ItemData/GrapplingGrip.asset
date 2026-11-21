@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: GrapplingGrip
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 504
-  itemName: "갈고리 손잡이"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "다용도구 칸. 채광·건설 속도 +15%."
+  itemName: "\uAC08\uACE0\uB9AC \uC190\uC7A1\uC774"
+  itemIcon: {fileID: -2229610408917633352, guid: bd182172389ba3d42ad5e917170cb7dd, type: 3}
+  description: "\uB2E4\uC6A9\uB3C4\uAD6C \uCE78. \uCC44\uAD11\xB7\uAC74\uC124 \uC18D\uB3C4 +15%."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

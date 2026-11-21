@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: EtherionArmor
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 384
-  itemName: "에테리온 갑옷"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "8단계(에테리온) 보호구."
+  itemName: "\uC5D0\uD14C\uB9AC\uC628 \uAC11\uC637"
+  itemIcon: {fileID: 3046357020153741056, guid: 6795e098c0fa1904cb4ce5f3f7059dfa, type: 3}
+  description: "8\uB2E8\uACC4(\uC5D0\uD14C\uB9AC\uC628) \uBCF4\uD638\uAD6C."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
   moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

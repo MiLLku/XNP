@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: WorkGloves
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 369
-  itemName: "작업 장갑"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "채광·건설·제작 속도 +10%."
+  itemName: "\uC791\uC5C5 \uC7A5\uAC11"
+  itemIcon: {fileID: 367637210323544665, guid: e13c0195d0c9582488d1c151d22587ff, type: 3}
+  description: "\uCC44\uAD11\xB7\uAC74\uC124\xB7\uC81C\uC791 \uC18D\uB3C4 +10%."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

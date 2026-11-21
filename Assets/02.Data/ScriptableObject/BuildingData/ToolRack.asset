@@ -14,11 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 4007
   buildingName: "\uACF5\uAD6C \uC120\uBC18"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 2d7955566c2f0f649a252bedf1cc4011, type: 3}
   category: 1
-  description: "\uBD80\uC18D \uAC74\uBB3C \u2014 \uAC19\uC740 \uBC29\uC758 \uB300\uC7A5\uAC04\xB7\uC81C\uB828\uC18C\xB7\uC81C\uC7AC\uC18C\xB7\uC81C\uB189\uC2A4
-    \uC7A5\uBE44 \uC81C\uC791\uB300 \uC791\uC5C5 \uC18D\uB3C4 +10%. \uAC19\uC740
-    \uC885\uB958\uB294 \uD558\uB098\uB9CC \uC778\uC815."
+  description: "\uBD80\uC18D \uAC74\uBB3C \u2014 \uAC19\uC740 \uBC29\uC758 \uB300\uC7A5\uAC04\xB7\uC81C\uB828\uC18C\xB7\uC81C\uC7AC\uC18C\xB7\uC81C\uB189\uC2A4 \uC7A5\uBE44 \uC81C\uC791\uB300 \uC791\uC5C5 \uC18D\uB3C4 +10%. \uAC19\uC740 \uC885\uB958\uB294 \uD558\uB098\uB9CC \uC778\uC815."
   buildingPrefab: {fileID: 3488678066343277963, guid: 6782ec4c5381a68488e58c69c49d06c6, type: 3}
   size: {x: 1, y: 1}
   pivot: {x: 0, y: 0}
@@ -47,5 +45,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 1
-  addonForBuildingIds: e50c0000e40c000065000000ec0c0000
+  addonForBuildingIds: e50c0000e40c000065000000ec0c0000i
   addonWorkSpeedBonus: 0.1

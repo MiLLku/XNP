@@ -14,15 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SpitterData
   xenopsID: 6102
   xenopsName: "\uC2A4\uD53C\uD130"
-  description: "\uAC70\uB9AC\uB97C \uC720\uC9C0\uD558\uBA70 \uC0B0\uC131 \uD0C0\uC561\uC744
-    \uBC49\uB294 \uC801\uB300 \uAC1C\uCCB4. \uD53C\uACA9 \uC2DC \uC9C0\uC18D \uD53C\uD574\uC640
-    \uCE68\uC2DD\uC744 \uB0A8\uAE34\uB2E4."
-  icon: {fileID: -444769877, guid: 87dca31d0a40bff45ae4612cc4113c61, type: 3}
+  description: "\uAC70\uB9AC\uB97C \uC720\uC9C0\uD558\uBA70 \uC0B0\uC131 \uD0C0\uC561\uC744 \uBC49\uB294 \uC801\uB300 \uAC1C\uCCB4. \uD53C\uACA9 \uC2DC \uC9C0\uC18D \uD53C\uD574\uC640 \uCE68\uC2DD\uC744 \uB0A8\uAE34\uB2E4."
+  icon: {fileID: 21300000, guid: 8289cd1d10c13cc479efe707c3ffac9b, type: 3}
   xenopsType: 1
   grade: 2
   prefab: {fileID: 5095541274345772357, guid: d529faab5269ac34794c172a4ee6a476, type: 3}
   benefits: []
   drawbacks: []
+  canBreachBuildings: 1
+  canBuildFloor: 1
+  canDigTerrain: 1
+  prefersBreaching: 0
+  rangedAimTime: 0.6
+  rangedAccuracy: 0.8
   codexObservePercent: 3
   codexKillPercent: 8
   maxInterpretationLevel: 10
@@ -41,6 +45,7 @@ MonoBehaviour:
     size: 1
     aoeErosionPerSecond: 15
     aoeErosionRange: 3
+    erosionCapPerEmployee: -1
     subdueDropItemId: 18
     subdueDropAmount: 1
   hitErosionAmount: 5

@@ -13,14 +13,14 @@ MonoBehaviour:
   m_Name: AdvancedResearchBench
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 4012
-  buildingName: "첨단 연구대"
+  buildingName: "\uCCA8\uB2E8 \uC5F0\uAD6C\uB300"
   icon: {fileID: 21300000, guid: 2aafe45569f90334eb1f442328a99696, type: 3}
   category: 4
-  description: "고급 재료로 만든 첨단 연구대. 연구 속도가 기본 연구대의 1.6배다."
+  description: "\uACE0\uAE09 \uC7AC\uB8CC\uB85C \uB9CC\uB4E0 \uCCA8\uB2E8 \uC5F0\uAD6C\uB300. \uC5F0\uAD6C \uC18D\uB3C4\uAC00 \uAE30\uBCF8 \uC5F0\uAD6C\uB300\uC758 1.6\uBC30\uB2E4."
   buildingPrefab: {fileID: 3488678066343277963, guid: 4b8fd0b87c7e4bd883236fa054af6b92, type: 3}
   size: {x: 3, y: 2}
   pivot: {x: 0, y: 0}
-  constructionTime: 30
+  workAmount: 30
   requiredResources:
   - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
     amount: 8
@@ -31,6 +31,21 @@ MonoBehaviour:
   maxHealth: 100
   blocksMovement: 0
   requiresFloorSupport: 1
+  movementSpeedMultiplier: 1
+  allowsVerticalMovement: 0
   destructionDrops: []
   paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  erosionPermeability: 0.5
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 22
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
+  powerConsumption: 0
+  allowOverlap: 0
   requiresResearch: 1
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

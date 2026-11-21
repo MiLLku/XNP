@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: EscortHeart
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 27
-  itemName: "호위병 심장"
-  itemIcon: {fileID: 0}
-  description: "침식 호위병의 단단한 심장. 처치하면 떨어진다. 아직 쓰는 곳이 없다 (호위병 도감 장비 재료 자리)."
+  itemName: "\uD638\uC704\uBCD1 \uC2EC\uC7A5"
+  itemIcon: {fileID: 21300000, guid: 57852349375cdaa489cfe243fd906b35, type: 3}
+  description: "\uCE68\uC2DD \uD638\uC704\uBCD1\uC758 \uB2E8\uB2E8\uD55C \uC2EC\uC7A5. \uCC98\uCE58\uD558\uBA74 \uB5A8\uC5B4\uC9C4\uB2E4. \uC544\uC9C1 \uC4F0\uB294 \uACF3\uC774 \uC5C6\uB2E4 (\uD638\uC704\uBCD1 \uB3C4\uAC10 \uC7A5\uBE44 \uC7AC\uB8CC \uC790\uB9AC)."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

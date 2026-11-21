@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: PurifyingGland
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 503
-  itemName: "정화 분비샘"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "다용도구 칸 1회용. 침식이 유지 수치+20 이상이면 저절로 써서 침식 -25."
+  itemName: "\uC815\uD654 \uBD84\uBE44\uC0D8"
+  itemIcon: {fileID: -3627412101003283773, guid: bd182172389ba3d42ad5e917170cb7dd, type: 3}
+  description: "\uB2E4\uC6A9\uB3C4\uAD6C \uCE78 1\uD68C\uC6A9. \uCE68\uC2DD\uC774 \uC720\uC9C0 \uC218\uCE58+20 \uC774\uC0C1\uC774\uBA74 \uC800\uC808\uB85C \uC368\uC11C \uCE68\uC2DD -25."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

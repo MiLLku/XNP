@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: ErosionGland
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 16
-  itemName: "침식 분비샘"
-  itemIcon: {fileID: 0}
-  description: "침식 사수의 분비 기관. 침식을 다루는 장비의 재료."
+  itemName: "\uCE68\uC2DD \uBD84\uBE44\uC0D8"
+  itemIcon: {fileID: 21300000, guid: a078d3eb5d431ba4d9efc33c54601048, type: 3}
+  description: "\uCE68\uC2DD \uC0AC\uC218\uC758 \uBD84\uBE44 \uAE30\uAD00. \uCE68\uC2DD\uC744 \uB2E4\uB8E8\uB294 \uC7A5\uBE44\uC758 \uC7AC\uB8CC."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

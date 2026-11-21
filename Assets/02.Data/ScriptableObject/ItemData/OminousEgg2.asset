@@ -14,9 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 24
   itemName: "\uAC80\uBD89\uC740 \uBD88\uAE38\uD55C \uC54C"
-  itemIcon: {fileID: 0}
-  description: "\uAC15\uD55C \uCE68\uC2DD\uCCB4\uAC00 \uB5A8\uAD70 \uAC80\uBD89\uC740
-    \uC54C. \uAE4C\uB2E4\uB85C\uC6B4 \uC911\uB9BD \uCE68\uC2DD\uCCB4\uAC00 \uAE68\uC5B4\uB09C\uB2E4."
+  itemIcon: {fileID: 21300000, guid: 9dae61dfd9c61634fa87be2ae78a3c36, type: 3}
+  description: "\uAC15\uD55C \uCE68\uC2DD\uCCB4\uAC00 \uB5A8\uAD70 \uAC80\uBD89\uC740 \uC54C. \uAE4C\uB2E4\uB85C\uC6B4 \uC911\uB9BD \uCE68\uC2DD\uCCB4\uAC00 \uAE68\uC5B4\uB09C\uB2E4."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -26,6 +25,7 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3

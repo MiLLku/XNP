@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: BronzeSword
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 312
-  itemName: "청동 검"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "2단계(청동) 근접 무기."
+  itemName: "\uCCAD\uB3D9 \uAC80"
+  itemIcon: {fileID: -8036786361579230769, guid: e51bb43876f77d94798239ba72d0c7b3, type: 3}
+  description: "2\uB2E8\uACC4(\uCCAD\uB3D9) \uADFC\uC811 \uBB34\uAE30."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
   moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

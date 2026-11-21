@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: Obsidian
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 15
-  itemName: "흑요석"
-  itemIcon: {fileID: 0}
-  description: "용암이 물을 만나 굳은 검은 유리질 암석. 열에 강해 최상위 내열 장비의 재료가 된다."
+  itemName: "\uD751\uC694\uC11D"
+  itemIcon: {fileID: 21300000, guid: 25d99038c0357d349a0f8c855cd78fe5, type: 3}
+  description: "\uC6A9\uC554\uC774 \uBB3C\uC744 \uB9CC\uB098 \uAD73\uC740 \uAC80\uC740 \uC720\uB9AC\uC9C8 \uC554\uC11D. \uC5F4\uC5D0 \uAC15\uD574 \uCD5C\uC0C1\uC704 \uB0B4\uC5F4 \uC7A5\uBE44\uC758 \uC7AC\uB8CC\uAC00 \uB41C\uB2E4."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

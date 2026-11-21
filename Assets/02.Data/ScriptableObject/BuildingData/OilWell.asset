@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: OilWell
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 3014
-  buildingName: "유정"
-  icon: {fileID: 0}
+  buildingName: "\uC720\uC815"
+  icon: {fileID: 21300000, guid: 3ff9f6dd94567af428806ab324e38c2d, type: 3}
   category: 1
-  description: "석유 분출구 위에 지어 전력을 쓰며 원유를 뽑아낸다."
+  description: "\uC11D\uC720 \uBD84\uCD9C\uAD6C \uC704\uC5D0 \uC9C0\uC5B4 \uC804\uB825\uC744 \uC4F0\uBA70 \uC6D0\uC720\uB97C \uBF51\uC544\uB0B8\uB2E4."
   buildingPrefab: {fileID: 1000, guid: 1488c60b8c664533b55c892b143b8d31, type: 3}
   size: {x: 2, y: 2}
   pivot: {x: 0, y: 0}
@@ -35,6 +35,7 @@ MonoBehaviour:
   paybackRatio: 0.5
   heatOutput: 0
   heatConductivity: 0.8
+  erosionPermeability: 0.5
   requiredTileBelow: 23
   useHeatTarget: 0
   heatTargetTemperature: 35
@@ -44,3 +45,5 @@ MonoBehaviour:
   powerConsumption: 400
   allowOverlap: 0
   requiresResearch: 1
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

@@ -14,13 +14,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 402
   itemName: "\uBCA0\uB9AC \uBB18\uBAA9"
-  itemIcon: {fileID: 1090381399, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  description: "\uC2EC\uC73C\uBA74 \uC790\uB77C\uC11C \uBCA0\uB9AC\uB97C \uB9FA\uB294
-    \uB364\uBD88. \uC218\uD655\uD574\uB3C4 \uBFCC\uB9AC\uAC00 \uB0A8\uC544 \uB2E4\uC2DC
-    \uC5F4\uB9E4\uB97C \uB9FA\uC2B5\uB2C8\uB2E4."
+  itemIcon: {fileID: 3823085222812844988, guid: 7e1e353dc34fbd04698774009367b9ba, type: 3}
+  description: "\uC2EC\uC73C\uBA74 \uC790\uB77C\uC11C \uBCA0\uB9AC\uB97C \uB9FA\uB294 \uB364\uBD88. \uC218\uD655\uD574\uB3C4 \uBFCC\uB9AC\uAC00 \uB0A8\uC544 \uB2E4\uC2DC \uC5F4\uB9E4\uB97C \uB9FA\uC2B5\uB2C8\uB2E4."
   plantEntity: {fileID: 11400000, guid: b45fa93ae50417c47ae756da1a0c3f6f, type: 2}
   dropPrefab: {fileID: 0}
   isFood: 0
   nutrition: 0
+  foodKind: 0
+  ingredientCategory: 0
+  rawPenalty: 0
+  rawMood: -3
+  rawMoodHours: 12
+  rawNutritionRate: 0.7
+  erosionOnEat: 0
+  moodOnEat: 0
+  moodOnEatHours: 3
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

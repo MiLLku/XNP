@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: EscortData
   m_EditorClassIdentifier: Assembly-CSharp::XenopsData
   xenopsID: 6108
-  xenopsName: "침식 호위병"
-  description: "침식 사수 곁을 지키는 근접 침식체. 먼저 달려들지 않지만 사수에게 다가오는 직원을 막아선다. 사수를 잃으면 돌진한다."
-  icon: {fileID: -444769877, guid: 87dca31d0a40bff45ae4612cc4113c61, type: 3}
+  xenopsName: "\uCE68\uC2DD \uD638\uC704\uBCD1"
+  description: "\uCE68\uC2DD \uC0AC\uC218 \uACC1\uC744 \uC9C0\uD0A4\uB294 \uADFC\uC811 \uCE68\uC2DD\uCCB4. \uBA3C\uC800 \uB2EC\uB824\uB4E4\uC9C0 \uC54A\uC9C0\uB9CC \uC0AC\uC218\uC5D0\uAC8C \uB2E4\uAC00\uC624\uB294 \uC9C1\uC6D0\uC744 \uB9C9\uC544\uC120\uB2E4. \uC0AC\uC218\uB97C \uC783\uC73C\uBA74 \uB3CC\uC9C4\uD55C\uB2E4."
+  icon: {fileID: 21300000, guid: 4cdd8a66e5c146c48bbba112a72414a5, type: 3}
   xenopsType: 1
   grade: 2
   prefab: {fileID: 4465952956501963786, guid: f71954fc27bc47a59a3825c0eea884de, type: 3}
@@ -25,6 +25,8 @@ MonoBehaviour:
   canBuildFloor: 1
   canDigTerrain: 0
   prefersBreaching: 0
+  rangedAimTime: 0.6
+  rangedAccuracy: 0.8
   codexObservePercent: 3
   codexKillPercent: 8
   maxInterpretationLevel: 10
@@ -43,5 +45,6 @@ MonoBehaviour:
     size: 1
     aoeErosionPerSecond: 8
     aoeErosionRange: 2
+    erosionCapPerEmployee: -1
     subdueDropItemId: 27
     subdueDropAmount: 1

@@ -14,14 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 3304
   buildingName: "\uBC2D"
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 0955f76aa20ae104987f92ed64346c45, type: 3}
   category: 1
-  description: "\uC528\uC557\uC744 \uC2EC\uC5B4 \uC791\uBB3C\uC744 \uAE30\uB974\uB294
-    1\uCE78\uC9DC\uB9AC \uBC2D. \uC704\uB85C 2\uCE78\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.
-    \uC791\uBB3C\uC740 \uC774 \uBC29\uC758 \uD658\uACBD(\uC628\uB3C4\xB7\uCE68\uC2DD)\uC744
-    \uB530\uB77C \uC790\uB78D\uB2C8\uB2E4 \u2014 \uC801\uC815 \uC628\uB3C4\uC5D0\uC11C
-    \uBC97\uC5B4\uB098\uBA74 \uB290\uB824\uC9C0\uACE0, \uCE68\uC2DD \uC791\uBB3C\uC740
-    \uCE68\uC2DD\uB41C \uBC29\uC5D0\uC11C\uB9CC \uC790\uB78D\uB2C8\uB2E4."
+  description: "\uC528\uC557\uC744 \uC2EC\uC5B4 \uC791\uBB3C\uC744 \uAE30\uB974\uB294 1\uCE78\uC9DC\uB9AC \uBC2D. \uC704\uB85C 2\uCE78\uC774 \uD544\uC694\uD569\uB2C8\uB2E4. \uC791\uBB3C\uC740 \uC774 \uBC29\uC758 \uD658\uACBD(\uC628\uB3C4\xB7\uCE68\uC2DD)\uC744 \uB530\uB77C \uC790\uB78D\uB2C8\uB2E4 \u2014 \uC801\uC815 \uC628\uB3C4\uC5D0\uC11C \uBC97\uC5B4\uB098\uBA74 \uB290\uB824\uC9C0\uACE0, \uCE68\uC2DD \uC791\uBB3C\uC740 \uCE68\uC2DD\uB41C \uBC29\uC5D0\uC11C\uB9CC \uC790\uB78D\uB2C8\uB2E4."
   buildingPrefab: {fileID: 1000, guid: 89a7544ed66939845a594932fd875e4c, type: 3}
   size: {x: 1, y: 2}
   pivot: {x: 0, y: 0}
@@ -38,6 +33,7 @@ MonoBehaviour:
   paybackRatio: 0.5
   heatOutput: 0
   heatConductivity: 0.8
+  erosionPermeability: 0.5
   requiredTileBelow: 0
   useHeatTarget: 0
   heatTargetTemperature: 22
@@ -47,3 +43,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 1
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

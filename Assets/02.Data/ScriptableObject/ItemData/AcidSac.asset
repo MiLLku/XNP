@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: AcidSac
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 18
-  itemName: "산성 주머니"
-  itemIcon: {fileID: 0}
-  description: "스피터의 산성 주머니. 산성 장비와 해독제의 재료."
+  itemName: "\uC0B0\uC131 \uC8FC\uBA38\uB2C8"
+  itemIcon: {fileID: 21300000, guid: a6f7784e232832b4ea518436afc9dba2, type: 3}
+  description: "\uC2A4\uD53C\uD130\uC758 \uC0B0\uC131 \uC8FC\uBA38\uB2C8. \uC0B0\uC131 \uC7A5\uBE44\uC640 \uD574\uB3C5\uC81C\uC758 \uC7AC\uB8CC."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
-  moodOnEatLabel:
+  moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0

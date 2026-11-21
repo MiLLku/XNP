@@ -14,14 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 3500
   buildingName: "\uB2E4\uD2B8\uD310"
-  icon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
+  icon: {fileID: 21300000, guid: ea758b0350d825845a7f7e005c50f660, type: 3}
   category: 6
-  description: "\uC9C1\uC6D0\uB4E4\uC774 \uB2E4\uD2B8\uB97C \uB358\uC9C0\uBA70 \uC7AC\uBBF8\uB97C
-    \uD68C\uBCF5\uD558\uB294 \uC18C\uBC15\uD55C \uC624\uB77D\uAC70\uB9AC\uC785\uB2C8\uB2E4."
+  description: "\uC9C1\uC6D0\uB4E4\uC774 \uB2E4\uD2B8\uB97C \uB358\uC9C0\uBA70 \uC7AC\uBBF8\uB97C \uD68C\uBCF5\uD558\uB294 \uC18C\uBC15\uD55C \uC624\uB77D\uAC70\uB9AC\uC785\uB2C8\uB2E4."
   buildingPrefab: {fileID: 1247998393498715437, guid: 5d61f513f5ecdba4da60181388d86462, type: 3}
   size: {x: 1, y: 2}
   pivot: {x: 0, y: 0}
-  constructionTime: 3
+  workAmount: 3
   requiredResources: []
   maxHealth: 100
   blocksMovement: 0
@@ -30,5 +29,17 @@ MonoBehaviour:
   allowsVerticalMovement: 0
   destructionDrops: []
   paybackRatio: 0.5
+  heatOutput: 0
+  heatConductivity: 0.8
+  erosionPermeability: 0.5
+  requiredTileBelow: 0
+  useHeatTarget: 0
+  heatTargetTemperature: 22
+  climateIdleWatts: 60
+  climateWattsPerDegree: 12
+  climateMaxWatts: 600
   powerConsumption: 0
   allowOverlap: 0
+  requiresResearch: 0
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

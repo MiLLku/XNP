@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: SimpleField
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
   buildingID: 3309
-  buildingName: "간이 밭"
-  icon: {fileID: 0}
+  buildingName: "\uAC04\uC774 \uBC2D"
+  icon: {fileID: 21300000, guid: d02c0f0ef33a56748835f054df9c9f29, type: 3}
   category: 1
-  description: "씨앗을 심어 작물을 기르는 간이 밭. 연구 없이 나무로 지을 수 있지만 작물이 밭의 절반 속도로 자란다."
+  description: "\uC528\uC557\uC744 \uC2EC\uC5B4 \uC791\uBB3C\uC744 \uAE30\uB974\uB294 \uAC04\uC774 \uBC2D. \uC5F0\uAD6C \uC5C6\uC774 \uB098\uBB34\uB85C \uC9C0\uC744 \uC218 \uC788\uC9C0\uB9CC \uC791\uBB3C\uC774 \uBC2D\uC758 \uC808\uBC18 \uC18D\uB3C4\uB85C \uC790\uB780\uB2E4."
   buildingPrefab: {fileID: 1000, guid: 581bde7862ca4e6cb9e27472d6e554a3, type: 3}
   size: {x: 1, y: 2}
   pivot: {x: 0, y: 0}
@@ -33,6 +33,7 @@ MonoBehaviour:
   paybackRatio: 0.5
   heatOutput: 0
   heatConductivity: 0.8
+  erosionPermeability: 0.5
   requiredTileBelow: 0
   useHeatTarget: 0
   heatTargetTemperature: 22
@@ -42,3 +43,5 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 0
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0

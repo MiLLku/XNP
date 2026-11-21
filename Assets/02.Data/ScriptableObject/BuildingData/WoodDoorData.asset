@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DoorData
   buildingID: 2006
   buildingName: "\uB098\uBB34 \uBB38"
-  icon: {fileID: 0}
+  icon: {fileID: 77403243201162959, guid: 38d6d178faeb62c4a971c654729e1aa6, type: 3}
   category: 3
   description: 
   buildingPrefab: {fileID: 7777777777777777771, guid: 9e778d2e63c26da4d9f1914451df3ba6, type: 3}
@@ -43,6 +43,8 @@ MonoBehaviour:
   powerConsumption: 0
   allowOverlap: 0
   requiresResearch: 0
+  addonForBuildingIds: 
+  addonWorkSpeedBonus: 0
   openTime: 0.5
   closeTime: 0.5
   closeDelay: 2

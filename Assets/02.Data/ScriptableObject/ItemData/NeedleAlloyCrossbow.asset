@@ -13,9 +13,9 @@ MonoBehaviour:
   m_Name: NeedleAlloyCrossbow
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemType: 321
-  itemName: "침정 합금 석궁"
-  itemIcon: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  description: "7단계(침정 합금) 원거리 무기."
+  itemName: "\uCE68\uC815 \uD569\uAE08 \uC11D\uAD81"
+  itemIcon: {fileID: -1129670349607496990, guid: bd182172389ba3d42ad5e917170cb7dd, type: 3}
+  description: "7\uB2E8\uACC4(\uCE68\uC815 \uD569\uAE08) \uC6D0\uAC70\uB9AC \uBB34\uAE30."
   plantEntity: {fileID: 0}
   dropPrefab: {fileID: 0}
   isFood: 0
@@ -25,9 +25,11 @@ MonoBehaviour:
   rawPenalty: 0
   rawMood: -3
   rawMoodHours: 3
+  rawNutritionRate: 0.7
   erosionOnEat: 0
   moodOnEat: 0
   moodOnEatHours: 3
   moodOnEatLabel: 
+  chefDish: 0
   isDrug: 0
   funValue: 0
