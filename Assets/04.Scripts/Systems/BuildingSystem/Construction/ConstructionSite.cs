@@ -160,9 +160,9 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
 
         SetupVisuals();
         SetupCollider();
+        RefreshBlockingPlants(); // 칸에 걸친 나무·풀은 바로 제초 지시 (통행 막기 여부도 여기서 정해진다)
         OccupyTiles();
         CreateWorkOrder();
-        RefreshBlockingPlants(); // 칸에 걸친 나무·풀은 바로 제초 지시
 
         // instanceId 발급 및 등록
         if (SaveManager.instance != null)
@@ -266,8 +266,19 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
     private void RefreshBlockingPlants()
     {
         _nextPlantCheck = Time.time + PLANT_CHECK_INTERVAL;
+        bool hadPlants = _hasBlockingPlants;
         _hasBlockingPlants = false;
         if (buildingData == null || buildingData.allowOverlap || state == ConstructionState.Completed) return;
+        try { ScanBlockingPlants(); }
+        finally
+        {
+            // 식물이 생기거나 다 뽑히면 통행 막기를 다시 정한다 (통행 불가 건물만 해당)
+            if (hadPlants != _hasBlockingPlants && buildingData.blocksMovement && gridPosition != default) OccupyTiles();
+        }
+    }
+
+    private void ScanBlockingPlants()
+    {
 
         var center = new Vector2(gridPosition.x + buildingData.size.x * 0.5f, gridPosition.y + buildingData.size.y * 0.5f);
         var size = new Vector2(buildingData.size.x - 0.1f, buildingData.size.y - 0.1f); // 옆 칸 식물은 제외
@@ -347,7 +358,8 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
         // Floor처럼 통행 불가 건물은 청사진 단계에서도 통행 불가로 처리해서
         // 직원이 미완성 사이트 위로 fall하지 않도록 한다 (이전엔 false 고정이라 직원이 그 위로 가서 fall).
         // 자재 운반 destination은 GetDeliveryPosition이 인접 발판 위치를 반환하므로 접근 가능.
-        bool willBlockMovement = buildingData != null && buildingData.blocksMovement;
+        // 단, 칸에 뽑아야 할 식물이 남아 있는 동안은 막지 않는다 — 막으면 직원이 식물 옆에 서지 못해 제초·건설이 영영 멈춘다
+        bool willBlockMovement = buildingData != null && buildingData.blocksMovement && !_hasBlockingPlants;
 
         for (int x = 0; x < buildingData.size.x; x++)
         {
