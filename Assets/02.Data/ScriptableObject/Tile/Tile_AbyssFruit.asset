@@ -15,10 +15,9 @@ MonoBehaviour:
   codeName: AbyssFruit
   id: 17
   displayName: "\uC2EC\uC5F0 \uC5F4\uB9E4"
-  description: "\uCD5C\uD558\uCE35 \uC904\uAE30\uC5D0 \uB9FA\uD78C \uC5F4\uB9E4.
-    \uAC15\uD55C \uCE68\uC2DD\uC744 \uBFDC\uC9C0\uB9CC \uCE90\uBA74 \uCD5C\uC885
-    \uD2F0\uC5B4 \uC7AC\uB8CC\uAC00 \uB098\uC628\uB2E4."
+  description: "\uCD5C\uD558\uCE35 \uC904\uAE30\uC5D0 \uB9FA\uD78C \uC5F4\uB9E4. \uAC15\uD55C \uCE68\uC2DD\uC744 \uBFDC\uC9C0\uB9CC \uCE90\uBA74 \uCD5C\uC885 \uD2F0\uC5B4 \uC7AC\uB8CC\uAC00 \uB098\uC628\uB2E4."
   tileAsset: {fileID: 0}
+  blendTexture: {fileID: 2800000, guid: 0f07fffac210f2942ba4b15cdaf3b6f6, type: 3}
   blendPriority: 5
   isSolid: 1
   isClimbable: 0
@@ -33,9 +32,12 @@ MonoBehaviour:
   veinNoiseScale: 0.12
   veinThreshold: 0.65
   veinSeedOffset: 0
+  veinMinBaseDistance: 0
+  veinThresholdDropPer100: 0
   thermalConductivity: 0.6
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60
   erosionOutput: 1.2
   erosionSaturation: 0
+  erosionPermeability: 1

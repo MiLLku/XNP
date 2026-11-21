@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
   codeName: ErosionFloor
   id: 21
-  displayName: 침식 발판
-  description: 제놉스가 길을 내려고 깐 발판. 근처에 침식을 뿜는다 — 캐서 없애야 한다.
+  displayName: "\uCE68\uC2DD \uBC1C\uD310"
+  description: "\uC81C\uB189\uC2A4\uAC00 \uAE38\uC744 \uB0B4\uB824\uACE0 \uAE50 \uBC1C\uD310. \uADFC\uCC98\uC5D0 \uCE68\uC2DD\uC744 \uBFDC\uB294\uB2E4 \u2014 \uCE90\uC11C \uC5C6\uC560\uC57C \uD55C\uB2E4."
   tileAsset: {fileID: 11400000, guid: 4c53772f81754d14bb3a939339f592d8, type: 2}
   blendTexture: {fileID: 2800000, guid: f085d41d7bdd44549f3357b387467dba, type: 3}
   blendPriority: 2
@@ -32,6 +32,8 @@ MonoBehaviour:
   veinNoiseScale: 0.12
   veinThreshold: 0.65
   veinSeedOffset: 0
+  veinMinBaseDistance: 0
+  veinThresholdDropPer100: 0
   thermalConductivity: 1
   heatOutput: 0
   useHeatTarget: 0

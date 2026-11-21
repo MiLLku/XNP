@@ -17,6 +17,7 @@ MonoBehaviour:
   displayName: "\uAC00\uACF5\uB41C \uD759"
   description: 
   tileAsset: {fileID: 0}
+  blendTexture: {fileID: 2800000, guid: 416563faadcb4bd4ea3a70d44e810b44, type: 3}
   blendPriority: 1
   isSolid: 1
   isClimbable: 0
@@ -31,9 +32,12 @@ MonoBehaviour:
   veinNoiseScale: 0.12
   veinThreshold: 0.65
   veinSeedOffset: 0
+  veinMinBaseDistance: 0
+  veinThresholdDropPer100: 0
   thermalConductivity: 0.4
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60
   erosionOutput: 0
   erosionSaturation: 60
+  erosionPermeability: 1

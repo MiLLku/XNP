@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
   codeName: TinOre
   id: 22
-  displayName: "주석 광석"
-  description: "구리 곁 얕은 층에 드문드문. 구리와 섞어 청동을 만든다."
+  displayName: "\uC8FC\uC11D \uAD11\uC11D"
+  description: "\uAD6C\uB9AC \uACC1 \uC595\uC740 \uCE35\uC5D0 \uB4DC\uBB38\uB4DC\uBB38. \uAD6C\uB9AC\uC640 \uC11E\uC5B4 \uCCAD\uB3D9\uC744 \uB9CC\uB4E0\uB2E4."
   tileAsset: {fileID: 11400000, guid: c7fac7989b64a5445a7d8a58e02b674c, type: 2}
-  blendTexture: {fileID: 2800000, guid: 307e19753e98bf84fa1a3dff0f72e770, type: 3}
+  blendTexture: {fileID: 2800000, guid: 45f9393f86f22c5418e5a363a8432df8, type: 3}
   blendPriority: 4
   isSolid: 1
   isClimbable: 0
@@ -32,9 +32,12 @@ MonoBehaviour:
   veinNoiseScale: 0.15
   veinThreshold: 0.86
   veinSeedOffset: 14000
+  veinMinBaseDistance: 0
+  veinThresholdDropPer100: 0
   thermalConductivity: 2.6
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60
   erosionOutput: 0
   erosionSaturation: 60
+  erosionPermeability: 1

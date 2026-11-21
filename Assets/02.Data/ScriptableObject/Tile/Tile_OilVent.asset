@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
   codeName: OilVent
   id: 23
-  displayName: "석유 분출구"
-  description: "심부 바닥에서 원유가 배어 나오는 구멍. 캘 수 없고, 위에 유정을 지을 수 있다."
+  displayName: "\uC11D\uC720 \uBD84\uCD9C\uAD6C"
+  description: "\uC2EC\uBD80 \uBC14\uB2E5\uC5D0\uC11C \uC6D0\uC720\uAC00 \uBC30\uC5B4 \uB098\uC624\uB294 \uAD6C\uBA4D. \uCE98 \uC218 \uC5C6\uACE0, \uC704\uC5D0 \uC720\uC815\uC744 \uC9C0\uC744 \uC218 \uC788\uB2E4."
   tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
+  blendTexture: {fileID: 2800000, guid: 7821591a584287b448cb57bbb29de8d4, type: 3}
   blendPriority: 5
   isSolid: 1
   isClimbable: 0
@@ -31,9 +32,12 @@ MonoBehaviour:
   veinNoiseScale: 0.15
   veinThreshold: 0.74
   veinSeedOffset: 13000
+  veinMinBaseDistance: 0
+  veinThresholdDropPer100: 0
   thermalConductivity: 1.2
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60
   erosionOutput: 0
   erosionSaturation: 60
+  erosionPermeability: 1

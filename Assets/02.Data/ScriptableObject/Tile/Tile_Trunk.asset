@@ -15,10 +15,9 @@ MonoBehaviour:
   codeName: Trunk
   id: 12
   displayName: "\uB369\uAD74 \uC904\uAE30"
-  description: "\uCD5C\uD558\uCE35\uC5D0 \uC5BD\uD600 \uC788\uB294 \uAD75\uC740 \uBFCC\uB9AC.
-    \uCE68\uC2DD\uC744 \uBFDC\uC73C\uBA70, \uC5F4\uB9E4\uAC00 \uC5EC\uAE30\uC11C
-    \uC790\uB780\uB2E4."
+  description: "\uCD5C\uD558\uCE35\uC5D0 \uC5BD\uD600 \uC788\uB294 \uAD75\uC740 \uBFCC\uB9AC. \uCE68\uC2DD\uC744 \uBFDC\uC73C\uBA70, \uC5F4\uB9E4\uAC00 \uC5EC\uAE30\uC11C \uC790\uB780\uB2E4."
   tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
+  blendTexture: {fileID: 2800000, guid: 16b85c931792f73418e82fd34359d787, type: 3}
   blendPriority: 3
   isSolid: 1
   isClimbable: 0
@@ -33,9 +32,12 @@ MonoBehaviour:
   veinNoiseScale: 0.12
   veinThreshold: 0.65
   veinSeedOffset: 0
+  veinMinBaseDistance: 0
+  veinThresholdDropPer100: 0
   thermalConductivity: 0.7
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60
   erosionOutput: 0.2
   erosionSaturation: 90
+  erosionPermeability: 1

@@ -15,10 +15,9 @@ MonoBehaviour:
   codeName: Boundstone
   id: 18
   displayName: "\uACBD\uACC4\uC554"
-  description: "\uCD5C\uD558\uCE35\uC744 \uBD09\uC778\uD55C \uC554\uBC18. \uC5D0\uD14C\uB9AC\uC628
-    \uAC01\uC778\uC744 \uBC1B\uC740 \uC9C1\uC6D0\uB9CC \uC774 \uB3CC\uC5D0 \uC190\uB308
-    \uC218 \uC788\uB2E4."
+  description: "\uCD5C\uD558\uCE35\uC744 \uBD09\uC778\uD55C \uC554\uBC18. \uC5D0\uD14C\uB9AC\uC628 \uAC01\uC778\uC744 \uBC1B\uC740 \uC9C1\uC6D0\uB9CC \uC774 \uB3CC\uC5D0 \uC190\uB308 \uC218 \uC788\uB2E4."
   tileAsset: {fileID: 11400000, guid: 4c53772f81754d14bb3a939339f592d8, type: 2}
+  blendTexture: {fileID: 2800000, guid: 8166a35da8c98de498082d34b4349b94, type: 3}
   blendPriority: 2
   isSolid: 1
   isClimbable: 0
@@ -33,9 +32,12 @@ MonoBehaviour:
   veinNoiseScale: 0.12
   veinThreshold: 0.65
   veinSeedOffset: 0
+  veinMinBaseDistance: 0
+  veinThresholdDropPer100: 0
   thermalConductivity: 1
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60
   erosionOutput: 0
   erosionSaturation: 60
+  erosionPermeability: 1

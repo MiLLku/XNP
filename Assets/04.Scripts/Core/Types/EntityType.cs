@@ -38,25 +38,25 @@ public enum EntityType
     /// <summary>나무 문</summary>
     WoodDoor = 2006,
 
-    /// <summary>나무 바닥</summary>
+    /// <summary>나무 타일</summary>
     WoodFloor = 2010,
 
-    /// <summary>돌 바닥</summary>
+    /// <summary>돌 타일</summary>
     StoneFloor = 2011,
 
-    /// <summary>금속 바닥</summary>
+    /// <summary>금속 타일</summary>
     MetalFloor = 2012,
 
-    /// <summary>흙 바닥</summary>
+    /// <summary>흙 타일</summary>
     DirtFloor = 2013,
 
-    /// <summary>구리 바닥</summary>
+    /// <summary>구리 타일</summary>
     CopperFloor = 2014,
 
-    /// <summary>금 바닥</summary>
+    /// <summary>금 타일</summary>
     GoldFloor = 2015,
 
-    /// <summary>은 바닥</summary>
+    /// <summary>은 타일</summary>
     SilverFloor = 2016,
 
     /// <summary>쌀 — 작물 — 야생에서 자라며 밭·수경재배기에서 재배</summary>

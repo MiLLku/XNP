@@ -15,9 +15,7 @@ MonoBehaviour:
   codeName: FreshwaterVent
   id: 20
   displayName: "\uB2F4\uC218 \uBD84\uCD9C\uAD6C"
-  description: "\uC9C0\uD558 \uD638\uC218\uC5D0\uC11C \uB9D1\uC740 \uBB3C\uC774 \uC19F\uB294
-    \uAD6C\uBA4D. \uCE98 \uC218 \uC5C6\uACE0, \uBB3C\uC5D0 \uB2E4 \uC7A0\uAE30\uAE30
-    \uC9C1\uC804\uAE4C\uC9C0 \uBB3C\uC744 \uB0B8\uB2E4."
+  description: "\uC9C0\uD558 \uD638\uC218\uC5D0\uC11C \uB9D1\uC740 \uBB3C\uC774 \uC19F\uB294 \uAD6C\uBA4D. \uCE98 \uC218 \uC5C6\uACE0, \uBB3C\uC5D0 \uB2E4 \uC7A0\uAE30\uAE30 \uC9C1\uC804\uAE4C\uC9C0 \uBB3C\uC744 \uB0B8\uB2E4."
   tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
   blendTexture: {fileID: 2800000, guid: 8e2decd2e3aac8044841797759a079b3, type: 3}
   blendPriority: 5
@@ -34,6 +32,8 @@ MonoBehaviour:
   veinNoiseScale: 0.16
   veinThreshold: 0.72
   veinSeedOffset: 9000
+  veinMinBaseDistance: 0
+  veinThresholdDropPer100: 0
   thermalConductivity: 1.2
   heatOutput: 0
   useHeatTarget: 0

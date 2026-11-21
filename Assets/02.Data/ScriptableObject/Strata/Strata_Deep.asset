@@ -14,12 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StrataDefinition
   codeName: Deep
   displayName: "\uC2EC\uBD80"
-  description: "\uC628\uB3C4+\uCE68\uC2DD \uB3D9\uC2DC \uC704\uD611. \uC6A9\uC554
-    \uD0C0\uC77C\uACFC \uC5D0\uD14C\uB974 \uBCA4\uD2B8 3\uAC1C."
+  description: "\uC628\uB3C4+\uCE68\uC2DD \uB3D9\uC2DC \uC704\uD611. \uC6A9\uC554 \uD0C0\uC77C\uACFC \uC5D0\uD14C\uB974 \uBCA4\uD2B8 3\uAC1C."
   thicknessWeight: 4
   sealedEdges: 0
   terrainMode: 0
-  baseRock: 2
+  baseRock: 25
   variant: {fileID: 0}
   variantNoiseScale: 0.012
   variantShare: 0.45

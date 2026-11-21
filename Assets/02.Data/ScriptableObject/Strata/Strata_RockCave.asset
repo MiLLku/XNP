@@ -14,12 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StrataDefinition
   codeName: RockCave
   displayName: "\uBC14\uC704 \uB3D9\uAD74"
-  description: "\uAD11\uBB3C\uCE35/\uCE68\uC2DD\uB3D9\uAD74 2\uBCC0\uC885. \uAC00\uC2A4
-    \uBCA4\uD2B8. \uBC00\uD3D0 \uACF5\uAC04\uC774 \uC8FC \uC704\uD611."
+  description: "\uAD11\uBB3C\uCE35/\uCE68\uC2DD\uB3D9\uAD74 2\uBCC0\uC885. \uAC00\uC2A4 \uBCA4\uD2B8. \uBC00\uD3D0 \uACF5\uAC04\uC774 \uC8FC \uC704\uD611."
   thicknessWeight: 4
   sealedEdges: 0
   terrainMode: 0
-  baseRock: 2
+  baseRock: 24
   variant: {fileID: 11400000, guid: e26563a911bf1bb4a9a79621abd96bb2, type: 2}
   variantNoiseScale: 0.012
   variantShare: 0.45

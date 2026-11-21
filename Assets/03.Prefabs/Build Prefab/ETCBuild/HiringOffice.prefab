@@ -37,7 +37,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &5555555555555555553
 SpriteRenderer:
-  serializedVersion: 2
+  serializedVersion: 3
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -84,16 +84,17 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 5
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 21300000, guid: a08f2794c4daf6c4583d386e44bb801f, type: 3}
-  m_Color: {r: 0.95, g: 0.75, b: 0.2, a: 1}
+  m_Sprite: {fileID: 21300000, guid: f851b2fe10975f6488f67c50fd4c4b32, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
-  m_DrawMode: 0
-  m_Size: {x: 3, y: 2}
+  m_DrawMode: 1
+  m_Size: {x: 3, y: 3}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+  m_BlendShapeWeights: []
 --- !u!61 &5555555555555555554
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -131,11 +132,11 @@ BoxCollider2D:
   m_Offset: {x: 1.5, y: 1.5}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0, y: 0}
-    oldSize: {x: 3, y: 3}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 9.796875, y: 9.796875}
     newSize: {x: 3, y: 3}
     adaptiveTilingThreshold: 0.5
-    drawMode: 0
+    drawMode: 1
     adaptiveTiling: 0
   m_AutoTiling: 0
   m_Size: {x: 3, y: 3}
@@ -167,10 +168,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 38bdb59aa4cc7de4ea3b39aabb1bf31d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  allEmployeeDataList:
-  - {fileID: 11400000, guid: 3bcb28bbbbf27fd458bdf8f619dff5fa, type: 2}
-  - {fileID: 11400000, guid: b25b05dab73313845a9dc9ad2c0ebcbe, type: 2}
-  - {fileID: 11400000, guid: f259e232c4be5e04491243f4a9868c94, type: 2}
-  - {fileID: 11400000, guid: 69f06257e3af7384b9ee930bdbe8741e, type: 2}
-  - {fileID: 11400000, guid: a81727da4ccffc8499c698c5f898e51d, type: 2}
   spawnOffset: {x: 3, y: 0, z: 0}
+  statCapAddonIds: a30f0000a40f0000a50f0000i
+  statCapPerAddon: 10
+  rerollAddonId: 4006
+  maxRerollAddons: 3

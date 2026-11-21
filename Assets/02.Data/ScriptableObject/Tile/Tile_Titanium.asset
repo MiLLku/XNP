@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TileDefinition
   codeName: NeedleOre
   id: 13
-  displayName: "침정석"
-  description: "기지에서 좌우로 멀리 나가야 나오는 바늘 결정 광물. 채광 IV 자격이 필요하다."
+  displayName: "\uCE68\uC815\uC11D"
+  description: "\uAE30\uC9C0\uC5D0\uC11C \uC88C\uC6B0\uB85C \uBA40\uB9AC \uB098\uAC00\uC57C \uB098\uC624\uB294 \uBC14\uB298 \uACB0\uC815 \uAD11\uBB3C. \uCC44\uAD11 IV \uC790\uACA9\uC774 \uD544\uC694\uD558\uB2E4."
   tileAsset: {fileID: 11400000, guid: a8a2442aaec02f44c87b4794342d6478, type: 2}
+  blendTexture: {fileID: 2800000, guid: 66511b66009cd0b4cb8e95f298cb8bb8, type: 3}
   blendPriority: 4
   isSolid: 1
   isClimbable: 0
@@ -39,3 +40,4 @@ MonoBehaviour:
   heatTargetTemperature: 60
   erosionOutput: 0
   erosionSaturation: 60
+  erosionPermeability: 1

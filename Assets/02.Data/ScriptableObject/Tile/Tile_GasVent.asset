@@ -15,10 +15,9 @@ MonoBehaviour:
   codeName: GasVent
   id: 14
   displayName: "\uAC00\uC2A4 \uBD84\uCD9C\uAD6C"
-  description: "\uC2EC\uBD80 \uBC14\uB2E5\uC5D0\uC11C \uAC00\uC2A4\uAC00 \uC0C8\uC5B4\uB098\uC624\uB294
-    \uAD6C\uBA4D. \uCE98 \uC218 \uC5C6\uACE0, \uC704\uC5D0 \uAC00\uC2A4 \uBC1C\uC804\uAE30\uB97C
-    \uC9C0\uC744 \uC218 \uC788\uB2E4."
+  description: "\uC2EC\uBD80 \uBC14\uB2E5\uC5D0\uC11C \uAC00\uC2A4\uAC00 \uC0C8\uC5B4\uB098\uC624\uB294 \uAD6C\uBA4D. \uCE98 \uC218 \uC5C6\uACE0, \uC704\uC5D0 \uAC00\uC2A4 \uBC1C\uC804\uAE30\uB97C \uC9C0\uC744 \uC218 \uC788\uB2E4."
   tileAsset: {fileID: 11400000, guid: 6afded49eea38924dacc14468f08c5b6, type: 2}
+  blendTexture: {fileID: 2800000, guid: 981c0c69a113bc94a94056aba88256ef, type: 3}
   blendPriority: 5
   isSolid: 1
   isClimbable: 0
@@ -33,9 +32,12 @@ MonoBehaviour:
   veinNoiseScale: 0.16
   veinThreshold: 0.72
   veinSeedOffset: 9000
+  veinMinBaseDistance: 0
+  veinThresholdDropPer100: 0
   thermalConductivity: 1.2
   heatOutput: 0
   useHeatTarget: 0
   heatTargetTemperature: 60
   erosionOutput: 0
   erosionSaturation: 60
+  erosionPermeability: 1

@@ -83,6 +83,12 @@ public enum TileType
     /// <summary>석유 분출구 — 심부 바닥에서 원유가 배어 나오는 구멍. 캘 수 없고, 위에 유정을 지을 수 있다.</summary>
     OilVent = 23,
 
+    /// <summary>동굴암 — 중층 동굴에 드러나는 습하고 침식된 암반.</summary>
+    CaveStone = 24,
+
+    /// <summary>심부 현무암 — 심부의 어두운 현무암. 깊은 광맥의 기반암.</summary>
+    DeepStone = 25,
+
     /// <summary>특수</summary>
     Special = 99,
 }
