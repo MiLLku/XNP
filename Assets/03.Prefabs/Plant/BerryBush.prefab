@@ -82,7 +82,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 1
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 1090381399, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 40bdc81bae5320d48a3b029debe6d1e9, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -107,6 +107,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   lifecycle: 1
   growthTime: 50
+  growthTimeMax: 0
   regrowFrom: 0
   harvestTime: 2
   weedTime: 3
@@ -116,6 +117,6 @@ MonoBehaviour:
     chance: 1
   saplingItem: {fileID: 11400000, guid: 79c8a13b1f75d5a4496e20c0d7abdb71, type: 2}
   saplingAmount: 1
-  emptySprite: {fileID: 1090381399, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  halfSprite: {fileID: 1688306315, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
-  fullSprite: {fileID: 198984507, guid: f8b683b1674a4d54091a8cc9e7c3e561, type: 3}
+  emptySprite: {fileID: 21300000, guid: 40bdc81bae5320d48a3b029debe6d1e9, type: 3}
+  halfSprite: {fileID: 21300000, guid: 40bdc81bae5320d48a3b029debe6d1e9, type: 3}
+  fullSprite: {fileID: 21300000, guid: 40bdc81bae5320d48a3b029debe6d1e9, type: 3}
