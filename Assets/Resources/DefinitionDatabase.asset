@@ -38,6 +38,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ff8467ca31b4a394184e02c26ac58f0d, type: 2}
   - {fileID: 11400000, guid: ce941202d5ed4af9b24f24325ed0ce2a, type: 2}
   - {fileID: 11400000, guid: ff94b592f7486da48b225eb5e9d962c2, type: 2}
+  - {fileID: 11400000, guid: ec987c9203037ae44af05cfadc7186c7, type: 2}
+  - {fileID: 11400000, guid: a2c046e6d0f70be478fde4ecc7022be5, type: 2}
   entities:
   - {fileID: 11400000, guid: d7f63988c9d94fd981324b08e9bb7737, type: 2}
   - {fileID: 11400000, guid: f218b340eb5864848819df181e00ffa4, type: 2}
@@ -71,6 +73,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: bd24fa16df80a664e9a9d7ffcd3b4814, type: 2}
   - {fileID: 11400000, guid: ce49f661fd7d5b3469a8776a685af58e, type: 2}
   - {fileID: 11400000, guid: 00e201299f2301a44ba287cf4321639d, type: 2}
+  - {fileID: 11400000, guid: 05bbf0fc5af44524889b4aeb8a1110a3, type: 2}
+  - {fileID: 11400000, guid: 0d42bb9bb5ed6eb4f997adfa1873619c, type: 2}
+  - {fileID: 11400000, guid: 13db563aeb732c44e8b3700ad22f0089, type: 2}
   strata:
   - {fileID: 11400000, guid: a06cfad2f8a33884e984149c7a193bc0, type: 2}
   - {fileID: 11400000, guid: c7ad36dc626f1f4458d111442464e9f5, type: 2}

@@ -11,13 +11,13 @@
 /// </summary>
 public enum FloorTileType
 {
-    /// <summary>나무 바닥</summary>
+    /// <summary>나무 타일</summary>
     WoodFloor = 0,
 
-    /// <summary>돌 바닥</summary>
+    /// <summary>돌 타일</summary>
     StoneFloor = 1,
 
-    /// <summary>금속 바닥</summary>
+    /// <summary>금속 타일</summary>
     MetalFloor = 2,
 
     /// <summary>나무 사다리</summary>
@@ -32,6 +32,15 @@ public enum FloorTileType
     /// <summary>다리</summary>
     Bridge = 6,
 
-    /// <summary>가공된 흙 바닥</summary>
+    /// <summary>흙 타일</summary>
     DirtFloor = 7,
+
+    /// <summary>구리 타일</summary>
+    CopperFloor = 8,
+
+    /// <summary>은 타일</summary>
+    SilverFloor = 9,
+
+    /// <summary>금 타일</summary>
+    GoldFloor = 10,
 }

@@ -16,7 +16,7 @@ MonoBehaviour:
   id: 5
   displayName: "\uC881\uC740 \uD1B5\uB85C"
   description: 
-  blendTexture: {fileID: 0}
+  blendTexture: {fileID: 2800000, guid: 2a57a9e743915b44fb3967caf199b740, type: 3}
   erosionPermeability: 1
   movementSpeedMultiplier: 0.9
   isPassable: 0
