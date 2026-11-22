@@ -190,6 +190,11 @@ public enum ItemType
     NeedleAlloyArmor = 383, // 침정 합금 갑옷
     EtherionArmor = 384, // 에테리온 갑옷
 
+    /// <summary>방한 장비 (연구 '방한 의복', 제련소·나무) — 기본 신발과 함께 영하 30도</summary>
+    WinterCoat   = 385, // 방한 외투 (옷 +4)
+    WinterHat    = 386, // 방한 모자 (헬멧 +2)
+    WinterGloves = 387, // 방한 장갑 (장갑 +1)
+
     // ─── 식물 (401~450) ─────────────────────────
     /// <summary>나무 묘목 — 나무를 제초하면 나오고, 파종하면 나무로 자랍니다.</summary>
     TreeSapling  = 401,
