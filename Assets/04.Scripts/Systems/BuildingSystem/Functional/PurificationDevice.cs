@@ -94,7 +94,7 @@ public class PurificationDevice : MonoBehaviour, IBuildingFunction, IBuildingExt
             if (!IsInRequiredStrata)
             {
                 string where = _building != null && _building.buildingData != null ? _building.buildingData.RequiredStrataMessage : null;
-                return (where != null ? where.Replace("지을 수 있습니다", "설치한 장치만 가동할 수 있습니다") : "이 위치에서는 가동할 수 없습니다");
+                return (where != null ? where.Replace("에만 지을 수 있습니다", "에 설치한 장치만 가동할 수 있습니다") : "이 위치에서는 가동할 수 없습니다");
             }
             if (_building != null && !_building.IsFunctional) return "기반이 무너져 가동할 수 없습니다";
             return null;
