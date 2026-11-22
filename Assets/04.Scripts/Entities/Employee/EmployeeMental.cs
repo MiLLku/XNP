@@ -832,6 +832,16 @@ public class EmployeeMental : MonoBehaviour
     }
 
     /// <summary>
+    /// 이 종류의 침식 이상 행동을 지금 끝냅니다 — 다음 갱신에서 평소 만료처럼 정리된다(종료 처리·정신차림 포함).
+    /// 광란이 쫓던 1명이 죽거나 닿을 수 없을 때 쓴다.
+    /// </summary>
+    public void EndAbnormalBehavior(AbnormalBehaviorType type)
+    {
+        foreach (var evt in activeMentalEvents)
+            if (evt.IsErosionKind && evt.abnormalType == type) evt.remainingTime = 0f;
+    }
+
+    /// <summary>
     /// 모든 활성 정신 이상을 강제 종료합니다.
     /// </summary>
     public void ClearAllEvents()
