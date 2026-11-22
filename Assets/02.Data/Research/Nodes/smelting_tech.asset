@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: smelting_tech
   nodeName: "\uC81C\uB828 \uAE30\uC220"
-  description: "효율 · 제련소와 구리 주괴 제련법을 엽니다."
+  description: "효율 · 구리 주괴 제련법과 구리 장비 제작법(대장간), 구리 타일을 엽니다. 제련소는 처음부터 지을 수 있습니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - crafting_basics
@@ -26,4 +26,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 86d3735c585149e691fb7d3036939e2b, type: 2}
   - {fileID: 11400000, guid: b0cc2d0d6d4f45f09f253ddcb6c552c0, type: 2}
   - {fileID: 11400000, guid: ac5d1de1bbb34c96a8f2ae7d589a9cc0, type: 2}
+  - {fileID: 11400000, guid: c6ffb86143d049a69cf4367b34d9da3d, type: 2}
   treePosition: {x: -1, y: -2}

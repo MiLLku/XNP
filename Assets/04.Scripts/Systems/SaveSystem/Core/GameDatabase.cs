@@ -243,6 +243,9 @@ public class GameDatabase : ScriptableObject
         return null;
     }
 
+    /// <summary>이 아이템이 장비인지 (경고 로그 없이)</summary>
+    public bool HasEquipmentData(int itemId) => _equipmentDataMap != null && _equipmentDataMap.ContainsKey(itemId);
+
     /// <summary>아이템 ID로 장비 데이터 조회</summary>
     public EquipmentData GetEquipmentData(int itemId)
     {

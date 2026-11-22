@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: precision_alloy
   nodeName: "정밀 합금"
-  description: "효율 · 금 주괴와 정련 합금(철·은·금) 제련법을 엽니다."
+  description: "효율 · 금 주괴와 정련 합금(철·은·금) 제련법을 엽니다. 금 타일도 지을 수 있게 됩니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - ironworking
@@ -27,4 +27,5 @@ MonoBehaviour:
   unlockEffects:
   - {fileID: 11400000, guid: 0e26d8f27522d334092c9f310237c620, type: 2}
   - {fileID: 11400000, guid: e5954901a787410795101156910c5805, type: 2}
+  - {fileID: 11400000, guid: a8d3024a1cf0444c8ca5d7c7826bce0b, type: 2}
   treePosition: {x: -3, y: -5}

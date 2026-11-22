@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: silver_craft
   nodeName: "은 세공"
-  description: "효율 · 은 주괴 제련법을 엽니다 (제련소)."
+  description: "효율 · 은 주괴 제련법을 엽니다 (제련소). 은 타일도 지을 수 있게 됩니다."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - bronze_metallurgy
@@ -27,4 +27,5 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 7f4e839b122b4df3a1a2d0f293397a77, type: 2}
   - {fileID: 11400000, guid: 8a1ce8bb7ebb4144be8e52da1a6e0a2d, type: 2}
   - {fileID: 11400000, guid: ed717b2461c249b4b721f50b77ccbe3e, type: 2}
+  - {fileID: 11400000, guid: 5e3d76ca5712414088e39d7daa5c1129, type: 2}
   treePosition: {x: -3, y: -3}

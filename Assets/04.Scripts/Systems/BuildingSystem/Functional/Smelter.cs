@@ -56,9 +56,11 @@ public class Smelter : ProductionBuilding
     /// </summary>
     protected override void OnProductionCompleted(CraftingRecipe recipe, int amount)
     {
-        // 보너스 체크 (확률적으로 추가 생산)
+        // 보너스 체크 (확률적으로 추가 생산) — 장비(초반 장비 레시피도 제련소에서 만든다)는 보너스가 없다
+        bool isEquipment = recipe != null && recipe.outputItem != null && GameDatabase.Instance != null
+                           && GameDatabase.Instance.HasEquipmentData(recipe.outputItem.itemID);
         int bonusAmount = 0;
-        for (int i = 0; i < amount; i++)
+        for (int i = 0; i < amount && !isEquipment; i++)
         {
             if (Random.value < bonusChance)
             {
