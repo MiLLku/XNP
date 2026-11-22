@@ -569,6 +569,14 @@ public class EmployeeMovement : MonoBehaviour
     /// </summary>
     private void MoveToInternal(Vector3 worldDestination, PathOptions options, Action onComplete, Action onFailed)
     {
+        // 스폰한 프레임(Start 전)에 이동 명령이 오면 경로 탐색기가 아직 없다 — 그 자리에서 만든다
+        if (pathfinder == null && MapGenerator.instance != null && MapGenerator.instance.GameMapInstance != null)
+        {
+            gameMap = MapGenerator.instance.GameMapInstance;
+            pathfinder = new TilePathfinder(gameMap);
+            lastNavVersion = gameMap.NavVersion;
+        }
+
         if (pathfinder == null)
         {
             Debug.LogError("[EmployeeMovement] Pathfinder가 초기화되지 않았습니다!");
