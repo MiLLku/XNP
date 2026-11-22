@@ -73,7 +73,7 @@ public class ClimateControlUI : BasePanel
         float max = config != null ? config.climateTargetMax : 60f;
 
         if (headerText != null)
-            headerText.text = _unit.IsHeater ? "온열기" : "냉방기";
+            headerText.text = _unit.IsHeater ? "온열기" : (_unit.UsesFuel ? "간이 냉각기" : "냉방기");
 
         if (targetSlider != null)
         {
@@ -122,7 +122,12 @@ public class ClimateControlUI : BasePanel
         }
 
         if (powerText != null)
-            powerText.text = $"소비 전력 {_unit.GetPowerDraw()}W";
+        {
+            var fuel = _unit.FuelSupply;
+            powerText.text = fuel != null
+                ? $"연료(나무) {fuel.Stock}/{fuel.capacity}" + (_unit.HasFuel ? "" : " — 연료가 없어 멈춤")
+                : $"소비 전력 {_unit.GetPowerDraw()}W";
+        }
     }
 
     #endregion
