@@ -26,6 +26,10 @@ MonoBehaviour:
     amount: 10
   - item: {fileID: 11400000, guid: 91eb2b89c66e63c41ba47a4afbadf4f5, type: 2}
     amount: 20
+  - item: {fileID: 11400000, guid: 0b4bab2bb2864a409f8e5a0bd2607ee0, type: 2}
+    amount: 3
+  - item: {fileID: 11400000, guid: c5532c3ae8624a37bb53530706e19e9a, type: 2}
+    amount: 3
   maxHealth: 500
   blocksMovement: 0
   requiresFloorSupport: 1
