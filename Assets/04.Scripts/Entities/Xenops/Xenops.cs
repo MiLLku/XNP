@@ -525,6 +525,10 @@ public class Xenops : MonoBehaviour
                 if (currentState == XenopsState.Active) SetState(XenopsState.Idle);
             }
         }
+
+        // 복원은 상태 값만 넣고 SetState를 거치지 않아 행동이 꺼진 채였다 (불러온 그래플러·스피터 등이 제자리에 멈춤)
+        if (behavior != null && (currentState == XenopsState.Active || currentState == XenopsState.Equipped))
+            behavior.OnActivated();
     }
 
     #endregion
