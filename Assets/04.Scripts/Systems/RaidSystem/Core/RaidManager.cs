@@ -44,6 +44,17 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Tooltip("지난 습격 뒤 이 일수를 넘기면 '강한 습격'(RaidData.isStrong)도 뽑힐 수 있다")]
     [Min(0f)] [SerializeField] private float strongRaidAfterDays = 1.5f;
 
+    [Header("정화 가동 중 — 방해 습격 (최하층 엔딩, 임시 수치)")]
+    [Tooltip("정화 가동 중 자동 습격 가운데 '방해 습격'의 비율. 방해 습격은 최하층이 아닌 층의 시설 곁에서 나와 시설을 먼저 부순다.\n" +
+             "나머지는 장치(최하층) 곁에서 나와 장치를 노린다.")]
+    [Range(0f, 1f)] [SerializeField] private float purificationDisruptionShare = 0.5f;
+
+    [Tooltip("방해 습격 적이 나오는 거리 — 노리는 시설에서 가로로 (칸, 최소~최대)")]
+    [SerializeField] private Vector2 disruptionSpawnDistance = new Vector2(6f, 14f);
+
+    [Tooltip("장치를 노리는 습격 적이 나오는 거리 — 장치에서 (칸, 최소~최대)")]
+    [SerializeField] private Vector2 deviceSpawnDistance = new Vector2(8f, 18f);
+
     [Header("습격 규모 — 마리 수 = 위협 점수 ÷ 습격 종류의 한 마리당 점수 (ThreatScore, 임시 수치)")]
     [Min(1f)] [SerializeField] private float normalPointsPerEnemy = 10f;
 
@@ -218,6 +229,11 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// <summary>진행 중인 레이드 비동기 작업의 취소원 (한 번에 하나만)</summary>
     private CancellationTokenSource raidCts;
 
+    // 정화 가동 중 방해 습격 — 최하층이 아닌 층의 시설 곁에서 나와 시설을 먼저 부순다 (세이브됨)
+    private bool activeDisruption;
+    private Vector3 disruptionSite;
+    private string disruptionLayer;
+
     #endregion
 
     #region 프로퍼티
@@ -265,7 +281,11 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             recentRaidTypes = recentRaidTypes.ConvertAll(t => (int)t),
             disguises = DisguisedEmployeeSaves(),
             lastRaidGameDay = lastRaidGameDay,
-            nextRaidGameDay = nextRaidGameDay
+            nextRaidGameDay = nextRaidGameDay,
+            disruption = activeDisruption && IsRaidActive,
+            disruptionX = disruptionSite.x,
+            disruptionY = disruptionSite.y,
+            disruptionLayer = disruptionLayer
         };
 
         foreach (var xenops in spawnedEntities)
@@ -300,6 +320,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         nextRaidGameDay  = data.raidSystem.nextRaidGameDay;
         activeRaidType   = (RaidType)data.raidSystem.raidType;
         activeThreatStage = data.raidSystem.threatStage;
+        activeDisruption = data.raidSystem.disruption;
+        disruptionSite   = new Vector3(data.raidSystem.disruptionX, data.raidSystem.disruptionY, 0f);
+        disruptionLayer  = data.raidSystem.disruptionLayer;
         recentRaidTypes.Clear();
         if (data.raidSystem.recentRaidTypes != null)
             foreach (var t in data.raidSystem.recentRaidTypes) recentRaidTypes.Add((RaidType)t);
@@ -499,8 +522,54 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 위협 점수 산출 → 그 점수로 가능한 습격 종류 풀에서 고른다
         var rs = RunStatsManager.instance;
         float threat = ThreatScore.Compute(rs != null ? rs.Difficulty : null).total;
-        StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)], forcedType ?? RollRaidType(threat));
+        var type = forcedType ?? RollRaidType(threat);
+        // 정화 가동 중 장치를 노리는 습격은 장치 곁(최하층)에서 나오는 종류만 — 자리를 따로 찾는 종류(땅굴·거점·스포너·분산·위장체)는 일반으로
+        if (!forcedType.HasValue && !activeDisruption && PurificationManager.instance != null && PurificationManager.instance.IsPurifying
+            && type != RaidType.Normal && type != RaidType.Breach && type != RaidType.ErodedHumans)
+            type = RaidType.Normal;
+        StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)], type);
     }
+
+    /// <summary>
+    /// 방해 습격을 시작한다 — 최하층이 아닌 층의 시설(기반시설 제외) 하나를 골라 그 곁에서 일반 습격으로.
+    /// 노릴 시설이 없으면 false (호출한 쪽이 보통 습격으로 대신한다). 디버그 패널에서도 부른다.
+    /// </summary>
+    public bool TryStartDisruptionRaid()
+    {
+        if (IsRaidActive || MapGenerator.instance == null) return false;
+        var cands = new List<Building>();
+        foreach (var b in UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None))
+        {
+            if (b == null || b.buildingData == null || !b.IsFunctional || b.buildingData.maxHealth <= 0) continue;
+            if (b.buildingData.category == BuildingCategory.Infrastructure) continue;
+            var p = b.transform.position;
+            var strata = MapGenerator.instance.StrataAt(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y));
+            if (strata == null || strata.codeName == "Abyss") continue;
+            cands.Add(b);
+        }
+        if (cands.Count == 0) return false;
+
+        var target = cands[UnityEngine.Random.Range(0, cands.Count)];
+        var tp = target.transform.position;
+        var layer = MapGenerator.instance.StrataAt(Mathf.FloorToInt(tp.x), Mathf.FloorToInt(tp.y));
+
+        int day = DayCycle.instance != null ? DayCycle.instance.Day : 0;
+        var pool = availableRaids.FindAll(r => r != null && r.includeInRandomPool && day >= r.minDayNumber);
+        if (pool.Count == 0) pool = availableRaids.FindAll(r => r != null && r.includeInRandomPool);
+        if (pool.Count == 0) return false;
+
+        activeDisruption = true;
+        disruptionSite = tp;
+        disruptionLayer = layer != null ? layer.Label : "다른 층";
+        StartRaid(pool[UnityEngine.Random.Range(0, pool.Count)], RaidType.Normal);
+        if (!IsRaidActive) { activeDisruption = false; disruptionLayer = null; return false; }
+        Debug.Log($"[RaidManager] 방해 습격 — {disruptionLayer}의 {target.buildingData.buildingName} 곁 {disruptionSite}");
+        return true;
+    }
+
+    /// <summary>이번 습격이 방해 습격인지 (알림·디버그)</summary>
+    public bool IsDisruptionRaid => activeDisruption && IsRaidActive;
+    public string DisruptionLayer => disruptionLayer;
 
     /// <summary>
     /// 습격 종류를 고른다 — 위협 점수가 종류별 최소 점수 이상인 것만 후보, 가중치로 뽑되
@@ -609,10 +678,15 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         // 위협 레터 + 강제 일시정지 (확인 시 NotificationManager가 재개)
         NotificationManager.instance?.PushLetter(new Letter
         {
-            title = $"침공 발생 — {TypeLabel(activeRaidType)}{OutpostSuffix}{(activeRaidType == RaidType.Split ? $" · {splitPoints.Count}곳" : "")} · {StageLabel(activeThreatStage)}",
-            onClick = activeOutpostSite.HasValue ? () => CameraFocus(activeOutpostSite.Value)
+            title = activeDisruption
+                ? $"침공 발생 — 방해 습격 · {disruptionLayer} · {StageLabel(activeThreatStage)}"
+                : $"침공 발생 — {TypeLabel(activeRaidType)}{OutpostSuffix}{(activeRaidType == RaidType.Split ? $" · {splitPoints.Count}곳" : "")} · {StageLabel(activeThreatStage)}",
+            onClick = activeDisruption ? () => CameraFocus(disruptionSite)
+                    : activeOutpostSite.HasValue ? () => CameraFocus(activeOutpostSite.Value)
                     : activeRaidType == RaidType.Split && splitPoints.Count > 0 ? () => CameraFocus(splitPoints[0]) : (Action)null,
-            body = $"{raid.raidName} — {TypeDescription(activeRaidType)} 직원을 소집해 방어하세요.\n(위협 점수 {LastThreat.total:F0}{(activeRaidType == RaidType.Spawner ? $" · 스포너 {spawnerPoints:F0}점" : "")})",
+            body = activeDisruption
+                ? $"{raid.raidName} — 정화를 막으려는 적이 {disruptionLayer}에 나타났습니다. 시설을 먼저 부수려 합니다. 직원을 보내 막으세요.\n(위협 점수 {LastThreat.total:F0})"
+                : $"{raid.raidName} — {TypeDescription(activeRaidType)} 직원을 소집해 방어하세요.\n(위협 점수 {LastThreat.total:F0}{(activeRaidType == RaidType.Spawner ? $" · 스포너 {spawnerPoints:F0}점" : "")})",
             type = LetterType.Threat,
             pauseUntilRead = true
         });
@@ -739,8 +813,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         if (xenops == null || xenops.GetComponent<OutpostStructure>() != null || xenops.GetComponent<SpawnerStructure>() != null) return;
         bool tunnel = activeRaidType == RaidType.Tunnel;
         bool guard = activeRaidType == RaidType.Outpost && !outpostGuardReleased && activeOutpostSite.HasValue;
-        if (!tunnel && !guard) return;
+        if (!tunnel && !guard && !activeDisruption) return;
         var nav = xenops.GetComponent<EnemyNavigator>() ?? xenops.gameObject.AddComponent<EnemyNavigator>();
+        if (activeDisruption) nav.PreferBuildings = true;
         if (tunnel) nav.StaffOnly = true;
         if (guard) { nav.GuardAnchor = activeOutpostSite.Value; nav.GuardRadius = outpostGuardRadius; }
     }
@@ -1003,6 +1078,40 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     private GameMap standCheckerMap;
 
     /// <summary>
+    /// center에서 거리 range(최소~최대) 안의 설 수 있는 칸을 무작위로 찾는다 (같은 높이 근처 우선 — 세로로는 ±4칸).
+    /// 설 칸이 center와 걸어서 이어지면 더 좋지만, 막혀 있어도 적은 굴착·돌파로 다가온다.
+    /// </summary>
+    private bool TryFindStandableNear(Vector3 center, Vector2 range, out Vector3 pos)
+    {
+        pos = center;
+        var map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
+        if (map == null) return false;
+        if (standCheckerMap != map) { standCheckerMap = map; standChecker = new TilePathfinder(map); }
+
+        var c = new Vector2Int(Mathf.FloorToInt(center.x), Mathf.FloorToInt(center.y));
+        var reach = ReachabilityMap.Current;
+        Vector2Int? fallback = null;
+        for (int i = 0; i < 300; i++)
+        {
+            int dist = Mathf.RoundToInt(UnityEngine.Random.Range(range.x, Mathf.Max(range.x, range.y)));
+            int dx = UnityEngine.Random.value < 0.5f ? -dist : dist;
+            int dy = UnityEngine.Random.Range(-4, 5);
+            var cell = c + new Vector2Int(dx, dy);
+            if (cell.x < 1 || cell.x >= GameMap.MAP_WIDTH - 1 || cell.y < 1 || cell.y >= GameMap.MAP_HEIGHT - 1) continue;
+            if (!standChecker.IsValidPosition(cell)) continue;
+            if (reach == null || reach.IsReachable(cell, c) || reach.IsReachable(cell, c + Vector2Int.up))
+            {
+                pos = new Vector3(cell.x + 0.5f, cell.y + 0.3f, 0f);
+                return true;
+            }
+            if (!fallback.HasValue) fallback = cell;
+        }
+        if (!fallback.HasValue) return false;
+        pos = new Vector3(fallback.Value.x + 0.5f, fallback.Value.y + 0.3f, 0f);
+        return true;
+    }
+
+    /// <summary>
     /// 흩뿌린 스폰 지점이 지형 속이면 가까운(4칸 안) 설 수 있는 칸으로 옮긴다 —
     /// 바위 속에 낀 적은 길을 못 잡아 제자리에 멈췄다. 못 찾으면 그대로.
     /// </summary>
@@ -1027,6 +1136,11 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     private Vector3 GetSpawnPosition(RaidSpawnEntry entry)
     {
+        // 방해 습격: 노리는 시설 곁 / 정화 가동 중 장치 습격: 장치 곁(최하층)
+        if (activeDisruption && TryFindStandableNear(disruptionSite, disruptionSpawnDistance, out var near)) return near;
+        var device = !activeDisruption && PurificationManager.instance != null ? PurificationManager.instance.ActiveDevice : null;
+        if (device != null && TryFindStandableNear(device.transform.position, deviceSpawnDistance, out near)) return near;
+
         // 레이드 설정 위치 유형(안개 지상/지하, 기지 내부)에서 후보 선정
         Vector3 basePos;
         if (activeRaid == null || !RaidSpawnPlacer.TryFindPosition(activeRaid.spawnLocation, out basePos))
@@ -1071,7 +1185,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         if (nextRaidGameDay < 0f) { ScheduleNextRaid(); return; }
         if (GameDayNow < nextRaidGameDay) return;
 
-        StartRandomRaid();
+        bool purifying = PurificationManager.instance != null && PurificationManager.instance.IsPurifying;
+        if (!(purifying && UnityEngine.Random.value < purificationDisruptionShare && TryStartDisruptionRaid()))
+            StartRandomRaid();
         if (!IsRaidActive) ScheduleNextRaid(); // 디버그 차단 등으로 안 시작했으면 다음으로 미룬다
     }
 
@@ -1217,6 +1333,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         waveTimer = 0f;
         spawnedEntities.Clear();
         currentState = RaidState.None;
+        activeDisruption = false;
+        disruptionLayer = null;
     }
 
     private RaidData GetRaidById(int id)

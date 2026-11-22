@@ -59,6 +59,10 @@ public class EnemyNavigator : MonoBehaviour
     /// <summary>직원만 노린다 (땅굴 습격) — 닿는 직원이 없어도 건물을 부수러 가지 않는다</summary>
     public bool StaffOnly { get; set; }
 
+    /// <summary>방해 습격 — 직원보다 시설(기반시설 제외)을 먼저 부순다. 이 반경 안에서 막아서는 직원만 상대한다</summary>
+    public bool PreferBuildings { get; set; }
+    private const float SABOTAGE_ENGAGE_RADIUS = 3f;
+
     /// <summary>지키기 (거점 습격 경비) — 이 자리 GuardRadius 안에 들어온 직원만 노리고, 없으면 자리로 돌아간다. null이면 해제</summary>
     public Vector2? GuardAnchor { get; set; }
     public float GuardRadius { get; set; } = 7f;
@@ -251,6 +255,23 @@ public class EnemyNavigator : MonoBehaviour
         // 0. 브리칭형(자폭체) — 직원보다 벽을 먼저: 가장 가까운 막는 건물(벽·문)을, 없으면 가장 가까운 건물을 노린다
         if (_xenops != null && _xenops.Data != null && _xenops.Data.prefersBreaching && PlanBreachTarget(foot, canBuild)) return;
 
+        // 0-1. 방해 습격 — 시설(생산·전력·연구·창고 등)을 먼저 부순다. 바로 곁에서 막아서는 직원만 상대한다
+        if (PreferBuildings && !IsGuarding)
+        {
+            foreach (var e in staff)
+            {
+                if (Vector2.Distance(transform.position, e.transform.position) > SABOTAGE_ENGAGE_RADIUS) break; // 가까운 순
+                var ef = FootOf(e.transform.position);
+                if (reach != null && !reach.IsReachable(foot, ef)) continue;
+                var p = _walkFinder.FindPath(foot, ef);
+                if (p == null) continue;
+                TargetEmployee = e;
+                _path.AddRange(p);
+                return;
+            }
+            if (PlanSabotageTarget(foot, canBreach, canBuild)) return;
+        }
+
         // 1. 걸어서 닿는 직원
         foreach (var e in staff)
         {
@@ -339,6 +360,39 @@ public class EnemyNavigator : MonoBehaviour
         for (int i = 0; i < Mathf.Min(cands.Count, MAX_BREACH_TARGETS); i++)
         {
             var p = finder.FindPath(foot, FootOf(cands[i].transform.position));
+            if (p == null || !WithinFloorBudget(p)) continue;
+            _path.AddRange(p);
+            TargetBuilding = FirstBlockingBuildingOnPath() ?? cands[i];
+            TrimPathBefore(TargetBuilding);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 방해 습격 목표: 기반시설(바닥·사다리·문·전선 — Infrastructure)을 뺀 시설을 가까운 순으로.
+    /// 걸어서 닿으면 걷고, 아니면 돌파·발판 경로(길을 막는 건물은 부수고 간다). 닿는 시설이 없으면 false.
+    /// </summary>
+    private bool PlanSabotageTarget(Vector2Int foot, bool canBreach, bool canBuild)
+    {
+        var cands = new List<Building>();
+        foreach (var b in UnityEngine.Object.FindObjectsByType<Building>(FindObjectsSortMode.None))
+            if (b != null && b.buildingData != null && b.IsFunctional && b.buildingData.maxHealth > 0
+                && b.buildingData.category != BuildingCategory.Infrastructure) cands.Add(b);
+        cands.Sort((a, b) => Vector2.Distance(transform.position, a.transform.position)
+                                   .CompareTo(Vector2.Distance(transform.position, b.transform.position)));
+
+        var reach = ReachabilityMap.Current;
+        var breach = canBreach ? (canBuild ? _breachBuildFinder : _breachFinder) : (canBuild ? _buildFinder : null);
+        for (int i = 0; i < Mathf.Min(cands.Count, MAX_BREACH_TARGETS); i++)
+        {
+            var bf = FootOf(cands[i].transform.position);
+            List<Vector2Int> p = null;
+            if (reach == null || reach.IsReachable(foot, bf) || reach.IsReachable(foot, bf + Vector2Int.up))
+                p = _walkFinder.FindPath(foot, bf);
+            if (p != null) { TargetBuilding = cands[i]; _path.AddRange(p); return true; }
+            if (breach == null) continue;
+            p = breach.FindPath(foot, bf);
             if (p == null || !WithinFloorBudget(p)) continue;
             _path.AddRange(p);
             TargetBuilding = FirstBlockingBuildingOnPath() ?? cands[i];

@@ -48,6 +48,12 @@ public class RaidSystemSaveData
     /// <summary>진행 중인 습격의 종류 (RaidType 정수값, 구 세이브에는 없음 — 0 = 일반)</summary>
     public int raidType;
 
+    /// <summary>정화 가동 중 방해 습격인지 (다른 층 시설을 노림) · 노리는 지점 · 층 이름 — 없던 세이브는 false</summary>
+    public bool disruption;
+    public float disruptionX;
+    public float disruptionY;
+    public string disruptionLayer;
+
     /// <summary>진행 중인 습격의 위협 단계 (구 세이브에는 없음 — 0)</summary>
     public int threatStage;
 
