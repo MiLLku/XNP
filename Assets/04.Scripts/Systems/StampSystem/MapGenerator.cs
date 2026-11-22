@@ -216,9 +216,12 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     /// 오프셋을 기능마다 따로 두는 것이 핵심입니다 — 같은 값을 여기저기 더하면
     /// 언덕과 동굴이 같은 방향으로 함께 밀려서 "다른 맵"이 되지 않습니다.
     /// </summary>
-    private void InitializeSeed()
+    private void InitializeSeed() => ApplySeed(mapSeed != 0 ? mapSeed : UnityEngine.Random.Range(1, int.MaxValue));
+
+    /// <summary>시드로 노이즈 오프셋을 맞춘다 — 불러오기 때도 저장된 시드로 다시 맞춰야 지층 경계가 세이브의 맵과 같다</summary>
+    private void ApplySeed(int seed)
     {
-        ActiveSeed = mapSeed != 0 ? mapSeed : UnityEngine.Random.Range(1, int.MaxValue);
+        ActiveSeed = seed;
 
         _hillOffsetX = SeedOffset(ActiveSeed, 1);
         _hillOffsetY = SeedOffset(ActiveSeed, 2);
@@ -997,6 +1000,18 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     public StrataDefinition StrataAt(int x, int y) => SampleStrata(x, y).Dominant;
 
     /// <summary>
+    /// 게임 규칙용 지층 판정(설치 제한·습격 층 이름) — 경계 흔들림이 맨 아래·맨 위 칸을 모든 층 밖으로 밀어
+    /// <see cref="StrataAt"/>이 null일 때는 세로로 가장 가까운 층을 돌려준다. 생성은 계속 <see cref="StrataAt"/>을 쓴다.
+    /// </summary>
+    public StrataDefinition GameplayStrataAt(int x, int y)
+    {
+        var s = StrataAt(x, y);
+        for (int d = 1; s == null && d <= 32; d++)
+            s = StrataAt(x, y + d) ?? StrataAt(x, y - d);
+        return s;
+    }
+
+    /// <summary>
     /// 층의 기본 침식 — 경계에서 <b>서서히 이어지는</b> 값입니다(바위동굴 0 → 침식동굴 변종 30이 한 칸에 튀지 않음).
     /// 봉인 경계(경계층↔최하층)에서는 그대로 끊깁니다.
     /// </summary>
@@ -1437,6 +1452,7 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             height = height,
             tileGrid = tiles,
             wallGrid = walls,
+            seed = ActiveSeed,
             entities = CaptureMapEntities()
         };
     }
@@ -1468,6 +1484,9 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
             Debug.LogError("[MapGenerator] 세이브의 타일/벽 배열이 손상되었습니다. 불러오기를 중단합니다.");
             return;
         }
+
+        // 지층 경계(노이즈)는 시드에서 나온다 — 새 판의 무작위 시드로 두면 세이브의 맵과 층 판정이 어긋난다 (구 세이브는 0 → 그대로)
+        if (mapData.seed != 0) ApplySeed(mapData.seed);
 
         // 복원도 대량 변경 — 끝난 뒤 OnBulkChanged로 파생 데이터를 전체 재계산시킨다
         _gameMap.BeginBulkChange();

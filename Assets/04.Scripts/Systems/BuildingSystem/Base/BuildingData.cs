@@ -133,7 +133,7 @@ public class BuildingData : ScriptableObject
         for (int x = 0; x < size.x; x++)
         for (int y = 0; y < size.y; y++)
         {
-            var strata = MapGenerator.instance.StrataAt(gridX + x, gridY + y);
+            var strata = MapGenerator.instance.GameplayStrataAt(gridX + x, gridY + y);
             if (strata == null || strata.codeName != requiredStrataCode) return false;
         }
         return true;

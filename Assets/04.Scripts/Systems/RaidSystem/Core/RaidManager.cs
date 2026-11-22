@@ -543,7 +543,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             if (b == null || b.buildingData == null || !b.IsFunctional || b.buildingData.maxHealth <= 0) continue;
             if (b.buildingData.category == BuildingCategory.Infrastructure) continue;
             var p = b.transform.position;
-            var strata = MapGenerator.instance.StrataAt(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y));
+            var strata = MapGenerator.instance.GameplayStrataAt(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y));
             if (strata == null || strata.codeName == "Abyss") continue;
             cands.Add(b);
         }
@@ -551,7 +551,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
         var target = cands[UnityEngine.Random.Range(0, cands.Count)];
         var tp = target.transform.position;
-        var layer = MapGenerator.instance.StrataAt(Mathf.FloorToInt(tp.x), Mathf.FloorToInt(tp.y));
+        var layer = MapGenerator.instance.GameplayStrataAt(Mathf.FloorToInt(tp.x), Mathf.FloorToInt(tp.y));
 
         int day = DayCycle.instance != null ? DayCycle.instance.Day : 0;
         var pool = availableRaids.FindAll(r => r != null && r.includeInRandomPool && day >= r.minDayNumber);

@@ -21,6 +21,9 @@ public class MapSaveData
     /// <summary>벽 그리드 (1D 평탄화, 인덱스 = y * width + x)</summary>
     public int[] wallGrid;
 
+    /// <summary>맵 생성 시드 — 지층 경계 노이즈를 되살리는 데 쓴다 (구 세이브에는 없음 — 0)</summary>
+    public int seed;
+
     /// <summary>맵 엔티티 목록 (나무, 광물 등 자연물)</summary>
     public List<MapEntitySaveData> entities;
 
