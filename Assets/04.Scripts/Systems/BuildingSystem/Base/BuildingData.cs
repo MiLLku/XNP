@@ -120,6 +120,40 @@ public class BuildingData : ScriptableObject
              "풋프린트 열 중 하나라도 이 타일 위에 있으면 통과합니다.")]
     public TileType requiredTileBelow = TileType.Air;
 
+    [Tooltip("이 지층(StrataDefinition.codeName)에서만 지을 수 있습니다. 비우면 제약 없음(기본).\n" +
+             "풋프린트 칸이 전부 이 지층이어야 합니다. 예: 완전 정화 장치 = Abyss(최하층)")]
+    public string requiredStrataCode = "";
+
+    /// <summary>
+    /// 풋프린트가 전부 <see cref="requiredStrataCode"/> 지층 안인지. 제약이 없거나 지층 정보를 못 구하면 true.
+    /// </summary>
+    public bool IsInRequiredStrata(int gridX, int gridY)
+    {
+        if (string.IsNullOrEmpty(requiredStrataCode) || MapGenerator.instance == null) return true;
+        for (int x = 0; x < size.x; x++)
+        for (int y = 0; y < size.y; y++)
+        {
+            var strata = MapGenerator.instance.StrataAt(gridX + x, gridY + y);
+            if (strata == null || strata.codeName != requiredStrataCode) return false;
+        }
+        return true;
+    }
+
+    /// <summary>지층 제약 안내 문구 (예: "최하층에만 지을 수 있습니다"). 제약이 없으면 null.</summary>
+    public string RequiredStrataMessage
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(requiredStrataCode)) return null;
+            string label = requiredStrataCode;
+            var db = DefinitionDatabase.Instance;
+            if (db != null)
+                foreach (var s in db.strata)
+                    if (s != null && s.codeName == requiredStrataCode) { label = s.Label; break; }
+            return $"{label}에만 지을 수 있습니다";
+        }
+    }
+
     [Tooltip("목표 온도를 쓸지. 끄면 상한 없이 계속 밉니다. ClimateControlUnit이 붙은 건물은 플레이어 지정값이 우선합니다.")]
     public bool useHeatTarget = false;
 

@@ -424,6 +424,8 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
                 renderer.color = color;
         }
 
+        UpdateBlockReasonLabel(isPositionValid ? null : LastBlockReason);
+
         // 건물 고스트 색상 업데이트
         Transform buildingGhost = ghostObject.transform.Find("BuildingGhost");
         if (buildingGhost != null)
@@ -432,6 +434,34 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
             if (sr != null)
                 sr.color = new Color(color.r, color.g, color.b, 0.5f);
         }
+    }
+
+    private TMPro.TextMeshPro _blockReasonLabel;
+
+    /// <summary>배치가 막힌 이유를 고스트 위에 띄웁니다 (null이면 숨김). 고스트가 사라지면 함께 사라집니다.</summary>
+    private void UpdateBlockReasonLabel(string reason)
+    {
+        if (ghostObject == null) return;
+        if (string.IsNullOrEmpty(reason))
+        {
+            if (_blockReasonLabel != null) _blockReasonLabel.gameObject.SetActive(false);
+            return;
+        }
+        if (_blockReasonLabel == null || _blockReasonLabel.transform.parent != ghostObject.transform)
+        {
+            var go = new GameObject("BlockReason", typeof(TMPro.TextMeshPro));
+            go.transform.SetParent(ghostObject.transform, false);
+            _blockReasonLabel = go.GetComponent<TMPro.TextMeshPro>();
+            _blockReasonLabel.fontSize = 3f;
+            _blockReasonLabel.alignment = TMPro.TextAlignmentOptions.Center;
+            _blockReasonLabel.color = new Color(1f, 0.6f, 0.55f, 1f);
+            _blockReasonLabel.rectTransform.sizeDelta = new Vector2(10f, 1.2f);
+            _blockReasonLabel.GetComponent<MeshRenderer>().sortingOrder = 300;
+        }
+        _blockReasonLabel.gameObject.SetActive(true);
+        _blockReasonLabel.text = reason;
+        _blockReasonLabel.transform.localPosition =
+            new Vector3(selectedBuildingData.size.x * 0.5f, selectedBuildingData.size.y + 0.6f, 0f);
     }
 
     private void HandlePlacementInput()
@@ -452,7 +482,7 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
             }
             else
             {
-                Debug.LogWarning("[ConstructionManager] 이 위치에 건설할 수 없습니다.");
+                Debug.LogWarning($"[ConstructionManager] 이 위치에 건설할 수 없습니다.{(LastBlockReason != null ? " " + LastBlockReason : "")}");
             }
         }
 
@@ -473,8 +503,12 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
     /// </summary>
     /// <param name="gridPos">확인할 그리드 좌표 (왼쪽 아래 기준)</param>
     /// <returns>배치 가능 여부</returns>
+    /// <summary>마지막 CanPlaceAt이 막힌 이유 중 플레이어에게 보여 줄 것 (없으면 null) — 배치 고스트 아래에 표시</summary>
+    public string LastBlockReason { get; private set; }
+
     public bool CanPlaceAt(Vector3Int gridPos)
     {
+        LastBlockReason = null;
         if (selectedBuildingData == null) return false;
 
         // gameMap 레이지 초기화 (MapGenerator가 Start() 이후에 준비될 수 있음)
@@ -517,6 +551,13 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
                 if (IsLadderCell(checkX, checkY))
                     return false;
             }
+        }
+
+        // 지층 제약 (완전 정화 장치 = 최하층 전용)
+        if (!selectedBuildingData.IsInRequiredStrata(gridPos.x, gridPos.y))
+        {
+            LastBlockReason = selectedBuildingData.RequiredStrataMessage;
+            return false;
         }
 
         // 바닥 확인 (requiresFloorSupport가 true인 건물만 적용)

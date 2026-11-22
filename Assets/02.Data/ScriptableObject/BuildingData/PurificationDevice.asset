@@ -37,6 +37,7 @@ MonoBehaviour:
   heatConductivity: 0.8
   erosionPermeability: 0.5
   requiredTileBelow: 0
+  requiredStrataCode: Abyss
   useHeatTarget: 0
   heatTargetTemperature: 22
   climateIdleWatts: 60

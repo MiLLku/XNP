@@ -64,6 +64,41 @@ public class PurificationDevice : MonoBehaviour, IBuildingFunction, IBuildingExt
     {
         // 씬 로드 순서상 OnEnable 시점에 매니저가 아직 없을 수 있다
         PurificationManager.instance?.RegisterDevice(this);
+
+        // 최하층 전용 규칙 이전 세이브: 최하층 밖에서 가동 중이던 장치는 멈춘다 (건물은 그대로)
+        if (_isRunning && !IsInRequiredStrata)
+        {
+            _isRunning = false;
+            _elapsedSeconds = 0f;
+            Debug.Log($"[Purification] 최하층 밖에 지어진 장치라 가동을 멈춥니다 — {BlockedReason}");
+        }
+    }
+
+    /// <summary>장치가 설치 지층 제약(최하층) 안에 있는지. 제약이 없으면 true.</summary>
+    public bool IsInRequiredStrata
+    {
+        get
+        {
+            var data = _building != null ? _building.buildingData : null;
+            if (data == null) return true;
+            return data.IsInRequiredStrata(Mathf.FloorToInt(transform.position.x), Mathf.FloorToInt(transform.position.y));
+        }
+    }
+
+    /// <summary>가동할 수 없는 이유 (가동 가능하면 null) — HUD에 표시</summary>
+    public string BlockedReason
+    {
+        get
+        {
+            if (_isRunning || _isCompleted) return null;
+            if (!IsInRequiredStrata)
+            {
+                string where = _building != null && _building.buildingData != null ? _building.buildingData.RequiredStrataMessage : null;
+                return (where != null ? where.Replace("지을 수 있습니다", "설치한 장치만 가동할 수 있습니다") : "이 위치에서는 가동할 수 없습니다");
+            }
+            if (_building != null && !_building.IsFunctional) return "기반이 무너져 가동할 수 없습니다";
+            return null;
+        }
     }
 
     void OnDestroy()
@@ -104,6 +139,7 @@ public class PurificationDevice : MonoBehaviour, IBuildingFunction, IBuildingExt
     {
         if (_isRunning || _isCompleted) return false;
         if (_building != null && !_building.IsFunctional) return false; // 기반이 무너진 장치는 켤 수 없다
+        if (!IsInRequiredStrata) return false; // 최하층 밖에 지어진 장치 (최하층 전용 규칙 이전 세이브)
 
         _isRunning = true;
         _elapsedSeconds = 0f;

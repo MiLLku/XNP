@@ -104,9 +104,13 @@ public class PurificationHUD : MonoBehaviour
         }
         else
         {
-            _statusText.text = $"대기 중 — 가동하면 {PurificationDevice.PURIFICATION_DAYS}일간 버텨야 합니다";
+            string blocked = device.BlockedReason;
+            _statusText.text = blocked != null
+                ? $"가동 불가 — {blocked}"
+                : $"대기 중 — 가동하면 {PurificationDevice.PURIFICATION_DAYS}일간 버텨야 합니다";
             _barRoot.SetActive(false);
             _activateButton.gameObject.SetActive(true);
+            _activateButton.interactable = blocked == null;
         }
     }
 
