@@ -21,6 +21,11 @@ public class ThreatDifficulty : ScriptableObject
     [Tooltip("플레이 시간 보정 곡선 — (경과 일수, 배수) 점들, 사이는 선형 보간, 마지막 점 이후는 마지막 값")]
     public Vector2[] timeCurve = { new Vector2(0f, 0.5f), new Vector2(5f, 0.8f), new Vector2(12f, 1f) };
 
+    [Header("연구 (임시 수치)")]
+    [Tooltip("연구 속도 배율 — 모든 연구대 포인트에 곱합니다. 초보 1.0을 기준으로 (2026-11-22 사용자 결정).\n" +
+             "실측: 1.0이면 연구원 1명·간이 연구대로 하루 약 270~500pt (직원 연구 속도에 따라).")]
+    [Min(0.01f)] public float researchSpeedMultiplier = 1f;
+
     /// <summary>경과 일수(소수 포함)에 대한 시간 보정</summary>
     public float TimeMultiplier(float day)
     {
