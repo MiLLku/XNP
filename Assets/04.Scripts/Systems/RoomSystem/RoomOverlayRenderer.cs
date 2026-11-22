@@ -47,7 +47,7 @@ public class RoomOverlayRenderer : DestroySingleton<RoomOverlayRenderer>
     [Tooltip("이 온도 이하는 완전한 파랑")]
     [SerializeField] private float coldTemperature = -30f;
 
-    [Tooltip("이 온도 이상은 완전한 빨강. 지열 때문에 최심부가 70도까지 가므로 그보다 높게 둡니다.")]
+    [Tooltip("이 온도 이상은 완전한 빨강. 지열 때문에 최하층은 약 96도까지 갑니다(이 값 위는 같은 빨강).")]
     [SerializeField] private float hotTemperature = 80f;
 
     [Tooltip("온도·침식 모드에서 색을 새로 칠하는 주기(초)")]

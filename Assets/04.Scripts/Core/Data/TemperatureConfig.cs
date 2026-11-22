@@ -32,13 +32,13 @@ public class TemperatureConfig : ScriptableObject
              "MapGenerator를 찾을 수 있으면 그쪽 값을 우선합니다.")]
     public float surfaceReferenceY = 145f;
 
-    [Tooltip("한 칸 깊어질 때마다 오르는 온도(℃/칸). 0.35면 깊이 164에서 상한 70도에 닿습니다.")]
+    [Tooltip("한 칸 깊어질 때마다 오르는 온도(℃/칸). 0.35면 깊이 250에서 상한 100도에 닿습니다 — 경계층 약 70~75도, 최하층 약 75~96도.")]
     public float geothermalGradient = 0.35f;
 
-    [Tooltip("지열이 더는 오르지 않는 상한(℃). 심부 아래로는 온도가 평탄해져 " +
-             "경계층·최하층이 심부와 같은 온도를 갖습니다 — 그 층들의 위협은 온도가 아니라 침식입니다.\n" +
+    [Tooltip("지열이 더는 오르지 않는 상한(℃). 100이면 맵 안에서는 닿지 않아 경계층·최하층이 심부보다 더 뜨겁습니다 " +
+             "(예전 70은 심부 아래를 평탄하게 만들었다 — 2026-11-22 100으로, 임시값).\n" +
              "계절·날씨 감쇠항은 상한에 걸리지 않으므로 지표는 영향을 받지 않습니다.")]
-    public float geothermalCapTemperature = 70f;
+    public float geothermalCapTemperature = 100f;
 
     [Tooltip("깊은 곳이 수렴하는 연평균 기온(℃). 계절 기준값 네 개의 평균으로 두면 '깊이 들어가면 계절이 사라진다'가 자연스럽습니다.")]
     public float annualMeanTemperature = 12.25f;

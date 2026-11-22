@@ -16,7 +16,7 @@ MonoBehaviour:
   useGeothermal: 1
   surfaceReferenceY: 239
   geothermalGradient: 0.35
-  geothermalCapTemperature: 70
+  geothermalCapTemperature: 100
   annualMeanTemperature: 12.25
   seasonDampDepth: 25
   outdoorFollowsDepth: 1
