@@ -267,7 +267,8 @@ public class ResearchWorkbench : MonoBehaviour, IBuildingFunction
         float xenopsBonus = ContaminationSphereBehavior.GetWorkSpeedBonusAt(transform.position);
         float researchBonus = ResearchTreeManager.instance?.GetStatBonus(ResearchStatType.ResearchSpeedBonus) ?? 0f;
         float addonMult = BuildingAddonUtil.GetWorkSpeedMultiplier(_building);
-        float points = basePointsPerSecond * speedMultiplier * (1f + xenopsBonus + researchBonus) * addonMult * deltaTime;
+        float globalMult = ResearchTreeManager.instance != null ? ResearchTreeManager.instance.GlobalResearchSpeedMultiplier : 1f;
+        float points = basePointsPerSecond * speedMultiplier * (1f + xenopsBonus + researchBonus) * addonMult * globalMult * deltaTime;
 
         ResearchManager.instance?.AddPoints(points);
         ResearchTreeManager.instance?.AddProgress(points);

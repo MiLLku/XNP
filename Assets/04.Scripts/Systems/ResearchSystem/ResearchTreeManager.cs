@@ -15,6 +15,13 @@ public class ResearchTreeManager : DestroySingleton<ResearchTreeManager>, ISaveM
     [Header("설정")]
     [SerializeField] private ResearchTreeConfig treeConfig;
 
+    [Tooltip("연구 속도 전역 배율 — 모든 연구대 포인트에 곱합니다 (연구대끼리 비율 0.5/1/1.6은 그대로).\n" +
+             "임시값 2.7: 실측 하루 약 70pt → 약 190pt, 전체 트리(약 57,300pt)를 약 300일에 (2026-11-22 사용자 결정)")]
+    [Min(0.01f)] [SerializeField] private float globalResearchSpeedMultiplier = 2.7f;
+
+    /// <summary>연구 속도 전역 배율</summary>
+    public float GlobalResearchSpeedMultiplier => globalResearchSpeedMultiplier;
+
     // ─── 런타임 상태 ───────────────────────────────────────────────────────────
 
     private Dictionary<string, ResearchNodeState> _nodeStates = new();
