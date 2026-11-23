@@ -127,7 +127,7 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
                 }
                 else MoveIgnoringRestrictions(employee, targetPos);
             }
-            if (randomTarget && state.unreachable) EndBerserk(employee, movement);
+            if (randomTarget && state.unreachable) EndBerserk(employee, movement, true); // 갈 길 없음 — 정신차림 없이 끊긴다
             return;
         }
 
@@ -170,12 +170,15 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
         return state;
     }
 
-    /// <summary>광란을 지금 끝낸다 — 정신 이상 관리 쪽에서 평소 만료처럼 정리한다(OnEnd·정신차림)</summary>
-    private void EndBerserk(Employee employee, EmployeeMovement movement)
+    /// <summary>
+    /// 광란을 지금 끝낸다 — 정신 이상 관리 쪽에서 평소 만료처럼 정리한다(OnEnd).
+    /// 대상이 죽어 끝나면 정신차림을 받고, 갈 길이 없어 끊기면(unreachable) 받지 않는다 (사용자 결정).
+    /// </summary>
+    private void EndBerserk(Employee employee, EmployeeMovement movement, bool unreachable = false)
     {
         if (movement != null && movement.IsMoving) movement.StopMoving();
         var mental = employee.GetComponent<EmployeeMental>();
-        if (mental != null) mental.EndAbnormalBehavior(type);
+        if (mental != null) mental.EndAbnormalBehavior(type, unreachable);
     }
 
     /// <summary>공격할 동료 — 광란은 반경 안의 아무나, 동료 공격은 가장 가까운 사람</summary>
