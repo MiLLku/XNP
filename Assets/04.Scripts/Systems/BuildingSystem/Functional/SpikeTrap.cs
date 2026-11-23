@@ -77,12 +77,25 @@ public class SpikeTrap : MonoBehaviour, IBuildingFunction, IBuildingExtraSeriali
     void Start()
     {
         ApplyVisual();
-        if (!_armed) EnsureRearmOrder(); // 해제된 채 불러온 함정
     }
 
     void Update()
     {
-        if (!_armed || _building == null || !_building.IsFunctional) return;
+        if (!_armed)
+        {
+            // 불러오기는 작업 목록을 새로 채우므로, 불러오는 도중 걸어 둔 재장전 작업이 빠질 수 있다 — 주기적으로 확인해 다시 건다
+            _scanTimer -= Time.deltaTime;
+            if (_scanTimer > 0f) return;
+            _scanTimer = 1f;
+            if (SaveManager.instance != null && SaveManager.instance.IsLoading) return;
+            if (WorkSystemManager.instance != null && !WorkSystemManager.instance.HasWorkOrder(_rearmWorkOrder))
+            {
+                _rearmWorkOrder = null;
+                EnsureRearmOrder();
+            }
+            return;
+        }
+        if (_building == null || !_building.IsFunctional) return;
 
         _scanTimer -= Time.deltaTime;
         if (_scanTimer > 0f) return;
@@ -192,7 +205,7 @@ public class SpikeTrap : MonoBehaviour, IBuildingFunction, IBuildingExtraSeriali
         if (s == null) return;
         _armed = s.armed;
         ApplyVisual();
-        if (!_armed) EnsureRearmOrder();
+        // 재장전 작업은 여기서 걸지 않는다 — 불러오는 중이라 작업 목록이 아직 새로 채워지기 전이다. Update가 불러오기가 끝난 뒤 건다.
     }
 
     #endregion
