@@ -257,7 +257,11 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
         if (resultScreen != null) Destroy(resultScreen);
     }
 
-    public void PostRestore(SaveData data) { }
+    /// <summary>
+    /// 불러온 런은 이미 시작 직원이 생긴 뒤다 — 직원이 모두 죽은 채 저장된 세이브를 불러오면 바로 결과 화면이 떠야 한다.
+    /// (Restore에서 sawStaff를 끄기만 해서, 전멸 세이브를 불러오면 런이 영영 끝나지 않았다)
+    /// </summary>
+    public void PostRestore(SaveData data) { sawStaff = true; }
 
     #endregion
 }
