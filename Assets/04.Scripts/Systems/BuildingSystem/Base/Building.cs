@@ -360,6 +360,7 @@ public class Building : MonoBehaviour, IHeatSource
         // 디버그: 무적
         if (DebugManager.IsBlocked(DebugFlag.Damage)) return;
         if (buildingData == null) return; // 초기화 전 또는 데이터 미연결 시 피해 무시
+        if (buildingData.maxHealth <= 0) return; // 부술 수 없는 건물(가시 함정 등 — 적의 목표 후보에서도 빠진다)
 
         _currentHealth -= amount;
         Debug.Log($"[Building] {buildingData.buildingName}이(가) {amount}의 피해를 받았습니다. (남은 체력: {_currentHealth}/{buildingData.maxHealth})");
