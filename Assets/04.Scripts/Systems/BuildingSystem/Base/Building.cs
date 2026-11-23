@@ -199,7 +199,6 @@ public class Building : MonoBehaviour, IHeatSource
         _powerConsumer = GetComponent<PowerConsumer>();
         _powerProducer = GetComponent<PowerProducer>();
         _production = GetComponent<ProductionBuilding>();
-        _climate = GetComponent<ClimateControlUnit>();
         _climateUnit = GetComponent<ClimateControlUnit>();
 
         RegisterToGameMap();
@@ -613,7 +612,7 @@ private void ReturnPartialResources()
             if (_powerConsumer != null && !_powerConsumer.IsPowered) return false;
 
             // 나무 연료식 공조기(간이 냉각기)는 연료가 떨어지면 멈춘다
-            if (_climate != null && !_climate.HasFuel) return false;
+            if (_climateUnit != null && !_climateUnit.HasFuel) return false;
 
             // 제련소·대장간 같은 생산 건물은 제작 중일 때만, 발전기는 연료를 태울 때만 열을 낸다
             if (_production != null && !_production.IsOperating) return false;
@@ -645,7 +644,6 @@ private void ReturnPartialResources()
     private PowerConsumer _powerConsumer;
     private PowerProducer _powerProducer;
     private ProductionBuilding _production;
-    private ClimateControlUnit _climate;
 
     /// <summary>냉난방기 컴포넌트 캐시 (없으면 null — 목표 온도를 BuildingData에서 읽는다)</summary>
     private ClimateControlUnit _climateUnit;

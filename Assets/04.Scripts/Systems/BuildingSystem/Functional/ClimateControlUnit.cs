@@ -121,7 +121,17 @@ public class ClimateControlUnit : MonoBehaviour, IBuildingExtraSerializable, IVa
 
     void OnDestroy()
     {
-        if (usesFuel) fuelSupply.Cancel();
+        if (!usesFuel) return;
+        // 불러오기·씬 정리 중에는 손대지 않는다 — 예약은 인벤토리 복원이, 연료 칸은 저장이 맡는다 (스토브와 같은 규칙)
+        if (SaveManager.instance != null && SaveManager.instance.IsLoading) return;
+        if (!gameObject.scene.isLoaded) return;
+
+        fuelSupply.Cancel();
+
+        // 철거·파괴되면 연료 칸에 남은 나무를 바닥에 떨군다 — 직원이 창고로 다시 나른다
+        if (fuelSupply.item != null && fuelSupply.Stock > 0)
+            ItemRefundHelper.SpawnRefunds(new System.Collections.Generic.Dictionary<ItemData, int> { { fuelSupply.item, fuelSupply.Stock } },
+                                          transform.position, Vector2Int.one);
     }
 
     #endregion
