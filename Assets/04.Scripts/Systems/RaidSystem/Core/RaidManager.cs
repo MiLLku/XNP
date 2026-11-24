@@ -38,8 +38,18 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     [Tooltip("첫 습격이 올 수 있는 가장 이른 날")]
     [Min(0)] [SerializeField] private int firstRaidDay = 3;
 
-    [Tooltip("습격 사이 간격 (게임일, 최소~최대 무작위)")]
+    [Tooltip("습격 사이 간격 (게임일, 최소~최대 무작위) — 지난 습격이 끝나거나 물러난 뒤부터 잰다")]
     [SerializeField] private Vector2 raidIntervalDays = new Vector2(0.7f, 1.5f);
+
+    [Header("습격이 잦으면 늦추기 (자리표시값, 2026-11-22 사용자 결정)")]
+    [Tooltip("최근 이 일수 동안 시작된 습격 수를 센다")]
+    [Min(0.1f)] [SerializeField] private float frequentRaidWindowDays = 5f;
+    [Tooltip("그 수가 이만큼 이상이면 다음 간격을 늘린다")]
+    [Min(1)] [SerializeField] private int frequentRaidThreshold = 3;
+    [Tooltip("늘릴 때 곱하는 배수")]
+    [Min(1f)] [SerializeField] private float frequentRaidIntervalScale = 1.5f;
+    [Tooltip("정화 가동 중에도 늘릴지 — 끄면 정화 중 습격 압박(간격 단축)은 그대로 둔다")]
+    [SerializeField] private bool stretchWhilePurifying = false;
 
     [Tooltip("지난 습격 뒤 이 일수를 넘기면 '강한 습격'(RaidData.isStrong)도 뽑힐 수 있다")]
     [Min(0f)] [SerializeField] private float strongRaidAfterDays = 1.5f;
@@ -187,6 +197,9 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
     /// <summary>최근 습격 종류 (0 = 바로 직전, 1 = 그 전), 세이브됨 — 같은 종류가 연달아 나오지 않게</summary>
     private readonly List<RaidType> recentRaidTypes = new List<RaidType>();
 
+    /// <summary>최근 습격이 시작된 시각 (게임일) — 습격이 잦으면 간격을 늘리는 데 쓴다</summary>
+    private readonly List<float> recentRaidDays = new List<float>();
+
     // 거점 습격 — 자리·구조물 종류(스폰 전)와 지어지는 구조물(스폰 후). 스포너 습격도 자리(activeOutpostSite)를 같이 쓴다
     private Vector3? activeOutpostSite;
     private int activeOutpostId;
@@ -279,6 +292,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             raidType = (int)activeRaidType,
             threatStage = activeThreatStage,
             recentRaidTypes = recentRaidTypes.ConvertAll(t => (int)t),
+            recentRaidDays = new List<float>(recentRaidDays),
             disguises = DisguisedEmployeeSaves(),
             lastRaidGameDay = lastRaidGameDay,
             nextRaidGameDay = nextRaidGameDay,
@@ -326,6 +340,8 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         recentRaidTypes.Clear();
         if (data.raidSystem.recentRaidTypes != null)
             foreach (var t in data.raidSystem.recentRaidTypes) recentRaidTypes.Add((RaidType)t);
+        recentRaidDays.Clear();
+        if (data.raidSystem.recentRaidDays != null) recentRaidDays.AddRange(data.raidSystem.recentRaidDays);
 
         int raidId = data.raidSystem.activeRaidId;
         if (raidId >= 0)
@@ -398,6 +414,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             var raid = activeRaid;
             var type = activeRaidType;
             if (recentRaidTypes.Count > 0) recentRaidTypes.RemoveAt(0); // StartRaid가 다시 기록한다
+            if (recentRaidDays.Count > 0) recentRaidDays.RemoveAt(recentRaidDays.Count - 1);
             currentState = RaidState.None;
             StartRaid(raid, type);
         }
@@ -484,7 +501,10 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         else BuildSpawnPlan(raid, type, total);
         Debug.Log($"[RaidManager] {raid.raidName} {TypeLabel(type)} · {StageLabel(activeThreatStage)} — {LastThreat} → {total}마리 (한 마리당 {PointsPerEnemy(type)})");
         lastRaidGameDay = GameDayNow;
-        ScheduleNextRaid();
+        recentRaidDays.Add(GameDayNow);
+        recentRaidDays.RemoveAll(d => GameDayNow - d > frequentRaidWindowDays);
+        // 다음 습격은 이 습격이 끝나거나 물러난 뒤부터 잰다 — Update가 습격이 끝난 뒤 새로 잡는다
+        nextRaidGameDay = -1f;
 
         if (showDebugLogs)
             Debug.Log($"[RaidManager] 레이드 시작: {raid.raidName} ({TypeLabel(type)}, 위치 {raid.spawnLocation})");
@@ -1170,7 +1190,22 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
 
     /// <summary>습격 간격 (게임일) — 정화 가동 중엔 PurificationThreat.RaidIntervalScale만큼 짧아진다</summary>
     private float RollRaidInterval()
-        => UnityEngine.Random.Range(raidIntervalDays.x, Mathf.Max(raidIntervalDays.x, raidIntervalDays.y)) * PurificationThreat.RaidIntervalScale;
+        => UnityEngine.Random.Range(raidIntervalDays.x, Mathf.Max(raidIntervalDays.x, raidIntervalDays.y)) * PurificationThreat.RaidIntervalScale
+           * FrequentRaidScale();
+
+    /// <summary>최근 습격 수 (창 안에서 시작된 것)</summary>
+    public int RecentRaidCount
+    {
+        get { int n = 0; float now = GameDayNow; foreach (var d in recentRaidDays) if (now - d <= frequentRaidWindowDays) n++; return n; }
+    }
+
+    /// <summary>습격이 잦으면 다음 간격에 곱하는 배수 (평소 1)</summary>
+    private float FrequentRaidScale()
+    {
+        bool purifying = PurificationManager.instance != null && PurificationManager.instance.IsPurifying;
+        if (purifying && !stretchWhilePurifying) return 1f;
+        return RecentRaidCount >= frequentRaidThreshold ? frequentRaidIntervalScale : 1f;
+    }
 
     private void Update()
     {

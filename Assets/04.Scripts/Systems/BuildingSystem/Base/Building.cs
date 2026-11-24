@@ -360,6 +360,7 @@ public class Building : MonoBehaviour, IHeatSource
         // 디버그: 무적
         if (DebugManager.IsBlocked(DebugFlag.Damage)) return;
         if (buildingData == null) return; // 초기화 전 또는 데이터 미연결 시 피해 무시
+        if (buildingData.maxHealth <= 0) return; // 부술 수 없는 건물(가시 함정 등 — 적의 목표 후보에서도 빠진다)
 
         _currentHealth -= amount;
         Debug.Log($"[Building] {buildingData.buildingName}이(가) {amount}의 피해를 받았습니다. (남은 체력: {_currentHealth}/{buildingData.maxHealth})");
@@ -610,6 +611,9 @@ private void ReturnPartialResources()
 
             // 전력을 쓰는 건물이면 공급이 끊긴 동안 가동하지 않는다
             if (_powerConsumer != null && !_powerConsumer.IsPowered) return false;
+
+            // 나무 연료식 공조기(간이 냉각기)는 연료가 떨어지면 멈춘다
+            if (_climateUnit != null && !_climateUnit.HasFuel) return false;
 
             // 제련소·대장간 같은 생산 건물은 제작 중일 때만, 발전기는 연료를 태울 때만 열을 낸다
             if (_production != null && !_production.IsOperating) return false;

@@ -48,6 +48,9 @@ public class ActiveMentalEvent
     /// <summary>쿨다운 남은 시간</summary>
     public float cooldownRemaining;
 
+    /// <summary>끝날 때 '정신차림' 버프를 붙이지 않는다 (광란 대상에게 갈 길이 없어 끝난 경우)</summary>
+    [NonSerialized] public bool skipComposure;
+
     /// <summary>침식 계열 정신 이상인지 여부</summary>
     public bool IsErosionKind => abnormalType != AbnormalBehaviorType.None;
 }

@@ -690,6 +690,7 @@ public class EmployeeMental : MonoBehaviour
     private void UpdateActiveMentalEvents(float deltaTime)
     {
         bool anyEnded = false;
+        bool composure = false; // 끝난 것 중 하나라도 정신차림을 받을 자격이 있는지
 
         for (int i = activeMentalEvents.Count - 1; i >= 0; i--)
         {
@@ -705,16 +706,18 @@ public class EmployeeMental : MonoBehaviour
                 continue;
             }
 
+            if (!activeMentalEvents[i].skipComposure) composure = true;
             RemoveMentalEventEffect(activeMentalEvents[i]);
             activeMentalEvents.RemoveAt(i);
             anyEnded = true;
         }
 
         // 마지막 정신 이상이 끝나면 재판정 유예 + '정신차림' 버프를 건다
+        // (광란 대상에게 갈 길이 없어 끊긴 경우는 정신차림 없이 유예만 — 사용자 결정)
         if (anyEnded && activeMentalEvents.Count == 0)
         {
             graceTimer = BreakGrace;
-            ApplyComposure();
+            if (composure) ApplyComposure();
         }
     }
 
@@ -829,6 +832,17 @@ public class EmployeeMental : MonoBehaviour
     public float GetActiveSpeedModifier()
     {
         return activeSpeedModifier;
+    }
+
+    /// <summary>
+    /// 이 종류의 침식 이상 행동을 지금 끝냅니다 — 다음 갱신에서 평소 만료처럼 정리된다(종료 처리·정신차림 포함).
+    /// 광란이 쫓던 1명이 죽거나 닿을 수 없을 때 쓴다.
+    /// </summary>
+    /// <param name="skipComposure">true면 끝나도 '정신차림' 버프를 붙이지 않는다 (갈 길이 없어 끊긴 광란)</param>
+    public void EndAbnormalBehavior(AbnormalBehaviorType type, bool skipComposure = false)
+    {
+        foreach (var evt in activeMentalEvents)
+            if (evt.IsErosionKind && evt.abnormalType == type) { evt.remainingTime = 0f; evt.skipComposure = skipComposure; }
     }
 
     /// <summary>

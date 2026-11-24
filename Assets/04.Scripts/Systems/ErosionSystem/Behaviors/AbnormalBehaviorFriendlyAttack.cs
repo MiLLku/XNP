@@ -40,6 +40,10 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
 
         /// <summary>대상으로 이동 명령을 내린 상태인지</summary>
         public bool approaching;
+        /// <summary>한 번이라도 대상을 정했는지 (광란은 그 1명만 쫓는다)</summary>
+        public bool hadTarget;
+        /// <summary>대상에게 가는 경로를 못 찾았는지 (광란 종료 조건)</summary>
+        public bool unreachable;
     }
 
     private readonly Dictionary<Employee, AttackState> states = new Dictionary<Employee, AttackState>();
@@ -74,7 +78,7 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
         SeizeControl(employee);
 
         var target = PickTarget(employee);
-        states[employee] = new AttackState { target = target, attackTimer = 0f };
+        states[employee] = new AttackState { target = target, attackTimer = 0f, hadTarget = target != null };
         return duration;
     }
 
@@ -85,17 +89,21 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
         var state = GetOrCreateState(employee);
         var movement = employee.GetComponent<EmployeeMovement>();
 
-        // 대상이 죽었거나 사라졌으면 새로 고른다
+        // 대상이 죽었거나 사라졌으면 — 광란은 처음 고른 1명만 쫓으므로 그대로 광란이 끝난다 (사용자 결정).
+        // 동료 공격은 예전처럼 새 대상을 고른다.
         if (state.target == null || state.target.State == EmployeeState.Dead)
         {
+            if (randomTarget && state.hadTarget) { EndBerserk(employee, movement); return; }
             state.target = PickTarget(employee);
             state.approaching = false;
 
             if (state.target == null)
             {
+                if (randomTarget) { EndBerserk(employee, movement); return; }
                 if (movement != null && movement.IsMoving) movement.StopMoving();
                 return;
             }
+            state.hadTarget = true;
         }
 
         GetAttackProfile(employee, out float damage, out float interval, out float range);
@@ -111,8 +119,15 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
             {
                 state.repathTimer = REPATH_INTERVAL;
                 state.approaching = true;
-                MoveIgnoringRestrictions(employee, targetPos);
+                if (randomTarget && movement != null)
+                {
+                    // 광란 대상에게 갈 길이 없으면(경로 실패) 다른 사람으로 갈아타지 않고 광란이 끝난다
+                    var s = state;
+                    movement.MoveTo(targetPos, null, () => s.unreachable = true); // 옵션 없음 = 맵 전체 (MoveIgnoringRestrictions와 같다)
+                }
+                else MoveIgnoringRestrictions(employee, targetPos);
             }
+            if (randomTarget && state.unreachable) EndBerserk(employee, movement, true); // 갈 길 없음 — 정신차림 없이 끊긴다
             return;
         }
 
@@ -149,9 +164,21 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
 
         SeizeControl(employee);
 
-        var state = new AttackState { target = PickTarget(employee), attackTimer = 0f };
+        var picked = PickTarget(employee);
+        var state = new AttackState { target = picked, attackTimer = 0f, hadTarget = picked != null };
         states[employee] = state;
         return state;
+    }
+
+    /// <summary>
+    /// 광란을 지금 끝낸다 — 정신 이상 관리 쪽에서 평소 만료처럼 정리한다(OnEnd).
+    /// 대상이 죽어 끝나면 정신차림을 받고, 갈 길이 없어 끊기면(unreachable) 받지 않는다 (사용자 결정).
+    /// </summary>
+    private void EndBerserk(Employee employee, EmployeeMovement movement, bool unreachable = false)
+    {
+        if (movement != null && movement.IsMoving) movement.StopMoving();
+        var mental = employee.GetComponent<EmployeeMental>();
+        if (mental != null) mental.EndAbnormalBehavior(type, unreachable);
     }
 
     /// <summary>공격할 동료 — 광란은 반경 안의 아무나, 동료 공격은 가장 가까운 사람</summary>

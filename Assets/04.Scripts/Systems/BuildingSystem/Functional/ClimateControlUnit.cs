@@ -27,11 +27,21 @@ public class ClimateControlUnit : MonoBehaviour, IBuildingExtraSerializable, IVa
     [Tooltip("플레이어가 지정하지 않았을 때의 목표 온도(℃). 온열기는 쾌적 상한 바로 아래, 냉방기는 하한 위로 둡니다.")]
     [SerializeField] private float targetTemperature = 22f;
 
+    [Header("나무 연료 (간이 냉각기 — 켜면 전력 대신 연료 칸의 나무를 태운다)")]
+    [Tooltip("켜면 연료가 있을 때만 가동한다. 연료는 직원이 창고에서 채워 넣는다.")]
+    [SerializeField] private bool usesFuel = false;
+    [SerializeField] private ItemSupply fuelSupply = new ItemSupply();
+    [Tooltip("연료 1개로 가동하는 시간(게임 초). 실제로 식히는 동안(부하 > 0)만 탄다. 임시값.")]
+    [Min(1f)] [SerializeField] private float secondsPerFuel = 120f;
+
     #endregion
 
     #region 상태
 
     private Building _building;
+
+    /// <summary>지금 태우고 있는 연료 1개의 남은 시간(초)</summary>
+    private float _burnRemaining;
 
     #endregion
 
@@ -39,6 +49,15 @@ public class ClimateControlUnit : MonoBehaviour, IBuildingExtraSerializable, IVa
 
     /// <summary>플레이어가 지정한 목표 온도(℃)</summary>
     public float TargetTemperature => targetTemperature;
+
+    /// <summary>나무 연료식인지 (아니면 전력식)</summary>
+    public bool UsesFuel => usesFuel;
+
+    /// <summary>연료 칸 (연료식이 아니면 null)</summary>
+    public ItemSupply FuelSupply => usesFuel ? fuelSupply : null;
+
+    /// <summary>가동할 연료가 있는지 — 전력식은 항상 true</summary>
+    public bool HasFuel => !usesFuel || _burnRemaining > 0f || fuelSupply.Stock > 0;
 
     /// <summary>난방기인지 (열 출력이 양수). 아니면 냉방기입니다.</summary>
     public bool IsHeater => _building != null && _building.HeatOutput > 0f;
@@ -85,6 +104,34 @@ public class ClimateControlUnit : MonoBehaviour, IBuildingExtraSerializable, IVa
     void Awake()
     {
         _building = GetComponent<Building>();
+        if (usesFuel) fuelSupply.Bind(this);
+    }
+
+    void Update()
+    {
+        if (!usesFuel || _building == null || !_building.IsFunctional) return;
+
+        fuelSupply.Tick();
+
+        // 실제로 식혀야 할 때(부하 > 0)만 연료를 태운다 — 목표보다 이미 시원하면 아끼고 기다린다
+        if (Load <= 0f) return;
+        if (_burnRemaining <= 0f && fuelSupply.TryConsume(1)) _burnRemaining = secondsPerFuel;
+        if (_burnRemaining > 0f) _burnRemaining = Mathf.Max(0f, _burnRemaining - Time.deltaTime);
+    }
+
+    void OnDestroy()
+    {
+        if (!usesFuel) return;
+        // 불러오기·씬 정리 중에는 손대지 않는다 — 예약은 인벤토리 복원이, 연료 칸은 저장이 맡는다 (스토브와 같은 규칙)
+        if (SaveManager.instance != null && SaveManager.instance.IsLoading) return;
+        if (!gameObject.scene.isLoaded) return;
+
+        fuelSupply.Cancel();
+
+        // 철거·파괴되면 연료 칸에 남은 나무를 바닥에 떨군다 — 직원이 창고로 다시 나른다
+        if (fuelSupply.item != null && fuelSupply.Stock > 0)
+            ItemRefundHelper.SpawnRefunds(new System.Collections.Generic.Dictionary<ItemData, int> { { fuelSupply.item, fuelSupply.Stock } },
+                                          transform.position, Vector2Int.one);
     }
 
     #endregion
@@ -149,22 +196,37 @@ public class ClimateControlUnit : MonoBehaviour, IBuildingExtraSerializable, IVa
 
     #region 세이브
 
-    /// <summary>목표 온도만 저장합니다. 나머지는 전부 방 상태에서 파생됩니다.</summary>
+    /// <summary>목표 온도(와 연료식이면 연료 칸·태우는 중인 연료)를 저장합니다. 나머지는 방 상태에서 파생됩니다.</summary>
     [System.Serializable]
     private class SaveState
     {
         public float target;
+        public bool hasFuel;
+        public ItemSupply.SaveState fuel;
+        public float burnRemaining;
     }
 
     public string SerializeExtra()
-        => JsonUtility.ToJson(new SaveState { target = targetTemperature });
+        => JsonUtility.ToJson(new SaveState
+        {
+            target = targetTemperature,
+            hasFuel = usesFuel,
+            fuel = usesFuel ? fuelSupply.Capture() : default(ItemSupply.SaveState),
+            burnRemaining = _burnRemaining
+        });
 
     public void DeserializeExtra(string json)
     {
         if (string.IsNullOrEmpty(json)) return;
 
         var state = JsonUtility.FromJson<SaveState>(json);
-        if (state != null) SetTargetTemperature(state.target);
+        if (state == null) return;
+        SetTargetTemperature(state.target);
+        if (usesFuel && state.hasFuel)
+        {
+            fuelSupply.Restore(state.fuel);
+            _burnRemaining = state.burnRemaining;
+        }
     }
 
     #endregion
