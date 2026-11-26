@@ -1499,7 +1499,10 @@ public class EmployeeAI : MonoBehaviour
         }
         seekingFoodUntil = 0f;
 
-        if (employee.State == EmployeeState.Working)
+        // 작업하러 걸어가던 중(Moving)이어도 맡은 작업은 내려놓는다 — 이동만 멈추면 작업이 배정된 채 남아
+        // 이후 자동 배정이 '이미 작업 중'으로 건너뛰고 직원은 하루 종일 어슬렁거렸다 (배고파 밥 먹으러 갈 때 등)
+        var work = employee.GetComponent<EmployeeWork>();
+        if (employee.State == EmployeeState.Working || (work != null && work.HasAssignedWork))
             employee.CancelWork();
 
         if (employee.State == EmployeeState.Moving && movement != null)

@@ -108,6 +108,9 @@ public class EmployeeWork : MonoBehaviour
     /// <summary>현재 작업 대상</summary>
     public IWorkTarget CurrentWorkTarget => currentWorkTarget;
 
+    /// <summary>맡은 작업(작업 대상·연구 작업대)이 있는지 — 아직 걸어가는 중이어도 true</summary>
+    public bool HasAssignedWork => currentWorkTarget != null || currentWorkOrder != null || currentResearchBench != null;
+
     /// <summary>
     /// 현재 운반 작업(Hauling 또는 Withdraw)을 진행 중인지의 근사 표시.
     /// 정확한 carryPile 추적은 별도 작업으로 분리됩니다.
