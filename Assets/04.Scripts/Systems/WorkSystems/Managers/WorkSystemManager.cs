@@ -504,14 +504,14 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
     /// <summary>진행 중인 연구가 있고 비어 있는, 걸어서 닿는 작업대에 직원을 앉힌다</summary>
     private bool TryAssignResearch(Employee employee)
     {
-        var reach = ReachabilityMap.Current;
-        var foot = new Vector2Int(Mathf.FloorToInt(employee.transform.position.x), Mathf.FloorToInt(employee.transform.position.y));
+        var movement = employee.GetComponent<EmployeeMovement>();
+        if (movement == null) return false;
         foreach (var bench in ResearchWorkbench.All)
         {
             if (bench == null || !bench.CanAutoAssign) continue;
-            var p = bench.WorkPosition;
-            if (reach != null && !reach.IsReachable(foot, new Vector2Int(Mathf.FloorToInt(p.x), Mathf.FloorToInt(p.y)))) continue;
+            if (!movement.CanReachExactTile(Vector2Int.FloorToInt(bench.WorkPosition))) continue;
             bench.StartResearch(employee);
+            if (bench.CurrentWorker != employee) continue;
             if (showDebugInfo) Debug.Log($"[WorkSystemManager] {employee.Data?.employeeName}: 연구 자동 배정");
             return true;
         }

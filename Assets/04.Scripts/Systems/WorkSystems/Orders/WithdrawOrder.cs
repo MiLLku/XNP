@@ -68,9 +68,11 @@ public class WithdrawOrder : IWorkTarget
         // 자재가 입고되면 다음 작업 평가 때 자동으로 다시 후보가 된다 (별도 이벤트 구독 불필요).
         // 한 지점이 전량을 갖지 않아도 된다 — 직원이 여러 지점(바닥 더미 1개씩 등)을 돌며 모은다.
         // 창고는 모두 전역 인벤토리의 접근점 — 가동 중인 창고가 하나라도 있으면 전역 재고 전체를 쓸 수 있다
-        int inStockpile = StockpileManager.instance != null && InventoryManager.instance != null &&
-                          StockpileManager.instance.HasItemAnywhere(request.itemData, 1)
-            ? InventoryManager.instance.GetItemCount(request.itemData) : 0;
+        int inStockpile = GetStockCount();
+        if (request.receiver is ConstructionSite site)
+            return request.receiver.IsRequestStillValid() &&
+                   site.HasReachableMaterials(request.itemData, request.amount, inStockpile);
+
         int outside     = MaterialSourceRegistry.instance != null
             ? MaterialSourceRegistry.instance.GetTotalAvailable(request.itemData) : 0;
 
@@ -78,6 +80,18 @@ public class WithdrawOrder : IWorkTarget
 
         return request.receiver.IsRequestStillValid();
     }
+
+    internal bool CanAssignDeliveryWorker(Employee worker)
+    {
+        if (request?.receiver is not ConstructionSite site) return true;
+        var movement = worker != null ? worker.GetComponent<EmployeeMovement>() : null;
+        return movement != null && site.HasReachableMaterials(request.itemData, request.amount, GetStockCount(), movement);
+    }
+
+    private int GetStockCount() =>
+        StockpileManager.instance != null && InventoryManager.instance != null &&
+        StockpileManager.instance.HasItemAnywhere(request.itemData, 1)
+            ? InventoryManager.instance.GetItemCount(request.itemData) : 0;
 
     /// <summary>
     /// EmployeeWork의 WithdrawWorkAsync가 인계 완료 후 직접 호출합니다.
