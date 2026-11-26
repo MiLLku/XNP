@@ -82,14 +82,16 @@ public class StockpileManager : DestroySingleton<StockpileManager>
     /// 지정 타일에서 가장 가까운, 해당 아이템을 충분히 보유한 운영 중 Stockpile을 반환합니다.
     /// 출고(Withdraw) 작업에서 사용합니다.
     /// </summary>
-    public Stockpile GetNearestStockpileWith(Vector2Int from, ItemData item, int amount)
+    public Stockpile GetNearestStockpileWith(Vector2Int from, ItemData item, int amount,
+        System.Predicate<IMaterialSource> accept = null)
     {
         if (item == null || amount <= 0) return null;
 
         // 닿을 수 없는 창고는 후보에서 뺀다 — 가장 가까워도 못 가면 헛걸음 후 실패만 반복한다
         return _stockpiles
             .Where(s => s != null && s.IsOperational && s.HasItem(item, amount)
-                        && ReachabilityMap.CanReach(from, s.GetDepositPosition()))
+                        && ReachabilityMap.CanReach(from, s.GetDepositPosition())
+                        && (accept == null || accept(s)))
             .OrderBy(s => Vector2Int.Distance(from,
                 new Vector2Int(
                     Mathf.FloorToInt(s.transform.position.x),

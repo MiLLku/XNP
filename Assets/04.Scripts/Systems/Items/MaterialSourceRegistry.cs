@@ -39,7 +39,7 @@ public class MaterialSourceRegistry : DestroySingleton<MaterialSourceRegistry>
     /// <summary>
     /// 창고 밖에 있는 해당 자재의 총량. 파괴된 소스는 훑는 김에 정리합니다.
     /// </summary>
-    public int GetTotalAvailable(ItemData item)
+    public int GetTotalAvailable(ItemData item, System.Predicate<IMaterialSource> accept = null)
     {
         if (item == null) return 0;
 
@@ -50,7 +50,8 @@ public class MaterialSourceRegistry : DestroySingleton<MaterialSourceRegistry>
             if (!IsAlive(src)) { _sources.RemoveAt(i); continue; }
             if (!src.IsSourceAvailable || !IsReachablePile(src)) continue;
 
-            total += src.GetStoredAmount(item);
+            int stored = src.GetStoredAmount(item);
+            if (stored > 0 && (accept == null || accept(src))) total += stored;
         }
         return total;
     }
@@ -59,7 +60,8 @@ public class MaterialSourceRegistry : DestroySingleton<MaterialSourceRegistry>
     /// 지정 타일에서 닿을 수 있는 가장 가까운, 해당 자재를 요청량만큼 보유한 소스를 반환합니다.
     /// 없으면 null.
     /// </summary>
-    public IMaterialSource FindNearestWith(Vector2Int from, ItemData item, int amount)
+    public IMaterialSource FindNearestWith(Vector2Int from, ItemData item, int amount,
+        System.Predicate<IMaterialSource> accept = null)
     {
         if (item == null || amount <= 0) return null;
 
@@ -75,6 +77,7 @@ public class MaterialSourceRegistry : DestroySingleton<MaterialSourceRegistry>
 
             Vector3 pos = src.GetWithdrawPosition();
             if (!ReachabilityMap.CanReach(from, pos)) continue; // 못 가는 지점은 가까워도 제외
+            if (accept != null && !accept(src)) continue;
             float dist = Vector2Int.Distance(from,
                 new Vector2Int(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y)));
 

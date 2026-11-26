@@ -1051,26 +1051,26 @@ public class EmployeeAI : MonoBehaviour
     {
         if (recuperateCts != null) return true; // 이미 요양 중
 
-        // 주의: CancelCurrentAction은 반드시 슬롯 예약 '전'에 부른다 (ExecuteWash와 같은 이유)
-        CancelCurrentAction();
-
-        RecuperationBed best = SelectBestBed();
+        var pathOptions = zoneAssignment?.GetPathOptions();
+        RecuperationBed best = SelectBestBed(pathOptions, out int slot);
         if (best == null) return false;
 
-        int slot = best.TryReserveSlot(employee);
-        if (slot < 0) return false;
+        // CancelCurrentAction은 기존 예약을 해제하므로 새 슬롯 예약 전에 부른다.
+        CancelCurrentAction();
+        if (best.TryReserveSlot(employee, slot) < 0) return false;
 
         currentBed = best;
-        GoUseBed(best, slot);
+        GoUseBed(best, slot, pathOptions);
         return true;
     }
 
     /// <summary>지금 쓸 수 있는 요양 시설 중 최선(우선순위 → 거리). 구역이 배정돼 있으면 구역 내만.</summary>
-    private RecuperationBed SelectBestBed()
+    private RecuperationBed SelectBestBed(PathOptions pathOptions, out int bestSlot)
     {
         Zone zone = zoneAssignment != null ? zoneAssignment.AssignedZone : null;
 
         RecuperationBed best = null;
+        bestSlot = -1;
         float bestDist = float.MaxValue;
 
         foreach (var bed in RecuperationBed.All)
@@ -1085,13 +1085,17 @@ public class EmployeeAI : MonoBehaviour
                 if (!zone.ContainsTile(tile)) continue;
             }
 
-            float dist = Vector2.Distance(transform.position, bed.transform.position);
+            int slot = bed.FindReachableSlot(employee, movement, pathOptions);
+            if (slot < 0) continue;
+
+            float dist = Vector2.Distance(transform.position, bed.GetSlotPosition(slot));
 
             if (best == null ||
                 bed.Priority > best.Priority ||
                 (bed.Priority == best.Priority && dist < bestDist))
             {
                 best = bed;
+                bestSlot = slot;
                 bestDist = dist;
             }
         }
@@ -1100,13 +1104,13 @@ public class EmployeeAI : MonoBehaviour
     }
 
     /// <summary>예약한 슬롯 좌표로 이동해 요양을 시작합니다.</summary>
-    private void GoUseBed(RecuperationBed bed, int slot)
+    private void GoUseBed(RecuperationBed bed, int slot, PathOptions pathOptions)
     {
         if (movement == null || bed == null) { ReleaseBedSlot(); return; }
 
         employee.SetState(EmployeeState.Moving);
 
-        PathOptions pathOpts = zoneAssignment != null ? zoneAssignment.GetPathOptions() : null;
+        Vector3 slotPos = bed.GetSlotPosition(slot);
 
         Action onArrive = () =>
         {
@@ -1119,9 +1123,17 @@ public class EmployeeAI : MonoBehaviour
                 return;
             }
 
+            if (currentBed != bed || !bed.IsOperating || !bed.IsReservedBy(slot, employee) ||
+                !movement.IsAtWorkPosition(slotPos))
+            {
+                ReleaseBedSlot();
+                OnActionFailed();
+                return;
+            }
+
             bed.MarkArrived(employee);
             recuperateCts = CancellationTokenSource.CreateLinkedTokenSource(this.GetCancellationTokenOnDestroy());
-            RecuperateTickAsync(bed, recuperateCts.Token).Forget();
+            RecuperateTickAsync(bed, slot, slotPos, recuperateCts.Token).Forget();
         };
 
         Action onFailed = () =>
@@ -1130,16 +1142,11 @@ public class EmployeeAI : MonoBehaviour
             OnActionFailed();
         };
 
-        Vector3 slotPos = bed.GetSlotPosition(slot);
-
-        if (pathOpts != null)
-            movement.MoveTo(slotPos, pathOpts, onComplete: onArrive, onFailed: onFailed);
-        else
-            movement.MoveTo(slotPos, onComplete: onArrive, onFailed: onFailed);
+        movement.MoveToExactTile(slotPos, pathOptions, onComplete: onArrive, onFailed: onFailed);
     }
 
     /// <summary>요양 루프 — 가만히 서서 초당 체력을 회복합니다. 목표 도달·시설 사용 불가·상태 변화 시 종료.</summary>
-    private async UniTaskVoid RecuperateTickAsync(RecuperationBed bed, CancellationToken ct)
+    private async UniTaskVoid RecuperateTickAsync(RecuperationBed bed, int slot, Vector3 slotPos, CancellationToken ct)
     {
         employee.SetState(EmployeeState.Resting);
 
@@ -1150,7 +1157,8 @@ public class EmployeeAI : MonoBehaviour
 
         while (employee != null &&
                employee.State == EmployeeState.Resting &&
-               bed != null && bed.IsOperating &&
+               bed != null && bed.IsOperating && bed.IsReservedBy(slot, employee) &&
+               movement.IsAtWorkPosition(slotPos) &&
                stats != null &&
                stats.Stats.health < stats.Stats.maxHealth * recuperateEndRatio)
         {

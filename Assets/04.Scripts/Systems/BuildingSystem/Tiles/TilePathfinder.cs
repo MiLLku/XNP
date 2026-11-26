@@ -13,6 +13,7 @@ using UnityEngine;
 public class TilePathfinder
 {
     private GameMap gameMap;
+    private readonly Vector2Int? removedTerrain;
     private const int EMPLOYEE_HEIGHT = 2;
 
     /// <summary>
@@ -179,8 +180,14 @@ public class TilePathfinder
     // ────────────────────────────────────────────────────────────────────
 
     public TilePathfinder(GameMap map)
+        : this(map, null)
+    {
+    }
+
+    internal TilePathfinder(GameMap map, Vector2Int? removedTerrain)
     {
         gameMap = map;
+        this.removedTerrain = removedTerrain;
     }
 
     /// <summary>PathOptions 없이 탐색 (기존 호환용).</summary>
@@ -193,10 +200,12 @@ public class TilePathfinder
     /// PathOptions를 적용하여 A* 탐색합니다.
     /// options가 null이면 제한 없는 전역 탐색을 수행합니다.
     /// </summary>
-    public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, PathOptions options)
+    public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, PathOptions options,
+        bool allowGoalFallback = true, bool logFailure = true)
     {
         if (!IsValidPosition(goal))
         {
+            if (!allowGoalFallback) return null;
             Vector2Int? nearestValid = FindNearestValidPosition(goal);
             if (nearestValid.HasValue)
                 goal = nearestValid.Value;
@@ -210,12 +219,12 @@ public class TilePathfinder
             Vector2Int startAbove = new Vector2Int(start.x, start.y + 1);
             if (IsValidPosition(startAbove))
             {
-                Debug.LogWarning($"[Pathfinder] 시작 위치 보정: {start} → {startAbove}");
+                if (logFailure) Debug.LogWarning($"[Pathfinder] 시작 위치 보정: {start} → {startAbove}");
                 start = startAbove;
             }
             else
             {
-                Debug.LogWarning($"[Pathfinder] 시작 위치가 유효하지 않음: {start}");
+                if (logFailure) Debug.LogWarning($"[Pathfinder] 시작 위치가 유효하지 않음: {start}");
                 return null;
             }
         }
@@ -279,7 +288,7 @@ public class TilePathfinder
             }
         }
 
-        if (BreachMode || BuildMode || DigMode) return null; // 적 전용 탐색은 실패가 흔하다 — 경고 로그(스택 추적 비용)를 남기지 않는다
+        if (!logFailure || BreachMode || BuildMode || DigMode) return null;
         if (iterations >= MAX)
             Debug.LogWarning($"[Pathfinder] 최대 반복 횟수 초과: {start} -> {goal}");
         else
@@ -378,7 +387,7 @@ public class TilePathfinder
             return CanMoveDiagonal(from, to, heightDiff);
 
         if (horizontalDiff == 0 && Mathf.Abs(heightDiff) == 1)
-            return heightDiff > 0 ? CanClimbUp(from, to) : CanClimbDown(from, to);
+            return heightDiff > 0 ? CanClimbUp(to) : CanClimbDown(from, to);
 
         return false;
     }
@@ -400,14 +409,9 @@ public class TilePathfinder
     private bool CanWalkHorizontally(Vector2Int from, Vector2Int to)
         => IsValidPosition(to);
 
-    private bool CanClimbUp(Vector2Int from, Vector2Int to)
+    private bool CanClimbUp(Vector2Int to)
     {
-        FloorTile fromLadder = FloorTile.GetFloorTileAt(new Vector2Int(from.x, from.y + 1));
-        FloorTile toLadder   = FloorTile.GetFloorTileAt(to);
-
-        bool hasLadder = (fromLadder != null && fromLadder.AllowsVerticalMovement()) ||
-                         (toLadder   != null && toLadder.AllowsVerticalMovement());
-        if (!hasLadder) return false;
+        if (!IsLadder(to)) return false;
 
         for (int i = 1; i <= EMPLOYEE_HEIGHT; i++)
             if (!IsSpaceClear(to.x, to.y + i)) return false;
@@ -434,7 +438,7 @@ public class TilePathfinder
         if (BreachMode && IsBreachable(new Vector2Int(x, y))) return true;
         if (DigMode && IsDiggable(new Vector2Int(x, y))) return true;
 
-        int tileId = gameMap.TileGrid[x, y];
+        int tileId = removedTerrain == new Vector2Int(x, y) ? 0 : gameMap.TileGrid[x, y];
         if (tileId == 0)
         {
             if (gameMap.DoesTileBlockMovement(x, y)) return false;
@@ -443,8 +447,7 @@ public class TilePathfinder
 
         FloorTile floorTile = FloorTile.GetFloorTileAt(new Vector2Int(x, y));
         if (floorTile != null && floorTile.IsPassable()) return true;
-
-        return false;
+        return gameMap.IsLadder(x, y);
     }
 
     private bool CanStandAt(int x, int y)
@@ -464,29 +467,45 @@ public class TilePathfinder
         return true;
     }
 
-    /// <summary>발밑(또는 서 있는 칸)에 디딜 것이 있는지 — 땅·바닥 타일·밟을 수 있는 건물·사다리</summary>
+    internal bool HasFooting(Vector2Int foot) => HasFooting(foot.x, foot.y);
+
     private bool HasFooting(int x, int y)
     {
-        int groundY = y - 1;
+        var ground = new Vector2Int(x, y - 1);
+        bool hasGround = removedTerrain == ground
+            ? gameMap.IsFloorSupport(x, y - 1) || FloorTile.HasFloorTileAt(ground)
+            : gameMap.IsSolidGround(x, y - 1);
+        return hasGround || IsLadder(new Vector2Int(x, y)) || IsLadder(ground);
+    }
 
-        int groundTileId = gameMap.TileGrid[x, groundY];
-        bool hasFloorTile     = FloorTile.HasFloorTileAt(new Vector2Int(x, groundY));
-        // IsFloorSupport: 완성된 차단 건물(위를 밟을 수 있는 구조물)만 true.
-        // 건설 예정지(ConstructionSite)는 false → 직원이 예정지 위로 올라가려는 오류 방지
-        bool hasConstructed   = gameMap.IsFloorSupport(x, groundY);
-        bool hasGround        = groundTileId != 0 || hasFloorTile || hasConstructed;
+    internal bool IsLadder(Vector2Int tile)
+    {
+        if (!IsInBounds(tile)) return false;
+        var floor = FloorTile.GetFloorTileAt(tile);
+        return (floor != null && floor.AllowsVerticalMovement()) ||
+               Building.AllowsVerticalMovementAt(tile) ||
+               (removedTerrain != tile && gameMap.IsLadder(tile.x, tile.y));
+    }
 
-        if (!hasGround)
+    internal bool HasBodyClearance(Vector2Int foot)
+    {
+        for (int i = 0; i < EMPLOYEE_HEIGHT; i++)
         {
-            FloorTile ladder = FloorTile.GetFloorTileAt(new Vector2Int(x, groundY));
-            bool floorLadder = ladder != null && ladder.AllowsVerticalMovement();
-            FloorTile currentLadder = FloorTile.GetFloorTileAt(new Vector2Int(x, y));
-            bool floorCurrentLadder = currentLadder != null && currentLadder.AllowsVerticalMovement();
-            // 일반 건물(사다리 옵션)도 수직 이동 발판으로 인정
-            bool buildingLadder = Building.AllowsVerticalMovementAt(new Vector2Int(x, groundY)) ||
-                                  Building.AllowsVerticalMovementAt(new Vector2Int(x, y));
-            if (!floorLadder && !floorCurrentLadder && !buildingLadder)
+            var tile = foot + new Vector2Int(0, i);
+            if (!IsInBounds(tile)) return false;
+
+            // 청사진은 경로를 막을 수 있어도 낙하를 막는 고체가 아니다.
+            if (gameMap.TileGrid[tile.x, tile.y] == 0)
+            {
+                if (gameMap.IsFloorSupport(tile.x, tile.y) && gameMap.DoesTileBlockMovement(tile.x, tile.y))
+                    return false;
+                var floor = FloorTile.GetFloorTileAt(tile);
+                if (floor != null && !floor.IsPassable()) return false;
+            }
+            else if (!gameMap.IsLadder(tile.x, tile.y) && FloorTile.GetFloorTileAt(tile)?.IsPassable() != true)
+            {
                 return false;
+            }
         }
         return true;
     }

@@ -583,71 +583,145 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
 
     // ─── IMaterialReceiver ──────────────────────────────────────────────────
 
-    public Vector3 GetDeliveryPosition()
+    private GameMap deliveryMap;
+    private TilePathfinder deliveryPathfinder;
+    private int deliveryNavVersion = -1;
+    private readonly Dictionary<Vector2Int, Vector3?> deliveryPositions = new();
+
+    private TilePathfinder GetDeliveryPathfinder()
     {
-        // 사이트 footprint 자체는 보통 미완성이라 발판이 없음 → 직원이 그 위로 가면 fall.
-        // 발판이 있는 인접 위치를 우선 탐색하고, 없으면 사이트 중앙 fallback.
-        Vector2Int size = buildingData != null ? buildingData.size : new Vector2Int(1, 1);
-        int cx = gridPosition.x + size.x / 2;
-        int cy = gridPosition.y;
-
-        var gameMap = MapGenerator.instance?.GameMapInstance;
-        if (gameMap != null)
+        var map = MapGenerator.instance?.GameMapInstance;
+        if (map == null) return null;
+        if (deliveryMap != map)
         {
-            // 후보 우선순위: 사이트 좌/우 → 사이트 footprint 내부 → 위 → 아래
-            var candidates = new System.Collections.Generic.List<Vector2Int>
-            {
-                new Vector2Int(gridPosition.x - 1, cy),                 // 좌측
-                new Vector2Int(gridPosition.x + size.x, cy),            // 우측
-                new Vector2Int(cx, cy),                                 // footprint 중앙
-                new Vector2Int(cx, gridPosition.y + size.y),            // 위쪽
-                new Vector2Int(cx, gridPosition.y - 1),                 // 아래쪽
-            };
-
-            Vector3? firstStandable = null;
-            foreach (var pos in candidates)
-            {
-                if (pos.x < 0 || pos.x >= GameMap.MAP_WIDTH) continue;
-                if (pos.y < 0 || pos.y >= GameMap.MAP_HEIGHT) continue;
-
-                // 직원이 설 수 있는 칸인지 — 길찾기와 같은 판정(사다리 칸·건물 발판 포함)을 쓴다.
-                // 예전 자체 판정은 사다리 위를 몰라, 세로 사다리 청사진의 전달 위치가 닿을 수 없는 기둥 바닥으로 잡혀 영영 안 지어졌다
-                var reach = ReachabilityMap.Current;
-                if (reach != null)
-                {
-                    if (!reach.CanStandAtPosition(pos)) continue;
-                }
-                else
-                {
-                    int tileId = gameMap.TileGrid[pos.x, pos.y];
-                    bool isWalkable = tileId == 0 && !gameMap.DoesTileBlockMovement(pos.x, pos.y);
-                    if (!isWalkable) continue;
-
-                    int groundY = pos.y - 1;
-                    bool hasGround = groundY >= 0 && (
-                        gameMap.IsSolidGround(pos.x, groundY) ||
-                        FloorTile.HasFloorTileAt(new Vector2Int(pos.x, groundY))
-                    );
-                    if (!hasGround) continue;
-                }
-
-                // 창고에서 닿는 쪽을 우선 — 한쪽이 막혀 있어도 반대쪽으로 자재를 받는다
-                var standable = new Vector3(pos.x + 0.5f, pos.y, 0f);
-                if (IsReachableFromStockpile(pos)) return standable;
-                if (firstStandable == null) firstStandable = standable;
-            }
-            if (firstStandable != null) return firstStandable.Value;
+            deliveryMap = map;
+            deliveryPathfinder = new TilePathfinder(map);
+            deliveryNavVersion = -1;
         }
-
-        // fallback: 기존 동작 (사이트 중앙)
-        return new Vector3(cx + 0.5f, cy, 0f);
+        return deliveryPathfinder;
     }
 
-    private static bool IsReachableFromStockpile(Vector2Int pos)
+    private IEnumerable<Vector2Int> GetDeliveryCandidates(TilePathfinder pathfinder)
     {
-        var sm = StockpileManager.instance;
-        if (sm == null || !sm.HasAnyStockpile || ReachabilityMap.Current == null) return true; // 판정 불가 — 막혔다고 하지 않는다
-        return sm.HasReachableStockpile(pos);
+        Vector2Int size = buildingData != null ? buildingData.size : Vector2Int.one;
+        int x = gridPosition.x, y = gridPosition.y;
+        var below = new Vector2Int(x + size.x / 2, y - 1);
+
+        // 세로 사다리는 새 칸이 생기기 전에 기존 사다리에 서서 자재를 넘긴다.
+        bool useLadderBelow = pathfinder.IsLadder(below);
+        if (useLadderBelow) yield return below;
+
+        yield return new Vector2Int(x - 1, y);
+        yield return new Vector2Int(x + size.x, y);
+        yield return new Vector2Int(x + size.x / 2, y);
+        yield return new Vector2Int(x + size.x / 2, y + size.y);
+        if (!useLadderBelow) yield return below;
+        // 공중 벽의 청사진이 바로 옆 통로를 가리면 한 칸 아래의 옆 발판에서 인계할 수 있다.
+        yield return new Vector2Int(x - 1, y - 1);
+        yield return new Vector2Int(x + size.x, y - 1);
+    }
+
+    public Vector3 GetDeliveryPosition()
+    {
+        if (TryGetStockpileDeliveryPosition(out var position)) return position;
+        return TryGetStandableDeliveryTile(out var tile) ? DeliveryWorldPosition(tile) : GetWorkPosition();
+    }
+
+    private bool TryGetStandableDeliveryTile(out Vector2Int tile)
+    {
+        var pathfinder = GetDeliveryPathfinder();
+        if (pathfinder != null)
+        {
+            foreach (var candidate in GetDeliveryCandidates(pathfinder))
+            {
+                if (!pathfinder.IsValidPosition(candidate)) continue;
+                tile = candidate;
+                return true;
+            }
+        }
+
+        tile = default;
+        return false;
+    }
+
+    public bool TryGetDeliveryPosition(Vector2Int from, out Vector3 position)
+    {
+        position = default;
+        var pathfinder = GetDeliveryPathfinder();
+        if (pathfinder == null || !pathfinder.IsValidPosition(from)) return false;
+
+        if (deliveryNavVersion != deliveryMap.NavVersion)
+        {
+            deliveryPositions.Clear();
+            deliveryNavVersion = deliveryMap.NavVersion;
+        }
+        if (deliveryPositions.TryGetValue(from, out var cached))
+        {
+            position = cached.GetValueOrDefault();
+            return cached.HasValue;
+        }
+
+        var reach = ReachabilityMap.Current;
+        foreach (var tile in GetDeliveryCandidates(pathfinder))
+        {
+            if (!pathfinder.IsValidPosition(tile)) continue;
+            if (from != tile &&
+                (reach?.IsReachable(from, tile) == false ||
+                 pathfinder.FindPath(from, tile, PathOptions.Default, allowGoalFallback: false, logFailure: false) == null))
+                continue;
+
+            position = DeliveryWorldPosition(tile);
+            deliveryPositions[from] = position;
+            return true;
+        }
+
+        deliveryPositions[from] = null;
+        return false;
+    }
+
+    private static Vector3 DeliveryWorldPosition(Vector2Int tile) => new Vector3(tile.x + 0.5f, tile.y, 0f);
+
+    internal bool HasReachableMaterials(ItemData item, int amount, int stockCount, EmployeeMovement worker = null)
+    {
+        if (!TryGetStandableDeliveryTile(out _)) return false;
+
+        bool CanUseSource(IMaterialSource source)
+        {
+            var tile = Vector2Int.FloorToInt(source.GetWithdrawPosition());
+            return TryGetDeliveryPosition(tile, out _) && (worker == null || worker.CanReachExactTile(tile));
+        }
+
+        var stockpiles = StockpileManager.instance;
+        int reachable = 0;
+        if (stockCount > 0 && stockpiles != null)
+        {
+            foreach (var stockpile in stockpiles.All)
+            {
+                if (stockpile == null || !stockpile.IsOperational || !CanUseSource(stockpile)) continue;
+                reachable = stockCount;
+                break; // 모든 창고는 전역 재고를 공유한다.
+            }
+        }
+
+        if (reachable >= amount) return true;
+        int outside = MaterialSourceRegistry.instance?.GetTotalAvailable(item, CanUseSource) ?? 0;
+        return reachable + outside >= amount;
+    }
+
+    private bool TryGetStockpileDeliveryPosition(out Vector3 position)
+    {
+        var stockpiles = StockpileManager.instance;
+        if (stockpiles != null)
+        {
+            foreach (var stockpile in stockpiles.All)
+            {
+                if (stockpile != null && stockpile.IsOperational &&
+                    TryGetDeliveryPosition(Vector2Int.FloorToInt(stockpile.GetWithdrawPosition()), out position))
+                    return true;
+            }
+        }
+        position = default;
+        return false;
     }
 
     private void Update()
@@ -657,8 +731,15 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
         if (_reachCheckTimer > 0f) return;
         _reachCheckTimer = REACH_CHECK_INTERVAL;
 
-        Vector3 dp = GetDeliveryPosition();
-        SetUnreachable(!IsReachableFromStockpile(new Vector2Int(Mathf.FloorToInt(dp.x), Mathf.FloorToInt(dp.y))));
+        var pathfinder = GetDeliveryPathfinder();
+        if (pathfinder == null) return;
+        var stockpiles = StockpileManager.instance;
+        if (stockpiles == null || !stockpiles.HasAnyStockpile)
+        {
+            SetUnreachable(!TryGetStandableDeliveryTile(out _));
+            return;
+        }
+        SetUnreachable(!TryGetStockpileDeliveryPosition(out _));
     }
 
     /// <summary>접근 불가 표시 — 청사진을 붉게 칠하고 머리 위에 '!'</summary>

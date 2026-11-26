@@ -91,6 +91,7 @@ public class FloorTile : MonoBehaviour
         if (!floorTileRegistry.ContainsKey(gridPosition))
         {
             floorTileRegistry[gridPosition] = this;
+            MapGenerator.instance?.GameMapInstance?.InvalidateNavigation();
             SetTerrainStructureCell(true);
             Debug.Log($"[FloorTile] 바닥 타일 등록: {tileType} at {gridPosition}");
         }
@@ -98,9 +99,10 @@ public class FloorTile : MonoBehaviour
 
     private void UnregisterFromRegistry()
     {
-        if (floorTileRegistry.ContainsKey(gridPosition))
+        if (floorTileRegistry.TryGetValue(gridPosition, out var registered) && registered == this)
         {
             floorTileRegistry.Remove(gridPosition);
+            MapGenerator.instance?.GameMapInstance?.InvalidateNavigation();
             SetTerrainStructureCell(false);
             Debug.Log($"[FloorTile] 바닥 타일 제거: {tileType} at {gridPosition}");
         }

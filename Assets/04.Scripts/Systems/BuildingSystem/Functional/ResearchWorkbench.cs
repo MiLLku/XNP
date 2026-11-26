@@ -232,6 +232,7 @@ public class ResearchWorkbench : MonoBehaviour, IBuildingFunction
         // 직원에게 연구 작업 할당 (이동 포함)
         Vector3 pos = workPosition != null ? workPosition.position : transform.position;
         worker.AssignResearchWork(this, pos);
+        if (_currentWorker != worker) return;
 
         StartWorkingEffect();
         Debug.Log($"[연구 작업대] {worker.DisplayName}이(가) 연구를 시작합니다. (기본 {basePointsPerSecond}/s)");

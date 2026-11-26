@@ -29,9 +29,6 @@ public class EmployeeMovement : MonoBehaviour
     /// <summary>위치 보정 시 최대 검색 높이</summary>
     private const int MAX_POSITION_ADJUST_HEIGHT = 10;
 
-    /// <summary>착지 시 최대 Y 보정 높이</summary>
-    private const int MAX_LANDING_ADJUST_HEIGHT = 5;
-
     /// <summary>스프라이트 방향 전환 무시 임계값</summary>
     private const float DIRECTION_THRESHOLD = 0.01f;
 
@@ -70,6 +67,7 @@ public class EmployeeMovement : MonoBehaviour
 
     /// <summary>현재 이동에 사용 중인 PathOptions</summary>
     private PathOptions currentPathOptions;
+    private bool requireExactGoal;
 
     /// <summary>현재 낙하 중 여부</summary>
     private bool isFalling = false;
@@ -231,61 +229,49 @@ public class EmployeeMovement : MonoBehaviour
             FogOfWarManager.instance?.RemoveEmployeeSight(_lastSightCenter);
     }
 
-    /// <summary>
-    /// 직원이 고체 타일 안에 있으면 유효한 위치로 밀어냅니다.
-    /// 피벗 변경 등으로 인해 잘못된 위치에 있을 때 보정합니다.
-    /// 이 함수는 Start()에서만 호출됩니다 - 런타임 중에는 자연 낙하를 사용합니다.
-    /// </summary>
+    /// <summary>고체 안에서 발견된 직원을 지지면이 있는 위치로 보정한다.</summary>
     private void AdjustPositionIfInsideSolid()
     {
-        if (gameMap == null) return;
+        Vector2Int foot = GetFootTile();
+        if (pathfinder == null || pathfinder.HasBodyClearance(foot)) return;
 
-        Vector2Int footTile = GetFootTile();
-
-        if (footTile.x >= 0 && footTile.x < GameMap.MAP_WIDTH &&
-            footTile.y >= 0 && footTile.y < GameMap.MAP_HEIGHT)
+        if (hasSafePosition && CanRestAt(WorldToFootTile(lastSafePosition)))
         {
-            int tileId = gameMap.TileGrid[footTile.x, footTile.y];
-            if (tileId != 0)
+            transform.position = lastSafePosition;
+            return;
+        }
+
+        for (int dy = 0; dy <= MAX_POSITION_ADJUST_HEIGHT; dy++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
             {
-                int[] xCandidates = { footTile.x, footTile.x - 1, footTile.x + 1 };
-
-                foreach (int checkX in xCandidates)
-                {
-                    if (checkX < 0 || checkX >= GameMap.MAP_WIDTH) continue;
-
-                    for (int dy = 0; dy <= MAX_POSITION_ADJUST_HEIGHT; dy++)
-                    {
-                        int checkY = footTile.y + dy;
-                        if (checkY >= GameMap.MAP_HEIGHT) break;
-
-                        int checkTileId = gameMap.TileGrid[checkX, checkY];
-                        if (checkTileId == 0)
-                        {
-                            int groundY = checkY - 1;
-                            bool hasGround = groundY >= 0 && (
-                                gameMap.TileGrid[checkX, groundY] != 0 ||
-                                FloorTile.HasFloorTileAt(new Vector2Int(checkX, groundY)) ||
-                                gameMap.IsFloorSupport(checkX, groundY)
-                            );
-
-                            bool bodySpaceClear = checkY + 1 >= GameMap.MAP_HEIGHT ||
-                                                  gameMap.TileGrid[checkX, checkY + 1] == 0;
-
-                            if (hasGround && bodySpaceClear)
-                            {
-                                Vector3 newPos = new Vector3(checkX + 0.5f, checkY, transform.position.z);
-                                Debug.Log($"[EmployeeMovement] 위치 보정: {transform.position} -> {newPos}");
-                                transform.position = newPos;
-                                return;
-                            }
-                        }
-                    }
-                }
-
-                Debug.LogWarning($"[EmployeeMovement] 위치 보정 실패: 직원이 고체 안에 갇혀있음 {footTile}");
+                var candidate = new Vector2Int(foot.x + dx, foot.y + dy);
+                if (!CanRestAt(candidate)) continue;
+                transform.position = TileToWorld(candidate);
+                return;
             }
         }
+    }
+
+    private bool CanRestAt(Vector2Int foot) =>
+        pathfinder != null && pathfinder.HasFooting(foot) && pathfinder.HasBodyClearance(foot);
+
+    internal bool HasStableFooting => !isFalling && CanRestAt(GetFootTile());
+
+    /// <summary>해당 작업 칸에 안정적으로 서 있는지를 확인한다.</summary>
+    public bool IsAtWorkPosition(Vector3 workPosition)
+    {
+        Vector2Int foot = GetFootTile();
+        return !isMoving && !isFalling && foot == WorldToFootTile(workPosition) && CanRestAt(foot);
+    }
+
+    internal bool CanReachExactTile(Vector2Int goal, PathOptions options = null)
+    {
+        if (pathfinder == null || isFalling || !pathfinder.IsValidPosition(goal)) return false;
+        Vector2Int from = GetFootTile();
+        return from == goal ||
+            (ReachabilityMap.Current?.IsReachable(from, goal, options) != false &&
+             pathfinder.FindPath(from, goal, options, allowGoalFallback: false, logFailure: false) != null);
     }
 
     #endregion
@@ -306,48 +292,65 @@ public class EmployeeMovement : MonoBehaviour
     /// </summary>
     private void CheckGroundAndFall()
     {
-        if (gameMap == null)    return;
-        if (isClimbing)         return; // 사다리 이동 중 낙하 판정 스킵
+        if (pathfinder == null || isClimbing) return;
 
-        Vector2Int footTile = GetFootTile();
-        Vector2Int groundTile = new Vector2Int(footTile.x, footTile.y - 1);
-
-        if (!HasGroundAt(groundTile))
+        Vector2Int foot = GetFootTile();
+        if (!pathfinder.HasBodyClearance(foot))
         {
-            if (!isFalling)
+            if (isMoving) StopMovingForFall();
+            AdjustPositionIfInsideSolid();
+            foot = GetFootTile();
+            if (!pathfinder.HasBodyClearance(foot)) return;
+            if (isFalling && CanRestAt(foot))
             {
-                isFalling = true;
-                fallStartY = transform.position.y;
-
-                if (isMoving)
-                {
-                    StopMovingForFall();
-                }
-
-                if (showDebugLogs)
-                {
-                    Debug.Log($"[EmployeeMovement] 바닥 없음! 낙하 시작: 발={footTile}, 바닥체크={groundTile}");
-                }
-            }
-
-            transform.position += Vector3.down * fallSpeed * Time.deltaTime;
-
-            Vector2Int newFootTile = GetFootTile();
-            Vector2Int newGroundTile = new Vector2Int(newFootTile.x, newFootTile.y - 1);
-
-            if (HasGroundAt(newGroundTile))
-            {
-                LandOnGround(newGroundTile);
+                // 고체 안에서 안전한 자리로 보정한 거리는 낙하 거리에 포함하지 않는다.
+                isFalling = false;
+                hasLanded = true;
+                NotifyLanded(foot);
+                return;
             }
         }
-        else if (isFalling)
+
+        if (pathfinder.HasFooting(foot))
         {
-            LandOnGround(groundTile);
+            if (isFalling) LandOnGround(foot);
+            else if (!isMoving)
+            {
+                hasLanded = true;
+                RememberSafePosition(foot);
+            }
+            return;
         }
-        else
+
+        if (!isFalling)
         {
-            hasLanded = true; // 서 있는 상태로 시작했으면 다음 낙하부터 피해
+            isFalling = true;
+            fallStartY = transform.position.y;
+            if (isMoving) StopMovingForFall();
+            if (showDebugLogs) Debug.Log($"[EmployeeMovement] 바닥 없음! 낙하 시작: 발={foot}");
         }
+
+        AdvanceFall(Time.deltaTime);
+    }
+
+    private void AdvanceFall(float deltaTime)
+    {
+        Vector3 start = transform.position;
+        Vector2Int foot = GetFootTile();
+        float endY = Mathf.Max(1f, start.y - fallSpeed * deltaTime);
+        int endTileY = Mathf.FloorToInt(endY);
+
+        // 고배속이나 프레임 지연에도 통과한 첫 발판에서 착지한다.
+        for (int y = foot.y - 1; y >= endTileY; y--)
+        {
+            var crossed = new Vector2Int(foot.x, y);
+            if (!pathfinder.HasBodyClearance(crossed)) return;
+            if (!pathfinder.HasFooting(crossed)) continue;
+            LandOnGround(crossed);
+            return;
+        }
+
+        transform.position = new Vector3(start.x, endY, start.z);
     }
 
     /// <summary>
@@ -378,149 +381,48 @@ public class EmployeeMovement : MonoBehaviour
     }
 
     /// <summary>
-    /// 지정한 타일에 바닥이 있는지 확인합니다.
-    /// 고체 타일, FloorTile, 건설된 바닥 타일을 모두 확인합니다.
-    /// </summary>
-    /// <param name="tilePos">확인할 타일 좌표</param>
-    /// <returns>바닥 존재 여부</returns>
-    private bool HasGroundAt(Vector2Int tilePos)
-    {
-        if (tilePos.x < 0 || tilePos.x >= GameMap.MAP_WIDTH ||
-            tilePos.y < 0 || tilePos.y >= GameMap.MAP_HEIGHT)
-        {
-            return false;
-        }
-
-        int tileId = gameMap.TileGrid[tilePos.x, tilePos.y];
-        if (tileId != 0)
-        {
-            return true;
-        }
-
-        if (FloorTile.HasFloorTileAt(tilePos))
-        {
-            return true;
-        }
-
-        // 완공된 차단 건물(위를 밟을 수 있음)만 true — 건설 예정지(blueprint)는 포함되지 않음
-        // (IsFloorSupport는 Building.RegisterToGameMap에서 blocksMovement=true일 때만 설정)
-        if (gameMap.IsFloorSupport(tilePos.x, tilePos.y))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// 해당 타일이 수직 이동(사다리 등)을 지원하는지 확인합니다.
-    /// 사다리 위에서는 fall 모드 대신 controlled descent를 사용합니다.
-    /// </summary>
-    private bool IsVerticalMovementTile(Vector2Int tile)
-    {
-        var floor = FloorTile.GetFloorTileAt(tile);
-        return floor != null && floor.AllowsVerticalMovement();
-    }
-
-    /// <summary>
     /// 낙하 피해 — 안전 높이(safeFallTiles)를 넘긴 칸마다 fallDamagePerTile.
     /// 착지한 칸에 물이 반 이상 차 있으면 피해가 없습니다(대신 익사 위험).
     /// </summary>
-    private void ApplyFallDamage(Vector2Int groundTile)
+    private void ApplyFallDamage(Vector2Int foot)
     {
         if (!hasLanded) { hasLanded = true; return; } // 스폰·로드 직후 자리 잡기
-        int tiles = Mathf.FloorToInt(fallStartY - (groundTile.y + 1) + 0.01f);
+        int tiles = Mathf.FloorToInt(fallStartY - foot.y + 0.01f);
         if (tiles <= safeFallTiles || fallDamagePerTile <= 0f || statsController == null) return;
         if (DebugManager.IsBlocked(DebugFlag.Damage)) return;
 
         var fluids = FluidManager.instance;
-        if (fluids != null && fluids.GetFluid(groundTile.x, groundTile.y + 1) == FluidType.Water
-            && fluids.GetAmount(groundTile.x, groundTile.y + 1) >= 0.5f) return;
+        if (fluids != null && fluids.GetFluid(foot.x, foot.y) == FluidType.Water
+            && fluids.GetAmount(foot.x, foot.y) >= 0.5f) return;
 
         float damage = (tiles - safeFallTiles) * fallDamagePerTile;
         statsController.ModifyHealth(-damage);
         Debug.Log($"[EmployeeMovement] {employee?.DisplayName} 낙하 {tiles}칸 — 체력 -{damage:F0}");
     }
 
-    /// <summary>
-    /// 바닥에 착지합니다.
-    /// X/Y 좌표 보정, 고체 안 진입 보정을 수행한 뒤 OnLanded 이벤트를 발생시킵니다.
-    /// </summary>
-    /// <param name="groundTile">밟고 있는 바닥 타일 좌표</param>
-    private void LandOnGround(Vector2Int groundTile)
+    private void LandOnGround(Vector2Int foot)
     {
         isFalling = false;
-        ApplyFallDamage(groundTile);
-
-        int landingY = groundTile.y + 1;
-
-        float currentX = transform.position.x;
-        int floorX = Mathf.FloorToInt(currentX);
-        int ceilX = Mathf.CeilToInt(currentX);
-
-        int landingTileX = floorX;
-
-        // 착지 위치 유효성 검증 로컬 함수
-        bool IsValidLandingX(int x, int y)
-        {
-            if (x < 0 || x >= GameMap.MAP_WIDTH) return false;
-            if (y < 0 || y >= GameMap.MAP_HEIGHT) return false;
-
-            if (gameMap.TileGrid[x, y] != 0) return false;
-
-            if (y + 1 < GameMap.MAP_HEIGHT && gameMap.TileGrid[x, y + 1] != 0) return false;
-
-            int groundY = y - 1;
-            if (groundY < 0) return false;
-
-            bool hasGround = gameMap.TileGrid[x, groundY] != 0 ||
-                             FloorTile.HasFloorTileAt(new Vector2Int(x, groundY)) ||
-                             gameMap.IsFloorSupport(x, groundY);
-
-            return hasGround;
-        }
-
-        if (!IsValidLandingX(floorX, landingY))
-        {
-            if (IsValidLandingX(ceilX, landingY))
-            {
-                landingTileX = ceilX;
-                if (showDebugLogs)
-                    Debug.Log($"[EmployeeMovement] X 보정: {floorX} -> {ceilX} (Ceil)");
-            }
-            else
-            {
-                Debug.LogWarning($"[EmployeeMovement] 유효한 착지 X 좌표 없음! 현재 X={currentX}, 착지 Y={landingY}");
-            }
-        }
-
-        // 착지 위치가 고체인 경우 위로 올려서 빈 공간 찾기
-        if (landingY < GameMap.MAP_HEIGHT && gameMap.TileGrid[landingTileX, landingY] != 0)
-        {
-            for (int dy = 1; dy <= MAX_LANDING_ADJUST_HEIGHT; dy++)
-            {
-                int checkY = landingY + dy;
-                if (checkY >= GameMap.MAP_HEIGHT) break;
-
-                if (gameMap.TileGrid[landingTileX, checkY] == 0)
-                {
-                    landingY = checkY;
-                    Debug.Log($"[EmployeeMovement] 착지 Y 보정: {groundTile.y + 1} -> {landingY}");
-                    break;
-                }
-            }
-        }
-
-        Vector3 landingPos = new Vector3(landingTileX + 0.5f, landingY, 0);
-        transform.position = landingPos;
+        transform.position = TileToWorld(foot);
+        RememberSafePosition(foot);
+        EnablePhysicsForMovement(!pathfinder.IsLadder(foot));
+        if (rb != null) rb.linearVelocity = Vector2.zero;
+        ApplyFallDamage(foot);
 
         if (showDebugLogs)
-        {
-            Debug.Log($"[EmployeeMovement] 착지 완료: 바닥타일={groundTile}, 최종위치={transform.position}");
-        }
+            Debug.Log($"[EmployeeMovement] 착지 완료: 발={foot}, 최종위치={transform.position}");
 
-        Vector2Int footTile = GetFootTile();
+        if (employee == null || employee.State != EmployeeState.Dead) NotifyLanded(foot);
+    }
 
+    private void RememberSafePosition(Vector2Int foot)
+    {
+        lastSafePosition = TileToWorld(foot);
+        hasSafePosition = true;
+    }
+
+    private void NotifyLanded(Vector2Int footTile)
+    {
         // 낙하 착지 후 시야 갱신 (직원이 이동 작업 없이 떨어진 경우 커버)
         var fog = FogOfWarManager.instance;
         if (fog != null)
@@ -563,11 +465,18 @@ public class EmployeeMovement : MonoBehaviour
         MoveToInternal(worldDestination, PathOptions.Default, onComplete, onFailed);
     }
 
+    public void MoveToExactTile(Vector3 worldDestination, PathOptions options = null,
+        Action onComplete = null, Action onFailed = null)
+    {
+        MoveToInternal(worldDestination, options ?? PathOptions.Default, onComplete, onFailed, exactGoal: true);
+    }
+
     /// <summary>
     /// 모든 MoveTo 오버로드의 단일 진입점.
     /// options는 여기서만 설정되며, 이동 중 재탐색(NavVersion 변화)에도 동일하게 재사용됩니다.
     /// </summary>
-    private void MoveToInternal(Vector3 worldDestination, PathOptions options, Action onComplete, Action onFailed)
+    private void MoveToInternal(Vector3 worldDestination, PathOptions options, Action onComplete, Action onFailed,
+        bool exactGoal = false)
     {
         // 스폰한 프레임(Start 전)에 이동 명령이 오면 경로 탐색기가 아직 없다 — 그 자리에서 만든다
         if (pathfinder == null && MapGenerator.instance != null && MapGenerator.instance.GameMapInstance != null)
@@ -584,6 +493,12 @@ public class EmployeeMovement : MonoBehaviour
             return;
         }
 
+        if (isFalling)
+        {
+            onFailed?.Invoke();
+            return;
+        }
+
         StopMoving();
 
         // StopMoving 이후에 설정한다 — 재탐색 시에도 같은 정책을 쓰기 위해 유지되어야 한다.
@@ -591,6 +506,9 @@ public class EmployeeMovement : MonoBehaviour
 
         Vector2Int currentTile = GetFootTile();
         Vector2Int goalTile = WorldToFootTile(worldDestination);
+        bool ladderGoal = pathfinder.IsLadder(goalTile);
+        requireExactGoal = exactGoal || ladderGoal;
+        if (requireExactGoal) worldDestination = TileToWorld(goalTile);
 
         if (showDebugLogs)
         {
@@ -599,6 +517,16 @@ public class EmployeeMovement : MonoBehaviour
 
         if (currentTile == goalTile)
         {
+            if (!CanRestAt(goalTile) || (requireExactGoal && !pathfinder.IsValidPosition(goalTile)))
+            {
+                onFailed?.Invoke();
+                return;
+            }
+            if (ladderGoal)
+            {
+                transform.position = worldDestination;
+                EnablePhysicsForMovement(false);
+            }
             if (showDebugLogs)
             {
                 Debug.Log($"[EmployeeMovement] 이미 목표 위치에 있음");
@@ -619,7 +547,7 @@ public class EmployeeMovement : MonoBehaviour
             return;
         }
 
-        currentPath = pathfinder.FindPath(currentTile, goalTile, currentPathOptions);
+        currentPath = pathfinder.FindPath(currentTile, goalTile, currentPathOptions, allowGoalFallback: !requireExactGoal);
 
         if (currentPath == null || currentPath.Count == 0)
         {
@@ -700,9 +628,10 @@ public class EmployeeMovement : MonoBehaviour
                         Mathf.FloorToInt(targetPosition.y)
                     );
 
-                    List<Vector2Int> newPath = pathfinder.FindPath(currentFoot, goalTile, currentPathOptions);
+                    List<Vector2Int> newPath = pathfinder.FindPath(currentFoot, goalTile, currentPathOptions,
+                        allowGoalFallback: !requireExactGoal);
 
-                    if (newPath == null || newPath.Count == 0)
+                    if (newPath == null || (newPath.Count == 0 && currentFoot != goalTile))
                     {
                         if (showDebugLogs)
                             Debug.LogWarning($"[EmployeeMovement] 지형 변화 → 재탐색 실패: {currentFoot} -> {goalTile}");
@@ -775,8 +704,7 @@ public class EmployeeMovement : MonoBehaviour
             // ─────────────────────────────────────────────────────────────────────
 
             await MoveToTileAsync(nextTile, heightDiff, ct);
-            lastSafePosition = transform.position; // 경로 칸은 통과 가능한 칸 — 되돌아갈 자리
-            hasSafePosition = true;
+            if (GetFootTile() == nextTile && CanRestAt(nextTile)) RememberSafePosition(nextTile);
 
             // 문 통과 완료 → 요청 카운터 감소
             doorAtNext?.ReleaseOpen();
@@ -818,7 +746,7 @@ public class EmployeeMovement : MonoBehaviour
         // - 사다리/수직 이동 가능 타일 위에서 내려가기 — 추락이 아닌 의도된 controlled descent
         // 이유: Lerp 도중 발 아래 타일이 없는 순간(계단 중간)에 오탐 낙하가 발생하기 때문
         Vector2Int currentFootTile = GetFootTile();
-        bool isLadderMove = IsVerticalMovementTile(currentFootTile) || IsVerticalMovementTile(targetTile);
+        bool isLadderMove = pathfinder.IsLadder(currentFootTile) || pathfinder.IsLadder(targetTile);
         // 내려가기도 길찾기가 허용한 계단 단차 — 대각선 직선 이동이 모서리 블록을 스치는 순간 낙하로 오판해
         // 출발 칸으로 되돌아가는 무한 반복(창고에 못 가 굶어 죽음)이 있었다
         if (heightDiff != 0 || isLadderMove) isClimbing = true;
@@ -917,7 +845,10 @@ public class EmployeeMovement : MonoBehaviour
         {
             if (enable)
             {
-                rb.bodyType = originalBodyType;
+                Vector2Int foot = GetFootTile();
+                rb.bodyType = pathfinder != null && pathfinder.IsLadder(foot) && CanRestAt(foot)
+                    ? RigidbodyType2D.Kinematic
+                    : originalBodyType;
             }
             else
             {
@@ -947,6 +878,9 @@ public class EmployeeMovement : MonoBehaviour
     private void ReachDestination()
     {
         ValidateAndFixPosition();
+        Vector2Int foot = GetFootTile();
+        bool arrived = CanRestAt(foot) && !isFalling &&
+            (!requireExactGoal || (foot == WorldToFootTile(targetPosition) && pathfinder.IsValidPosition(foot)));
         isMoving = false;
         currentPath = null;
         currentPathIndex = 0;
@@ -956,7 +890,7 @@ public class EmployeeMovement : MonoBehaviour
             rb.linearVelocity = Vector2.zero;
         }
 
-        var callback = onReachDestination;
+        var callback = arrived ? onReachDestination : onMoveFailed;
         onReachDestination = null;
         onMoveFailed = null;
 
@@ -970,8 +904,12 @@ public class EmployeeMovement : MonoBehaviour
     public void StopMoving()
     {
         CancelMoveTask();
-        // 단차·사다리 칸 사이(허공)에서 끊기면 isClimbing이 풀리며 낙하로 오판해 추락한다 → 그 칸의 출발점으로 되돌린다
-        if (isClimbing) transform.position = stepStartPos;
+        if (isClimbing)
+        {
+            Vector2Int foot = GetFootTile();
+            // 이미 사다리 칸에 진입했다면 그 칸에서 멈출 수 있다.
+            transform.position = pathfinder.IsLadder(foot) && CanRestAt(foot) ? TileToWorld(foot) : stepStartPos;
+        }
         ValidateAndFixPosition();
 
         isMoving  = false;
@@ -1080,8 +1018,7 @@ public class EmployeeMovement : MonoBehaviour
             Action currentCallback = onReachDestination;
             Action currentFailCallback = onMoveFailed;
 
-            StopMoving();
-            MoveTo(currentTarget, currentCallback, currentFailCallback);
+            MoveToInternal(currentTarget, currentPathOptions, currentCallback, currentFailCallback, requireExactGoal);
         }
     }
 
@@ -1160,26 +1097,7 @@ public class EmployeeMovement : MonoBehaviour
     /// </summary>
     public void ValidateAndFixPosition()
     {
-        if (gameMap == null) return;
-
-        Vector2Int footTile = GetFootTile();
-
-        if (footTile.x >= 0 && footTile.x < GameMap.MAP_WIDTH &&
-            footTile.y >= 0 && footTile.y < GameMap.MAP_HEIGHT)
-        {
-            int tileId = gameMap.TileGrid[footTile.x, footTile.y];
-            if (tileId != 0)
-            {
-                // 안전망 — 이동이 끝났는데 발이 고체 안이면 마지막으로 밟은 경로 칸으로 되돌린다.
-                // (위·좌우 1칸만 찾는 AdjustPositionIfInsideSolid로는 옆으로 여러 칸 박힌 경우를 못 빠져나옴)
-                Debug.LogWarning($"[EmployeeMovement] {name} 고체 안에서 멈춤 {footTile} → 마지막 안전 위치로 복귀");
-                Vector2Int safeTile = WorldToFootTile(lastSafePosition);
-                if (hasSafePosition && gameMap.TileGrid[safeTile.x, safeTile.y] == 0)
-                    transform.position = lastSafePosition;
-                else
-                    AdjustPositionIfInsideSolid();
-            }
-        }
+        AdjustPositionIfInsideSolid();
     }
 
     /// <summary>마지막으로 밟은 경로 칸의 위치 (고체에 박혔을 때 복귀용)</summary>
