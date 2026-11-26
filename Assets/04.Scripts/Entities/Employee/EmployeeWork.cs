@@ -590,6 +590,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             buildingSize = buildOrderForSize.buildingData.size;
 
         Vector3Int currentFootTile = GetFootTile();
+        var mining = target as MiningOrder;
+        bool safePosition = mining == null ||
+            mining.IsSafeWorkPosition(new Vector2Int(currentFootTile.x, currentFootTile.y), movement?.Pathfinder);
 
         bool inRange = IsPositionInWorkRange(targetTilePos, buildingSize);
 
@@ -599,7 +602,8 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         // 추가: 직원의 발/몸통이 건설 대상 타일의 footprint와 겹쳐도 즉시 작업 불가.
         // 이유: 청사진은 blocksMovement=false 이므로 IsCurrentPositionBlocked()가 false를 반환하지만,
         //       건설 완료 시 해당 위치에 건물이 스폰되어 직원이 그 안에 파묻히는 버그가 발생합니다.
-        if (inRange && !IsCurrentPositionBlocked() && !IsStandingInsideBuildingFootprint(targetTilePos, target))
+        if (inRange && safePosition && movement?.HasStableFooting == true &&
+            !IsCurrentPositionBlocked() && !IsStandingInsideBuildingFootprint(targetTilePos, target))
         {
             StartWork(target);
         }
@@ -607,7 +611,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         {
             if (movement != null)
             {
-                Vector3 workPosition = FindWorkablePositionForTarget(targetTilePos, buildingSize);
+                Vector3 workPosition = FindWorkablePositionForTarget(targetTilePos, buildingSize, mining);
 
                 if (workPosition == Vector3.zero)
                 {
@@ -636,7 +640,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                     }
                     else
                     {
-                        Vector3 newWorkPosition = FindWorkablePositionForTarget(targetTilePos, buildingSize);
+                        Vector3 newWorkPosition = FindWorkablePositionForTarget(targetTilePos, buildingSize, mining);
                         if (newWorkPosition != Vector3.zero)
                         {
                             isRetrying = false;
@@ -1067,10 +1071,11 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     /// 창고를 우선하지 않습니다: 눈앞의 작업대에 재료가 쌓여 있는데
     /// 맵 반대편 창고까지 걸어가는 것이 더 이상한 동작이기 때문입니다.
     /// </summary>
-    private IMaterialSource FindNearestMaterialSource(Vector2Int from, ItemData item, int amount)
+    private IMaterialSource FindNearestMaterialSource(Vector2Int from, ItemData item, int amount,
+        Predicate<IMaterialSource> accept)
     {
-        IMaterialSource stock = StockpileManager.instance?.GetNearestStockpileWith(from, item, amount);
-        IMaterialSource other = MaterialSourceRegistry.instance?.FindNearestWith(from, item, amount);
+        IMaterialSource stock = StockpileManager.instance?.GetNearestStockpileWith(from, item, amount, accept);
+        IMaterialSource other = MaterialSourceRegistry.instance?.FindNearestWith(from, item, amount, accept);
 
         if (stock == null) return other;
         if (other == null) return stock;
@@ -1126,6 +1131,17 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         bool moveFailed  = false;
         int  maxAttempts = request.amount + MAX_EXTRA_ATTEMPTS;
 
+        var site = request.receiver as ConstructionSite;
+        Predicate<IMaterialSource> accept = null;
+        if (site != null)
+        {
+            accept = candidate =>
+            {
+                var sourceTile = Vector2Int.FloorToInt(candidate.GetWithdrawPosition());
+                return movement.CanReachExactTile(sourceTile) && site.TryGetDeliveryPosition(sourceTile, out _);
+            };
+        }
+
         for (int attempt = 0; attempt < maxAttempts && gathered < request.amount; attempt++)
         {
             int need = request.amount - gathered;
@@ -1135,8 +1151,8 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             );
 
             // 남은 양을 한 번에 댈 지점 우선, 없으면 1개라도 가진 가장 가까운 지점
-            source = FindNearestMaterialSource(footTile, request.itemData, need)
-                  ?? FindNearestMaterialSource(footTile, request.itemData, 1);
+            source = FindNearestMaterialSource(footTile, request.itemData, need, accept)
+                  ?? FindNearestMaterialSource(footTile, request.itemData, 1, accept);
 
             if (source == null) break;
 
@@ -1144,10 +1160,10 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
             bool reachedSource = false;
             moveFailed = false;
-            movement.MoveTo(sourcePos,
-                onComplete: () => reachedSource = true,
-                onFailed:   () => moveFailed    = true
-            );
+            Action onArrive = () => reachedSource = true;
+            Action onFailure = () => moveFailed = true;
+            if (site != null) movement.MoveToExactTile(sourcePos, onComplete: onArrive, onFailed: onFailure);
+            else movement.MoveTo(sourcePos, onComplete: onArrive, onFailed: onFailure);
 
             await UniTask.WaitUntil(() => reachedSource || moveFailed
                                              || !request.receiver.IsRequestStillValid(), GameLoop.Frame, ct);
@@ -1209,8 +1225,12 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                     if (!otherWO.IsWorkAvailable()) continue;
                     if (source.GetStoredAmount(otherReq.itemData) < otherReq.amount) continue;
                     // 지금 닿지 않는 사용처(아래 칸이 아직 없는 세로 사다리 등)는 묶지 않는다 — 들고 가다 내려놓기만 반복한다
-                    var swp = source.GetWithdrawPosition();
-                    if (!ReachabilityMap.CanReach(new Vector2Int(Mathf.FloorToInt(swp.x), Mathf.FloorToInt(swp.y)), otherReq.receiver.GetDeliveryPosition())) continue;
+                    Vector2Int sourceTile = movement.GetFootTile();
+                    if (otherReq.receiver is ConstructionSite otherSite)
+                    {
+                        if (!otherSite.TryGetDeliveryPosition(sourceTile, out _)) continue;
+                    }
+                    else if (!ReachabilityMap.CanReach(sourceTile, otherReq.receiver.GetDeliveryPosition())) continue;
 
                     // task를 직원에게 lock (다른 직원 픽업 방지) → 성공해야 출고
                     if (!wo.taskQueue.TryReserveForWorker(t, employee)) continue;
@@ -1249,44 +1269,10 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             return;
         }
 
-        Vector3 deliveryPos = request.receiver.GetDeliveryPosition();
-        Vector3Int deliveryTile = new Vector3Int(
-            Mathf.FloorToInt(deliveryPos.x), Mathf.FloorToInt(deliveryPos.y), 0);
-
-        // 이미 work range 안이면 이동 생략하고 바로 인계
-        bool inRange = IsPositionInWorkRange(deliveryTile);
-        bool reachedDelivery = inRange;
-        moveFailed = false;
-
-        if (!inRange)
-        {
-            employee.SetState(EmployeeState.Moving);
-            movement.MoveTo(deliveryPos,
-                onComplete: () => reachedDelivery = true,
-                onFailed:   () => moveFailed      = true
-            );
-
-            // 도착 OR work range 진입 OR 실패 OR receiver 무효화
-            await UniTask.WaitUntil(() =>
-                reachedDelivery || moveFailed
-                || IsPositionInWorkRange(deliveryTile)
-                || !request.receiver.IsRequestStillValid(), GameLoop.Frame, ct);
-
-            // 이동 중 work range에 진입했으면 즉시 멈춤 (불필요한 이동/fall 방지)
-            // 멈출 때 사다리 칸 사이였으면 출발 칸으로 되돌려져 범위를 벗어날 수 있다 — 진입한 사실을 먼저 기억한다
-            if (!reachedDelivery && IsPositionInWorkRange(deliveryTile))
-            {
-                reachedDelivery = true;
-                movement.StopMoving();
-                employee.SetState(EmployeeState.Idle);
-            }
-        }
-
-        bool canDeliverNow = !moveFailed && request.receiver.IsRequestStillValid()
-                             && (reachedDelivery || IsPositionInWorkRange(deliveryTile));
+        bool canDeliverNow = await MoveToDeliveryAsync(request.receiver, ct);
         if (!canDeliverNow)
         {
-            DropCarryAtFeet(carryPile, moveFailed ? "사용처 이동 실패" : "사용처 무효화");
+            DropCarryAtFeet(carryPile, request.receiver.IsRequestStillValid() ? "사용처 이동 실패" : "사용처 무효화");
             request.receiver?.OnMaterialRequestFailed(request.itemData, request.amount);
             CancelAdditionalReserves(additionalRequests, refundAll: false);
             // 사용처는 그대로인데 못 건넸다 → 태스크를 큐로 되돌린다 (완료 처리하면 사용처가 재료를 영영 못 받는다).
@@ -1327,38 +1313,11 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                 continue;
             }
 
-            Vector3 nextPos = req.receiver.GetDeliveryPosition();
-            Vector3Int nextTile = new Vector3Int(Mathf.FloorToInt(nextPos.x), Mathf.FloorToInt(nextPos.y), 0);
-
-            bool nextInRange = IsPositionInWorkRange(nextTile);
-            bool reached = nextInRange;
-            bool failed = false;
-
-            if (!nextInRange)
-            {
-                employee.SetState(EmployeeState.Moving);
-                movement.MoveTo(nextPos,
-                    onComplete: () => reached = true,
-                    onFailed:   () => failed = true);
-
-                await UniTask.WaitUntil(() =>
-                    reached || failed
-                    || IsPositionInWorkRange(nextTile)
-                    || !req.receiver.IsRequestStillValid(), GameLoop.Frame, ct);
-
-                if (!reached && IsPositionInWorkRange(nextTile))
-                {
-                    reached = true; // 멈추며 사다리 칸 출발점으로 되돌려져도 진입한 것으로 본다
-                    movement.StopMoving();
-                    employee.SetState(EmployeeState.Idle);
-                }
-            }
-
-            bool canDeliverNext = !failed && req.receiver.IsRequestStillValid()
-                                  && (reached || IsPositionInWorkRange(nextTile));
+            bool canDeliverNext = await MoveToDeliveryAsync(req.receiver, ct);
             if (!canDeliverNext)
             {
-                ReturnSingleItem(req.itemData, req.amount, failed ? "추가 사용처 이동 실패" : "추가 사용처 무효화");
+                ReturnSingleItem(req.itemData, req.amount,
+                    req.receiver.IsRequestStillValid() ? "추가 사용처 이동 실패" : "추가 사용처 무효화");
                 req.receiver?.OnMaterialRequestFailed(req.itemData, req.amount);
                 ReleaseOrCancel(otherOrder, otherTask, req);
                 RemoveFromCarryPile(carryPile, req.itemData, req.amount);
@@ -1375,6 +1334,46 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         }
 
         FinishWithdrawWork();
+    }
+
+    private async UniTask<bool> MoveToDeliveryAsync(IMaterialReceiver receiver, CancellationToken ct)
+    {
+        var site = receiver as ConstructionSite;
+        Vector3 position;
+        if (site != null)
+        {
+            if (!site.TryGetDeliveryPosition(movement.GetFootTile(), out position)) return false;
+        }
+        else
+        {
+            position = receiver.GetDeliveryPosition();
+        }
+
+        var tile = Vector3Int.FloorToInt(position);
+        bool CanHandOff() => site != null
+            ? movement.IsAtWorkPosition(position)
+            : !movement.IsFalling && IsPositionInWorkRange(tile);
+
+        if (CanHandOff()) return receiver.IsRequestStillValid() && movement.HasStableFooting;
+
+        bool arrived = false;
+        bool failed = false;
+        Action onArrive = () => arrived = true;
+        Action onFailure = () => failed = true;
+        employee.SetState(EmployeeState.Moving);
+        if (site != null) movement.MoveToExactTile(position, onComplete: onArrive, onFailed: onFailure);
+        else movement.MoveTo(position, onComplete: onArrive, onFailed: onFailure);
+
+        await UniTask.WaitUntil(() => arrived || failed || CanHandOff() || !receiver.IsRequestStillValid(),
+            GameLoop.Frame, ct);
+
+        if (!arrived && !failed)
+        {
+            movement.StopMoving();
+            employee.SetState(EmployeeState.Idle);
+        }
+
+        return !failed && receiver.IsRequestStillValid() && movement.HasStableFooting && CanHandOff();
     }
 
     /// <summary>운반 실패/취소 시 추가 reserve된 task들을 정리합니다.</summary>
@@ -1498,7 +1497,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         if (bench == null) return;
         if (employee.State == EmployeeState.Dead || employee.State == EmployeeState.MentalBreak) return;
 
-        if (currentWorkTarget != null)
+        if (currentWorkTarget != null || currentResearchBench != null)
         {
             CancelWork();
         }
@@ -1510,11 +1509,11 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         {
             employee.SetState(EmployeeState.Moving);
 
-            movement.MoveTo(workPos,
+            movement.MoveToExactTile(workPos,
                 onComplete: () =>
                 {
                     if (currentResearchBench == bench)
-                        StartResearchWork(bench);
+                        StartResearchWork(bench, workPos);
                 },
                 onFailed: () =>
                 {
@@ -1524,18 +1523,15 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         }
         else
         {
-            StartResearchWork(bench);
+            CancelWork();
         }
     }
 
-    private void StartResearchWork(ResearchWorkbench bench)
+    private void StartResearchWork(ResearchWorkbench bench, Vector3 workPos)
     {
-        if (bench == null || !bench.IsWorkAvailable())
+        if (bench == null || !bench.IsWorkAvailable() || !movement.IsAtWorkPosition(workPos))
         {
-            // 도착했는데 벤치가 이미 중단됨
-            currentResearchBench = null;
-            currentWork = WorkType.None;
-            employee.SetState(EmployeeState.Idle);
+            CancelWork();
             return;
         }
 
@@ -1543,16 +1539,17 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         currentWork = WorkType.Research;
         workProgress = 0f;
 
-        ResearchWorkAsync(bench, RestartWorkTask()).Forget();
+        ResearchWorkAsync(bench, workPos, RestartWorkTask()).Forget();
     }
 
-    private async UniTaskVoid ResearchWorkAsync(ResearchWorkbench bench, CancellationToken ct)
+    private async UniTaskVoid ResearchWorkAsync(ResearchWorkbench bench, Vector3 workPos, CancellationToken ct)
     {
         float visualTimer = 0f;
         const float VISUAL_CYCLE = 10f;   // 진행 바 1사이클 시간 (초)
 
         while (bench != null &&
                bench.IsWorkAvailable() &&
+               movement.IsAtWorkPosition(workPos) &&
                employee.State == EmployeeState.Working)
         {
             float speed = GetWorkSpeed(WorkType.Research);
@@ -1582,7 +1579,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         currentWork = WorkType.None;
         workProgress = 0f;
         CancelWorkTask();
-        employee.SetState(EmployeeState.Idle);
+        if (employee.State == EmployeeState.Working) employee.SetState(EmployeeState.Idle);
     }
 
     private void StartWork(IWorkTarget target)
@@ -1590,6 +1587,13 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         if (target == null || !target.IsWorkAvailable())
         {
             CompleteWork();
+            return;
+        }
+
+        if (target is MiningOrder mining &&
+            (movement?.HasStableFooting != true || !mining.IsSafeWorkPosition(movement.GetFootTile(), movement.Pathfinder)))
+        {
+            CancelWork();
             return;
         }
 
@@ -1630,7 +1634,10 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
         while (progressive.GetAccumulatedWork() < total)
         {
-            if (employee.State != EmployeeState.Working || !target.IsWorkAvailable())
+            if (employee.State != EmployeeState.Working || !target.IsWorkAvailable() ||
+                (target is BuildOrder build && (movement?.HasStableFooting != true ||
+                 !IsPositionInWorkRange(Vector3Int.FloorToInt(build.GetWorkPosition()),
+                     build.buildingData != null ? build.buildingData.size : Vector2Int.one))))
             {
                 Debug.Log($"[Work] {employee.DisplayName}: {target.GetWorkType()} 중단 — " +
                           $"진행도 {progressive.GetAccumulatedWork():F1}/{total:F1}는 대상에 보존됨");
@@ -1679,6 +1686,15 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             }
 
             await UniTask.Yield(GameLoop.Frame, ct);
+        }
+
+        if (target is MiningOrder mining &&
+            (movement?.HasStableFooting != true ||
+             !IsPositionInWorkRange(Vector3Int.FloorToInt(mining.GetWorkPosition())) ||
+             !mining.CanRemoveSupport() || !mining.KeepsReturnPath(movement)))
+        {
+            CancelWork();
+            return;
         }
 
         // 작업 적성 경험치 — 해당 작업을 실제로 끝냈을 때만 지급된다(스킬 해금 조건).
@@ -2126,7 +2142,8 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     /// <summary>
     /// 작업 대상 근처에서 실제로 작업할 수 있는 위치를 찾습니다.
     /// </summary>
-    public Vector3 FindWorkablePositionForTarget(Vector3Int targetTilePos, Vector2Int buildingSize = default)
+    public Vector3 FindWorkablePositionForTarget(Vector3Int targetTilePos, Vector2Int buildingSize = default,
+        MiningOrder mining = null)
     {
         Vector3Int currentFootTile = GetFootTile();
         Vector2Int startPos = new Vector2Int(currentFootTile.x, currentFootTile.y);
@@ -2183,6 +2200,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
 
         foreach (var candidatePos in candidatePositions)
         {
+            if (mining != null && !mining.IsSafeWorkPosition(candidatePos, pathfinder)) continue;
             if (candidatePos.x < 0 || candidatePos.x >= GameMap.MAP_WIDTH ||
                 candidatePos.y < 0 || candidatePos.y >= GameMap.MAP_HEIGHT)
             { rejectedOutOfBounds++; continue; }
@@ -2204,7 +2222,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             if (!footInFootprint)
             {
                 int footTileId = gameMap.TileGrid[candidatePos.x, candidatePos.y];
-                if (footTileId != 0) { rejectedFootBlocked++; continue; }
+                if (footTileId != 0 && !pathfinder.IsLadder(candidatePos)) { rejectedFootBlocked++; continue; }
                 if (gameMap.DoesTileBlockMovement(candidatePos.x, candidatePos.y))
                 { rejectedFootBlocked++; continue; }
             }
@@ -2219,7 +2237,8 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
                 if (!bodyInFootprint)
                 {
                     int bodyTileId = gameMap.TileGrid[bodyX, bodyY];
-                    if (bodyTileId != 0) { rejectedBodyBlocked++; continue; }
+                    if (bodyTileId != 0 && !pathfinder.IsLadder(candidatePos + Vector2Int.up))
+                    { rejectedBodyBlocked++; continue; }
                     if (gameMap.DoesTileBlockMovement(bodyX, bodyY))
                     { rejectedBodyBlocked++; continue; }
                 }

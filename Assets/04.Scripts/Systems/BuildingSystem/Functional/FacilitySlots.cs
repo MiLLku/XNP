@@ -58,16 +58,16 @@ public class FacilitySlots
     /// 슬롯을 예약합니다. 성공하면 슬롯 인덱스, 만석이면 -1.
     /// 이미 잡고 있으면 그 인덱스를 그대로 돌려줍니다 (멱등).
     /// </summary>
-    public int TryReserve(Employee employee)
+    public int TryReserve(Employee employee, int preferredSlot = -1)
     {
         if (employee == null) return -1;
 
         int existing = IndexOf(employee);
-        if (existing >= 0) return existing;
+        if (existing >= 0) return preferredSlot < 0 || existing == preferredSlot ? existing : -1;
 
         for (int i = 0; i < occupants.Length; i++)
         {
-            if (occupants[i] != null) continue;
+            if ((preferredSlot >= 0 && i != preferredSlot) || occupants[i] != null) continue;
 
             occupants[i]  = employee;
             reservedAt[i] = Time.time;
@@ -77,6 +77,9 @@ public class FacilitySlots
 
         return -1;
     }
+
+    internal bool IsAvailable(int slot, Employee employee) =>
+        occupants[slot] == null || occupants[slot] == employee;
 
     /// <summary>슬롯 위치에 도착했음을 표시합니다 (예약 타임아웃 해제).</summary>
     public void MarkArrived(Employee employee)

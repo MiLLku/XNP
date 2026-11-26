@@ -93,7 +93,23 @@ public class RecuperationBed : MonoBehaviour, IBuildingFunction
         IsOperating && (slots.HasFreeSlot || slots.IndexOf(employee) >= 0);
 
     /// <summary>슬롯을 예약합니다. 성공하면 슬롯 인덱스, 실패(만석·정전)하면 -1.</summary>
-    public int TryReserveSlot(Employee employee) => IsOperating ? slots.TryReserve(employee) : -1;
+    public int TryReserveSlot(Employee employee, int slot = -1) =>
+        IsOperating ? slots.TryReserve(employee, slot) : -1;
+
+    internal int FindReachableSlot(Employee employee, EmployeeMovement movement, PathOptions options)
+    {
+        if (movement == null || !CanUse(employee)) return -1;
+
+        for (int slot = 0; slot < slots.Capacity; slot++)
+        {
+            if (slots.IsAvailable(slot, employee) &&
+                movement.CanReachExactTile(Vector2Int.FloorToInt(GetSlotPosition(slot)), options))
+                return slot;
+        }
+        return -1;
+    }
+
+    internal bool IsReservedBy(int slot, Employee employee) => slots.IndexOf(employee) == slot;
 
     public void MarkArrived(Employee employee) => slots.MarkArrived(employee);
 
@@ -107,7 +123,8 @@ public class RecuperationBed : MonoBehaviour, IBuildingFunction
             : capacity;
 
         float step = width / capacity;
-        return transform.position + new Vector3((slotIndex + 0.5f) * step, 0.5f, 0f);
+        float x = transform.position.x + (slotIndex + 0.5f) * step;
+        return new Vector3(Mathf.FloorToInt(x) + 0.5f, Mathf.FloorToInt(transform.position.y), 0f);
     }
 
     #endregion
