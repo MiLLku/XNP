@@ -64,7 +64,9 @@ public class MiningTaskSelector
             return null;
 
         // 직원 정보 수집
+        if (worker.GetComponent<EmployeeMovement>()?.IsFalling == true) return null;
         WorkerContext context = CreateWorkerContext(worker);
+        if (context.pathfinder != null && !context.pathfinder.IsValidPosition(context.footTile)) return null;
 
         // 열(Column) 순서 채굴을 위해 대기 중인 모든 타일 위치를 미리 수집
         var pendingTilePositions = new HashSet<Vector2Int>(validTasks.Select(t => GetTaskTile(t)));
@@ -120,11 +122,13 @@ public class MiningTaskSelector
                                     HashSet<Vector2Int> pendingTilePositions = null)
     {
         Vector2Int taskTile = GetTaskTile(task);
+        var mining = task.target as MiningOrder;
 
         // 1. 현재 위치에서 작업 가능한지 체크 (범위 + 시야)
         bool isInWorkRange = IsInWorkRange(context.footTile, taskTile);
         bool hasLineOfSight = HasLineOfSight(context, taskTile);
-        bool canWorkFromHere = isInWorkRange && hasLineOfSight;
+        bool canWorkFromHere = isInWorkRange && hasLineOfSight &&
+            (mining == null || mining.IsSafeWorkPosition(context.footTile, context.pathfinder));
 
         // 2. 직원이 차지하고 있는 타일인지 체크
         float penalty = 0f;
@@ -161,7 +165,9 @@ public class MiningTaskSelector
         // 5. 현재 위치에서 작업 불가능하면 이동해야 함 - 도달 가능성 체크
         if (!canWorkFromHere)
         {
-            if (!IsTaskReachable(taskTile, context))
+            // 건설 자재 운반은 작업자의 출고 지점과 인계 지점을 이미 확인했다.
+            bool verifiedDelivery = task.target is WithdrawOrder withdraw && withdraw.request?.receiver is ConstructionSite;
+            if (!verifiedDelivery && !IsTaskReachable(taskTile, context, mining))
             {
                 return float.MinValue; // 도달 불가능
             }
@@ -170,7 +176,7 @@ public class MiningTaskSelector
         // 6. 기본 점수 요소 계산
         float priority = Mathf.Max(1, 10 - task.priority); // priority가 낮을수록 높은 점수
         float distance = canWorkFromHere ? 0f : CalculateDistance(context.footTile, taskTile);
-        float accessCost = canWorkFromHere ? 0f : CalculateAccessCost(context, taskTile);
+        float accessCost = canWorkFromHere ? 0f : CalculateAccessCost(context, taskTile, mining);
         float heightBonus = CalculateHeightBonus(taskTile, context);
         float diagonalBonus = CalculateDiagonalBonus(taskTile, context);
 
@@ -210,6 +216,7 @@ public class MiningTaskSelector
         public int employeeHeight;            // 직원 높이
         public GameMap gameMap;
         public TilePathfinder pathfinder;
+        internal Dictionary<Vector2Int, int> pathLengths;
     }
     
     private WorkerContext CreateWorkerContext(Employee worker)
@@ -234,10 +241,11 @@ public class MiningTaskSelector
             },
             employeeHeight = 2,
             gameMap = MapGenerator.instance?.GameMapInstance,
-            pathfinder = null
+            pathfinder = worker.GetComponent<EmployeeMovement>()?.Pathfinder,
+            pathLengths = new Dictionary<Vector2Int, int>()
         };
         
-        if (context.gameMap != null)
+        if (context.pathfinder == null && context.gameMap != null)
         {
             context.pathfinder = new TilePathfinder(context.gameMap);
         }
@@ -263,7 +271,7 @@ public class MiningTaskSelector
         return false;
     }
 
-    private bool IsTaskReachable(Vector2Int taskTile, WorkerContext context)
+    private bool IsTaskReachable(Vector2Int taskTile, WorkerContext context, MiningOrder mining)
     {
         // ── 1단계: 연결 성분 선판정 (O(1)) ──────────────────────────────
         // 성분이 다르면 경로가 존재할 수 없으므로 A* 없이 즉시 배제한다.
@@ -271,7 +279,7 @@ public class MiningTaskSelector
         var reachability = reachabilityMap ?? ReachabilityMap.Current;
         if (reachability != null)
         {
-            var workPositions = GetPotentialWorkPositions(taskTile, context);
+            var workPositions = GetPotentialWorkPositions(taskTile, context, mining);
             bool anyPossible = workPositions.Any(
                 pos => reachability.IsReachable(context.footTile, pos, PathOptions.Default));
 
@@ -288,18 +296,17 @@ public class MiningTaskSelector
         //   실제 이동은 EmployeeWork.AssignWork 에서 별도의 위치 탐색으로 처리합니다.
         if (!context.pathfinder.IsValidPosition(context.footTile))
         {
-            return GetPotentialWorkPositions(taskTile, context).Count > 0;
+            return GetPotentialWorkPositions(taskTile, context, mining).Count > 0;
         }
 
         // 작업 가능한 위치 중 하나라도 도달 가능하면 OK
-        var positions = GetPotentialWorkPositions(taskTile, context);
+        var positions = GetPotentialWorkPositions(taskTile, context, mining);
         foreach (var pos in positions)
         {
             if (pos == context.footTile)
                 return true;
 
-            var path = context.pathfinder.FindPath(context.footTile, pos, PathOptions.Default);
-            if (path != null && path.Count > 0)
+            if (GetPathLength(context, pos) >= 0)
                 return true;
         }
 
@@ -310,7 +317,7 @@ public class MiningTaskSelector
     /// 작업 대상 타일에 대해 작업 가능한 작업자 발 위치들을 반환
     /// 타겟 기준이 아닌, "이 위치에 서면 타겟을 작업할 수 있다"는 위치들
     /// </summary>
-    private List<Vector2Int> GetPotentialWorkPositions(Vector2Int taskTile, WorkerContext context)
+    private List<Vector2Int> GetPotentialWorkPositions(Vector2Int taskTile, WorkerContext context, MiningOrder mining)
     {
         List<Vector2Int> positions = new List<Vector2Int>();
 
@@ -332,6 +339,8 @@ public class MiningTaskSelector
 
                 // 타겟 자체 위치는 제외 (타겟은 고체니까 서 있을 수 없음)
                 if (candidateFootPos == taskTile)
+                    continue;
+                if (mining != null && !mining.IsSafeWorkPosition(candidateFootPos, context.pathfinder))
                     continue;
 
                 // 해당 위치에서 타겟이 작업 범위 내인지 확인
@@ -434,7 +443,7 @@ public class MiningTaskSelector
         return manhattan * 0.7f + euclidean * 0.3f;
     }
     
-    private float CalculateAccessCost(WorkerContext context, Vector2Int taskTile)
+    private float CalculateAccessCost(WorkerContext context, Vector2Int taskTile, MiningOrder mining)
     {
         float cost = 0f;
         
@@ -445,9 +454,9 @@ public class MiningTaskSelector
         }
         
         // 경로 복잡도 (실제 경로 길이 vs 직선 거리)
-        if (context.pathfinder != null)
+        if (context.pathfinder != null && context.pathfinder.IsValidPosition(context.footTile))
         {
-            var workPositions = GetPotentialWorkPositions(taskTile, context);
+            var workPositions = GetPotentialWorkPositions(taskTile, context, mining);
             float minPathRatio = float.MaxValue;
             
             foreach (var pos in workPositions)
@@ -458,11 +467,11 @@ public class MiningTaskSelector
                     break;
                 }
                 
-                var path = context.pathfinder.FindPath(context.footTile, pos, PathOptions.Default);
-                if (path != null && path.Count > 0)
+                int pathLength = GetPathLength(context, pos);
+                if (pathLength > 0)
                 {
                     float directDist = Vector2Int.Distance(context.footTile, pos);
-                    float pathRatio = path.Count / Mathf.Max(1f, directDist);
+                    float pathRatio = pathLength / Mathf.Max(1f, directDist);
                     minPathRatio = Mathf.Min(minPathRatio, pathRatio);
                 }
             }
@@ -476,6 +485,17 @@ public class MiningTaskSelector
         return cost;
     }
     
+    private int GetPathLength(WorkerContext context, Vector2Int goal)
+    {
+        if (context.pathLengths != null && context.pathLengths.TryGetValue(goal, out int cached)) return cached;
+        var reach = reachabilityMap ?? ReachabilityMap.Current;
+        int length = reach?.IsReachable(context.footTile, goal) == false ? -1 :
+            context.pathfinder.FindPath(context.footTile, goal, PathOptions.Default,
+                allowGoalFallback: false, logFailure: false)?.Count ?? -1;
+        if (context.pathLengths != null) context.pathLengths[goal] = length;
+        return length;
+    }
+
     /// <summary>
     /// 높이 보너스 계산 (Top-Down 채굴)
     /// 높은 타일일수록 높은 점수

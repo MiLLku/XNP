@@ -56,6 +56,53 @@ public class MiningOrder : IWorkTarget
     /// <inheritdoc/>
     public bool IsWorkAvailable() => !completed;
 
+    internal bool IsSafeWorkPosition(Vector2Int foot, TilePathfinder pathfinder) =>
+        foot.x != position.x || foot.y != position.y + 1 || pathfinder?.IsLadder(foot) == true;
+
+    internal bool CanRemoveSupport()
+    {
+        var manager = EmployeeManager.instance;
+        if (manager == null) return true;
+        foreach (var employee in manager.AllEmployees)
+        {
+            if (employee == null || employee.State == EmployeeState.Dead) continue;
+            var foot = employee.GetFootTile();
+            if (foot.x != position.x || foot.y != position.y + 1) continue;
+            var movement = employee.GetComponent<EmployeeMovement>();
+            if (!IsSafeWorkPosition(new Vector2Int(foot.x, foot.y), movement?.Pathfinder)) return false;
+        }
+        return true;
+    }
+
+    internal bool KeepsReturnPath(EmployeeMovement worker)
+    {
+        var map = MapGenerator.instance?.GameMapInstance;
+        var stockpiles = StockpileManager.instance;
+        var before = worker.Pathfinder;
+        var removed = new Vector2Int(position.x, position.y);
+        if (map == null || stockpiles == null || before == null ||
+            !before.IsValidPosition(removed + Vector2Int.up)) return true;
+
+        var from = worker.GetFootTile();
+        var after = new TilePathfinder(map, removed);
+        bool hadReturnPath = false;
+        foreach (var stockpile in stockpiles.All)
+        {
+            if (stockpile == null || !stockpile.IsOperational) continue;
+            var goal = Vector2Int.FloorToInt(stockpile.GetWithdrawPosition());
+            if (!before.IsValidPosition(goal)) continue;
+
+            if (after.IsValidPosition(from) && after.FindPath(from, goal, PathOptions.Default,
+                    allowGoalFallback: false, logFailure: false) != null) return true;
+            if (!hadReturnPath && ReachabilityMap.Current?.IsReachable(from, goal) != false)
+                hadReturnPath = before.FindPath(from, goal, PathOptions.Default,
+                    allowGoalFallback: false, logFailure: false) != null;
+        }
+
+        // 이미 갱도에 갇힌 직원은 길을 새로 내는 채광을 할 수 있다.
+        return !hadReturnPath;
+    }
+
     /// <inheritdoc/>
     public void CompleteWork(Employee worker)
     {
