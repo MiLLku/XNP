@@ -1374,6 +1374,23 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         {
             movement.StopMoving();
             employee.SetState(EmployeeState.Idle);
+
+            // 오르내리는 걸음 중간에 범위에 들어와 멈추면 StopMoving이 걸음 시작 칸으로 되돌려 다시 범위 밖이 된다
+            // (단차 아래 밭 칸 등) → 그때는 목적지까지 끝까지 걸어간다
+            if (!CanHandOff() && receiver.IsRequestStillValid())
+            {
+                arrived = false;
+                failed = false;
+                employee.SetState(EmployeeState.Moving);
+                if (site != null) movement.MoveToExactTile(position, onComplete: onArrive, onFailed: onFailure);
+                else movement.MoveTo(position, onComplete: onArrive, onFailed: onFailure);
+                await UniTask.WaitUntil(() => arrived || failed || !receiver.IsRequestStillValid(), GameLoop.Frame, ct);
+                if (!arrived && !failed)
+                {
+                    movement.StopMoving();
+                    employee.SetState(EmployeeState.Idle);
+                }
+            }
         }
 
         return !failed && receiver.IsRequestStillValid() && movement.HasStableFooting && CanHandOff();
