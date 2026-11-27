@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d76e4ac7197bcff49ac7d618b5714882, type: 3}
   m_Name: ColdSuit2Recipe
   m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
-  recipeID: 5186
+  recipeID: 5189
   outputItem: {fileID: 11400000, guid: 3199f25153554b94abba89b9fef0831c, type: 2}
   outputAmount: 1
   requiredMaterials:

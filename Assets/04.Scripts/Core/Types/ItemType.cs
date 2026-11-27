@@ -190,9 +190,9 @@ public enum ItemType
     NeedleAlloyArmor = 383, // 침정 합금 갑옷
     EtherionArmor = 384, // 에테리온 갑옷
     /// <summary>방한복 I~III — 슈트 칸 방한 (보호 레벨 3/5/7)</summary>
-    ColdSuit1 = 385,
-    ColdSuit2 = 386,
-    ColdSuit3 = 387,
+    ColdSuit1 = 388,
+    ColdSuit2 = 389,
+    ColdSuit3 = 390,
 
     /// <summary>방한 장비 (연구 '방한 의복', 제련소·나무) — 기본 신발과 함께 영하 30도</summary>
     WinterCoat   = 385, // 방한 외투 (옷 +4)
