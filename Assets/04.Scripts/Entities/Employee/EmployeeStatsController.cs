@@ -340,10 +340,14 @@ public class EmployeeStatsController : MonoBehaviour
 
     void Update()
     {
-        if (employee == null || employee.State == EmployeeState.Dead) return;
+        if (employee == null || employee.State == EmployeeState.Dead || ResolveDepletedHealth()) return;
 
         UpdateNeeds(Time.deltaTime);
-        CheckCriticalNeeds();
+        if (employee.State != EmployeeState.Dead && currentStats.mental <= 0f &&
+            !TryGetComponent<DisguisedEmployee>(out _))
+        {
+            employee.SetState(EmployeeState.MentalBreak);
+        }
     }
 
     /// <summary>
@@ -402,7 +406,8 @@ public class EmployeeStatsController : MonoBehaviour
         {
             if (_starvingTime <= 0f) PushStarvationWarning();
             _starvingTime += deltaTime;
-            if (_starvingTime > STARVATION_GRACE) currentStats.health -= STARVATION_HEALTH_DECAY * deltaTime;
+            if (_starvingTime > STARVATION_GRACE && ApplyHealthChange(-STARVATION_HEALTH_DECAY * deltaTime))
+                return;
         }
         else _starvingTime = 0f;
         UpdateNeedPenalty(MentalReason.STARVATION, "굶주림",
@@ -497,42 +502,39 @@ public class EmployeeStatsController : MonoBehaviour
     }
 
     /// <summary>
-    /// 위험 상태를 확인합니다 (체력 0 → Dead, 정신력 0 → MentalBreak).
+    /// 체력이 소진된 순간 처리해 같은 프레임의 요양과 회복이 사망을 되돌리지 못하게 합니다.
     /// </summary>
-    private void CheckCriticalNeeds()
+    private bool ResolveDepletedHealth()
     {
+        if (currentStats.health > 0f) return false;
+        if (employee.State == EmployeeState.Dead) return true;
+
         // 위장체 복제체는 죽거나 정신 붕괴하지 않고 정체를 드러낸다
-        var disguise = GetComponent<DisguisedEmployee>();
-        if (disguise != null)
+        if (TryGetComponent<DisguisedEmployee>(out var disguise))
         {
-            if (currentStats.health <= 0f) disguise.Reveal();
-            return;
+            disguise.Reveal();
+            return true;
         }
 
-        if (currentStats.health <= 0f)
+        employee.SetState(EmployeeState.Dead);
+        OnStatsChanged?.Invoke(currentStats);
+
+        NotificationManager.instance?.PushLetter(new Letter
         {
-            employee.SetState(EmployeeState.Dead);
+            title = "직원 사망",
+            body = $"{employee.DisplayName}이(가) 사망했습니다.",
+            type = LetterType.Threat,
+            pauseUntilRead = true
+        });
+        TimeManager.instance?.ForcePause();
+        EmployeeManager.instance?.HandleDeath(employee);
+        return true;
+    }
 
-            // 사망 레터 — Update가 Dead 상태에서 조기 반환하므로 1회만 발행된다
-            NotificationManager.instance?.PushLetter(new Letter
-            {
-                title = "직원 사망",
-                body = $"{employee.DisplayName}이(가) 사망했습니다.",
-                type = LetterType.Threat,
-                pauseUntilRead = true
-            });
-            TimeManager.instance?.ForcePause();
-
-            // 무기·다용도구만 그 자리에 떨어뜨리고, 나머지(옷·헬멧·장갑·신발·보호구·소지품)는 직원과 함께 사라진다
-            EmployeeManager.instance?.HandleDeath(employee);
-            return;
-        }
-
-        if (currentStats.mental <= 0f)
-        {
-            employee.SetState(EmployeeState.MentalBreak);
-            return;
-        }
+    private bool ApplyHealthChange(float amount)
+    {
+        currentStats.health = Mathf.Clamp(currentStats.health + amount, 0f, currentStats.maxHealth);
+        return ResolveDepletedHealth();
     }
 
     #endregion
@@ -732,9 +734,9 @@ public class EmployeeStatsController : MonoBehaviour
     /// <summary>체력 수정</summary>
     public void ModifyHealth(float amount)
     {
-        currentStats.health += amount;
-        currentStats.health = Mathf.Clamp(currentStats.health, 0f, currentStats.maxHealth);
-        OnStatsChanged?.Invoke(currentStats);
+        if (employee == null || employee.State == EmployeeState.Dead || ResolveDepletedHealth()) return;
+        if (!ApplyHealthChange(amount))
+            OnStatsChanged?.Invoke(currentStats);
     }
 
     /// <summary>
@@ -1108,8 +1110,8 @@ public class EmployeeStatsController : MonoBehaviour
     /// </summary>
     public void PopulateSaveData(EmployeeSaveData data)
     {
-        data.maxHealth = (int)currentStats.maxHealth;
-        data.currentHealth = (int)currentStats.health;
+        data.maxHealth = currentStats.maxHealth;
+        data.currentHealth = currentStats.health;
         data.maxMental = (int)currentStats.maxMental;
         data.currentMental = (int)currentStats.mental;
 

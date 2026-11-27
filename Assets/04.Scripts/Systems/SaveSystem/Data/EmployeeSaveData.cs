@@ -54,10 +54,10 @@ public class EmployeeSaveData
     #region 스탯
 
     /// <summary>최대 체력 (템플릿 기본값 + 성장치)</summary>
-    public int maxHealth;
+    public float maxHealth;
 
     /// <summary>현재 체력</summary>
-    public int currentHealth;
+    public float currentHealth;
 
     /// <summary>최대 멘탈 (상한)</summary>
     public int maxMental;

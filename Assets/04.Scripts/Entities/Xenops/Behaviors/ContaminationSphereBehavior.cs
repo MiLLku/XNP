@@ -279,7 +279,7 @@ public class ContaminationSphereBehavior : MonoBehaviour, IXenopsBehavior, IHarv
 
         Vector3 myPos = transform.position;
 
-        foreach (var emp in EmployeeManager.instance.AllEmployees)
+        foreach (var emp in EmployeeManager.instance.AllEmployees.ToArray())
         {
             if (emp == null || emp.State == EmployeeState.Dead) continue;
 

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83535215e47ea5a449d6fc58e4677367, type: 3}
+  m_Name: cold_resist_3
+  m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
+  nodeId: cold_resist_3
+  nodeName: "방한 III"
+  description: "안정성 · 의류 제작대에서 방한복 III(방한 +7)를 제작할 수 있습니다."
+  icon: {fileID: 21300000, guid: 0386084885b0406bbbb924b94c9109fd, type: 3}
+  prerequisiteNodeIds:
+  - cold_resist_2
+  resourceCosts: []
+  researchPointCost: 720
+  unlockEffects:
+  - {fileID: 11400000, guid: 2ab83d886d0d4072be8a569e91cc9633, type: 2}
+  treePosition: {x: -2, y: -2}

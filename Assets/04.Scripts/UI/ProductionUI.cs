@@ -3,6 +3,7 @@ using UnityEngine.UI;
 using TMPro;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// 생산 건물 UI.
@@ -54,12 +55,6 @@ public class ProductionUI : BasePanel
             closeButton.onClick.AddListener(OnCloseClicked);
     }
 
-    void OnEnable()
-    {
-        _recipeCraftAmounts.Clear();
-        _recipeItemUIs.Clear();
-    }
-
     void OnDisable()
     {
         ClearRecipeList();
@@ -87,7 +82,9 @@ public class ProductionUI : BasePanel
 
         if (headerText != null)
         {
-            string buildingName = sourceBuilding != null ? sourceBuilding.name : "생산 건물";
+            string buildingName = sourceBuilding != null
+                ? sourceBuilding.GetComponent<Building>()?.buildingData?.buildingName ?? sourceBuilding.name
+                : "생산 건물";
             headerText.text = $"{buildingName} - 제작";
         }
 
@@ -167,10 +164,11 @@ public class ProductionUI : BasePanel
 
         // UI 요소 찾기
         itemUI.nameText = item.transform.Find("NameText")?.GetComponent<TextMeshProUGUI>();
-        itemUI.iconImage = item.transform.Find("Image")?.GetComponent<Image>();
+        itemUI.iconImage = item.transform.Find("Icon")?.GetComponent<Image>();
         itemUI.minusButton = item.transform.Find("MinusButton")?.GetComponent<Button>();
         itemUI.plusButton = item.transform.Find("PlusButton")?.GetComponent<Button>();
-        itemUI.makeOrderButton = item.transform.Find("MakeProductionOrder")?.GetComponent<Button>();
+        itemUI.makeOrderButton = item.transform.Find("MakeOrderButton")?.GetComponent<Button>();
+        itemUI.materialText = item.transform.Find("MaterialText")?.GetComponent<TextMeshProUGUI>();
         itemUI.amountText = item.transform.Find("MinusButton")?.parent?.Find("AmountText")?.GetComponent<TextMeshProUGUI>();
 
         // AmountText가 다른 위치에 있을 수 있으므로 추가 검색
@@ -280,6 +278,13 @@ public class ProductionUI : BasePanel
             return;
         }
 
+        if (!EquipmentStorageManager.HasRoomForCraft(recipe.outputItem, amount * recipe.outputAmount))
+        {
+            if (_recipeItemUIs.TryGetValue(recipe, out var itemUI))
+                UpdateMakeOrderButton(recipe, itemUI);
+            return;
+        }
+
         _onStartProductionCallback?.Invoke(recipe, amount, null);
 
         UIManager.instance.HidePanel(UIPanelType.ProductionUI);
@@ -331,14 +336,21 @@ public class ProductionUI : BasePanel
         if (itemUI.makeOrderButton == null) return;
 
         int amount = _recipeCraftAmounts.ContainsKey(recipe) ? _recipeCraftAmounts[recipe] : MIN_CRAFT_AMOUNT;
-        bool canCraft = CheckMaterials(recipe, amount);
+        bool hasMaterials = CheckMaterials(recipe, amount);
+        bool hasStorage = EquipmentStorageManager.HasRoomForCraft(recipe.outputItem, amount * recipe.outputAmount);
 
-        itemUI.makeOrderButton.interactable = canCraft;
+        if (itemUI.materialText != null)
+        {
+            itemUI.materialText.text = recipe.requiredMaterials == null ? "" :
+                string.Join(" · ", recipe.requiredMaterials.Select(cost => $"{cost.item?.itemName} ×{cost.amount * amount}"));
+        }
+
+        itemUI.makeOrderButton.interactable = hasMaterials && hasStorage;
 
         var buttonText = itemUI.makeOrderButton.GetComponentInChildren<TextMeshProUGUI>();
         if (buttonText != null)
         {
-            buttonText.text = canCraft ? "제작 시작" : "재료 부족";
+            buttonText.text = !hasMaterials ? "재료 부족" : hasStorage ? "제작 시작" : "보관 공간 부족";
         }
     }
 
@@ -380,6 +392,7 @@ public class ProductionUI : BasePanel
         public TextMeshProUGUI nameText;
         public TextMeshProUGUI amountText;
         public Image iconImage;
+        public TextMeshProUGUI materialText;
         public Button minusButton;
         public Button plusButton;
         public Button makeOrderButton;

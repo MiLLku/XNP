@@ -97,7 +97,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
     public static bool HasRoomForCraft(ItemData output, int amount)
     {
         if (instance == null || output == null || GameDatabase.Instance == null) return true;
-        if (!GameDatabase.Instance.HasEquipmentData(output.itemID)) return true; // 장비 아님 — 경고 없이 (GetEquipmentData는 없으면 경고를 찍는다)
+        if (GameDatabase.Instance.GetEquipmentData(output.itemID, logMissing: false) == null) return true;
         // ponytail: 제작 중인 장비는 세지 않는다 — 여러 곳에서 동시에 만들면 그만큼 넘칠 수 있다. 문제가 되면 예약 수를 더할 것.
         return instance.FreeSlots >= amount;
     }
@@ -289,9 +289,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
     {
         if (instance == null || item == null || GameDatabase.Instance == null) return false;
 
-        // 장비가 아니면 그냥 일반 재고로 — 창고에 넣을 때마다 '장비 데이터 없음' 경고가 쌓이던 것을 막는다
-        if (!GameDatabase.Instance.HasEquipmentData(item.itemID)) return false;
-        var equipData = GameDatabase.Instance.GetEquipmentData(item.itemID);
+        var equipData = GameDatabase.Instance.GetEquipmentData(item.itemID, logMissing: false);
         if (equipData == null) return false;
 
         bool rolled = qualityScore >= 0f && !equipData.IsConsumable;

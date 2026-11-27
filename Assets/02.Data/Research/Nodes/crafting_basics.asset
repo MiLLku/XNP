@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: crafting_basics
   nodeName: "\uC81C\uC791 \uAE30\uCD08"
-  description: "\uD6A8\uC728 \xB7 \uC791\uC5C5\uB300 \uC81C\uC791 \uC18D\uB3C4 \uD5A5\uC0C1."
+  description: "효율 · 작업대 제작 속도 향상과 의류 제작대 해금."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - research_basics
@@ -22,4 +22,5 @@ MonoBehaviour:
   researchPointCost: 240
   unlockEffects:
   - {fileID: 11400000, guid: 82c17289fab5d674aaaa11a3485f37f6, type: 2}
+  - {fileID: 11400000, guid: 47cb5afbe736493dbbd98cb2ea72ba75, type: 2}
   treePosition: {x: -1, y: -1}

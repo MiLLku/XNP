@@ -98,7 +98,7 @@ public class HostileBehavior : MonoBehaviour, IXenopsBehavior
         Vector3 pos = transform.position;
 
         // 범위 내 직원 공격
-        foreach (var employee in EmployeeManager.instance.AllEmployees)
+        foreach (var employee in EmployeeManager.instance.AllEmployees.ToArray())
         {
             if (employee == null) continue;
             if (employee.State == EmployeeState.Dead) continue;

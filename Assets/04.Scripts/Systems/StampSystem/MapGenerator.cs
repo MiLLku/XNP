@@ -1642,18 +1642,14 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
     /// </summary>
     private void MarkRestoredEntityOccupancy()
     {
-        var db = DefinitionDatabase.Instance;
+        // 식생물은 MapEntityIdentity로 찾는다. 복원 시 발밑을 점유시키면
+        // 이미 채광한 공기 칸을 막고 제초 후에도 표시가 남는다.
         foreach (var e in _gameMap.Entities)
         {
             int size = e.id == (int)EntityType.StoneFloor ? 1 : e.id == (int)EntityType.HiringOffice ? 3 : 0;
             for (int dx = 0; dx < size; dx++)
                 for (int dy = 0; dy < size; dy++)
                     _gameMap.MarkTileOccupied(e.position.x + dx, e.position.y + dy, blocksMovement: e.id == (int)EntityType.StoneFloor);
-
-            var def = db?.GetEntity(e.id);
-            if (size == 0 && def != null && System.Linq.Enumerable.Contains(db.NaturalSpawns, def))
-                for (int i = 0; i < Mathf.Max(1, def.footprintWidth); i++)
-                    _gameMap.MarkTileOccupied(e.position.x + i, e.position.y - 1);
         }
     }
 
