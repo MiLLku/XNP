@@ -88,6 +88,7 @@ public class NotificationManager : DestroySingleton<NotificationManager>
         if (washStationConfig != null) _evaluators.Add(new WashStationAlertEvaluator(washStationConfig));
         if (washStationFullConfig != null) _evaluators.Add(new WashStationFullAlertEvaluator(washStationFullConfig));
         if (roomErosionConfig != null) _evaluators.Add(new RoomErosionAlertEvaluator(roomErosionConfig));
+        _evaluators.Add(new WornClothesAlertEvaluator());
     }
 
     private void RefreshAlerts()

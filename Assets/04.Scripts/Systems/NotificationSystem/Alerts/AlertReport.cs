@@ -24,6 +24,23 @@ public struct AlertReport
     /// </summary>
     public Vector3? focusPosition;
 
+    /// <summary>
+    /// 펼침 목록 — 지정되면 배너를 누를 때 카메라 이동 대신 배너 바로 아래로 상자 목록이 세로로 펼쳐진다(다시 누르면 접힘).
+    /// 펼친 동안은 폴링마다 다시 불러 갱신한다.
+    /// </summary>
+    public System.Func<List<AlertDetailRow>> details;
+
+    /// <summary>펼침 상태를 기억할 키 (배너 풀이 재배치돼도 같은 경고는 같은 상태로)</summary>
+    public string key;
+
     /// <summary>비활성 결과 헬퍼</summary>
     public static AlertReport Inactive => new AlertReport { active = false };
+}
+
+/// <summary>경고 펼침 목록의 상자 한 칸</summary>
+public struct AlertDetailRow
+{
+    public string label;
+    /// <summary>상자를 눌렀을 때 (없으면 null)</summary>
+    public System.Action onClick;
 }
