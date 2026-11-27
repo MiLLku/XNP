@@ -90,7 +90,7 @@ public class AbnormalBehaviorErosionOutburst : AbnormalBehaviorBase
 
     public override void Tick(Employee employee, float deltaTime)
     {
-        if (employee == null || employee.State == EmployeeState.Dead) return;
+        if (employee == null || employee.IsIncapacitated) return;
 
         // 침식은 타일 레이어가 알아서 뿌린다. 여기서는 자리에 붙들어 두기만 하면 된다.
         GetOrCreateState(employee);

@@ -160,7 +160,7 @@ public class EmployeeCombat : MonoBehaviour
     private void Update()
     {
         if (draft == null || !draft.IsDrafted) return;
-        if (employee == null || employee.State == EmployeeState.Dead) return;
+        if (employee == null || employee.IsIncapacitated) return;
         if (stance == CombatStance.Defend) return; // 방어: 공격 안 함 (효과는 TakeDamage/어그로 측)
         if (NonViolent) return;                    // 전투 결격: 소집해도 이동 명령만 따른다
 

@@ -152,7 +152,7 @@ public class EnemyNavigator : MonoBehaviour
         }
         _repathTimer -= dt;
         // 노리던 직원이 죽었거나 건물이 부서졌으면 바로 다시 (목표를 못 찾은 상태에선 매 프레임 다시 돌리지 않는다)
-        bool targetGone = (TargetEmployee != null && TargetEmployee.State == EmployeeState.Dead)
+        bool targetGone = (TargetEmployee != null && TargetEmployee.IsIncapacitated)
                        || (!ReferenceEquals(TargetBuilding, null) && TargetBuilding == null);
         // 굴착 경로는 끝까지 판다 — 직원이 움직일 때마다 다시 짜면 굴이 이리저리 갈팡질팡한다
         bool keepDigging = _digPath && _path.Count > 0 && !OffPath();

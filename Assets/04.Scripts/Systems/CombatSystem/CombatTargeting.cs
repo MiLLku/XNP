@@ -27,7 +27,7 @@ public static class CombatTargeting
     /// <summary>적이 노릴 수 있는 직원인지 — 사망·위장 외투 착용자 제외 (광역 피해는 이 판정을 거치지 않는다)</summary>
     public static bool IsTargetable(Employee emp)
     {
-        if (emp == null || emp.State == EmployeeState.Dead) return false;
+        if (emp == null || emp.IsIncapacitated) return false;
         var eq = emp.GetComponent<EmployeeEquipment>();
         return eq == null || !eq.IsHiddenFromXenops;
     }

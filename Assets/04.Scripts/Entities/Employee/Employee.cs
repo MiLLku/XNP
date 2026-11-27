@@ -165,6 +165,7 @@ public class Employee : MonoBehaviour
     void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        if (!TryGetComponent<EmployeeDowned>(out _)) gameObject.AddComponent<EmployeeDowned>();
 
         // Hair 자식 SpriteRenderer 자동 탐색/생성
         if (hairRenderer == null)
@@ -327,11 +328,28 @@ public class Employee : MonoBehaviour
     public void SetState(EmployeeState newState)
     {
         if (currentState == newState || currentState == EmployeeState.Dead) return;
+        // 쓰러짐은 EmployeeDowned만 풀 수 있다 (소생·사망) — AI·작업이 Idle로 되돌리지 못하게
+        if (currentState == EmployeeState.Downed) return;
 
         currentState = newState;
         OnStateChanged?.Invoke(newState);
         UpdateVisualState();
     }
+
+    /// <summary>쓰러짐 진입·소생·사망 — EmployeeDowned 전용 (SetState의 쓰러짐 잠금을 건너뛴다)</summary>
+    public void ForceState(EmployeeState newState)
+    {
+        if (currentState == newState || currentState == EmployeeState.Dead) return;
+        currentState = newState;
+        OnStateChanged?.Invoke(newState);
+        UpdateVisualState();
+    }
+
+    /// <summary>쓰러졌는지 (체력 0, 소생 대기)</summary>
+    public bool IsDowned => currentState == EmployeeState.Downed;
+
+    /// <summary>행동할 수 없는지 — 사망 또는 쓰러짐</summary>
+    public bool IsIncapacitated => currentState == EmployeeState.Dead || currentState == EmployeeState.Downed;
 
     private void UpdateVisualState()
     {
@@ -344,6 +362,7 @@ public class Employee : MonoBehaviour
             EmployeeState.Drafted => new Color(1f, 0.5f, 0f),
             EmployeeState.MentalBreak => Color.magenta,
             EmployeeState.Dead => Color.gray,
+            EmployeeState.Downed => new Color(0.75f, 0.35f, 0.35f),
             _ => Color.white
         };
 
@@ -427,6 +446,13 @@ public class Employee : MonoBehaviour
 
         // 디버그: 무적
         if (DebugManager.IsBlocked(DebugFlag.Damage)) return;
+
+        // 쓰러진 채 맞으면 체력은 그대로 0, 대신 확률로 사망 (사용자 결정)
+        if (currentState == EmployeeState.Downed)
+        {
+            GetComponent<EmployeeDowned>()?.OnDamagedWhileDowned();
+            return;
+        }
 
         // 장비 피해 감소(%) + 방어구 내구도 소모
         if (equipment != null)
@@ -605,7 +631,8 @@ public class Employee : MonoBehaviour
             customName = customName,
             posX = transform.position.x,
             posY = transform.position.y,
-            state = (int)currentState
+            state = (int)currentState,
+            downedTimeLeft = TryGetComponent<EmployeeDowned>(out var dn) && dn.IsDowned ? dn.TimeLeft : 0f
         };
 
         // 각 서브 컴포넌트 데이터 수집
@@ -666,6 +693,12 @@ public class Employee : MonoBehaviour
         combat?.RestoreFromSaveData(data);
         zoneAssignment?.RestoreFromSaveData(data);
         skillState?.RestoreFromSaveData(data);
+
+        if (currentState == EmployeeState.Downed)
+        {
+            if (!TryGetComponent<EmployeeDowned>(out var downed)) downed = gameObject.AddComponent<EmployeeDowned>();
+            downed.RestoreDowned(data.downedTimeLeft);
+        }
 
         UpdateVisualState();
 

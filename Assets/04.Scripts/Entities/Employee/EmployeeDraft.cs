@@ -66,7 +66,7 @@ public class EmployeeDraft : MonoBehaviour
     {
         // Dead, MentalBreak 상태에서는 소집 불가
         if (drafted && employee != null &&
-            (employee.State == EmployeeState.Dead ||
+            (employee.IsIncapacitated ||
              employee.State == EmployeeState.MentalBreak))
         {
             Debug.LogWarning($"[Draft] {employee.DisplayName}: {employee.State} 상태에서는 소집 불가");

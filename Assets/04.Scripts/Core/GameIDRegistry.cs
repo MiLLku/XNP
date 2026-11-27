@@ -183,6 +183,7 @@ public static class GameIDRegistry
 
         // 의료 건물 (3700~3799) — MedicalBuildingType enum과 값 일치
         public const int TEMP_RECUPERATION_BED = 3700; // 임시 요양소 (2x2, 무전력, 동시 1명)
+        public const int MEDICAL_BED           = 3704; // 의료 침대 (2x1, 쓰러진 직원 소생용)
 
         public const int MIN = 3000;
         public const int MAX = 3999;

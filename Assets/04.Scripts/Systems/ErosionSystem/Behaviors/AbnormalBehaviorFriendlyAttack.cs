@@ -84,14 +84,14 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
 
     public override void Tick(Employee employee, float deltaTime)
     {
-        if (employee == null || employee.State == EmployeeState.Dead) return;
+        if (employee == null || employee.IsIncapacitated) return;
 
         var state = GetOrCreateState(employee);
         var movement = employee.GetComponent<EmployeeMovement>();
 
-        // 대상이 죽었거나 사라졌으면 — 광란은 처음 고른 1명만 쫓으므로 그대로 광란이 끝난다 (사용자 결정).
+        // 대상이 쓰러지거나 죽었거나 사라졌으면 — 광란은 처음 고른 1명만 쫓아 쓰러뜨리면 끝난다 (사용자 결정).
         // 동료 공격은 예전처럼 새 대상을 고른다.
-        if (state.target == null || state.target.State == EmployeeState.Dead)
+        if (state.target == null || state.target.IsIncapacitated)
         {
             if (randomTarget && state.hadTarget) { EndBerserk(employee, movement); return; }
             state.target = PickTarget(employee);
@@ -189,7 +189,7 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
 
         var near = new List<Employee>();
         foreach (var other in EmployeeManager.instance.AllEmployees)
-            if (other != null && other != employee && other.State != EmployeeState.Dead
+            if (other != null && other != employee && !other.IsIncapacitated
                 && Vector2.Distance(employee.transform.position, other.transform.position) <= SEARCH_RADIUS)
                 near.Add(other);
         return near.Count > 0 ? near[Random.Range(0, near.Count)] : null;
@@ -208,7 +208,7 @@ public class AbnormalBehaviorFriendlyAttack : AbnormalBehaviorBase
         foreach (var other in EmployeeManager.instance.AllEmployees)
         {
             if (other == null || other == employee) continue;
-            if (other.State == EmployeeState.Dead) continue;
+            if (other.IsIncapacitated) continue;
 
             float dist = Vector2.Distance(myPos, other.transform.position);
             if (dist > nearestDist) continue;

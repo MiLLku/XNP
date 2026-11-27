@@ -7,7 +7,7 @@
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 19;
+    public const int CURRENT_VERSION = 20;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -83,6 +83,9 @@ public static class SaveMigration
                     break;
                 case 18:
                     data = MigrateV18ToV19(data);
+                    break;
+                case 19:
+                    data = MigrateV19ToV20(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -712,6 +715,13 @@ public static class SaveMigration
     {
         Debug.Log("[SaveMigration] v17 → v18 (장비 품질 — 기존 장비는 평범함)");
         data.saveVersion = 18;
+        return data;
+    }
+
+    /// <summary>v19 → v20: 쓰러짐 상태(state=Downed, downedTimeLeft) 추가 — 예전 세이브에는 쓰러진 직원이 없어 버전만 올린다</summary>
+    private static SaveData MigrateV19ToV20(SaveData data)
+    {
+        data.saveVersion = 20;
         return data;
     }
 

@@ -14,7 +14,7 @@ public abstract class AbnormalBehaviorBase : IAbnormalBehavior
     /// <remarks>기본 구현: 직원이 null이 아니고 Dead 상태가 아니면 실행 가능.</remarks>
     public virtual bool CanExecute(Employee employee)
     {
-        return employee != null && employee.State != EmployeeState.Dead;
+        return employee != null && !employee.IsIncapacitated;
     }
 
     /// <inheritdoc/>

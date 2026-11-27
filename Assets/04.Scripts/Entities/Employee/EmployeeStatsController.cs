@@ -507,7 +507,7 @@ public class EmployeeStatsController : MonoBehaviour
     private bool ResolveDepletedHealth()
     {
         if (currentStats.health > 0f) return false;
-        if (employee.State == EmployeeState.Dead) return true;
+        if (employee.State == EmployeeState.Dead || employee.State == EmployeeState.Downed) return true;
 
         // 위장체 복제체는 죽거나 정신 붕괴하지 않고 정체를 드러낸다
         if (TryGetComponent<DisguisedEmployee>(out var disguise))
@@ -516,18 +516,10 @@ public class EmployeeStatsController : MonoBehaviour
             return true;
         }
 
-        employee.SetState(EmployeeState.Dead);
+        // 체력 0은 사망이 아니라 쓰러짐 (사용자 결정) — 사망은 쓰러진 뒤 방치·추가 피해의 확률 판정에서 (EmployeeDowned)
+        if (!TryGetComponent<EmployeeDowned>(out var downed)) downed = gameObject.AddComponent<EmployeeDowned>();
+        downed.Down();
         OnStatsChanged?.Invoke(currentStats);
-
-        NotificationManager.instance?.PushLetter(new Letter
-        {
-            title = "직원 사망",
-            body = $"{employee.DisplayName}이(가) 사망했습니다.",
-            type = LetterType.Threat,
-            pauseUntilRead = true
-        });
-        TimeManager.instance?.ForcePause();
-        EmployeeManager.instance?.HandleDeath(employee);
         return true;
     }
 
@@ -730,6 +722,16 @@ public class EmployeeStatsController : MonoBehaviour
         currentNeeds.hunger = Mathf.Clamp(currentNeeds.hunger, 0f, 100f);
         OnNeedsChanged?.Invoke(currentNeeds);
     }
+
+    /// <summary>쓰러짐에서 깨어날 때 — 체력을 바로 정한다 (EmployeeDowned.Revive)</summary>
+    public void SetHealthDirect(float value)
+    {
+        currentStats.health = Mathf.Clamp(value, 0f, currentStats.maxHealth);
+        OnStatsChanged?.Invoke(currentStats);
+    }
+
+    /// <summary>상태 변화를 UI에 알린다 (사망 처리 등 외부에서)</summary>
+    public void NotifyStatsChanged() => OnStatsChanged?.Invoke(currentStats);
 
     /// <summary>체력 수정</summary>
     public void ModifyHealth(float amount)

@@ -35,7 +35,7 @@ public struct RunResult
 }
 
 /// <summary>
-/// 런 기록과 런 종료 — 직원이 모두 죽으면(패배) 또는 완전 정화 장치가 14일 가동을 마치면(승리, PurificationManager)
+/// 런 기록과 런 종료 — 직원이 모두 죽거나 쓰러져 치료할 사람이 없으면(패배) 또는 완전 정화 장치가 14일 가동을 마치면(승리, PurificationManager)
 /// 게임을 멈추고 결과 화면(버틴 날·최대 깊이·막은 습격·채용·사망)을 띄운다.
 ///
 /// 기록:
@@ -150,7 +150,7 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
         var em = EmployeeManager.instance;
         if (em == null) return 0;
         int n = 0;
-        foreach (var e in em.AllEmployees) if (e != null && e.State != EmployeeState.Dead) n++;
+        foreach (var e in em.AllEmployees) if (e != null && !e.IsIncapacitated) n++;
         return n;
     }
 
@@ -223,7 +223,7 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
         prt.anchorMin = prt.anchorMax = prt.pivot = new Vector2(0.5f, 0.5f);
         RuntimeUI.SetupPanel(prt, 420f);
 
-        var title = RuntimeUI.Text(panel.transform, r.victory ? "정화 완료 — 생존에 성공했습니다" : "기지가 무너졌습니다", 28);
+        var title = RuntimeUI.Text(panel.transform, r.victory ? "정화 완료 — 생존에 성공했습니다" : "기지가 무너졌습니다 — 일어설 수 있는 직원이 없습니다", 28);
         title.alignment = TextAlignmentOptions.Center;
         RuntimeUI.Text(panel.transform, $"버틴 날: {r.daysSurvived}일", 20);
         RuntimeUI.Text(panel.transform, $"최대 깊이: {r.deepestDepth}칸", 20);

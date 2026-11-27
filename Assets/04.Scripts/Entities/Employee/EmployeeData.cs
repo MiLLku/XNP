@@ -175,6 +175,7 @@ public class WorkAbilities
             case WorkType.Cooking: return true; // 누구나 가능 — 못 하게 하려면 결격으로
             case WorkType.Training: return true; // 누구나 — 결격·능력 무관
             case WorkType.Errand: return true;   // 누구나 — 능력치와 무관한 잡일
+            case WorkType.Treatment: return true; // 누구나 — 못 하게 하려면 결격으로
             default: return false;
         }
     }
@@ -204,6 +205,7 @@ public class WorkAbilities
             case WorkType.Cooking: return cookingSpeed;
             case WorkType.Training: return 1f;
             case WorkType.Errand: return 1f;
+            case WorkType.Treatment: return 1f;
             default: return 0f;
         }
     }

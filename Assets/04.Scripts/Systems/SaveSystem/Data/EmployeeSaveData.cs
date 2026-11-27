@@ -39,6 +39,9 @@ public class EmployeeSaveData
     /// <summary>직원 상태 (EmployeeState enum)</summary>
     public int state;
 
+    /// <summary>쓰러짐 — 다음 사망 판정까지 남은 시간(초). state가 Downed일 때만 의미 (구 세이브 0 → 2시간으로 다시)</summary>
+    public float downedTimeLeft;
+
     #endregion
 
     #region 성장 시스템
