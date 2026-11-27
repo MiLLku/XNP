@@ -25,6 +25,9 @@ public class BuildingSaveData
     /// <summary>기능 활성화 여부</summary>
     public bool isFunctional;
 
+    /// <summary>부서져 '사용 불가'로 남은 창고 (구 세이브 false)</summary>
+    public bool broken;
+
     /// <summary>플레이어가 정한 이름 (없으면 빈 문자열)</summary>
     public string customName;
 

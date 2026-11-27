@@ -49,6 +49,24 @@ public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource, ISto
     /// <summary>창고가 정상 동작 중인지 여부.</summary>
     public bool IsOperational => _building != null && _building.IsFunctional;
 
+    /// <summary>부서져 '사용 불가'로 남은 창고 — 넣기는 안 되고 꺼내기만 된다 (재고 구출)</summary>
+    public bool IsBroken => _building != null && _building.IsBroken;
+
+    /// <summary>꺼낼 수 있는지 — 정상이거나 부서진 창고</summary>
+    public bool CanWithdraw => _building != null && (_building.IsFunctional || _building.IsBroken);
+
+    private WorkOrder _repairOrder;
+
+    void Update()
+    {
+        // 부서진 창고는 수리 작업물을 건다 (저장하지 않으므로 불러온 뒤에도 여기서 다시 건다)
+        if (!IsBroken || WorkSystemManager.instance == null) return;
+        if (SaveManager.instance != null && SaveManager.instance.IsLoading) return;
+        if (_repairOrder != null && WorkSystemManager.instance.HasWorkOrder(_repairOrder)) return;
+        _repairOrder = WorkSystemManager.instance.CreateWorkOrder($"수리: {_building.DisplayName}", WorkType.Building, 0, 2);
+        _repairOrder.AddTarget(new BuildingRepairOrder(_building, GetDepositPosition()));
+    }
+
     // IBuildingFunction
     public bool IsOperating => IsOperational;
 
@@ -122,7 +140,7 @@ public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource, ISto
         var all = StockpileManager.instance != null ? StockpileManager.instance.All : null;
         if (all != null)
             foreach (var other in all)
-                if (other != null && other != this && other.IsOperational) return;
+                if (other != null && other != this && other.CanWithdraw) return;
 
         foreach (var kv in inv.GetAllItems())
         {
@@ -143,7 +161,7 @@ public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource, ISto
     // 창고는 전역 인벤토리의 물리적 접근점입니다. 다른 소스(건물 산출물·바닥 더미)와
     // 같은 인터페이스로 묶여야 직원이 "가장 가까운 자재 보유 지점"을 한 번에 고를 수 있습니다.
 
-    public bool IsSourceAvailable => IsOperational && _linkedStorage != null;
+    public bool IsSourceAvailable => CanWithdraw && _linkedStorage != null;
 
     public Vector3 GetWithdrawPosition() => GetDepositPosition();
 
@@ -198,7 +216,7 @@ public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource, ISto
     {
         // UI 위 클릭은 월드로 흘리지 않는다 (OnMouseDown은 EventSystem을 거치지 않는다)
         if (UIManager.PointerOverUI) return;
-        if (!IsOperational) return;
+        if (!CanWithdraw) return;
 
         StoragePanel.Show(this);
     }
@@ -231,7 +249,7 @@ public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource, ISto
             bool passedSelf = false;
             foreach (var other in all)
             {
-                if (other == null || !other.IsOperational) continue;
+                if (other == null || !other.CanWithdraw) continue;
                 if (other == this) { passedSelf = true; continue; }
                 if (passedSelf) isLast = false; else offset += other.SlotCount;
             }
@@ -254,7 +272,7 @@ public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource, ISto
     public bool Withdraw(ItemData data, int qty)
     {
         if (data == null || qty <= 0) return false;
-        if (!IsOperational)
+        if (!CanWithdraw)
         {
             if (showDebugInfo)
                 Debug.LogWarning($"[Stockpile] {name}: 비활성 상태에서 Withdraw 시도");
