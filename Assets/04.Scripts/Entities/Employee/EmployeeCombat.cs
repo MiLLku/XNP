@@ -38,6 +38,10 @@ public class EmployeeCombat : MonoBehaviour
     private float attackTimer;
     private Xenops target;
     private bool movingToTarget;
+
+    /// <summary>접근 경로를 못 찾았을 때 다시 시도할 시각 — 닿지 않는 적에게 매 프레임 경로를 구하며 경고를 쏟던 것을 막는다</summary>
+    private float approachRetryAt;
+    private const float APPROACH_RETRY_DELAY = 2f;
     private bool projectilePoolReady;
 
     // 사격 조준 — 매 사격 전에 aimTime 동안 멈춰 서서 조준한다
@@ -528,12 +532,12 @@ public class EmployeeCombat : MonoBehaviour
 
     private void Approach(Vector3 pos)
     {
-        if (movement == null || movingToTarget) return;
+        if (movement == null || movingToTarget || Time.time < approachRetryAt) return;
         movingToTarget = true;
         // 소집 중 교전 이동 — 플레이어 통제하에 있으므로 배정 구역을 적용하지 않는다.
         movement.MoveTo(pos,
             onComplete: () => movingToTarget = false,
-            onFailed:   () => movingToTarget = false);
+            onFailed:   () => { movingToTarget = false; approachRetryAt = Time.time + APPROACH_RETRY_DELAY; });
     }
 
     private void StopApproach()
