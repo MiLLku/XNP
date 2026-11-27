@@ -326,7 +326,7 @@ public class Employee : MonoBehaviour
     /// </summary>
     public void SetState(EmployeeState newState)
     {
-        if (currentState == newState) return;
+        if (currentState == newState || currentState == EmployeeState.Dead) return;
 
         currentState = newState;
         OnStateChanged?.Invoke(newState);
@@ -423,7 +423,7 @@ public class Employee : MonoBehaviour
     /// <param name="amount">감산할 피해량(양수). 0 이하는 무시.</param>
     public void TakeDamage(float amount)
     {
-        if (amount <= 0f) return;
+        if (amount <= 0f || currentState == EmployeeState.Dead) return;
 
         // 디버그: 무적
         if (DebugManager.IsBlocked(DebugFlag.Damage)) return;
@@ -446,7 +446,8 @@ public class Employee : MonoBehaviour
         statsController?.ModifyHealth(-amount * mult);
 
         // 자다가 맞으면 깬다
-        if (statsController != null && statsController.IsSleeping) GetComponent<EmployeeAI>()?.WakeFromDamage();
+        if (currentState != EmployeeState.Dead && statsController != null && statsController.IsSleeping)
+            GetComponent<EmployeeAI>()?.WakeFromDamage();
     }
 
     /// <summary>
