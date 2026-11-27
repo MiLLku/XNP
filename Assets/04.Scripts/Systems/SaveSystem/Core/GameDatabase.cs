@@ -247,13 +247,13 @@ public class GameDatabase : ScriptableObject
     public bool HasEquipmentData(int itemId) => _equipmentDataMap != null && _equipmentDataMap.ContainsKey(itemId);
 
     /// <summary>아이템 ID로 장비 데이터 조회</summary>
-    public EquipmentData GetEquipmentData(int itemId)
+    public EquipmentData GetEquipmentData(int itemId, bool logMissing = true)
     {
         if (_equipmentDataMap != null && _equipmentDataMap.TryGetValue(itemId, out var data))
         {
             return data;
         }
-        Debug.LogWarning($"[GameDatabase] EquipmentData 없음: ItemID {itemId}");
+        if (logMissing) Debug.LogWarning($"[GameDatabase] EquipmentData 없음: ItemID {itemId}");
         return null;
     }
 

@@ -162,7 +162,7 @@ public enum ItemType
     HeatSuit2 = 362,
     HeatSuit3 = 363,
     HeatSuit4 = 364,
-    /// <summary>기본 옷·장갑·신발·모자 — 새 직원이 입고 오는 시작 복장 (제재소에서 연구 없이 제작)</summary>
+    /// <summary>기본 옷·장갑·신발·모자 — 새 직원이 입고 오는 시작 복장 (의류 제작대에서 제작)</summary>
     BasicClothes = 365,
     BasicGloves  = 366,
     BasicShoes   = 367,
@@ -189,6 +189,10 @@ public enum ItemType
     NeedleArmor = 382, // 침정석 갑옷
     NeedleAlloyArmor = 383, // 침정 합금 갑옷
     EtherionArmor = 384, // 에테리온 갑옷
+    /// <summary>방한복 I~III — 슈트 칸 방한 (보호 레벨 3/5/7)</summary>
+    ColdSuit1 = 385,
+    ColdSuit2 = 386,
+    ColdSuit3 = 387,
 
     /// <summary>방한 장비 (연구 '방한 의복', 제련소·나무) — 기본 신발과 함께 영하 30도</summary>
     WinterCoat   = 385, // 방한 외투 (옷 +4)
