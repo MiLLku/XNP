@@ -123,12 +123,16 @@ public class MiningTaskSelector
     {
         Vector2Int taskTile = GetTaskTile(task);
         var mining = task.target as MiningOrder;
+        var build = task.target as BuildOrder;
+        Vector2Int footprint = build?.buildingData != null ? build.buildingData.size : Vector2Int.one;
+        bool multiCellBuild = context.work != null && (footprint.x > 1 || footprint.y > 1);
+        var origin = new Vector3Int(taskTile.x, taskTile.y, 0);
 
         // 1. 현재 위치에서 작업 가능한지 체크 (범위 + 시야)
-        bool isInWorkRange = IsInWorkRange(context.footTile, taskTile);
-        bool hasLineOfSight = HasLineOfSight(context, taskTile);
-        bool canWorkFromHere = isInWorkRange && hasLineOfSight &&
-            (mining == null || mining.IsSafeWorkPosition(context.footTile, context.pathfinder));
+        bool canWorkFromHere = multiCellBuild
+            ? context.work.IsPositionInWorkRange(origin, footprint)
+            : IsInWorkRange(context.footTile, taskTile) && HasLineOfSight(context, taskTile) &&
+              (mining == null || mining.IsSafeWorkPosition(context.footTile, context.pathfinder));
 
         // 2. 직원이 차지하고 있는 타일인지 체크
         float penalty = 0f;
@@ -167,7 +171,10 @@ public class MiningTaskSelector
         {
             // 건설 자재 운반은 작업자의 출고 지점과 인계 지점을 이미 확인했다.
             bool verifiedDelivery = task.target is WithdrawOrder withdraw && withdraw.request?.receiver is ConstructionSite;
-            if (!verifiedDelivery && !IsTaskReachable(taskTile, context, mining))
+            bool reachable = multiCellBuild
+                ? context.work.FindWorkablePositionForTarget(origin, footprint) != Vector3.zero
+                : verifiedDelivery || IsTaskReachable(taskTile, context, mining);
+            if (!reachable)
             {
                 return float.MinValue; // 도달 불가능
             }
@@ -176,7 +183,7 @@ public class MiningTaskSelector
         // 6. 기본 점수 요소 계산
         float priority = Mathf.Max(1, 10 - task.priority); // priority가 낮을수록 높은 점수
         float distance = canWorkFromHere ? 0f : CalculateDistance(context.footTile, taskTile);
-        float accessCost = canWorkFromHere ? 0f : CalculateAccessCost(context, taskTile, mining);
+        float accessCost = canWorkFromHere || multiCellBuild ? 0f : CalculateAccessCost(context, taskTile, mining);
         float heightBonus = CalculateHeightBonus(taskTile, context);
         float diagonalBonus = CalculateDiagonalBonus(taskTile, context);
 
@@ -216,6 +223,7 @@ public class MiningTaskSelector
         public int employeeHeight;            // 직원 높이
         public GameMap gameMap;
         public TilePathfinder pathfinder;
+        internal EmployeeWork work;
         internal Dictionary<Vector2Int, int> pathLengths;
         internal Dictionary<Vector2Int, bool> canReturn;
     }
@@ -243,6 +251,7 @@ public class MiningTaskSelector
             employeeHeight = 2,
             gameMap = MapGenerator.instance?.GameMapInstance,
             pathfinder = worker.GetComponent<EmployeeMovement>()?.Pathfinder,
+            work = worker.GetComponent<EmployeeWork>(),
             pathLengths = new Dictionary<Vector2Int, int>(),
             canReturn = new Dictionary<Vector2Int, bool>()
         };

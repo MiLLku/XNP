@@ -510,6 +510,7 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
     /// <returns>소모 성공 여부</returns>
     public bool ConsumeReservation(int reservationId)
     {
+        if (reservationId == 0) return true;
         if (!reservations.TryGetValue(reservationId, out var costs))
         {
             if (showDebugLogs)
@@ -552,6 +553,7 @@ public class InventoryManager : DestroySingleton<InventoryManager>, ISaveModule,
     /// <param name="reservationId">취소할 예약 ID</param>
     public void CancelReservation(int reservationId)
     {
+        if (reservationId == 0) return;
         if (!reservations.TryGetValue(reservationId, out var costs))
         {
             if (showDebugLogs)

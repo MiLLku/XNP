@@ -607,18 +607,29 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
         int x = gridPosition.x, y = gridPosition.y;
         var below = new Vector2Int(x + size.x / 2, y - 1);
 
-        // 세로 사다리는 새 칸이 생기기 전에 기존 사다리에 서서 자재를 넘긴다.
-        bool useLadderBelow = pathfinder.IsLadder(below);
-        if (useLadderBelow) yield return below;
+        var candidates = new[]
+        {
+            new Vector2Int(x - 1, y),
+            new Vector2Int(x + size.x, y),
+            new Vector2Int(x + size.x / 2, y),
+            new Vector2Int(x + size.x / 2, y + size.y),
+            below,
+            new Vector2Int(x - 1, y - 1),
+            new Vector2Int(x + size.x, y - 1)
+        };
 
-        yield return new Vector2Int(x - 1, y);
-        yield return new Vector2Int(x + size.x, y);
-        yield return new Vector2Int(x + size.x / 2, y);
-        yield return new Vector2Int(x + size.x / 2, y + size.y);
-        if (!useLadderBelow) yield return below;
-        // 공중 벽의 청사진이 바로 옆 통로를 가리면 한 칸 아래의 옆 발판에서 인계할 수 있다.
-        yield return new Vector2Int(x - 1, y - 1);
-        yield return new Vector2Int(x + size.x, y - 1);
+        // 공중 건설에는 발밑 사다리를 우선하고, 사다리 연장·수리에는 옆의 완공 사다리도 우선한다.
+        bool ladderBelow = pathfinder.IsLadder(below);
+        if (ladderBelow) yield return below;
+        bool buildingLadder = buildingData != null && (buildingData.allowsVerticalMovement ||
+            buildingData.buildingPrefab?.GetComponent<FloorTile>()?.AllowsVerticalMovement() == true);
+        foreach (var candidate in candidates)
+            if (buildingLadder && candidate != below && pathfinder.IsLadder(candidate))
+                yield return candidate;
+
+        foreach (var candidate in candidates)
+            if (!(candidate == below && ladderBelow) && (!buildingLadder || !pathfinder.IsLadder(candidate)))
+                yield return candidate;
     }
 
     public Vector3 GetDeliveryPosition()
