@@ -194,10 +194,7 @@ public enum ItemType
     ColdSuit2 = 389,
     ColdSuit3 = 390,
 
-    /// <summary>방한 장비 (연구 '방한 의복', 제련소·나무) — 기본 신발과 함께 영하 30도</summary>
-    WinterCoat   = 385, // 방한 외투 (옷 +4)
-    WinterHat    = 386, // 방한 모자 (헬멧 +2)
-    WinterGloves = 387, // 방한 장갑 (장갑 +1)
+    // 385~387은 옛 방한 외투·모자·장갑 (방한복 I~III로 통합해 없앰 — 세이브는 SaveMigration v19가 옮긴다). 재사용 금지.
 
     // ─── 식물 (401~450) ─────────────────────────
     /// <summary>나무 묘목 — 나무를 제초하면 나오고, 파종하면 나무로 자랍니다.</summary>

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResearchNodeData
   nodeId: winter_clothing
   nodeName: "\uBC29\uD55C \uC758\uBCF5"
-  description: "\uC548\uC815\uC131 \xB7 \uBC29\uD55C \uC678\uD22C(\uC637 +4)\xB7\uBC29\uD55C \uBAA8\uC790(\uD5EC\uBA67 +2)\xB7\uBC29\uD55C \uC7A5\uAC11(\uC7A5\uAC11 +1) \uC81C\uC791\uBC95\uC744 \uC5FD\uB2C8\uB2E4 (\uC81C\uB828\uC18C, \uB098\uBB34). \uAE30\uBCF8 \uC2E0\uBC1C\uACFC \uD568\uAED8 \uC785\uC73C\uBA74 \uC601\uD558 30\uB3C4\uAE4C\uC9C0 \uBC84\uD301\uB2C8\uB2E4."
+  description: "안정성 · 의류 제작대에서 방한복 I(슈트 칸 방한 3) 제작법을 엽니다. II·III는 방한 연구 II·III에서."
   icon: {fileID: 0}
   prerequisiteNodeIds:
   - survival_basics
@@ -22,6 +22,4 @@ MonoBehaviour:
   researchPointCost: 240
   unlockEffects:
   - {fileID: 11400000, guid: 02aad3a9871dfaa45ba61b4bbe284dff, type: 2}
-  - {fileID: 11400000, guid: 357f4684e3cb6f34897c17c0987e847c, type: 2}
-  - {fileID: 11400000, guid: ab2964dea41033b47935caf36c096689, type: 2}
   treePosition: {x: 1, y: -3}

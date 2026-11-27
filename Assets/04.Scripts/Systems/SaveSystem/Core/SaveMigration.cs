@@ -7,7 +7,7 @@
 public static class SaveMigration
 {
     // 현재 지원하는 최신 버전
-    public const int CURRENT_VERSION = 18;
+    public const int CURRENT_VERSION = 19;
 
     /// <summary>
     /// 세이브 데이터를 현재 버전으로 마이그레이션합니다.
@@ -80,6 +80,9 @@ public static class SaveMigration
                     break;
                 case 17:
                     data = MigrateV17ToV18(data);
+                    break;
+                case 18:
+                    data = MigrateV18ToV19(data);
                     break;
                 default:
                     Debug.LogError($"[SaveMigration] 알 수 없는 버전: {data.saveVersion}");
@@ -710,6 +713,94 @@ public static class SaveMigration
         Debug.Log("[SaveMigration] v17 → v18 (장비 품질 — 기존 장비는 평범함)");
         data.saveVersion = 18;
         return data;
+    }
+
+    // ── v18 → v19: 방한 장비를 의류 제작대의 방한복 I~III 하나로 합침 ──────────────
+    private const int OLD_WINTER_COAT = 385, OLD_WINTER_HAT = 386, OLD_WINTER_GLOVES = 387;
+    private const int COLD_SUIT_1 = (int)ItemType.ColdSuit1;
+    private const int WOOD = (int)ItemType.Wood;
+    /// <summary>없앤 모자·장갑을 만들 때 든 나무 (옛 제작법 그대로)</summary>
+    private const int HAT_WOOD = 4, GLOVES_WOOD = 3;
+
+    private static readonly string[] ItemIdFields = { "itemId", "equipmentId" };
+
+    /// <summary>
+    /// v18 → v19: 옛 방한 외투(385)는 방한복 I로 바꾸고, 방한 모자(386)·장갑(387)은 없애고 만들 때 든 나무를 재고로 돌려준다.
+    /// 아이템 번호는 재고·예약·창고 장비·직원 장비 칸·바닥 물건 등 여러 곳에 흩어져 있어 저장 데이터 전체를 훑는다.
+    /// </summary>
+    private static SaveData MigrateV18ToV19(SaveData data)
+    {
+        int coats = 0, removed = 0, wood = 0;
+        var visited = new System.Collections.Generic.HashSet<object>();
+        WalkWinterGear(data, visited, ref coats, ref removed, ref wood);
+
+        if (wood > 0)
+        {
+            if (data.inventory == null) data.inventory = new InventorySaveData();
+            var stack = data.inventory.items.Find(s => s.itemId == WOOD);
+            if (stack != null) stack.amount += wood;
+            else data.inventory.items.Add(new ItemStackSaveData { itemId = WOOD, amount = wood });
+        }
+
+        Debug.Log($"[SaveMigration] v18 → v19 (방한 장비 통합) — 외투→방한복 I {coats}건, 모자·장갑 {removed}건 제거, 나무 {wood}개 반환");
+        data.saveVersion = 19;
+        return data;
+    }
+
+    private static int WinterIdOf(object o)
+    {
+        foreach (var name in ItemIdFields)
+        {
+            var f = o.GetType().GetField(name);
+            if (f != null && f.FieldType == typeof(int)) return (int)f.GetValue(o);
+        }
+        return 0;
+    }
+
+    private static void WalkWinterGear(object o, System.Collections.Generic.HashSet<object> visited,
+        ref int coats, ref int removed, ref int wood)
+    {
+        if (o == null || o is string || !visited.Add(o)) return;
+        var type = o.GetType();
+
+        if (o is System.Collections.IList list)
+        {
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                var item = list[i];
+                if (item == null || item.GetType().IsPrimitive) continue;
+                int id = WinterIdOf(item);
+                if (id == OLD_WINTER_HAT || id == OLD_WINTER_GLOVES)
+                {
+                    var amountField = item.GetType().GetField("amount");
+                    int count = amountField != null && amountField.FieldType == typeof(int) ? Mathf.Max(1, (int)amountField.GetValue(item)) : 1;
+                    wood += count * (id == OLD_WINTER_HAT ? HAT_WOOD : GLOVES_WOOD);
+                    removed += count;
+                    list.RemoveAt(i);
+                    continue;
+                }
+                WalkWinterGear(item, visited, ref coats, ref removed, ref wood);
+            }
+            return;
+        }
+
+        if (type.IsPrimitive || type.IsEnum || !type.IsClass && !type.IsValueType) return;
+        if (type.Assembly != typeof(SaveData).Assembly) return; // Unity·시스템 타입은 건너뛴다
+
+        foreach (var f in type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+        {
+            if (f.FieldType == typeof(int))
+            {
+                if (System.Array.IndexOf(ItemIdFields, f.Name) >= 0 && (int)f.GetValue(o) == OLD_WINTER_COAT)
+                {
+                    f.SetValue(o, COLD_SUIT_1);
+                    coats++;
+                }
+                continue;
+            }
+            if (f.FieldType.IsPrimitive || f.FieldType.IsEnum || f.FieldType == typeof(string) || f.FieldType.IsValueType) continue;
+            WalkWinterGear(f.GetValue(o), visited, ref coats, ref removed, ref wood);
+        }
     }
 
 }
