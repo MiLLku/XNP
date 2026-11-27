@@ -106,7 +106,7 @@ public class MiningTaskSelector
         {
             if (bestTask.target is MiningOrder) return null;
             // 수확·운반 등은 대상 둘레에 실제로 걸어서 닿는 칸이 있는 것만 고른다 (없으면 null — 뒤 순위 작업으로)
-            bestTask = validTasks.FirstOrDefault(t => HasReachableNeighbor(context.footTile, GetTaskTile(t)));
+            bestTask = validTasks.FirstOrDefault(t => HasReachableNeighbor(context, GetTaskTile(t)));
             if (bestTask == null) return null;
         }
 
@@ -217,6 +217,7 @@ public class MiningTaskSelector
         public GameMap gameMap;
         public TilePathfinder pathfinder;
         internal Dictionary<Vector2Int, int> pathLengths;
+        internal Dictionary<Vector2Int, bool> canReturn;
     }
     
     private WorkerContext CreateWorkerContext(Employee worker)
@@ -242,7 +243,8 @@ public class MiningTaskSelector
             employeeHeight = 2,
             gameMap = MapGenerator.instance?.GameMapInstance,
             pathfinder = worker.GetComponent<EmployeeMovement>()?.Pathfinder,
-            pathLengths = new Dictionary<Vector2Int, int>()
+            pathLengths = new Dictionary<Vector2Int, int>(),
+            canReturn = new Dictionary<Vector2Int, bool>()
         };
         
         if (context.pathfinder == null && context.gameMap != null)
@@ -258,7 +260,7 @@ public class MiningTaskSelector
     #region 도달 가능성
     
     /// <summary>대상 칸 또는 그 8방향 이웃 중 발 위치에서 걸어서 닿는 서 있을 칸이 있는지 (채광 외 작업용)</summary>
-    private static bool HasReachableNeighbor(Vector2Int from, Vector2Int tile)
+    private static bool HasReachableNeighbor(WorkerContext context, Vector2Int tile)
     {
         var map = ReachabilityMap.Current;
         if (map == null) return true;
@@ -266,7 +268,7 @@ public class MiningTaskSelector
             for (int dy = -1; dy <= 1; dy++)
             {
                 var n = new Vector2Int(tile.x + dx, tile.y + dy);
-                if (map.CanStandAtPosition(n) && map.IsReachable(from, n)) return true;
+                if (map.CanStandAtPosition(n) && map.IsReachable(context.footTile, n) && CanReturnFrom(context, n)) return true;
             }
         return false;
     }
@@ -306,11 +308,24 @@ public class MiningTaskSelector
             if (pos == context.footTile)
                 return true;
 
-            if (GetPathLength(context, pos) >= 0)
+            // 채광 외 작업은 돌아올 길도 있어야 한다 — 사다리 없이 뛰어내려야만 닿는 웅덩이 안의 수확·제초에 보내면
+            // 다시 올라오지 못해 그 안에서 굶어 죽었다 (채광은 MiningOrder.KeepsReturnPath가 따로 본다)
+            if (GetPathLength(context, pos) >= 0 && (mining != null || CanReturnFrom(context, pos)))
                 return true;
         }
 
         return false;
+    }
+
+    /// <summary>작업 칸에서 지금 발 위치로 걸어서 돌아올 수 있는지 (이동 규칙이 비대칭이라 따로 확인)</summary>
+    private static bool CanReturnFrom(WorkerContext context, Vector2Int pos)
+    {
+        if (context.pathfinder == null) return true;
+        if (context.canReturn != null && context.canReturn.TryGetValue(pos, out bool cached)) return cached;
+        bool ok = context.pathfinder.FindPath(pos, context.footTile, PathOptions.Default,
+            allowGoalFallback: false, logFailure: false) != null;
+        if (context.canReturn != null) context.canReturn[pos] = ok;
+        return ok;
     }
 
     /// <summary>

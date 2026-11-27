@@ -163,6 +163,8 @@ public class CropPlot : MonoBehaviour, IBuildingExtraSerializable, IBuildingFunc
     {
         // 로드 중에는 SaveManager가 건물을 통째로 지우고 다시 만든다 — 환불·예약 해제를 하면 복원 상태와 엉킨다
         if (SaveManager.instance != null && SaveManager.instance.IsLoading) return;
+        // 씬을 닫는 중(플레이 종료·메인 메뉴·새 게임)에는 돌려줄 곳이 없다 — 씨앗을 떨어뜨리면 닫힌 씬에 물건이 남는다
+        if (!gameObject.scene.isLoaded) return;
 
         // 건물이 사라지면 진행 중 요청을 정리하고, 도착한 씨앗은 SowSite가 바닥에 돌려준다
         foreach (var slot in slots)
