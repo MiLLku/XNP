@@ -75,7 +75,7 @@ public class StockpileManager : DestroySingleton<StockpileManager>
     public bool HasItemAnywhere(ItemData item, int amount)
     {
         if (item == null || amount <= 0) return false;
-        return _stockpiles.Any(s => s != null && s.IsOperational && s.HasItem(item, amount));
+        return _stockpiles.Any(s => s != null && s.CanWithdraw && s.HasItem(item, amount));
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public class StockpileManager : DestroySingleton<StockpileManager>
 
         // 닿을 수 없는 창고는 후보에서 뺀다 — 가장 가까워도 못 가면 헛걸음 후 실패만 반복한다
         return _stockpiles
-            .Where(s => s != null && s.IsOperational && s.HasItem(item, amount)
+            .Where(s => s != null && s.CanWithdraw && s.HasItem(item, amount)
                         && ReachabilityMap.CanReach(from, s.GetDepositPosition())
                         && (accept == null || accept(s)))
             .OrderBy(s => Vector2Int.Distance(from,

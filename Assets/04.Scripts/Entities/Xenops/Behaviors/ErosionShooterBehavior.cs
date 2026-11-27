@@ -466,7 +466,7 @@ public class ErosionShooterBehavior : MonoBehaviour, IXenopsBehavior, IWeaponWie
     private static bool IsTargetAlive(Component target)
     {
         if (target == null) return false;
-        if (target is Employee emp) return emp.State != EmployeeState.Dead;
+        if (target is Employee emp) return !emp.IsIncapacitated;
         return true;
     }
 

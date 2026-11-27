@@ -1119,7 +1119,7 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
 
             // 함정 재장전만 담은 작업물은 저장하지 않는다 — 해제된 함정이 불러온 뒤 새로 건다 (빈 작업물이 남지 않게)
             if (orderData.pendingTasks.Count == 0 && orderData.assignedTasks.Count == 0
-                && order.targets.Count > 0 && order.targets.TrueForAll(t => t is TrapRearmOrder))
+                && order.targets.Count > 0 && order.targets.TrueForAll(t => t is TrapRearmOrder || t is RescueOrder || t is TreatOrder || t is BuildingRepairOrder))
                 continue;
 
             data.workOrders.Add(orderData);
@@ -1332,7 +1332,7 @@ public class WorkSystemManager : DestroySingleton<WorkSystemManager>, ISaveModul
                 buildingInstanceId = demolish.building != null ? demolish.building.InstanceId : -1
             });
         }
-        else if (task.target is TrapRearmOrder)
+        else if (task.target is TrapRearmOrder || task.target is RescueOrder || task.target is TreatOrder || task.target is BuildingRepairOrder)
         {
             return null; // 저장하지 않는다 — 해제된 함정이 불러온 뒤 재장전 작업을 새로 건다
         }

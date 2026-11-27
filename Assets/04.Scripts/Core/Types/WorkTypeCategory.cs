@@ -27,6 +27,7 @@ public static class WorkTypeCategory
             case WorkType.Cooking:
             case WorkType.Training:
             case WorkType.Errand:
+            case WorkType.Treatment:
                 return true;
 
             case WorkType.Crafting:
@@ -79,6 +80,7 @@ public static class WorkTypeCategory
             case WorkType.Cooking:   return "조리";
             case WorkType.Training:  return "단련";
             case WorkType.Errand:    return "심부름";
+            case WorkType.Treatment: return "치료";
             default:                 return type.ToString();
         }
     }

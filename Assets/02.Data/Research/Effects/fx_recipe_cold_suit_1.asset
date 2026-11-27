@@ -10,6 +10,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 37c9ab451cbb93649aefc737746e2dfa, type: 3}
-  m_Name: fx_recipe_WinterHat
+  m_Name: fx_recipe_cold_suit_1
   m_EditorClassIdentifier: Assembly-CSharp::ResearchRecipeUnlockEffect
-  recipe: {fileID: 11400000, guid: b557673446414bc4fa30ab25beabeea6, type: 2}
+  recipe: {fileID: 11400000, guid: e185d6f663854f18ada1d00702f8a7fe, type: 2}

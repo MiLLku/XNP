@@ -134,6 +134,15 @@ public class EmployeeAI : MonoBehaviour
     /// <summary>진행 중인 요양 루프의 취소원 (null이면 요양 중 아님)</summary>
     private CancellationTokenSource recuperateCts;
 
+    /// <summary>요양 시설에서 회복 중인지 (치료 담당이 돌볼 대상)</summary>
+    public bool IsRecuperating => recuperateCts != null;
+
+    /// <summary>치료 담당이 돌보는 동안 요양 회복 배율 (임시 값)</summary>
+    public const float TREATMENT_HEAL_MULTIPLIER = 2f;
+
+    /// <summary>이 시각까지 치료를 받는 중 — 치료 담당이 매 프레임 늘린다 (TreatOrder)</summary>
+    public float TreatedUntil { get; set; }
+
     /// <summary>점유 중인 요양 시설 (없으면 null)</summary>
     private RecuperationBed currentBed;
 
@@ -281,7 +290,7 @@ public class EmployeeAI : MonoBehaviour
     void Update()
     {
         if (!enableAutonomousBehavior || employee == null) return;
-        if (employee.State == EmployeeState.Dead)          return;
+        if (employee.IsIncapacitated)          return;
         if (employee.State == EmployeeState.MentalBreak)   return;
         if (draft != null && draft.IsDrafted)              return;
 
@@ -360,7 +369,7 @@ public class EmployeeAI : MonoBehaviour
     private void OnHourChanged(int newHour)
     {
         if (!enableAutonomousBehavior || employee == null) return;
-        if (employee.State == EmployeeState.Dead)          return;
+        if (employee.IsIncapacitated)          return;
         if (employee.State == EmployeeState.MentalBreak)   return;
         if (draft != null && draft.IsDrafted)              return;
 
@@ -1162,7 +1171,8 @@ public class EmployeeAI : MonoBehaviour
                stats != null &&
                stats.Stats.health < stats.Stats.maxHealth * recuperateEndRatio)
         {
-            stats.ModifyHealth(bed.HealPerSecond * Time.deltaTime);
+            float treat = Time.time < TreatedUntil ? TREATMENT_HEAL_MULTIPLIER : 1f;
+            stats.ModifyHealth(bed.HealPerSecond * treat * Time.deltaTime);
             await UniTask.Yield(GameLoop.Frame, ct);
         }
 
@@ -1530,7 +1540,7 @@ public class EmployeeAI : MonoBehaviour
     {
         var mgr = EquipmentStorageManager.instance;
         if (mgr == null || movement == null) return;
-        if (employee.State == EmployeeState.Dead) return;
+        if (employee.IsIncapacitated) return;
 
         var armory = mgr.GetNearestArmory(transform.position);
         if (armory == null)
@@ -1568,7 +1578,7 @@ public class EmployeeAI : MonoBehaviour
     /// <summary>외부(스케줄 변경 등)에서 즉시 재결정을 요청합니다.</summary>
     public void ForceReevaluate()
     {
-        if (employee == null || employee.State == EmployeeState.Dead) return;
+        if (employee == null || employee.IsIncapacitated) return;
         MakeDecision();
     }
 

@@ -77,7 +77,7 @@ public class AbnormalBehaviorAttackBuilding : AbnormalBehaviorBase
 
     public override void Tick(Employee employee, float deltaTime)
     {
-        if (employee == null || employee.State == EmployeeState.Dead) return;
+        if (employee == null || employee.IsIncapacitated) return;
 
         var state = GetOrCreateState(employee);
         var movement = employee.GetComponent<EmployeeMovement>();

@@ -19,4 +19,4 @@ MonoBehaviour:
   - item: {fileID: 11400000, guid: a4e86eeb43ed45ba903087769457e0c9, type: 2}
     amount: 5
   craftingTime: 210
-  requiresResearch: 0
+  requiresResearch: 1

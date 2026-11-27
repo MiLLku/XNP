@@ -544,7 +544,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     public void AssignWork(WorkOrder workOrder, IWorkTarget target)
     {
         if (target == null || workOrder == null ||
-            employee.State == EmployeeState.Dead || employee.State == EmployeeState.MentalBreak)
+            employee.IsIncapacitated || employee.State == EmployeeState.MentalBreak)
             return;
 
         if (currentWorkTarget != null)
@@ -568,6 +568,22 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         if (target is BuildingHaulOrder buildingHaulOrder)
         {
             AssignBuildingHaulWork(workOrder, buildingHaulOrder);
+            return;
+        }
+
+        // 치료 — 쓰러진 동료 소생(옮기기 포함), 요양 중인 동료 돌보기
+        if (target is RescueOrder rescue)
+        {
+            currentWorkOrder = workOrder; currentWorkTarget = rescue; currentWork = WorkType.Treatment;
+            employee.SetState(EmployeeState.Moving);
+            RescueWorkAsync(rescue, RestartWorkTask()).Forget();
+            return;
+        }
+        if (target is TreatOrder treat)
+        {
+            currentWorkOrder = workOrder; currentWorkTarget = treat; currentWork = WorkType.Treatment;
+            employee.SetState(EmployeeState.Moving);
+            TreatWorkAsync(treat, RestartWorkTask()).Forget();
             return;
         }
         // ────────────────────────────────────────────────────────────────────
@@ -728,7 +744,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     {
         if (craftingOrder == null) return;
 
-        if (employee.State == EmployeeState.Dead || employee.State == EmployeeState.MentalBreak)
+        if (employee.IsIncapacitated || employee.State == EmployeeState.MentalBreak)
             return;
 
         if (currentWorkTarget != null)
@@ -1497,7 +1513,7 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
     public void AssignResearchWork(ResearchWorkbench bench, Vector3 workPos)
     {
         if (bench == null) return;
-        if (employee.State == EmployeeState.Dead || employee.State == EmployeeState.MentalBreak) return;
+        if (employee.IsIncapacitated || employee.State == EmployeeState.MentalBreak) return;
 
         if (currentWorkTarget != null || currentResearchBench != null)
         {
@@ -1807,9 +1823,111 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         return workCts.Token;
     }
 
+    #region 치료 (소생·돌보기)
+
+    /// <summary>옮기는 중인 쓰러진 동료 (작업이 끊기면 발밑에 내려놓는다)</summary>
+    private EmployeeDowned carriedPatient;
+    /// <summary>소생용으로 잡아 둔 의료 침대</summary>
+    private MedicalBed reservedMedicalBed;
+
+    private void ReleaseRescue(bool putDown)
+    {
+        if (carriedPatient != null)
+        {
+            if (putDown && carriedPatient.Carrier == employee) carriedPatient.PutDown(transform.position);
+            if (reservedMedicalBed != null) reservedMedicalBed.Release(carriedPatient.GetComponent<Employee>());
+        }
+        carriedPatient = null;
+        reservedMedicalBed = null;
+    }
+
+    private async UniTask<bool> WalkToAsync(Vector3 pos, Func<bool> stillValid, CancellationToken ct)
+    {
+        bool arrived = false, failed = false;
+        employee.SetState(EmployeeState.Moving);
+        movement.MoveTo(pos, onComplete: () => arrived = true, onFailed: () => failed = true);
+        await UniTask.WaitUntil(() => arrived || failed || !stillValid(), GameLoop.Frame, ct);
+        if (!arrived && !failed) movement.StopMoving();
+        return arrived && stillValid();
+    }
+
+    /// <summary>소생: 환자에게 가서 들고 → 침대로 옮겨 → 소생 작업 → 깨운다</summary>
+    private async UniTaskVoid RescueWorkAsync(RescueOrder order, CancellationToken ct)
+    {
+        var patient = order.patient;
+        var downed = patient != null ? patient.GetComponent<EmployeeDowned>() : null;
+        Func<bool> valid = () => patient != null && patient.IsDowned && downed != null &&
+                                 (downed.Carrier == null || downed.Carrier == employee);
+
+        if (!valid() || !RescueOrder.FindBed(patient, out var bedPos, out var medical)) { CancelWork(); return; }
+        if (medical != null && !medical.TryReserve(patient)) { CancelWork(); return; }
+        reservedMedicalBed = medical;
+        carriedPatient = downed;
+
+        // 1) 환자에게
+        if (!IsPositionInWorkRange(Vector3Int.FloorToInt(patient.transform.position)) &&
+            !await WalkToAsync(patient.transform.position, valid, ct))
+        { CancelWork(); return; }
+
+        // 2) 들어서 침대로
+        downed.PickUp(employee);
+        if (!await WalkToAsync(bedPos, valid, ct)) { CancelWork(); return; }
+        downed.PutDown(bedPos);
+
+        // 3) 소생
+        employee.SetState(EmployeeState.Working);
+        float total = order.GetWorkTime(), done = 0f;
+        while (done < total)
+        {
+            if (!valid() || employee.State != EmployeeState.Working) { CancelWork(); return; }
+            float speed = Mathf.Max(0.1f, GetWorkSpeed(WorkType.Treatment));
+            done += speed * Time.deltaTime;
+            workProgress = Mathf.Clamp01(done / total);
+            await UniTask.Yield(GameLoop.Frame, ct);
+        }
+
+        if (reservedMedicalBed != null) reservedMedicalBed.Release(patient);
+        carriedPatient = null;
+        reservedMedicalBed = null;
+        downed.Revive();
+        growth?.GainWorkExperience(WorkType.Treatment, Mathf.RoundToInt(total));
+        FinishWithdrawWork();
+    }
+
+    /// <summary>돌보기: 요양 중인 환자 곁에서 회복 배율을 켠 채 머문다 (요양이 끝나면 끝)</summary>
+    private async UniTaskVoid TreatWorkAsync(TreatOrder order, CancellationToken ct)
+    {
+        var patient = order.patient;
+        Func<bool> valid = () => order.PatientNeedsCare;
+        if (!valid()) { CancelWork(); return; }
+
+        if (!IsPositionInWorkRange(Vector3Int.FloorToInt(patient.transform.position)) &&
+            !await WalkToAsync(patient.transform.position, valid, ct))
+        { CancelWork(); return; }
+
+        employee.SetState(EmployeeState.Working);
+        float tended = 0f;
+        while (valid() && employee.State == EmployeeState.Working &&
+               IsPositionInWorkRange(Vector3Int.FloorToInt(patient.transform.position)))
+        {
+            order.Tend();
+            tended += Time.deltaTime;
+            workProgress = patient.Stats.maxHealth > 0f ? patient.Stats.health / patient.Stats.maxHealth : 0f;
+            await UniTask.Yield(GameLoop.Frame, ct);
+        }
+
+        order.CompleteWork(employee);
+        growth?.GainWorkExperience(WorkType.Treatment, Mathf.Max(1, Mathf.RoundToInt(tended)));
+        FinishWithdrawWork();
+    }
+
+    #endregion
+
     /// <summary>진행 중인 작업 실행을 취소합니다.</summary>
     private void CancelWorkTask()
     {
+        ReleaseRescue(putDown: true);
+
         // 운반 도중 끊기면 들고 있던 더미는 지역 변수와 함께 사라진다 — 발밑에 내려놓는다
         if (carriedPile != null)
         {

@@ -141,6 +141,8 @@ public class StoragePanel : BasePanel
             hintText.text = slots.Count > capacity
                 ? $"{used}/{capacity}칸 · 칸 초과 {slots.Count - capacity}개 (임시 보관)"
                 : $"{used}/{capacity}칸";
+            if (source is Stockpile sp && sp.IsBroken)
+                hintText.text = "부서짐 — 수리 전까지 넣을 수 없음 (꺼내기만) · " + hintText.text;
         }
     }
 }

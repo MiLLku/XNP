@@ -708,7 +708,7 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
         {
             foreach (var stockpile in stockpiles.All)
             {
-                if (stockpile == null || !stockpile.IsOperational || !CanUseSource(stockpile)) continue;
+                if (stockpile == null || !stockpile.CanWithdraw || !CanUseSource(stockpile)) continue;
                 reachable = stockCount;
                 break; // 모든 창고는 전역 재고를 공유한다.
             }
@@ -726,7 +726,7 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
         {
             foreach (var stockpile in stockpiles.All)
             {
-                if (stockpile != null && stockpile.IsOperational &&
+                if (stockpile != null && stockpile.CanWithdraw &&
                     TryGetDeliveryPosition(Vector2Int.FloorToInt(stockpile.GetWithdrawPosition()), out position))
                     return true;
             }

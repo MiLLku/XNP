@@ -190,7 +190,7 @@ public class SpitterBehavior : MonoBehaviour, IXenopsBehavior
 
     private void Fire()
     {
-        if (_target == null || _target.State == EmployeeState.Dead)
+        if (_target == null || _target.IsIncapacitated)
         {
             _state = State.Idle;
             return;

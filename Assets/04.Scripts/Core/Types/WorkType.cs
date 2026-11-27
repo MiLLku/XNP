@@ -35,7 +35,9 @@ public enum WorkType
     /// <summary>단련 — 단련장에서 레벨업. 누구나 가능, 결격·능력과 무관 (지정된 직원만 맡음)</summary>
     Training,
     /// <summary>심부름 — 능력치와 무관한 잡일(물 퍼내기 등). 누구나 가능, 결격 대상이 아님</summary>
-    Errand
+    Errand,
+    /// <summary>치료 — 쓰러진 직원을 침대로 옮겨 소생시키고, 요양 중인 직원을 돌봐 회복을 빠르게 한다 (결격 가능)</summary>
+    Treatment
 }
 
 /// <summary>
@@ -53,6 +55,7 @@ public static class WorkTypeDefaults
     public static readonly WorkType[] BaseOrder =
     {
         WorkType.Recuperation,   // 맨 앞: 기본값에선 요양이 가장 먼저
+        WorkType.Treatment,      // 쓰러진 동료는 2시간 안에 소생시켜야 한다
         WorkType.Building,
         // 식량 — 끊기면 판이 끝난다
         WorkType.Cooking,

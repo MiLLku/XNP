@@ -202,7 +202,7 @@ public class EmployeeMental : MonoBehaviour
 
     void Update()
     {
-        if (employee == null || employee.State == EmployeeState.Dead) return;
+        if (employee == null || employee.IsIncapacitated) return;
 
         float dt = Time.deltaTime;
 

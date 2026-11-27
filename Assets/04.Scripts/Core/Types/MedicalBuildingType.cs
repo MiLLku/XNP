@@ -8,4 +8,7 @@ public enum MedicalBuildingType
 {
     /// <summary>임시 요양소 (2x2, 무전력, 동시 1명) — 정식 의료 건물 전 임시</summary>
     TempRecuperationBed = 3700,
+
+    /// <summary>의료 침대 (2x1, 주인 없음, 동시 1명) — 쓰러진 직원을 옮겨 소생시킨다</summary>
+    MedicalBed = 3704,
 }

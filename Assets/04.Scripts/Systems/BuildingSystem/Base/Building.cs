@@ -90,6 +90,13 @@ public class Building : MonoBehaviour, IHeatSource
     /// <summary>건물 기능 활성화 여부</summary>
     public bool IsFunctional => _isFunctional;
 
+    /// <summary>
+    /// 부서짐 — 체력 0이 됐지만 사라지지 않고 '사용 불가'로 남은 상태 (지금은 창고만, 사용자 결정).
+    /// 기능은 꺼지고, 직원이 건설 일로 수리하면(<see cref="BuildingRepairOrder"/>) 체력 가득·사용 가능으로 돌아온다.
+    /// </summary>
+    public bool IsBroken => _broken;
+    private bool _broken;
+
     /// <summary>현재 체력</summary>
     public int CurrentHealth => _currentHealth;
 
@@ -255,6 +262,7 @@ public class Building : MonoBehaviour, IHeatSource
             gridY = Mathf.FloorToInt(transform.position.y),
             currentHealth = _currentHealth,
             isFunctional = _isFunctional,
+            broken = _broken,
             customName = _customName,
             extraData = extra
         };
@@ -278,7 +286,11 @@ public class Building : MonoBehaviour, IHeatSource
         _isFunctional = saveData.isFunctional;
         _customName = saveData.customName ?? "";
 
-        if (!_isFunctional)
+        if (saveData.broken)
+        {
+            Break(silent: true);
+        }
+        else if (!_isFunctional)
         {
             SetVisualState(false);
             _collider.enabled = false;
@@ -367,8 +379,47 @@ public class Building : MonoBehaviour, IHeatSource
 
         if (_currentHealth <= 0)
         {
-            DestroyBuilding();
+            // 창고는 사라지지 않고 부서진 채 남는다 — 재고가 바닥에 쏟아지지 않게 (사용자 결정)
+            if (GetComponent<Stockpile>() != null) Break();
+            else DestroyBuilding();
         }
+    }
+
+    /// <summary>부서짐 — 사용 불가로 남긴다 (클릭은 되도록 콜라이더는 남긴다)</summary>
+    public void Break(bool silent = false)
+    {
+        _currentHealth = 0;
+        _broken = true;
+        if (_isFunctional)
+        {
+            _isFunctional = false;
+            SetVisualState(false);
+            DisableAllFunctions();
+        }
+        if (_collider != null) _collider.enabled = true;
+        // 창고 스크립트는 켜 둔다 — 꺼내기·보관함 창·수리 작업물 걸기를 그 스크립트가 한다 (넣기는 IsOperational이 막는다)
+        if (TryGetComponent(out Stockpile stockpile)) stockpile.enabled = true;
+
+        if (!silent)
+        {
+            string bName = buildingData != null ? buildingData.buildingName : name;
+            NotificationManager.instance?.PushLetter(new Letter
+            {
+                title = $"{bName} 부서짐",
+                body = $"{DisplayName}이(가) 부서져 사용할 수 없습니다. 안의 물건은 꺼낼 수 있지만 넣을 수는 없습니다.\n" +
+                       "직원이 건설 일로 수리하면 다시 쓸 수 있습니다.",
+                type = LetterType.Threat
+            });
+        }
+    }
+
+    /// <summary>수리 완료 — 체력 가득, 다시 사용 가능</summary>
+    public void Repair()
+    {
+        if (!_broken) return;
+        _broken = false;
+        if (buildingData != null) _currentHealth = buildingData.maxHealth;
+        RepairFoundation();
     }
 
     /// <summary>

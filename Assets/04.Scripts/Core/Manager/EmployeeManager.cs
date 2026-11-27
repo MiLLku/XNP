@@ -514,7 +514,9 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
 
         foreach (var esd in data.employees)
         {
-            EmployeeData empData = db.GetEmployeeData(esd.templateId);
+            // 무작위 생성 직원은 GameDatabase에 원래 없다 — 조회하면 'EmployeeData 없음' 경고만 쌓인다
+            bool generated = esd.generated != null && esd.generated.isGenerated;
+            EmployeeData empData = generated ? null : db.GetEmployeeData(esd.templateId);
 
             // 무작위 생성 직원: GameDatabase에 없음 → 저장된 스냅샷으로 런타임 재구성
             if (empData == null && esd.generated != null && esd.generated.isGenerated)
@@ -555,7 +557,7 @@ public class EmployeeManager : DestroySingleton<EmployeeManager>, ISaveModule
     {
         if (esd == null) return null;
         var db = GameDatabase.Instance;
-        if (empData == null && db != null) empData = db.GetEmployeeData(esd.templateId);
+        if (empData == null && db != null && !(esd.generated != null && esd.generated.isGenerated)) empData = db.GetEmployeeData(esd.templateId);
         if (empData == null && esd.generated != null && esd.generated.isGenerated)
             empData = RandomEmployeeGenerator.Rebuild(esd.generated, esd.templateId, esd.abilities, generationConfig);
         if (empData == null)

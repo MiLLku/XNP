@@ -180,7 +180,7 @@ public class GrapplerBehavior : MonoBehaviour, IWeaponWielder, IXenopsBehavior
             return;
         }
 
-        if (_target == null || _target.State == EmployeeState.Dead)
+        if (_target == null || _target.IsIncapacitated)
         {
             _state = State.Idle;
             return;

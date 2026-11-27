@@ -256,6 +256,18 @@ public class EmployeeManagePanel : BasePanel
         }
     }
 
+    /// <summary>이 직원을 고른 채로 직원 관리창을 연다 (다른 곳에서 — 예: '낡은 옷' 경고 목록)</summary>
+    public static void OpenFor(Employee emp)
+    {
+        var ui = UIManager.instance;
+        if (ui == null || emp == null) return;
+        var panel = ui.GetPanel<EmployeeManagePanel>(UIPanelType.EmployeeUI);
+        if (panel == null) return;
+        panel.selected = emp;
+        ui.ShowPanel(UIPanelType.EmployeeUI);
+        panel.Select(emp);
+    }
+
     private void Select(Employee emp)
     {
         selected = emp;
