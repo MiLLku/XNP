@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7bf4af0a018b1c4bb9016e3783a71e3, type: 3}
   m_Name: ColdSuit2
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
-  itemType: 386
+  itemType: 389
   itemName: "방한복 II"
   itemIcon: {fileID: 21300000, guid: 0bcd4873ee164b6184d030eb1dc7b7df, type: 3}
   description: "슈트 칸 방한복. 방한 +5로 이 옷만 착용해도 -15도까지 견딥니다."
