@@ -369,11 +369,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
         {
             if (RuntimeIDRegistry.instance == null) continue;
             var obj = RuntimeIDRegistry.instance.ResolveComponent<Xenops>(id);
-            if (obj != null)
-            {
-                spawnedEntities.Add(obj);
-                obj.ApplyThreatScaling(StageMultiplier, true); // 체력 비율은 유지한 채 단계 배율로 최대 체력 다시 맞춤
-            }
+            if (obj != null) spawnedEntities.Add(obj);
         }
 
         // 닫힌 거점·스포너 습격이 남긴 것 — 경비는 가장 가까운 남은 구조물을 다시 지킨다
@@ -383,9 +379,7 @@ public class RaidManager : DestroySingleton<RaidManager>, ISaveModule
             foreach (var id in data.raidSystem.lingeringIds)
             {
                 var obj = RuntimeIDRegistry.instance.ResolveComponent<Xenops>(id);
-                if (obj == null) continue;
-                lingering.Add(obj);
-                obj.ApplyThreatScaling(StageMultiplierFor(lingeringStage), true);
+                if (obj != null) lingering.Add(obj);
             }
         AnchorLingeringGuards();
 

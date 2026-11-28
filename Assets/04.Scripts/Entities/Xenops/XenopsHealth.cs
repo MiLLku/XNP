@@ -65,7 +65,7 @@ public class XenopsHealth : MonoBehaviour
     }
 
     /// <summary>불러온 체력 (최대 체력을 넘지 않게)</summary>
-    public void SetCurrentHealth(float hp) => currentHealth = Mathf.Clamp(hp, 1f, Mathf.Max(1f, maxHealth));
+    public void SetCurrentHealth(float hp) => currentHealth = Mathf.Min(hp > 0f ? hp : 1f, maxHealth);
 
     /// <summary>외부(Xenops.Initialize)에서도 직접 호출 가능.</summary>
     public void Initialize(float hp, float def)

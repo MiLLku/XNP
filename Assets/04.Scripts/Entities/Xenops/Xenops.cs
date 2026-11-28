@@ -73,8 +73,7 @@ public class Xenops : MonoBehaviour
     public float StatMultiplier { get; private set; } = 1f;
 
     /// <summary>
-    /// 위협 단계 배율을 건다. rescaleHealth면 최대 체력도 배율만큼 다시 채운다 (스폰 직후용 —
-    /// 불러온 개체는 저장된 체력을 지키도록 false).
+    /// 위협 단계 배율을 건다. rescaleHealth면 현재 체력 비율을 유지하며 최대 체력도 조정한다.
     /// </summary>
     public void ApplyThreatScaling(float multiplier, bool rescaleHealth)
     {
@@ -426,6 +425,7 @@ public class Xenops : MonoBehaviour
     /// </summary>
     public XenopsSaveData CreateSaveData()
     {
+        var health = GetComponent<XenopsHealth>();
         var saveData = new XenopsSaveData
         {
             instanceId = instanceId,
@@ -435,7 +435,10 @@ public class Xenops : MonoBehaviour
             posY = transform.position.y,
             infiltratedBuildingInstanceId = infiltratedBuildingInstanceId,
             equippedSlot = -1, // 직원 장착 제놉스는 폐지(제놉스 도감 → 장비 제작으로 대체)
-            health = GetComponent<XenopsHealth>() != null ? GetComponent<XenopsHealth>().CurrentHealth : 0f,
+            health = health != null ? health.CurrentHealth : 0f,
+            maxHealth = health != null ? health.MaxHealth : 0f,
+            defense = health != null ? health.Defense : 0f,
+            statMultiplier = StatMultiplier,
             buildProgress = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().Progress : -1f,
             builtSeconds = GetComponent<OutpostStructure>() != null ? GetComponent<OutpostStructure>().BuiltSeconds : 0f
         };
@@ -458,20 +461,30 @@ public class Xenops : MonoBehaviour
     /// <summary>
     /// 저장된 데이터에서 복원합니다.
     /// </summary>
-    public void RestoreFromSaveData(XenopsSaveData data, XenopsData template = null)
+    public void RestoreFromSaveData(XenopsSaveData data, XenopsData template = null, float? legacyRaidMultiplier = null)
     {
         // 프리팹에 데이터가 비어 있는 개체(침식 사수 등)는 템플릿으로 채운다 — 없으면 이름 Unknown·체력 0으로 복원됐다
         if (template != null) xenopsData = template;
-        if (xenopsData != null && xenopsData.xenopsType == XenopsType.Hostile)
-        {
-            var health = GetComponent<XenopsHealth>();
-            if (health != null) health.Initialize(xenopsData.hostileStats.maxHealth, xenopsData.hostileStats.defense); // 체력은 저장하지 않는다 — 가득 찬 채로
-        }
+        StatMultiplier = Mathf.Max(0.1f, data.statMultiplier > 0f ? data.statMultiplier : (legacyRaidMultiplier ?? 1f));
+        var health = GetComponent<XenopsHealth>();
+        bool hostile = xenopsData != null && xenopsData.xenopsType == XenopsType.Hostile;
+        if (health != null && hostile)
+            health.Initialize(xenopsData.hostileStats.maxHealth, xenopsData.hostileStats.defense);
 
-        if (data.health > 0f) GetComponent<XenopsHealth>()?.SetCurrentHealth(data.health);
         GetComponent<OutpostStructure>()?.RestoreProgress(data.buildProgress, data.builtSeconds);
         GetComponent<SpawnerStructure>()?.RestoreState(data.spawnerPattern, data.spawnerIndex, data.spawnerTimer);
         GetComponent<ErodedHuman>()?.Restore(data.erodedHuman);
+
+        if (health != null)
+        {
+            if (data.maxHealth > 0f)
+                health.Initialize(data.maxHealth, data.defense);
+            else if (hostile && legacyRaidMultiplier.HasValue)
+                health.Initialize(Mathf.Max(data.health, xenopsData.hostileStats.maxHealth * StatMultiplier),
+                    xenopsData.hostileStats.defense);
+
+            if (data.health > 0f) health.SetCurrentHealth(data.health);
+        }
 
         instanceId = data.instanceId;
         currentState = (XenopsState)data.state;

@@ -46,9 +46,23 @@ public class XenopsManager : DestroySingleton<XenopsManager>, ISaveModule
 
         if (data.xenopsEntities == null) return;
 
+        var raid = RaidManager.instance;
+        var raidSave = data.raidSystem;
+        var activeRaidIds = raidSave?.spawnedEntityIds != null ? new HashSet<int>(raidSave.spawnedEntityIds) : null;
+        var lingeringIds = raidSave?.lingeringIds != null ? new HashSet<int>(raidSave.lingeringIds) : null;
+
         foreach (var xenopsSaveData in data.xenopsEntities)
         {
-            RestoreXenops(xenopsSaveData);
+            // 구 세이브는 현재 체력만 있으므로 습격 정보로 최대 체력에 적용할 배율을 복원한다.
+            float? legacyRaidMultiplier = null;
+            if (xenopsSaveData.statMultiplier <= 0f && raid != null)
+            {
+                if (activeRaidIds?.Contains(xenopsSaveData.instanceId) == true)
+                    legacyRaidMultiplier = raid.StageMultiplierFor(raidSave.threatStage);
+                else if (lingeringIds?.Contains(xenopsSaveData.instanceId) == true)
+                    legacyRaidMultiplier = raid.StageMultiplierFor(raidSave.lingeringStage);
+            }
+            RestoreXenops(xenopsSaveData, legacyRaidMultiplier);
         }
 
         Debug.Log($"[XenopsManager] Restore 완료: {activeXenops.Count}개 제노프스 복원");
@@ -237,7 +251,7 @@ public class XenopsManager : DestroySingleton<XenopsManager>, ISaveModule
     /// <summary>
     /// 저장 데이터로부터 개별 제노프스를 복원합니다.
     /// </summary>
-    private void RestoreXenops(XenopsSaveData saveData)
+    private void RestoreXenops(XenopsSaveData saveData, float? legacyRaidMultiplier)
     {
         if (GameDatabase.Instance == null) return;
 
@@ -264,7 +278,7 @@ public class XenopsManager : DestroySingleton<XenopsManager>, ISaveModule
             return;
         }
 
-        xenops.RestoreFromSaveData(saveData, xenopsData);
+        xenops.RestoreFromSaveData(saveData, xenopsData, legacyRaidMultiplier);
         RegisterXenops(xenops);
     }
 

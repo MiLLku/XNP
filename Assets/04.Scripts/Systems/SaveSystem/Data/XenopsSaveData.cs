@@ -58,6 +58,11 @@ public class XenopsSaveData
     /// <summary>현재 체력 (0 = 구 세이브 — 가득 찬 채 복원)</summary>
     public float health;
 
+    /// <summary>저장 시 적용 중인 능력치. 값이 0인 최대 체력·배율은 이 필드가 없던 세이브를 뜻한다.</summary>
+    public float maxHealth;
+    public float defense;
+    public float statMultiplier;
+
     /// <summary>거점 구조물 건설 진행도 (-1 = 구조물 아님)</summary>
     public float buildProgress = -1f;
 
