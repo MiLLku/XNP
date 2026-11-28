@@ -92,6 +92,7 @@ public class EmployeeManagePanel : BasePanel
     private static readonly Color ROW_SELECTED = new Color(0.26f, 0.34f, 0.46f, 1f);
 
     private const int GRID_SIZE = 16;
+    private const string SKIP_EQUIPMENT_REASSIGN_CONFIRM = "XNP.SkipEquipmentReassignConfirm";
 
     private static readonly Color ARROW_ON  = Color.white;
     private static readonly Color ARROW_OFF = new Color(0.45f, 0.45f, 0.48f, 1f);
@@ -106,6 +107,7 @@ public class EmployeeManagePanel : BasePanel
     private int page;
     /// <summary>장비 선택 창이 보여 주는 칸 (창이 닫혀 있으면 null)</summary>
     private EquipmentSlot? windowSlot;
+    private GameObject equipmentReassignDialog;
 
     private SkillTreePanel skillPanel;
     private Vector2 homePosition;
@@ -178,6 +180,8 @@ public class EmployeeManagePanel : BasePanel
         base.OnClose();
     }
 
+    private void OnDisable() => CloseEquipmentReassignDialog();
+
     private void Update()
     {
         if (!gameObject.activeSelf) return;
@@ -185,7 +189,8 @@ public class EmployeeManagePanel : BasePanel
         // ESC: 스킬 트리·장비 선택 창이 열려 있으면 그것만, 아니면 이 창
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            if (IsSkillTreeOpen) CloseSkillTree();
+            if (equipmentReassignDialog != null) CloseEquipmentReassignDialog();
+            else if (IsSkillTreeOpen) CloseSkillTree();
             else if (IsEquipmentWindowOpen) CloseEquipmentWindow();
             else if (UIManager.instance != null) UIManager.instance.HidePanel(panelType);
             else OnClose();
@@ -270,6 +275,7 @@ public class EmployeeManagePanel : BasePanel
 
     private void Select(Employee emp)
     {
+        if (selected != emp) CloseEquipmentReassignDialog();
         selected = emp;
         RefreshListHighlight();
         RefreshDetail();
@@ -551,6 +557,7 @@ public class EmployeeManagePanel : BasePanel
 
     private void CloseEquipmentWindow()
     {
+        CloseEquipmentReassignDialog();
         windowSlot = null;
         if (equipmentWindow != null) equipmentWindow.gameObject.SetActive(false);
         if (!IsSkillTreeOpen) SetShifted(false);
@@ -575,10 +582,89 @@ public class EmployeeManagePanel : BasePanel
     {
         if (selected == null || entry == null || entry.data == null) return;
         if (entry.IsWorn && entry.wearer != selected) return;
+        if (!selected.TryGetComponent(out EmployeeAI ai)) return;
 
-        int instanceId = entry.IsWorn ? 0 : entry.instance.instanceId; // 0 = 해제
-        if (selected.TryGetComponent(out EmployeeAI ai)) ai.RequestEquipChange(entry.data.slot, instanceId);
+        int instanceId = entry.IsWorn ? 0 : entry.instance.instanceId;
+        var storage = EquipmentStorageManager.instance;
+        var owner = storage != null ? storage.GetReservedEmployee(instanceId) : null;
+        if (owner != null && owner != selected && PlayerPrefs.GetInt(SKIP_EQUIPMENT_REASSIGN_CONFIRM, 0) == 0)
+        {
+            ShowEquipmentReassignDialog(entry, owner, ai);
+            return;
+        }
+
+        ai.RequestEquipChange(entry.data.slot, instanceId, owner);
         RefreshDetail();
+    }
+
+    private void ShowEquipmentReassignDialog(EquipmentEntry entry, Employee owner, EmployeeAI recipient)
+    {
+        CloseEquipmentReassignDialog();
+        equipmentReassignDialog = new GameObject("EquipmentReassignDialog", typeof(Canvas),
+            typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvas = equipmentReassignDialog.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 900;
+        var scaler = equipmentReassignDialog.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+
+        var dim = new GameObject("Dim", typeof(Image));
+        dim.transform.SetParent(canvas.transform, false);
+        var dimRect = (RectTransform)dim.transform;
+        dimRect.anchorMin = Vector2.zero;
+        dimRect.anchorMax = Vector2.one;
+        dimRect.offsetMin = dimRect.offsetMax = Vector2.zero;
+        dim.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.65f);
+
+        var panel = new GameObject("Panel", typeof(RectTransform));
+        panel.transform.SetParent(canvas.transform, false);
+        RuntimeUI.SetupPanel(panel.transform, 460f);
+        RuntimeUI.Text(panel.transform, "장비 배정 변경", 24f);
+        RuntimeUI.Text(panel.transform, $"{owner.DisplayName}에게 예약된 {entry.Name} 장비를\n{selected.DisplayName}에게 다시 배정할까요?", 17f);
+
+        var row = RuntimeUI.Row(panel.transform, 8f);
+        row.gameObject.AddComponent<Image>().color = Color.clear;
+        var toggle = row.gameObject.AddComponent<Toggle>();
+        var box = new GameObject("Box", typeof(Image), typeof(LayoutElement));
+        box.transform.SetParent(row, false);
+        var layout = box.GetComponent<LayoutElement>();
+        layout.minWidth = 24f;
+        var boxImage = box.GetComponent<Image>();
+        boxImage.color = RuntimeUI.BTN;
+        var checkmark = new GameObject("Checked", typeof(Image)).GetComponent<Image>();
+        checkmark.transform.SetParent(box.transform, false);
+        checkmark.color = Color.white;
+        checkmark.raycastTarget = false;
+        var checkRect = checkmark.rectTransform;
+        checkRect.anchorMin = checkRect.anchorMax = new Vector2(0.5f, 0.5f);
+        checkRect.sizeDelta = new Vector2(12f, 12f);
+        toggle.targetGraphic = boxImage;
+        toggle.graphic = checkmark;
+        toggle.SetIsOnWithoutNotify(false);
+        RuntimeUI.Text(row, "다음부터 이 알림 안 보기", 16f, flexible: true);
+
+        var buttons = RuntimeUI.Row(panel.transform, 8f);
+        RuntimeUI.Btn(buttons, "취소", 100f, CloseEquipmentReassignDialog, RuntimeUI.BTN);
+        RuntimeUI.Btn(buttons, "배정 변경", 120f, () =>
+        {
+            bool skip = toggle.isOn;
+            CloseEquipmentReassignDialog();
+            if (recipient != null && recipient.RequestEquipChange(entry.data.slot, entry.instance.instanceId, owner) && skip)
+            {
+                PlayerPrefs.SetInt(SKIP_EQUIPMENT_REASSIGN_CONFIRM, 1);
+                PlayerPrefs.Save();
+            }
+            RefreshDetail();
+        }, RuntimeUI.BTN_ON);
+    }
+
+    private void CloseEquipmentReassignDialog()
+    {
+        if (equipmentReassignDialog == null) return;
+        equipmentReassignDialog.SetActive(false);
+        Destroy(equipmentReassignDialog);
+        equipmentReassignDialog = null;
     }
 
     /// <summary>
@@ -623,6 +709,7 @@ public class EmployeeManagePanel : BasePanel
         lines.Add(entry.IsWorn
             ? $"착용 중: {entry.wearer.DisplayName}"
             : $"보관 위치: {(storage != null ? storage.GetStorageName(entry.instance) : "보관소")}");
+        if (entry.reservedEmployee != null) lines.Add($"예약 직원: {entry.reservedEmployee.DisplayName}");
 
         EquipmentCell cell = cells.Find(c => c != null && c.Entry == entry);
         if (cell != null)

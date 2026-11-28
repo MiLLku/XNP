@@ -43,6 +43,7 @@ public class SpikeTrap : MonoBehaviour, IBuildingFunction, IBuildingExtraSeriali
     private bool _armed = true;
     private float _scanTimer;
     private WorkOrder _rearmWorkOrder;
+    internal float RearmWorkDone { get; private set; }
 
     // 함정 여럿이 같은 프레임에 제놉스 목록을 매번 새로 만들지 않게 한 번만 모은다
     private static readonly List<Xenops> s_hostiles = new List<Xenops>();
@@ -88,11 +89,7 @@ public class SpikeTrap : MonoBehaviour, IBuildingFunction, IBuildingExtraSeriali
             if (_scanTimer > 0f) return;
             _scanTimer = 1f;
             if (SaveManager.instance != null && SaveManager.instance.IsLoading) return;
-            if (WorkSystemManager.instance != null && !WorkSystemManager.instance.HasWorkOrder(_rearmWorkOrder))
-            {
-                _rearmWorkOrder = null;
-                EnsureRearmOrder();
-            }
+            EnsureRearmOrder();
             return;
         }
         if (_building == null || !_building.IsFunctional) return;
@@ -154,6 +151,7 @@ public class SpikeTrap : MonoBehaviour, IBuildingFunction, IBuildingExtraSeriali
     public void Rearm()
     {
         _armed = true;
+        RearmWorkDone = 0f;
         _rearmWorkOrder = null;
         ApplyVisual();
     }
@@ -168,11 +166,17 @@ public class SpikeTrap : MonoBehaviour, IBuildingFunction, IBuildingExtraSeriali
 
     #region 재장전 작업
 
-    private void EnsureRearmOrder()
+    internal void EnsureRearmOrder()
     {
-        if (_rearmWorkOrder != null || WorkSystemManager.instance == null) return;
-        _rearmWorkOrder = WorkSystemManager.instance.CreateWorkOrder($"함정 재장전: {name}", WorkType.Building, 0, 4);
+        var work = WorkSystemManager.instance;
+        if (_armed || !isActiveAndEnabled || work == null || work.HasWorkOrder(_rearmWorkOrder)) return;
+        _rearmWorkOrder = work.CreateWorkOrder($"함정 재장전: {name}", WorkType.Building, 0, 4);
         _rearmWorkOrder.AddTarget(new TrapRearmOrder(this));
+    }
+
+    internal void ChangeRearmWork(float amount)
+    {
+        if (!_armed) RearmWorkDone = Mathf.Clamp(RearmWorkDone + amount, 0f, RearmWork);
     }
 
     private void RemoveRearmOrder()
@@ -191,12 +195,16 @@ public class SpikeTrap : MonoBehaviour, IBuildingFunction, IBuildingExtraSeriali
 
     #endregion
 
-    #region 세이브 — 장전/해제 상태 (재장전 작업은 저장하지 않고, 해제된 채 불러오면 새로 건다)
+    #region 세이브 — 장전/해제 상태와 재장전 작업량
 
     [System.Serializable]
-    private class SaveState { public bool armed = true; }
+    private class SaveState
+    {
+        public bool armed = true;
+        public float rearmWorkDone;
+    }
 
-    public string SerializeExtra() => JsonUtility.ToJson(new SaveState { armed = _armed });
+    public string SerializeExtra() => JsonUtility.ToJson(new SaveState { armed = _armed, rearmWorkDone = RearmWorkDone });
 
     public void DeserializeExtra(string json)
     {
@@ -204,8 +212,8 @@ public class SpikeTrap : MonoBehaviour, IBuildingFunction, IBuildingExtraSeriali
         var s = JsonUtility.FromJson<SaveState>(json);
         if (s == null) return;
         _armed = s.armed;
+        RearmWorkDone = _armed ? 0f : Mathf.Clamp(s.rearmWorkDone, 0f, RearmWork);
         ApplyVisual();
-        // 재장전 작업은 여기서 걸지 않는다 — 불러오는 중이라 작업 목록이 아직 새로 채워지기 전이다. Update가 불러오기가 끝난 뒤 건다.
     }
 
     #endregion
@@ -213,12 +221,11 @@ public class SpikeTrap : MonoBehaviour, IBuildingFunction, IBuildingExtraSeriali
 
 /// <summary>
 /// 가시 함정 재장전 — 건설 일. 재료(나무 1)가 창고에 있을 때만 할 수 있고, 끝나면 창고에서 빼고 함정을 다시 장전한다.
-/// 저장하지 않는다 — 함정이 해제된 채 불러오면 함정이 새로 건다.
+/// 누적 작업량은 함정에 저장한다.
 /// </summary>
 public class TrapRearmOrder : IWorkTarget, IProgressiveWork, IExpiringWorkTarget
 {
     private readonly SpikeTrap trap;
-    private float accumulated;
     private bool completed;
 
     public TrapRearmOrder(SpikeTrap trap) { this.trap = trap; }
@@ -238,7 +245,7 @@ public class TrapRearmOrder : IWorkTarget, IProgressiveWork, IExpiringWorkTarget
 
     public void CompleteWork(Employee worker)
     {
-        if (completed || trap == null) return;
+        if (IsExpired) return;
         if (trap.RearmItem != null && trap.RearmAmount > 0)
         {
             if (InventoryManager.instance == null || !InventoryManager.instance.RemoveItem(trap.RearmItem, trap.RearmAmount)) return; // 재료가 사라졌으면 다음에
@@ -250,7 +257,7 @@ public class TrapRearmOrder : IWorkTarget, IProgressiveWork, IExpiringWorkTarget
     public void CancelWork(Employee worker) { }
 
     public float GetWorkAmount() => trap != null ? trap.RearmWork : 1f;
-    public float GetAccumulatedWork() => accumulated;
-    public void AddWork(float amount) { if (amount > 0f && !completed) accumulated = Mathf.Min(GetWorkAmount(), accumulated + amount); }
-    public void ReduceWork(float amount) { if (amount > 0f && !completed) accumulated = Mathf.Max(0f, accumulated - amount); }
+    public float GetAccumulatedWork() => trap != null ? trap.RearmWorkDone : 0f;
+    public void AddWork(float amount) { if (amount > 0f && !IsExpired) trap.ChangeRearmWork(amount); }
+    public void ReduceWork(float amount) { if (amount > 0f && !IsExpired) trap.ChangeRearmWork(-amount); }
 }

@@ -175,6 +175,8 @@ public class EmployeeAI : MonoBehaviour
 
     /// <summary>시각 변경 메시지 구독 핸들 (OnDisable에서 해지)</summary>
     private IDisposable hourSubscription;
+    private int pendingEquipmentId;
+    private Action finishEquipmentMove;
 
     #endregion
 
@@ -199,6 +201,7 @@ public class EmployeeAI : MonoBehaviour
 
     void OnDisable()
     {
+        CancelEquipChange();
         hourSubscription?.Dispose();
         hourSubscription = null;
 
@@ -243,6 +246,8 @@ public class EmployeeAI : MonoBehaviour
     /// </summary>
     private void OnEmployeeStateChanged(EmployeeState newState)
     {
+        if (newState != EmployeeState.Moving) CancelEquipChange();
+
         // 무언가를 실제로 시작했다면 그동안의 실패는 없던 일로 한다.
         if (newState == EmployeeState.Working ||
             newState == EmployeeState.Resting ||
@@ -289,6 +294,13 @@ public class EmployeeAI : MonoBehaviour
 
     void Update()
     {
+        if (finishEquipmentMove != null)
+        {
+            if (movement.IsMovingFor(finishEquipmentMove)) return;
+            ClearEquipChange();
+            if (!movement.IsMoving && employee.State == EmployeeState.Moving) employee.SetState(EmployeeState.Idle);
+        }
+
         if (!enableAutonomousBehavior || employee == null) return;
         if (employee.IsIncapacitated)          return;
         if (employee.State == EmployeeState.MentalBreak)   return;
@@ -382,6 +394,8 @@ public class EmployeeAI : MonoBehaviour
 
     private void MakeDecision()
     {
+        if (finishEquipmentMove != null && movement.IsMovingFor(finishEquipmentMove)) return;
+
         // 스케줄 활동 결정
         ScheduleActivity scheduledActivity = schedule != null
             ? schedule.GetCurrentActivity()
@@ -1498,6 +1512,7 @@ public class EmployeeAI : MonoBehaviour
 
     private void CancelCurrentAction()
     {
+        CancelEquipChange();
         StopRecreation(); // 오락 이용 중이었다면 중단 (아니면 no-op)
         StopWashing();    // 세척 중이었다면 중단하고 슬롯 반납 (아니면 no-op)
         StopRecuperating(); // 요양 중이었다면 중단하고 슬롯 반납 (아니면 no-op)
@@ -1536,43 +1551,91 @@ public class EmployeeAI : MonoBehaviour
     /// </summary>
     /// <param name="slot">대상 슬롯</param>
     /// <param name="poolInstanceId">장착할 보관소 풀 인스턴스 ID (0 = 해제만)</param>
-    public void RequestEquipChange(EquipmentSlot slot, int poolInstanceId)
+    public bool RequestEquipChange(EquipmentSlot slot, int poolInstanceId, Employee expectedOwner = null)
     {
         var mgr = EquipmentStorageManager.instance;
-        if (mgr == null || movement == null) return;
-        if (employee.IsIncapacitated) return;
+        var equipment = employee != null ? employee.Equipment : null;
+        if (mgr == null || movement == null || equipment == null || !isActiveAndEnabled ||
+            employee.IsIncapacitated || employee.State == EmployeeState.MentalBreak ||
+            RunStatsManager.instance?.HasEnded == true) return false;
+
+        if (finishEquipmentMove != null && !movement.IsMovingFor(finishEquipmentMove))
+            ClearEquipChange();
+        if (poolInstanceId > 0 && poolInstanceId == pendingEquipmentId) return true;
 
         var armory = mgr.GetNearestArmory(transform.position);
         if (armory == null)
         {
             Debug.LogWarning($"[AI] {employee.DisplayName}: 장비 보관소가 없어 장착 지시를 수행할 수 없습니다.");
-            return;
+            return false;
+        }
+
+        if (poolInstanceId > 0)
+        {
+            var item = mgr.GetPoolInstance(poolInstanceId);
+            var data = item != null ? GameDatabase.Instance?.GetEquipmentData(item.equipmentId) : null;
+            if (data == null || data.slot != slot || equipment.GetEquipBlockReason(data) != null ||
+                !mgr.TryReserve(poolInstanceId, this, expectedOwner)) return false;
         }
 
         CancelCurrentAction();
         employee.SetState(EmployeeState.Moving);
+        pendingEquipmentId = poolInstanceId;
 
-        movement.MoveTo(armory.transform.position,
-            onComplete: () =>
+        bool failed = false;
+        finishEquipmentMove = () =>
+        {
+            if (armory == null || !armory.IsOperating)
             {
-                var equipment = employee.GetComponent<EmployeeEquipment>();
-                if (equipment == null) { employee.SetState(EmployeeState.Idle); return; }
+                ClearEquipChange();
+                failed = true;
+                OnActionFailed();
+                return;
+            }
 
-                // 기존 장비 반납 (풀로)
-                var old = equipment.UnequipToInstance(slot);
-                if (old != null) mgr.ReturnInstance(old);
-
-                // 새 장비 장착 (풀에서 꺼내기 — 그새 사라졌으면 취소)
-                if (poolInstanceId > 0)
+            if (poolInstanceId == 0)
+                mgr.ReturnInstance(equipment.UnequipToInstance(slot));
+            else
+            {
+                var item = mgr.TakeInstance(poolInstanceId, this);
+                if (item != null)
                 {
-                    var inst = mgr.TakeInstance(poolInstanceId);
-                    if (inst != null && !equipment.EquipInstance(slot, inst))
-                        mgr.ReturnInstance(inst); // 슬롯 불일치 등 실패 시 반납
+                    if (equipment.TryReplaceInstance(slot, item, out var previous))
+                        mgr.ReturnInstance(previous);
+                    else
+                        mgr.ReturnInstance(item);
                 }
+            }
 
-                employee.SetState(EmployeeState.Idle);
-            },
-            onFailed: OnActionFailed);
+            ClearEquipChange();
+            employee.SetState(EmployeeState.Idle);
+        };
+        movement.MoveTo(armory.transform.position, onComplete: finishEquipmentMove, onFailed: () =>
+        {
+            ClearEquipChange();
+            failed = true;
+            OnActionFailed();
+        });
+        return !failed;
+    }
+
+    public void CancelEquipChange()
+    {
+        if (finishEquipmentMove == null) return;
+
+        bool ownsMovement = movement != null && movement.IsMovingFor(finishEquipmentMove);
+        ClearEquipChange();
+        if (!ownsMovement) return;
+
+        movement.StopMoving();
+        if (employee.State == EmployeeState.Moving) employee.SetState(EmployeeState.Idle);
+    }
+
+    private void ClearEquipChange()
+    {
+        EquipmentStorageManager.instance?.ReleaseReservation(pendingEquipmentId, this);
+        pendingEquipmentId = 0;
+        finishEquipmentMove = null;
     }
 
     /// <summary>외부(스케줄 변경 등)에서 즉시 재결정을 요청합니다.</summary>

@@ -12,6 +12,7 @@ public class EquipmentEntry
 
     /// <summary>착용 중인 직원 (보관소에 있으면 null)</summary>
     public Employee wearer;
+    public Employee reservedEmployee;
 
     public bool IsWorn => wearer != null;
     public string Name => EquipmentQualities.Name(instance != null ? instance.quality : EquipmentQuality.Normal,
@@ -46,7 +47,7 @@ public static class EquipmentListing
         var storage = EquipmentStorageManager.instance;
         if (storage != null)
             foreach (var inst in storage.Pool)
-                Add(list, inst, null, db);
+                Add(list, inst, null, db, storage.GetReservedEmployee(inst.instanceId));
 
         if (EmployeeManager.instance != null)
             foreach (var emp in EmployeeManager.instance.AllEmployees)
@@ -63,14 +64,16 @@ public static class EquipmentListing
         return list;
     }
 
-    private static void Add(List<EquipmentEntry> list, EquipmentInstance inst, Employee wearer, GameDatabase db)
+    private static void Add(List<EquipmentEntry> list, EquipmentInstance inst, Employee wearer, GameDatabase db,
+        Employee reservedEmployee = null)
     {
         if (inst == null) return;
         list.Add(new EquipmentEntry
         {
             instance = inst,
             data = db != null ? db.GetEquipmentData(inst.equipmentId) : null,
-            wearer = wearer
+            wearer = wearer,
+            reservedEmployee = reservedEmployee
         });
     }
 }
@@ -129,15 +132,18 @@ public class EquipmentCell : MonoBehaviour
             nameLabel.gameObject.SetActive(has && sprite == null);
         }
 
-        SetWorn(has && entry.IsWorn);
+        SetStatus(has && entry.IsWorn, has && entry.reservedEmployee != null);
     }
 
-    /// <summary>착용 표시. 전용 아이콘(wornIcon.sprite)이 있으면 아이콘, 없으면 글자.</summary>
-    public void SetWorn(bool worn)
+    private void SetStatus(bool worn, bool reserved)
     {
-        if (wornMark != null) wornMark.SetActive(worn);
+        if (wornMark != null) wornMark.SetActive(worn || reserved);
         bool hasIcon = wornIcon != null && wornIcon.sprite != null;
         if (wornIcon != null) wornIcon.enabled = worn && hasIcon;
-        if (wornText != null) wornText.gameObject.SetActive(worn && !hasIcon);
+        if (wornText != null)
+        {
+            wornText.text = reserved ? "예약" : "착용";
+            wornText.gameObject.SetActive(reserved || (worn && !hasIcon));
+        }
     }
 }

@@ -957,6 +957,14 @@ public class ConstructionManager : DestroySingleton<ConstructionManager>, ISaveM
 
     public void PostRestore(SaveData data)
     {
+        // WorkSystemManager.Restore에서 작업 큐를 비우므로 운반 주문은 이후에 만든다.
+        foreach (var site in activeConstructionSites) site.RestoreMaterialDeliveries();
+        foreach (var building in FindObjectsByType<Building>())
+        {
+            building.EnsureRepairOrder();
+            if (building.TryGetComponent(out SpikeTrap trap)) trap.EnsureRearmOrder();
+        }
+
         // 드롭 아이템 모듈(SaveOrder 70)이 Restore에서 바닥 물건을 비우므로 환급은 모든 Restore가 끝난 뒤에 떨군다
         foreach (var (bData, gx, gy) in pendingRefunds) RefundOverlappedBuilding(bData, gx, gy);
         pendingRefunds.Clear();

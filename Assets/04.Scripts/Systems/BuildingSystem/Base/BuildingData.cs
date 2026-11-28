@@ -55,6 +55,7 @@ public class BuildingData : ScriptableObject
              "진행도는 건설 현장에 누적되므로 직원이 떠나도 사라지지 않습니다.")]
     [FormerlySerializedAs("constructionTime")]
     public float workAmount = 5f;
+    public float ConstructionWorkAmount => Mathf.Max(0.01f, workAmount);
 
     [Tooltip("건설에 필요한 자원 목록")]
     public List<ResourceCost> requiredResources;

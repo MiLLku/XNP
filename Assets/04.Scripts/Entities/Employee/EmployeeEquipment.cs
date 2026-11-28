@@ -114,6 +114,21 @@ public class EmployeeEquipment : MonoBehaviour
         return inst;
     }
 
+    public bool TryReplaceInstance(EquipmentSlot slot, EquipmentInstance inst, out EquipmentInstance previous)
+    {
+        var previousItem = GetItemInSlot(slot);
+        previous = GetInstanceInSlot(slot);
+        if (!EquipInstance(slot, inst))
+        {
+            previous = null;
+            return false;
+        }
+
+        if (previous == null && previousItem != null)
+            previous = EquipmentStorageManager.instance?.NewInstance(previousItem);
+        return true;
+    }
+
     /// <summary>슬롯의 장착 인스턴스 (내구도 조회용, 없으면 null)</summary>
     public EquipmentInstance GetInstanceInSlot(EquipmentSlot slot)
     {

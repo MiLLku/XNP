@@ -14,6 +14,7 @@ public class RunStatsSaveData
     public int staffHired;
     public int staffDead;
     public bool ended;
+    public bool victory;
 
     /// <summary>게임 난이도 (ThreatDifficulty.order, 구 세이브에는 없음 — 1 = 보통)</summary>
     public int difficulty = 1;
@@ -185,19 +186,25 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
     {
         if (stats.ended) return;
         stats.ended = true;
+        stats.victory = victory;
         TimeManager.instance?.ForcePause();
 
-        var result = new RunResult
+        var result = CreateResult();
+        RunEnded?.Invoke(result);
+        ShowResult(result);
+    }
+
+    private RunResult CreateResult()
+    {
+        return new RunResult
         {
-            victory       = victory,
+            victory       = stats.victory,
             daysSurvived  = DayCycle.instance != null ? DayCycle.instance.Day : 0,
             deepestDepth  = stats.deepestDepth,
             raidsSurvived = stats.raidsSurvived,
             staffHired    = stats.staffHired,
             staffDead     = stats.staffDead,
         };
-        RunEnded?.Invoke(result);
-        ShowResult(result);
     }
 
     private void ShowResult(RunResult r)
@@ -231,8 +238,9 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
         RuntimeUI.Text(panel.transform, $"채용한 직원: {r.staffHired}명 · 잃은 직원: {r.staffDead}명", 20);
 
         var row = RuntimeUI.Row(panel.transform, 12);
-        RuntimeUI.Btn(row, "메인 메뉴", 190, MainMenuController.GoToMenu, RuntimeUI.BTN);
-        RuntimeUI.Btn(row, "새 게임", 190, NewGame, RuntimeUI.BTN_ON);
+        RuntimeUI.Btn(row, r.victory ? "메인 메뉴로 돌아가기" : "메인 메뉴",
+            r.victory ? 220 : 190, MainMenuController.GoToMenu, RuntimeUI.BTN);
+        RuntimeUI.Btn(row, "새 게임", r.victory ? 160 : 190, NewGame, RuntimeUI.BTN_ON);
     }
 
     private static void NewGame()
@@ -252,16 +260,32 @@ public class RunStatsManager : DestroySingleton<RunStatsManager>, ISaveModule
     public void Restore(SaveData data)
     {
         stats = data.runStats ?? new RunStatsSaveData();
-        stats.ended = false; // 끝난 런을 저장해 두었어도 불러오면 다시 판정
         sawStaff = false;
         if (resultScreen != null) Destroy(resultScreen);
     }
 
     /// <summary>
-    /// 불러온 런은 이미 시작 직원이 생긴 뒤다 — 직원이 모두 죽은 채 저장된 세이브를 불러오면 바로 결과 화면이 떠야 한다.
-    /// (Restore에서 sawStaff를 끄기만 해서, 전멸 세이브를 불러오면 런이 영영 끝나지 않았다)
+    /// 종료한 회차의 결과를 복원한다. 구 세이브의 승리는 완료된 장치로 알아낸다.
+    /// 종료 판정 직전에 저장한 전멸 상태는 다음 Update에서 판정한다.
     /// </summary>
-    public void PostRestore(SaveData data) { sawStaff = true; }
+    public void PostRestore(SaveData data)
+    {
+        sawStaff = true;
+        if (!stats.victory)
+        {
+            foreach (var device in FindObjectsByType<PurificationDevice>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (!device.IsCompleted) continue;
+                stats.ended = true;
+                stats.victory = true;
+                break;
+            }
+        }
+
+        if (!stats.ended) return;
+        TimeManager.instance?.ForcePause();
+        ShowResult(CreateResult());
+    }
 
     #endregion
 }

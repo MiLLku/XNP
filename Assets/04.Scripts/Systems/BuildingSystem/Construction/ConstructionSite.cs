@@ -462,7 +462,7 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
     }
 
     /// <summary>완료에 필요한 총 작업량 (BuildingData.workAmount).</summary>
-    public float WorkAmount => buildingData != null ? Mathf.Max(0.01f, buildingData.workAmount) : 5f;
+    public float WorkAmount => buildingData != null ? buildingData.ConstructionWorkAmount : 5f;
 
     /// <summary>지금까지 누적된 작업량.</summary>
     public float AccumulatedWork => accumulatedWork;
@@ -938,8 +938,7 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
     /// 저장된 데이터로 건설 현장을 복원합니다.
     /// 작업 주문은 생성하지 않습니다 (WorkSystemManager에서 별도 복원).
     ///
-    /// 자재 운반 상태(pending/delivered/ready)도 복원하며,
-    /// 미도착 자재가 남아 있으면 WithdrawOrder를 재생성합니다 (직원이 운반 재개).
+    /// 자재 운반 상태(pending/delivered/ready)도 복원합니다.
     /// </summary>
     public void RestoreFromSaveData(ConstructionSiteSaveData saveData, BuildingData data)
     {
@@ -996,23 +995,16 @@ public class ConstructionSite : MonoBehaviour, IMaterialReceiver
                 }
             }
         }
-
-        // 미도착 자재가 남아있으면 WithdrawOrder 재생성 (운반 재개)
-        if (!IsMaterialsReady && _pendingMaterials.Count > 0)
-        {
-            RecreateWithdrawOrdersFromPending();
-        }
     }
 
     /// <summary>
-    /// 복원 후 또는 외부 트리거로, 현재 _pendingMaterials 기준으로
-    /// WithdrawOrder들을 다시 생성합니다 (직원이 운반 재개).
-    /// _pendingMaterials는 클리어하지 않고 그대로 사용합니다.
+    /// 작업 시스템의 복원이 끝난 뒤 미도착 자재 운반을 다시 등록합니다.
     /// </summary>
-    private void RecreateWithdrawOrdersFromPending()
+    internal void RestoreMaterialDeliveries()
     {
         if (_pendingMaterials.Count == 0 || IsMaterialsReady) return;
         if (WorkSystemManager.instance == null) return;
+        if (_withdrawWorkOrder != null && WorkSystemManager.instance.HasWorkOrder(_withdrawWorkOrder)) return;
 
         _withdrawWorkOrder = WorkSystemManager.instance.CreateWorkOrder(
             $"건설 자재 운반(재개): {buildingData.buildingName}",

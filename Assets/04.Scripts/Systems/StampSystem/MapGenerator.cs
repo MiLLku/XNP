@@ -1513,7 +1513,12 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
         }
     }
 
-    public void PostRestore(SaveData data) => ReapplyOccupancyAfterLoadAsync().Forget();
+    public void PostRestore(SaveData data)
+    {
+        ErosionFloorField.instance?.RefreshFromMap();
+        EntityErosionField.instance?.Repaint();
+        ReapplyOccupancyAfterLoadAsync().Forget();
+    }
 
     /// <summary>
     /// 저장 대상으로 표시된(EntityDefinition.persistInSave) 모든 개체의 위치와 성장 상태를 담습니다.
@@ -1547,7 +1552,8 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                 entityType        = (int)ToObjectType(def.kind),
                 variantId         = def.id,
                 remainingResource = growth,
-                buildingHealth    = building != null && building.buildingData != null ? building.CurrentHealth : 0
+                buildingHealth    = building != null && building.buildingData != null ? building.CurrentHealth : 0,
+                buildingRepairWork = building != null ? building.RepairWorkDone : 0f
             });
         }
 
@@ -1673,7 +1679,8 @@ public class MapGenerator : DestroySingleton<MapGenerator>, ISaveModule
                 Mathf.FloorToInt(t.transform.position.x) == saved.x &&
                 Mathf.FloorToInt(t.transform.position.y) == saved.y &&
                 t.GetComponentInChildren<Building>() != null);
-            if (identity != null) identity.GetComponentInChildren<Building>().RestoreHealth(saved.buildingHealth);
+            if (identity != null)
+                identity.GetComponentInChildren<Building>().RestoreHealth(saved.buildingHealth, saved.buildingRepairWork);
         }
     }
 

@@ -53,7 +53,7 @@ public class BuildOrder : IWorkTarget, IProgressiveWork
     /// <inheritdoc/>
     public float GetWorkAmount()
         => constructionSite != null ? constructionSite.WorkAmount
-                                    : (buildingData != null ? buildingData.workAmount : 5f);
+                                    : (buildingData != null ? buildingData.ConstructionWorkAmount : 5f);
 
     /// <inheritdoc/>
     public float GetAccumulatedWork()

@@ -91,13 +91,13 @@ public class EntityErosionField : DestroySingleton<EntityErosionField>
         tickTimer += Time.deltaTime;
         if (tickTimer < Mathf.Max(0.05f, tickInterval)) return;
 
-        tickTimer = 0f;
         Repaint();
     }
 
     /// <summary>표시 레이어를 지우고 등록된 발원지를 다시 찍습니다.</summary>
-    private void Repaint()
+    internal void Repaint()
     {
+        tickTimer = 0f;
         // 지난 틱에 쓴 칸만 지운다 — 전체 40,000칸을 훑지 않는다
         foreach (var cell in writtenCells)
             values[cell.x, cell.y] = 0f;

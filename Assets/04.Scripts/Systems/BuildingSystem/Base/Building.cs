@@ -96,6 +96,12 @@ public class Building : MonoBehaviour, IHeatSource
     /// </summary>
     public bool IsBroken => _broken;
     private bool _broken;
+    private WorkOrder _repairOrder;
+
+    public bool NeedsRepair => !_tilesReleased && buildingData != null && buildingData.maxHealth > 0
+        && (_broken || (_currentHealth > 0 && _currentHealth < buildingData.maxHealth));
+    public float RepairWorkRequired => buildingData != null ? buildingData.ConstructionWorkAmount : 0.01f;
+    public float RepairWorkDone { get; private set; }
 
     /// <summary>현재 체력</summary>
     public int CurrentHealth => _currentHealth;
@@ -263,15 +269,17 @@ public class Building : MonoBehaviour, IHeatSource
             currentHealth = _currentHealth,
             isFunctional = _isFunctional,
             broken = _broken,
+            repairWork = RepairWorkDone,
             customName = _customName,
             extraData = extra
         };
     }
 
     /// <summary>맵 개체로 복원되는 건물(시작 방 문 등)의 깎인 체력만 되돌린다</summary>
-    public void RestoreHealth(int health)
+    public void RestoreHealth(int health, float repairWork)
     {
         if (buildingData != null) _currentHealth = Mathf.Clamp(health, 1, buildingData.maxHealth);
+        RestoreRepairWork(repairWork);
     }
 
     /// <summary>
@@ -283,19 +291,24 @@ public class Building : MonoBehaviour, IHeatSource
     {
         _instanceId = saveData.instanceId;
         _currentHealth = saveData.currentHealth;
-        _isFunctional = saveData.isFunctional;
         _customName = saveData.customName ?? "";
 
         if (saveData.broken)
         {
             Break(silent: true);
         }
-        else if (!_isFunctional)
+        else
         {
-            SetVisualState(false);
-            _collider.enabled = false;
-            DisableAllFunctions();
+            _isFunctional = saveData.isFunctional;
+            if (!_isFunctional)
+            {
+                SetVisualState(false);
+                _collider.enabled = false;
+                DisableAllFunctions();
+            }
         }
+
+        RestoreRepairWork(saveData.repairWork);
 
         if (_instanceId >= 0 && RuntimeIDRegistry.instance != null)
         {
@@ -383,6 +396,7 @@ public class Building : MonoBehaviour, IHeatSource
             if (GetComponent<Stockpile>() != null) Break();
             else DestroyBuilding();
         }
+        else EnsureRepairOrder();
     }
 
     /// <summary>부서짐 — 사용 불가로 남긴다 (클릭은 되도록 콜라이더는 남긴다)</summary>
@@ -390,10 +404,10 @@ public class Building : MonoBehaviour, IHeatSource
     {
         _currentHealth = 0;
         _broken = true;
+        SetVisualState(false);
         if (_isFunctional)
         {
             _isFunctional = false;
-            SetVisualState(false);
             DisableAllFunctions();
         }
         if (_collider != null) _collider.enabled = true;
@@ -402,24 +416,47 @@ public class Building : MonoBehaviour, IHeatSource
 
         if (!silent)
         {
+            EnsureRepairOrder();
             string bName = buildingData != null ? buildingData.buildingName : name;
             NotificationManager.instance?.PushLetter(new Letter
             {
                 title = $"{bName} 부서짐",
                 body = $"{DisplayName}이(가) 부서져 사용할 수 없습니다. 안의 물건은 꺼낼 수 있지만 넣을 수는 없습니다.\n" +
-                       "직원이 건설 일로 수리하면 다시 쓸 수 있습니다.",
+                       "직원이 자재 없이 건설 일로 수리하면 다시 쓸 수 있습니다.",
                 type = LetterType.Threat
             });
         }
     }
 
-    /// <summary>수리 완료 — 체력 가득, 다시 사용 가능</summary>
+    internal void EnsureRepairOrder()
+    {
+        var work = WorkSystemManager.instance;
+        if (!NeedsRepair || work == null || work.HasWorkOrder(_repairOrder)) return;
+
+        _repairOrder = work.CreateWorkOrder($"수리: {DisplayName}", WorkType.Building, 0, 2);
+        _repairOrder.AddTarget(new BuildingRepairOrder(this));
+    }
+
+    internal void ChangeRepairWork(float amount)
+    {
+        if (NeedsRepair) RepairWorkDone = Mathf.Clamp(RepairWorkDone + amount, 0f, RepairWorkRequired);
+    }
+
+    private void RestoreRepairWork(float work)
+    {
+        RepairWorkDone = NeedsRepair ? Mathf.Clamp(work, 0f, RepairWorkRequired) : 0f;
+    }
+
+    /// <summary>체력을 회복하고 부서진 건물의 기능을 다시 켭니다.</summary>
     public void Repair()
     {
-        if (!_broken) return;
+        if (!NeedsRepair) return;
+        bool wasBroken = _broken;
         _broken = false;
-        if (buildingData != null) _currentHealth = buildingData.maxHealth;
-        RepairFoundation();
+        _currentHealth = buildingData.maxHealth;
+        RepairWorkDone = 0f;
+        _repairOrder = null;
+        if (wasBroken) RepairFoundation();
     }
 
     /// <summary>
@@ -752,6 +789,10 @@ private void ReturnPartialResources()
 
     void OnDestroy()
     {
+        var work = WorkSystemManager.instance;
+        if (work != null && work.HasWorkOrder(_repairOrder))
+            work.RemoveWorkOrder(_repairOrder, isCancellation: true);
+
         if (_instanceId >= 0 && RuntimeIDRegistry.instance != null)
         {
             RuntimeIDRegistry.instance.Unregister(_instanceId, this);

@@ -9,15 +9,12 @@ using UnityEngine.SceneManagement;
 ///     방 경계에 닿으면 타일 정의의 erosionOutput으로 방 침식도 올린다.
 ///   • 바깥에서도 위험하도록 개체 발원지 하나로 등록해, 발판 FLOOR_RADIUS칸 안의 직원에게 고정 침식을 붙인다.
 ///     발판이 여러 개여도 키가 하나라 겹쳐 쌓이지 않는다.
-///   • 습격 하나당 MAX_PER_RAID개까지만 깐다 (습격 시작 때 초기화).
 ///
-/// 발판 목록은 맵을 주기적으로 훑어 만든다 — 캐거나 불러와도 따로 등록·해제할 것이 없다.
+/// 발판 목록은 주기적으로, 그리고 세이브를 불러온 직후 맵을 훑어 만든다.
 /// 씬 배선 없이 스스로 생긴다.
 /// </summary>
 public class ErosionFloorField : DestroySingleton<ErosionFloorField>, IEntityErosionSource
 {
-    // shortcut: 임시 수치 — 밸런스 확정 시 데이터로 뺄 것
-    public const int MAX_PER_RAID = 20;
     private const float FLOOR_EROSION = 10f;
     private const float FLOOR_RADIUS = 2f;
     private const float RESCAN_INTERVAL = 3f;
@@ -25,12 +22,6 @@ public class ErosionFloorField : DestroySingleton<ErosionFloorField>, IEntityEro
     private readonly HashSet<Vector2Int> cells = new HashSet<Vector2Int>();
     private float rescanTimer;
     private bool registered;
-    private System.IDisposable subscription;
-
-    /// <summary>이번 습격에서 깐 발판 수</summary>
-    public int BuiltThisRaid { get; private set; }
-
-    public bool CanBuildMore => BuiltThisRaid < MAX_PER_RAID;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
@@ -49,14 +40,8 @@ public class ErosionFloorField : DestroySingleton<ErosionFloorField>, IEntityEro
             new GameObject("ErosionFloorField").AddComponent<ErosionFloorField>();
     }
 
-    private void Start()
-    {
-        subscription = GameMessageBus.Subscribe<RaidStartedMessage>(_ => BuiltThisRaid = 0);
-    }
-
     private void OnDestroy()
     {
-        subscription?.Dispose();
         if (registered) EntityErosionField.instance?.UnregisterSource(this);
     }
 
@@ -70,12 +55,12 @@ public class ErosionFloorField : DestroySingleton<ErosionFloorField>, IEntityEro
 
         rescanTimer -= Time.deltaTime;
         if (rescanTimer > 0f) return;
-        rescanTimer = RESCAN_INTERVAL;
-        Rescan();
+        RefreshFromMap();
     }
 
-    private void Rescan()
+    internal void RefreshFromMap()
     {
+        rescanTimer = RESCAN_INTERVAL;
         cells.Clear();
         var map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
         if (map == null) return;
@@ -86,11 +71,10 @@ public class ErosionFloorField : DestroySingleton<ErosionFloorField>, IEntityEro
     }
 
     /// <summary>
-    /// 발판을 깐다. 칸이 비어 있지 않거나, 몸이 겹치는 개체가 있거나, 이번 습격 몫을 다 썼으면 false.
+    /// 빈 칸에 발판을 깐다. 기존 지형이나 건물, 직원·적의 몸과 겹칠 수 없다.
     /// </summary>
     public bool TryPlace(Vector2Int cell)
     {
-        if (!CanBuildMore) return false;
         var map = MapGenerator.instance != null ? MapGenerator.instance.GameMapInstance : null;
         var renderer = MapGenerator.instance != null ? MapGenerator.instance.MapRendererInstance : null;
         if (map == null || renderer == null) return false;
@@ -104,7 +88,6 @@ public class ErosionFloorField : DestroySingleton<ErosionFloorField>, IEntityEro
         map.SetTile(cell.x, cell.y, (int)TileType.ErosionFloor);
         renderer.UpdateTileVisual(cell.x, cell.y);
         cells.Add(cell);
-        BuiltThisRaid++;
         return true;
     }
 

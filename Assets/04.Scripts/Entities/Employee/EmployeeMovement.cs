@@ -137,6 +137,8 @@ public class EmployeeMovement : MonoBehaviour
     /// <summary>현재 이동 중 여부</summary>
     public bool IsMoving => isMoving;
 
+    internal bool IsMovingFor(Action onArrival) => onReachDestination == onArrival;
+
     /// <summary>현재 낙하 중 여부</summary>
     public bool IsFalling => isFalling;
 

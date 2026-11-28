@@ -640,9 +640,12 @@ public class DebugManager : DestroySingleton<DebugManager>
     /// <summary>게임 속도 배수 1 → 3 → 10 → 1 (배속 버튼 값에 곱함)</summary>
     public void CycleGameSpeed()
     {
+        var timeManager = TimeManager.instance;
+        if (timeManager != null && timeManager.IsSpeedLocked) return;
+
         int i = System.Array.IndexOf(SpeedSteps, TimeManager.DebugSpeedMultiplier);
         TimeManager.DebugSpeedMultiplier = SpeedSteps[(i + 1) % SpeedSteps.Length];
-        TimeManager.instance?.ReapplyTimeScale();
+        timeManager?.ReapplyTimeScale();
         Debug.Log($"[DebugManager] 게임 속도 배수 ×{TimeManager.DebugSpeedMultiplier}");
     }
 

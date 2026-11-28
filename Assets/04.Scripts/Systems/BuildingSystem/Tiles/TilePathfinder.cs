@@ -16,6 +16,9 @@ public class TilePathfinder
     private readonly Vector2Int? removedTerrain;
     private const int EMPLOYEE_HEIGHT = 2;
 
+    // 물리로 움직이는 적은 옆 칸으로 진입할 공간이 있어야 아래로 떨어질 수 있다.
+    internal bool RequireClearDropEntry { get; set; }
+
     /// <summary>
     /// 돌파 모드 (적 전용 인스턴스) — 플레이어가 지은 건물(벽·문·바닥 등)을 비용을 치르고 지나갈 수 있는 칸으로 본다.
     /// 길이 막혔을 때 "어느 건물을 부수면 닿는가"를 찾는 데 쓴다. 자연 지형은 그대로 막힌다.
@@ -396,12 +399,21 @@ public class TilePathfinder
     {
         if (!IsValidPosition(to))    return false;
         if (Mathf.Abs(heightDiff) > 2) return false;
+        if (heightDiff < 0 && RequireClearDropEntry && !HasClearDropEntry(from, to)) return false;
 
         if (heightDiff > 0)
         {
             for (int y = from.y + 1; y <= to.y; y++)
                 if (!IsSpaceClear(to.x, y + EMPLOYEE_HEIGHT - 1)) return false;
         }
+
+        return true;
+    }
+
+    internal bool HasClearDropEntry(Vector2Int from, Vector2Int to)
+    {
+        for (int y = to.y + EMPLOYEE_HEIGHT; y < from.y + EMPLOYEE_HEIGHT; y++)
+            if (!IsSpaceClear(to.x, y, allowDestruction: false)) return false;
 
         return true;
     }
@@ -432,11 +444,11 @@ public class TilePathfinder
         return false;
     }
 
-    private bool IsSpaceClear(int x, int y)
+    private bool IsSpaceClear(int x, int y, bool allowDestruction = true)
     {
         if (!IsInBounds(new Vector2Int(x, y))) return false;
-        if (BreachMode && IsBreachable(new Vector2Int(x, y))) return true;
-        if (DigMode && IsDiggable(new Vector2Int(x, y))) return true;
+        if (allowDestruction && BreachMode && IsBreachable(new Vector2Int(x, y))) return true;
+        if (allowDestruction && DigMode && IsDiggable(new Vector2Int(x, y))) return true;
 
         int tileId = removedTerrain == new Vector2Int(x, y) ? 0 : gameMap.TileGrid[x, y];
         if (tileId == 0)

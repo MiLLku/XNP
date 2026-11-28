@@ -28,6 +28,9 @@ public class BuildingSaveData
     /// <summary>부서져 '사용 불가'로 남은 창고 (구 세이브 false)</summary>
     public bool broken;
 
+    /// <summary>수리에 쌓인 작업량 (구 세이브에서는 0)</summary>
+    public float repairWork;
+
     /// <summary>플레이어가 정한 이름 (없으면 빈 문자열)</summary>
     public string customName;
 

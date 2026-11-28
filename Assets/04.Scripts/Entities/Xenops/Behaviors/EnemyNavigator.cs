@@ -132,11 +132,11 @@ public class EnemyNavigator : MonoBehaviour
         if (_finderMap != map)
         {
             _finderMap = map;
-            _walkFinder = new TilePathfinder(map);
-            _breachFinder = new TilePathfinder(map) { BreachMode = true };
-            _buildFinder = new TilePathfinder(map) { BuildMode = true };
-            _breachBuildFinder = new TilePathfinder(map) { BreachMode = true, BuildMode = true };
-            _digFinder = new TilePathfinder(map) { BreachMode = true, DigMode = true };
+            _walkFinder = new TilePathfinder(map) { RequireClearDropEntry = true };
+            _breachFinder = new TilePathfinder(map) { RequireClearDropEntry = true, BreachMode = true };
+            _buildFinder = new TilePathfinder(map) { RequireClearDropEntry = true, BuildMode = true };
+            _breachBuildFinder = new TilePathfinder(map) { RequireClearDropEntry = true, BreachMode = true, BuildMode = true };
+            _digFinder = new TilePathfinder(map) { RequireClearDropEntry = true, BreachMode = true, DigMode = true };
         }
         return true;
     }
@@ -232,7 +232,7 @@ public class EnemyNavigator : MonoBehaviour
         var reach = ReachabilityMap.Current;
         bool canBreach = _xenops == null || _xenops.Data == null || _xenops.Data.canBreachBuildings;
         bool canBuild = (_xenops == null || _xenops.Data == null || _xenops.Data.canBuildFloor)
-                        && ErosionFloorField.instance != null && ErosionFloorField.instance.CanBuildMore;
+                        && ErosionFloorField.instance != null;
 
         // 직원을 가까운 순으로 (지키는 중이면 지키는 반경 안의 직원만)
         var staff = new List<Employee>();
@@ -291,7 +291,7 @@ public class EnemyNavigator : MonoBehaviour
         {
             var e = staff[i];
             var p = finder.FindPath(foot, FootOf(e.transform.position));
-            if (p == null || !WithinFloorBudget(p)) continue;
+            if (p == null) continue;
             TargetEmployee = e;
             _path.AddRange(p);
             TargetBuilding = FirstBlockingBuildingOnPath();
@@ -360,7 +360,7 @@ public class EnemyNavigator : MonoBehaviour
         for (int i = 0; i < Mathf.Min(cands.Count, MAX_BREACH_TARGETS); i++)
         {
             var p = finder.FindPath(foot, FootOf(cands[i].transform.position));
-            if (p == null || !WithinFloorBudget(p)) continue;
+            if (p == null) continue;
             _path.AddRange(p);
             TargetBuilding = FirstBlockingBuildingOnPath() ?? cands[i];
             TrimPathBefore(TargetBuilding);
@@ -393,7 +393,7 @@ public class EnemyNavigator : MonoBehaviour
             if (p != null) { TargetBuilding = cands[i]; _path.AddRange(p); return true; }
             if (breach == null) continue;
             p = breach.FindPath(foot, bf);
-            if (p == null || !WithinFloorBudget(p)) continue;
+            if (p == null) continue;
             _path.AddRange(p);
             TargetBuilding = FirstBlockingBuildingOnPath() ?? cands[i];
             TrimPathBefore(TargetBuilding);
@@ -406,15 +406,6 @@ public class EnemyNavigator : MonoBehaviour
     {
         var c = FootOf(b.transform.position);
         return _finderMap != null && (_finderMap.DoesTileBlockMovement(c.x, c.y) || b.GetComponent<Door>() != null);
-    }
-
-    /// <summary>이번 습격에 남은 발판 수로 이 길을 다 깔 수 있는지</summary>
-    private bool WithinFloorBudget(List<Vector2Int> p)
-    {
-        int need = 0;
-        foreach (var c in p) if (_buildFinder.NeedsBuiltFloor(c)) need++;
-        var field = ErosionFloorField.instance;
-        return need == 0 || (field != null && field.BuiltThisRaid + need <= ErosionFloorField.MAX_PER_RAID);
     }
 
     private Building FirstClosedDoorOnPath()
@@ -501,7 +492,10 @@ public class EnemyNavigator : MonoBehaviour
         // 같은 높이로 사다리를 벗어날 때도 이 방식이어야 사다리 꼭대기 옆 바닥 모서리에 걸리지 않는다
         // 발 칸은 몸 중심 기준이라 실제 발보다 한 칸 위로 잡힐 수 있다 — 바로 아래 사다리 꼭대기도 본다
         bool ladderHere = IsClimbable(foot) || IsClimbable(foot + Vector2Int.up) || IsClimbable(foot + Vector2Int.down);
-        if (ladderHere || (wp.y != foot.y && IsClimbable(wp)))
+        // 공중에서 현재 칸보다 낮은 칸을 출발점으로 잡았더라도, 사다리 진입로가 열릴 때까지 떨어진다.
+        bool enteringLadder = wp.y != foot.y && IsClimbable(wp)
+            && (wp.y > foot.y || wp.x == foot.x || _walkFinder.HasClearDropEntry(foot, wp));
+        if (ladderHere || enteringLadder)
         {
             _climbing = true;
             _rb.gravityScale = 0f;

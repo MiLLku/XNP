@@ -37,6 +37,7 @@ public class TimeManager : DestroySingleton<TimeManager>
     // 공개 프로퍼티
     public int CurrentSpeed => currentSpeed;
     public bool IsPaused => _isPaused;
+    internal bool IsSpeedLocked => RunStatsManager.instance != null && RunStatsManager.instance.HasEnded;
 
     #region Unity 생명주기
 
@@ -90,6 +91,8 @@ public class TimeManager : DestroySingleton<TimeManager>
     /// </summary>
     public void SetSpeed(int speed)
     {
+        if (IsSpeedLocked) return;
+
         speed = Mathf.Clamp(speed, 1, 3);
 
         bool wasPaused = _isPaused;
@@ -138,7 +141,7 @@ public class TimeManager : DestroySingleton<TimeManager>
     /// </summary>
     public void Resume()
     {
-        if (!_isPaused) return;
+        if (!_isPaused || IsSpeedLocked) return;
 
         _isPaused = false;
         currentSpeed = _previousSpeed;
@@ -187,7 +190,7 @@ public class TimeManager : DestroySingleton<TimeManager>
     /// </summary>
     public void SetSpeedToNormal()
     {
-        if (_isPaused) return;
+        if (_isPaused || IsSpeedLocked) return;
 
         currentSpeed = 1;
         _previousSpeed = 1;
@@ -217,7 +220,7 @@ public class TimeManager : DestroySingleton<TimeManager>
     public static float DebugSpeedMultiplier = 1f;
 
     /// <summary>배속·디버그 배수를 timeScale에 다시 반영 (정지 중이면 그대로)</summary>
-    public void ReapplyTimeScale() { if (!_isPaused) ApplyTimeScale(); }
+    public void ReapplyTimeScale() { if (!_isPaused && !IsSpeedLocked) ApplyTimeScale(); }
 
     private void ApplyTimeScale()
     {

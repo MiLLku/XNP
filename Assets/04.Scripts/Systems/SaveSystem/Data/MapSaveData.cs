@@ -56,4 +56,7 @@ public class MapEntitySaveData
 
     /// <summary>건물인 개체(시작 방 문 등)의 남은 체력. 0이면 저장 안 됨(구 세이브) — 최대 체력 그대로</summary>
     public int buildingHealth;
+
+    /// <summary>건물인 개체의 수리에 쌓인 작업량</summary>
+    public float buildingRepairWork;
 }

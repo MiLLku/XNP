@@ -55,18 +55,6 @@ public class Stockpile : MonoBehaviour, IBuildingFunction, IMaterialSource, ISto
     /// <summary>꺼낼 수 있는지 — 정상이거나 부서진 창고</summary>
     public bool CanWithdraw => _building != null && (_building.IsFunctional || _building.IsBroken);
 
-    private WorkOrder _repairOrder;
-
-    void Update()
-    {
-        // 부서진 창고는 수리 작업물을 건다 (저장하지 않으므로 불러온 뒤에도 여기서 다시 건다)
-        if (!IsBroken || WorkSystemManager.instance == null) return;
-        if (SaveManager.instance != null && SaveManager.instance.IsLoading) return;
-        if (_repairOrder != null && WorkSystemManager.instance.HasWorkOrder(_repairOrder)) return;
-        _repairOrder = WorkSystemManager.instance.CreateWorkOrder($"수리: {_building.DisplayName}", WorkType.Building, 0, 2);
-        _repairOrder.AddTarget(new BuildingRepairOrder(_building, GetDepositPosition()));
-    }
-
     // IBuildingFunction
     public bool IsOperating => IsOperational;
 

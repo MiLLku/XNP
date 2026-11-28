@@ -10,4 +10,12 @@ public class EquipmentStorageSaveData
 {
     public List<EquipmentInstance> instances = new List<EquipmentInstance>();
     public int nextInstanceId = 1;
+    public List<EquipmentReservationSaveData> reservations = new List<EquipmentReservationSaveData>();
+}
+
+[Serializable]
+public class EquipmentReservationSaveData
+{
+    public int instanceId;
+    public int employeeId;
 }

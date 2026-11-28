@@ -603,10 +603,8 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
             0
         );
 
-        // 건설 등 다중 셀 건물은 footprint(size) 전체를 기준으로 작업 범위/위치를 판정한다.
-        Vector2Int buildingSize = Vector2Int.one;
-        if (target is BuildOrder buildOrderForSize && buildOrderForSize.buildingData != null)
-            buildingSize = buildOrderForSize.buildingData.size;
+        // 건설과 수리는 건물 전체를 기준으로 작업 범위/위치를 판정한다.
+        Vector2Int buildingSize = GetBuildingWorkSize(target);
 
         Vector3Int currentFootTile = GetFootTile();
         var mining = target as MiningOrder;
@@ -1653,9 +1651,9 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         while (progressive.GetAccumulatedWork() < total)
         {
             if (employee.State != EmployeeState.Working || !target.IsWorkAvailable() ||
-                (target is BuildOrder build && (movement?.HasStableFooting != true ||
-                 !IsPositionInWorkRange(Vector3Int.FloorToInt(build.GetWorkPosition()),
-                     build.buildingData != null ? build.buildingData.size : Vector2Int.one))))
+                ((target is BuildOrder || target is BuildingRepairOrder) &&
+                 (movement?.HasStableFooting != true ||
+                  !IsPositionInWorkRange(Vector3Int.FloorToInt(target.GetWorkPosition()), GetBuildingWorkSize(target)))))
             {
                 Debug.Log($"[Work] {employee.DisplayName}: {target.GetWorkType()} 중단 — " +
                           $"진행도 {progressive.GetAccumulatedWork():F1}/{total:F1}는 대상에 보존됨");
@@ -1681,6 +1679,13 @@ private WorkAbilities CopyAbilities(WorkAbilities source)
         growth?.GainWorkExperience(target.GetWorkType(), Mathf.Max(1, Mathf.RoundToInt(total)));
 
         CompleteWork();
+    }
+
+    private static Vector2Int GetBuildingWorkSize(IWorkTarget target)
+    {
+        if (target is BuildOrder build && build.buildingData != null) return build.buildingData.size;
+        if (target is BuildingRepairOrder repair) return repair.BuildingSize;
+        return Vector2Int.one;
     }
 
     private async UniTaskVoid PerformWorkAsync(IWorkTarget target, float workTime, CancellationToken ct)

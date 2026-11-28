@@ -21,6 +21,7 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
 
     /// <summary>미장착 장비 인스턴스 풀</summary>
     private readonly List<EquipmentInstance> pool = new List<EquipmentInstance>();
+    private readonly Dictionary<int, EmployeeAI> reservations = new Dictionary<int, EmployeeAI>();
 
     /// <summary>등록된 보관소 건물들</summary>
     private readonly List<ArmoryStorage> armories = new List<ArmoryStorage>();
@@ -252,10 +253,38 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         GameMessageBus.Publish(new EquipmentPoolChangedMessage());
     }
 
-    /// <summary>풀에서 인스턴스를 꺼냅니다 (장착 시). 없으면 null.</summary>
-    public EquipmentInstance TakeInstance(int instanceId)
+    public EquipmentInstance GetPoolInstance(int instanceId) => pool.Find(i => i.instanceId == instanceId);
+
+    public Employee GetReservedEmployee(int instanceId)
     {
-        var inst = pool.FirstOrDefault(i => i.instanceId == instanceId);
+        return reservations.TryGetValue(instanceId, out var owner) && owner != null
+            ? owner.GetComponent<Employee>() : null;
+    }
+
+    public bool TryReserve(int instanceId, EmployeeAI requester, Employee expectedOwner)
+    {
+        if (GetPoolInstance(instanceId) == null) return false;
+        reservations.TryGetValue(instanceId, out var previous);
+        if (previous == requester) return true;
+        if (previous != null && previous.GetComponent<Employee>() != expectedOwner) return false;
+
+        reservations[instanceId] = requester;
+        if (previous != null) previous.CancelEquipChange();
+        return true;
+    }
+
+    public void ReleaseReservation(int instanceId, EmployeeAI requester)
+    {
+        if (reservations.TryGetValue(instanceId, out var owner) && owner == requester)
+            reservations.Remove(instanceId);
+    }
+
+    /// <summary>예약한 직원만 풀에서 장비를 꺼낼 수 있습니다.</summary>
+    public EquipmentInstance TakeInstance(int instanceId, EmployeeAI requester)
+    {
+        if (!reservations.TryGetValue(instanceId, out var owner) || owner != requester) return null;
+        reservations.Remove(instanceId);
+        var inst = GetPoolInstance(instanceId);
         if (inst != null)
         {
             pool.Remove(inst);
@@ -325,11 +354,22 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
             instances = new List<EquipmentInstance>(pool),
             nextInstanceId = nextInstanceId
         };
+        foreach (var reservation in reservations)
+        {
+            var employee = GetReservedEmployee(reservation.Key);
+            if (employee != null)
+                data.equipmentStorage.reservations.Add(new EquipmentReservationSaveData
+                {
+                    instanceId = reservation.Key,
+                    employeeId = employee.InstanceId
+                });
+        }
     }
 
     public void Restore(SaveData data)
     {
         pool.Clear();
+        reservations.Clear();
         if (data.equipmentStorage != null)
         {
             if (data.equipmentStorage.instances != null)
@@ -339,7 +379,21 @@ public class EquipmentStorageManager : DestroySingleton<EquipmentStorageManager>
         GameMessageBus.Publish(new EquipmentPoolChangedMessage());
     }
 
-    public void PostRestore(SaveData data) { }
+    public void PostRestore(SaveData data)
+    {
+        var orders = data.equipmentStorage?.reservations;
+        var employees = EmployeeManager.instance;
+        if (orders == null || employees == null || data.runStats?.ended == true) return;
+
+        foreach (var order in orders)
+        {
+            var employee = employees.AllEmployees.FirstOrDefault(e => e != null && e.InstanceId == order.employeeId);
+            var item = GetPoolInstance(order.instanceId);
+            var equipment = item != null ? GameDatabase.Instance?.GetEquipmentData(item.equipmentId) : null;
+            if (employee != null && equipment != null && employee.TryGetComponent(out EmployeeAI ai))
+                ai.RequestEquipChange(equipment.slot, order.instanceId);
+        }
+    }
 
     #endregion
 }
